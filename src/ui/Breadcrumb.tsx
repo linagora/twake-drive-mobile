@@ -45,9 +45,7 @@ export const Breadcrumb = ({ segments, onSegmentPress }: Props) => {
                 </Text>
               </Pressable>
               {!isLast ? (
-                <Text style={[styles.separator, { color: theme.colors.onSurfaceVariant }]}>
-                  /
-                </Text>
+                <Text style={[styles.separator, { color: theme.colors.onSurfaceVariant }]}>/</Text>
               ) : null}
             </View>
           )

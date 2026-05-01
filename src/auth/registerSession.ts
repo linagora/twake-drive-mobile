@@ -7,7 +7,10 @@ interface RegisterParams {
   registerToken: string
 }
 
-export const registerSession = async ({ fqdn, registerToken }: RegisterParams): Promise<Session> => {
+export const registerSession = async ({
+  fqdn,
+  registerToken
+}: RegisterParams): Promise<Session> => {
   const uri = `https://${fqdn}`
   const client = new CozyClient({ uri })
 

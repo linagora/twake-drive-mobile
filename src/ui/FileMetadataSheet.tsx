@@ -52,11 +52,7 @@ export const FileMetadataSheet = forwardRef<FileMetadataSheetHandle>((_, ref) =>
         {file ? (
           <>
             <View style={styles.header}>
-              <Icon
-                name={getFileIcon('file', file.mime)}
-                size={56}
-                color={theme.colors.primary}
-              />
+              <Icon name={getFileIcon('file', file.mime)} size={56} color={theme.colors.primary} />
               <Text variant="titleMedium" style={styles.name}>
                 {file.name}
               </Text>

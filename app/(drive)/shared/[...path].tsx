@@ -39,9 +39,7 @@ export default function SharedScreen() {
   }, [path, t])
 
   const query = useQuery(
-    isRoot
-      ? sharedWithMeQuery()
-      : folderContentsQuery(path[path.length - 1]),
+    isRoot ? sharedWithMeQuery() : folderContentsQuery(path[path.length - 1]),
     { as: isRoot ? sharedWithMeQueryAs : folderContentsQueryAs(path[path.length - 1]) }
   )
 
@@ -88,7 +86,10 @@ export default function SharedScreen() {
       {query.fetchStatus === 'loading' && data.length === 0 ? (
         <LoadingState />
       ) : query.fetchStatus === 'failed' ? (
-        <ErrorState message={t(getErrorMessageKey(query.lastError))} onRetry={() => query.fetch()} />
+        <ErrorState
+          message={t(getErrorMessageKey(query.lastError))}
+          onRetry={() => query.fetch()}
+        />
       ) : data.length === 0 ? (
         <EmptyState message={t('drive.emptyShared')} />
       ) : (

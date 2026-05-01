@@ -47,9 +47,7 @@ describe('fetchTwakeConfiguration', () => {
   })
 
   it('returns null on network error', async () => {
-    nock('https://example.com')
-      .get('/.well-known/twake-configuration')
-      .replyWithError('boom')
+    nock('https://example.com').get('/.well-known/twake-configuration').replyWithError('boom')
     const result = await fetchTwakeConfiguration('example.com')
     expect(result).toBeNull()
   })
@@ -81,11 +79,9 @@ describe('getLoginUri', () => {
   })
 
   it('preserves existing query params on the login URI', async () => {
-    nock('https://example.com')
-      .get('/.well-known/twake-configuration')
-      .reply(200, {
-        'twake-flagship-login-uri': 'https://login.example.com/oauth?client_id=foo'
-      })
+    nock('https://example.com').get('/.well-known/twake-configuration').reply(200, {
+      'twake-flagship-login-uri': 'https://login.example.com/oauth?client_id=foo'
+    })
     const result = await getLoginUri('user@example.com')
     expect(result?.searchParams.get('client_id')).toBe('foo')
     expect(result?.searchParams.get('redirect_after_oidc')).toBe('twakedrive://')

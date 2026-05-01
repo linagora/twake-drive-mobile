@@ -87,7 +87,10 @@ export default function FilesScreen() {
       {query.fetchStatus === 'loading' && data.length === 0 ? (
         <LoadingState />
       ) : query.fetchStatus === 'failed' ? (
-        <ErrorState message={t(getErrorMessageKey(query.lastError))} onRetry={() => query.fetch()} />
+        <ErrorState
+          message={t(getErrorMessageKey(query.lastError))}
+          onRetry={() => query.fetch()}
+        />
       ) : data.length === 0 ? (
         <EmptyState message={t('drive.emptyFolder')} />
       ) : (

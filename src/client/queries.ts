@@ -35,10 +35,8 @@ export const recentQuery = (): QueryDefinition =>
     .limitBy(50)
 export const recentQueryAs = 'io.cozy.files/recent'
 
-export const trashQuery = (): QueryDefinition =>
-  Q('io.cozy.files').where({ dir_id: TRASH_DIR_ID })
+export const trashQuery = (): QueryDefinition => Q('io.cozy.files').where({ dir_id: TRASH_DIR_ID })
 export const trashQueryAs = 'io.cozy.files/trash'
 
-export const fileByIdQuery = (id: string): QueryDefinition =>
-  Q('io.cozy.files').getById(id)
+export const fileByIdQuery = (id: string): QueryDefinition => Q('io.cozy.files').getById(id)
 export const fileByIdQueryAs = (id: string): string => `io.cozy.files/${id}`
