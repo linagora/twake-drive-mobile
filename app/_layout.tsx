@@ -1,3 +1,5 @@
+import 'react-native-url-polyfill/auto'
+
 import React, { useEffect } from 'react'
 import { useColorScheme } from 'react-native'
 import { Provider as PaperProvider } from 'react-native-paper'
@@ -9,12 +11,12 @@ import { CozyProvider } from 'cozy-client'
 import { I18nextProvider } from 'react-i18next'
 
 import i18n from '@/i18n'
-import { useAuth } from '@/auth/useAuth'
+import { AuthProvider, useAuth } from '@/auth/useAuth'
 import { darkTheme, lightTheme } from '@/ui/theme'
 import { attachRevocationListener } from '@/auth/revocationListener'
 import { ErrorBoundary } from '@/ui/ErrorBoundary'
 
-export default function RootLayout() {
+const InnerLayout = () => {
   const colorScheme = useColorScheme()
   const theme = colorScheme === 'dark' ? darkTheme : lightTheme
   const { client, logout } = useAuth()
@@ -43,4 +45,12 @@ export default function RootLayout() {
   )
 
   return client ? <CozyProvider client={client}>{content}</CozyProvider> : content
+}
+
+export default function RootLayout() {
+  return (
+    <AuthProvider>
+      <InnerLayout />
+    </AuthProvider>
+  )
 }

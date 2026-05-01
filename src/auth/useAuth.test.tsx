@@ -17,7 +17,7 @@ import * as tokenStorage from './tokenStorage'
 import * as oidcFlow from './oidcFlow'
 import * as autodiscovery from './autodiscovery'
 import * as registerSessionMod from './registerSession'
-import { useAuth } from './useAuth'
+import { useAuth, AuthProvider } from './useAuth'
 
 const mockSession = { uri: 'https://alice.example.com', accessToken: 'a', refreshToken: 'r' }
 
@@ -37,13 +37,13 @@ describe('useAuth', () => {
 
   it('starts loading then transitions to unauthenticated when no session', async () => {
     jest.spyOn(tokenStorage, 'getSession').mockResolvedValue(null)
-    render(<Probe />)
+    render(<AuthProvider><Probe /></AuthProvider>)
     await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('unauthenticated'))
   })
 
   it('transitions to authenticated when a session exists', async () => {
     jest.spyOn(tokenStorage, 'getSession').mockResolvedValue(mockSession)
-    render(<Probe />)
+    render(<AuthProvider><Probe /></AuthProvider>)
     await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('authenticated'))
   })
 
@@ -56,7 +56,7 @@ describe('useAuth', () => {
     jest.spyOn(registerSessionMod, 'registerSession').mockResolvedValue(mockSession)
     const saveSpy = jest.spyOn(tokenStorage, 'saveSession').mockResolvedValue()
 
-    render(<Probe />)
+    render(<AuthProvider><Probe /></AuthProvider>)
     await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('unauthenticated'))
 
     await act(async () => {
@@ -71,7 +71,7 @@ describe('useAuth', () => {
     jest.spyOn(tokenStorage, 'getSession').mockResolvedValue(mockSession)
     const clearSpy = jest.spyOn(tokenStorage, 'clearSession').mockResolvedValue()
 
-    render(<Probe />)
+    render(<AuthProvider><Probe /></AuthProvider>)
     await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('authenticated'))
 
     await act(async () => {

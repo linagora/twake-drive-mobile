@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import CozyClient from 'cozy-client'
 
 import { createClient } from '@/client/createClient'
@@ -7,13 +7,20 @@ import { startOidcFlow } from './oidcFlow'
 import { registerSession } from './registerSession'
 import { getLoginUri } from './autodiscovery'
 
-interface UseAuthState {
+interface AuthState {
   status: 'loading' | 'authenticated' | 'unauthenticated'
   client: CozyClient | null
 }
 
-export const useAuth = () => {
-  const [state, setState] = useState<UseAuthState>({ status: 'loading', client: null })
+interface AuthContextValue extends AuthState {
+  login: (email: string) => Promise<void>
+  logout: () => Promise<void>
+}
+
+const AuthContext = createContext<AuthContextValue | null>(null)
+
+export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+  const [state, setState] = useState<AuthState>({ status: 'loading', client: null })
 
   useEffect(() => {
     const bootstrap = async () => {
@@ -39,16 +46,28 @@ export const useAuth = () => {
   }, [])
 
   const logout = useCallback(async (): Promise<void> => {
-    if (state.client) {
-      try {
-        await state.client.logout()
-      } catch {
-        // ignore — server may be unreachable
+    setState(prev => {
+      if (prev.client) {
+        Promise.resolve(prev.client.logout()).catch(() => {
+          // ignore — server may be unreachable
+        })
       }
-    }
+      return prev
+    })
     await clearSession()
     setState({ status: 'unauthenticated', client: null })
-  }, [state.client])
+  }, [])
 
-  return { ...state, login, logout }
+  const value = useMemo<AuthContextValue>(
+    () => ({ ...state, login, logout }),
+    [state, login, logout]
+  )
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+}
+
+export const useAuth = (): AuthContextValue => {
+  const ctx = useContext(AuthContext)
+  if (!ctx) throw new Error('useAuth must be used inside an AuthProvider')
+  return ctx
 }
