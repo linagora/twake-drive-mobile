@@ -1,36 +1,32 @@
 {
   "expo": {
-    "name": "twake-drive-mobile",
+    "name": "Twake Drive",
     "slug": "twake-drive-mobile",
-    "version": "1.0.0",
+    "version": "0.1.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
-    "newArchEnabled": true,
+    "scheme": "twakedrive",
+    "userInterfaceStyle": "automatic",
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/splash.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
+    "assetBundlePatterns": ["**/*"],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.linagora.twakedrive"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "package": "com.linagora.twakedrive"
     },
-    "web": {
-      "favicon": "./assets/favicon.png"
-    },
-    "plugins": [
-      "expo-router",
-      "expo-localization",
-      "expo-secure-store",
-      "expo-web-browser"
-    ]
+    "plugins": ["expo-router", "expo-secure-store", "expo-web-browser", "expo-localization"],
+    "experiments": {
+      "typedRoutes": true
+    }
   }
 }
