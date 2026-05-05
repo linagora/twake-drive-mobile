@@ -3,7 +3,8 @@
     "close": "Fermer",
     "retry": "Réessayer",
     "loading": "Chargement…",
-    "logout": "Se déconnecter"
+    "logout": "Se déconnecter",
+    "cancel": "Annuler"
   },
   "auth": {
     "welcomeTitle": "Bienvenue sur Twake Drive",
@@ -33,6 +34,13 @@
       "owner": "Propriétaire",
       "open": "Ouvrir",
       "downloading": "Téléchargement…"
+    },
+    "createFolder": {
+      "title": "Nouveau dossier",
+      "nameLabel": "Nom",
+      "submit": "Créer",
+      "errorConflict": "Un dossier avec ce nom existe déjà.",
+      "errorGeneric": "Erreur lors de la création du dossier."
     }
   },
   "errors": {

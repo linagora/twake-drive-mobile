@@ -1,7 +1,8 @@
 import React, { useCallback, useRef, useState } from 'react'
 import { FlatList, RefreshControl, StyleSheet, View } from 'react-native'
+import { FAB } from 'react-native-paper'
 import { useLocalSearchParams, useRouter } from 'expo-router'
-import { useQuery } from 'cozy-client'
+import { useClient, useQuery } from 'cozy-client'
 import { useTranslation } from 'react-i18next'
 
 import { AppBar } from '@/ui/AppBar'
@@ -11,8 +12,10 @@ import { LoadingState } from '@/ui/LoadingState'
 import { FileRow } from '@/ui/FileRow'
 import { FolderRow } from '@/ui/FolderRow'
 import { FileMetadataSheet, FileMetadataSheetHandle } from '@/ui/FileMetadataSheet'
+import { CreateFolderDialog } from '@/ui/CreateFolderDialog'
 import { useAuth } from '@/auth/useAuth'
 import { getErrorMessageKey } from '@/utils/errorMessages'
+import { createFolder } from '@/files/createFolder'
 import {
   fileByIdQuery,
   fileByIdQueryAs,
@@ -38,6 +41,8 @@ export default function FilesScreen() {
           : undefined
   const sheetRef = useRef<FileMetadataSheetHandle>(null)
   const [refreshing, setRefreshing] = useState(false)
+  const [createFolderVisible, setCreateFolderVisible] = useState(false)
+  const client = useClient()
 
   const isRoot = !path || path.length === 0
   const currentDirId = isRoot ? ROOT_DIR_ID : path![path!.length - 1]
@@ -64,6 +69,13 @@ export default function FilesScreen() {
       setRefreshing(false)
     }
   }, [query])
+
+  const handleCreate = async (name: string) => {
+    if (!client) throw new Error('No client')
+    await createFolder(client, name, currentDirId)
+    setCreateFolderVisible(false)
+    await query.fetch()
+  }
 
   const renderItem = ({ item }: { item: FileQueryResult }) => {
     if (item.type === 'directory') {
@@ -119,10 +131,26 @@ export default function FilesScreen() {
         />
       )}
       <FileMetadataSheet ref={sheetRef} />
+      <FAB
+        icon="plus"
+        style={styles.fab}
+        onPress={() => setCreateFolderVisible(true)}
+        accessibilityLabel={t('drive.createFolder.title')}
+      />
+      <CreateFolderDialog
+        visible={createFolderVisible}
+        onDismiss={() => setCreateFolderVisible(false)}
+        onSubmit={handleCreate}
+      />
     </View>
   )
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 }
+  container: { flex: 1 },
+  fab: {
+    position: 'absolute',
+    right: 16,
+    bottom: 16
+  }
 })
