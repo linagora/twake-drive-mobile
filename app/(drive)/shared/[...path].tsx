@@ -1,12 +1,10 @@
-import React, { useMemo, useRef } from 'react'
+import React, { useCallback, useRef, useState } from 'react'
 import { FlatList, RefreshControl, StyleSheet, View } from 'react-native'
-import { List, useTheme } from 'react-native-paper'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useQuery } from 'cozy-client'
 import { useTranslation } from 'react-i18next'
 
 import { AppBar } from '@/ui/AppBar'
-import { Breadcrumb, BreadcrumbSegment } from '@/ui/Breadcrumb'
 import { EmptyState } from '@/ui/EmptyState'
 import { ErrorState } from '@/ui/ErrorState'
 import { LoadingState } from '@/ui/LoadingState'
@@ -18,64 +16,68 @@ import { getErrorMessageKey } from '@/utils/errorMessages'
 import {
   fileByIdQuery,
   fileByIdQueryAs,
+  filesByIdsQuery,
+  filesByIdsQueryAs,
   folderContentsQuery,
   folderContentsQueryAs,
-  sharedWithMeQuery,
-  sharedWithMeQueryAs,
-  FileQueryResult,
-  SharingQueryResult
+  FileQueryResult
 } from '@/client/queries'
-
-interface SharingRowItem {
-  _id: string
-  name: string
-  fileId: string
-}
-
-const sharingToRow = (sharing: SharingQueryResult): SharingRowItem | null => {
-  const rule = sharing.attributes?.rules?.[0]
-  const fileId = rule?.values?.[0]
-  if (!fileId) return null
-  const name = rule?.title ?? sharing.attributes?.description ?? fileId
-  return { _id: sharing._id, name, fileId }
-}
+import { useSharedFileIds } from '@/client/useSharedFiles'
 
 export default function SharedScreen() {
   const router = useRouter()
-  const theme = useTheme()
   const { t } = useTranslation()
   const { logout } = useAuth()
-  const params = useLocalSearchParams<{ path?: string[] }>()
-  const path = params.path as string[] | undefined
+  const params = useLocalSearchParams<{ path?: string | string[] }>()
+  const rawPath = params.path
+  const path: string[] | undefined =
+    rawPath === undefined
+      ? undefined
+      : Array.isArray(rawPath)
+        ? rawPath.filter(s => !!s)
+        : rawPath
+          ? [rawPath]
+          : undefined
   const sheetRef = useRef<FileMetadataSheetHandle>(null)
+  const [refreshing, setRefreshing] = useState(false)
 
   const isRoot = !path || path.length === 0
+  const safeCurrentDirId = isRoot ? 'io.cozy.files.root-dir' : path![path!.length - 1]
 
-  const segments = useMemo<BreadcrumbSegment[]>(() => {
-    const list: BreadcrumbSegment[] = [{ id: 'root', name: t('drive.shared') }]
-    if (path) for (const id of path) list.push({ id })
-    return list
-  }, [path, t])
+  const sharedIds = useSharedFileIds()
+  const sharedFilesQuery = useQuery(filesByIdsQuery(sharedIds.ids), {
+    as: filesByIdsQueryAs(sharedIds.ids),
+    enabled: isRoot && sharedIds.status === 'loaded' && sharedIds.ids.length > 0
+  })
 
-  const currentDirId = isRoot ? null : path[path.length - 1]
-
-  const query = useQuery(
-    isRoot ? sharedWithMeQuery() : folderContentsQuery(currentDirId as string),
-    { as: isRoot ? sharedWithMeQueryAs : folderContentsQueryAs(currentDirId as string) }
-  )
-
-  const currentDirLookup = useQuery(fileByIdQuery((currentDirId ?? '') as string), {
-    as: fileByIdQueryAs((currentDirId ?? '') as string),
+  const folderQuery = useQuery(folderContentsQuery(safeCurrentDirId), {
+    as: folderContentsQueryAs(safeCurrentDirId),
     enabled: !isRoot
   })
+
+  const currentDirLookup = useQuery(fileByIdQuery(safeCurrentDirId), {
+    as: fileByIdQueryAs(safeCurrentDirId),
+    enabled: !isRoot
+  })
+  const lookupData = currentDirLookup.data
+  const lookupDoc = Array.isArray(lookupData) ? lookupData[0] : lookupData
   const currentDirName = isRoot
     ? t('drive.shared')
-    : ((currentDirLookup.data as { name?: string } | null | undefined)?.name ?? '')
+    : ((lookupDoc as { name?: string } | null | undefined)?.name ?? '')
 
-  const onSegmentPress = (index: number) => {
-    if (index === 0) router.dismissAll()
-    else router.dismissTo(`/(drive)/shared/${path?.slice(0, index).join('/')}`)
-  }
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true)
+    try {
+      if (isRoot) {
+        sharedIds.refresh()
+        await sharedFilesQuery.fetch?.()
+      } else {
+        await folderQuery.fetch()
+      }
+    } finally {
+      setRefreshing(false)
+    }
+  }, [isRoot, sharedIds, sharedFilesQuery, folderQuery])
 
   const renderFileItem = ({ item }: { item: FileQueryResult }) => {
     if (item.type === 'directory') {
@@ -102,32 +104,32 @@ export default function SharedScreen() {
     )
   }
 
-  const renderSharingItem = ({ item }: { item: SharingRowItem }) => (
-    <List.Item
-      title={item.name}
-      left={props => (
-        <List.Icon {...props} icon="folder-account" color={theme.colors.primary} />
-      )}
-      right={props => <List.Icon {...props} icon="chevron-right" />}
-      onPress={() => router.push(`/(drive)/shared/${item.fileId}`)}
-      style={styles.row}
-    />
-  )
+  const data: FileQueryResult[] = isRoot
+    ? ((sharedFilesQuery.data as FileQueryResult[] | null | undefined) ?? [])
+    : ((folderQuery.data as FileQueryResult[] | null | undefined) ?? [])
 
-  const sharings: SharingRowItem[] = isRoot
-    ? (((query.data as SharingQueryResult[] | null | undefined) ?? [])
-        .map(sharingToRow)
-        .filter((row): row is SharingRowItem => row !== null))
-    : []
-
-  const files = (!isRoot
-    ? ((query.data as FileQueryResult[] | null | undefined) ?? [])
-    : []) as FileQueryResult[]
-
-  const isEmpty = isRoot ? sharings.length === 0 : files.length === 0
-  const hasNothingYet = isRoot
-    ? !query.data || (query.data as unknown[]).length === 0
-    : files.length === 0
+  const isLoading = isRoot
+    ? sharedIds.status === 'loading' ||
+      (sharedIds.status === 'loaded' &&
+        sharedIds.ids.length > 0 &&
+        sharedFilesQuery.fetchStatus === 'loading' &&
+        data.length === 0)
+    : folderQuery.fetchStatus === 'loading'
+  const isFailed = isRoot
+    ? sharedIds.status === 'failed' || sharedFilesQuery.fetchStatus === 'failed'
+    : folderQuery.fetchStatus === 'failed'
+  const error = isRoot
+    ? (sharedIds.error ?? sharedFilesQuery.lastError)
+    : folderQuery.lastError
+  const hasNothingYet = data.length === 0
+  const retry = () => {
+    if (isRoot) {
+      sharedIds.refresh()
+      void sharedFilesQuery.fetch?.()
+    } else {
+      void folderQuery.fetch()
+    }
+  }
 
   return (
     <View style={styles.container}>
@@ -136,43 +138,20 @@ export default function SharedScreen() {
         onBack={isRoot ? undefined : () => router.back()}
         onLogout={isRoot ? logout : undefined}
       />
-      {!isRoot ? <Breadcrumb segments={segments} onSegmentPress={onSegmentPress} /> : null}
-      {query.fetchStatus === 'loading' && hasNothingYet ? (
+      {isLoading && hasNothingYet ? (
         <LoadingState />
-      ) : query.fetchStatus === 'failed' ? (
-        <ErrorState
-          message={t(getErrorMessageKey(query.lastError))}
-          onRetry={() => query.fetch()}
-        />
-      ) : isEmpty ? (
+      ) : isFailed ? (
+        <ErrorState message={t(getErrorMessageKey(error))} onRetry={retry} />
+      ) : hasNothingYet ? (
         <EmptyState message={t('drive.emptyShared')} />
-      ) : isRoot ? (
-        <FlatList
-          data={sharings}
-          keyExtractor={item => item._id}
-          renderItem={renderSharingItem}
-          refreshControl={
-            <RefreshControl
-              refreshing={query.fetchStatus === 'loading'}
-              onRefresh={() => query.fetch()}
-            />
-          }
-          onEndReachedThreshold={0.5}
-          onEndReached={() => query.fetchMore?.()}
-        />
       ) : (
         <FlatList
-          data={files}
+          data={data}
           keyExtractor={item => item._id}
           renderItem={renderFileItem}
-          refreshControl={
-            <RefreshControl
-              refreshing={query.fetchStatus === 'loading'}
-              onRefresh={() => query.fetch()}
-            />
-          }
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
           onEndReachedThreshold={0.5}
-          onEndReached={() => query.fetchMore?.()}
+          onEndReached={isRoot ? undefined : () => folderQuery.fetchMore?.()}
         />
       )}
       <FileMetadataSheet ref={sheetRef} />

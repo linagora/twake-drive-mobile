@@ -58,3 +58,8 @@ export const trashQueryAs = 'io.cozy.files/trash'
 
 export const fileByIdQuery = (id: string): QueryDefinition => Q('io.cozy.files').getById(id)
 export const fileByIdQueryAs = (id: string): string => `io.cozy.files/${id}`
+
+export const filesByIdsQuery = (ids: string[]): QueryDefinition =>
+  Q('io.cozy.files').getByIds(ids).sortBy([{ type: 'asc' }, { name: 'asc' }])
+export const filesByIdsQueryAs = (ids: string[]): string =>
+  `io.cozy.files/byIds/${ids.join('-')}`
