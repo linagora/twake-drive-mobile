@@ -6,7 +6,8 @@ module.exports = {
   ],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
-    '\\.(docx|xlsx|pptx)$': '<rootDir>/jest/binaryStub.js'
+    '\\.(docx|xlsx|pptx)$': '<rootDir>/jest/binaryStub.js',
+    '^react-native-vector-icons/.*$': '<rootDir>/jest/vectorIconsStub.js'
   },
   testPathIgnorePatterns: ['/node_modules/', '/.expo/']
 }

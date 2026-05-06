@@ -23,3 +23,4 @@ jest.mock('expo-web-browser', () => ({
 jest.mock('expo-localization', () => ({
   getLocales: () => [{ languageCode: 'fr', languageTag: 'fr-FR' }]
 }))
+

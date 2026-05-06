@@ -11,10 +11,17 @@ export interface FileQueryResult {
   dir_id?: string
   size?: number | null
   mime?: string
+  class?: string
   updated_at?: string
   path?: string
   cozyMetadata?: {
     createdBy?: { account?: string }
+  }
+  links?: {
+    tiny?: string
+    small?: string
+    medium?: string
+    large?: string
   }
 }
 
