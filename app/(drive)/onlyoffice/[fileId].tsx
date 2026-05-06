@@ -9,51 +9,30 @@ import { AppBar } from '@/ui/AppBar'
 import { ErrorState } from '@/ui/ErrorState'
 import { LoadingState } from '@/ui/LoadingState'
 
-interface OnlyOfficeConfig {
-  url: string
-  document: { title?: string; [k: string]: unknown }
-  editor: object
-  token: string
-  documentType: string
+// TODO(backend): cozy-stack returns 403 Forbidden on `GET /office/{id}/open`
+// for OAuth clients of kind=mobile. The endpoint is currently restricted to the
+// registered drive web app, which forces this workaround: we generate a
+// session_code on the stack and load the drive web app's onlyoffice route in a
+// WebView, delegating the entire OnlyOffice editor flow (config, save, realtime)
+// to the web app.
+//
+// The proper fix is server-side: allow OAuth clients with the right scope
+// (e.g. `io.cozy.files`) to call /office/{id}/open directly so we can render
+// the editor with our own native chrome. Once the stack permits it, replace
+// this WebView delegate with a direct API call returning {url, document,
+// editor, token, documentType} that we pass into the OnlyOffice DocsAPI in a
+// minimal HTML wrapper (see git history for the previous implementation).
+
+const buildDriveOnlyOfficeUrl = (stackUri: string, fileId: string, sessionCode: string): string => {
+  const url = new URL(stackUri)
+  const [instance, ...rest] = url.host.split('.')
+  const driveHost = `${instance}-drive.${rest.join('.')}`
+  const params = new URLSearchParams({ session_code: sessionCode })
+  return `${url.protocol}//${driveHost}/?${params.toString()}#/onlyoffice/${encodeURIComponent(fileId)}`
 }
 
-const buildHtml = (cfg: OnlyOfficeConfig): string => {
-  const inner = JSON.stringify({
-    document: cfg.document,
-    editorConfig: cfg.editor,
-    token: cfg.token,
-    documentType: cfg.documentType
-  })
-  return `<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-<style>html,body,#editor{margin:0;padding:0;height:100%;width:100%;}</style>
-</head>
-<body>
-<div id="editor"></div>
-<script src="${cfg.url}/web-apps/apps/api/documents/api.js"></script>
-<script>
-  (function() {
-    try {
-      var config = ${inner};
-      config.events = {
-        onAppReady: function() {
-          window.ReactNativeWebView && window.ReactNativeWebView.postMessage('ready')
-        },
-        onError: function(e) {
-          window.ReactNativeWebView && window.ReactNativeWebView.postMessage('error: ' + JSON.stringify(e))
-        }
-      };
-      new DocsAPI.DocEditor('editor', config);
-    } catch (err) {
-      window.ReactNativeWebView && window.ReactNativeWebView.postMessage('exception: ' + (err && err.message ? err.message : String(err)))
-    }
-  })();
-</script>
-</body>
-</html>`
+interface SessionCodeResponse {
+  session_code?: string
 }
 
 export default function OnlyOfficeScreen() {
@@ -61,30 +40,32 @@ export default function OnlyOfficeScreen() {
   const { t } = useTranslation()
   const { fileId } = useLocalSearchParams<{ fileId: string }>()
   const client = useClient()
-  const [config, setConfig] = useState<OnlyOfficeConfig | null>(null)
+  const [editorUrl, setEditorUrl] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [name, setName] = useState<string>('')
+  const [reloadTick, setReloadTick] = useState(0)
 
   useEffect(() => {
     let cancelled = false
     const run = async () => {
       if (!client || !fileId) return
       try {
-        const resp = (await client
-          .getStackClient()
-          .fetchJSON('GET', '/office/' + encodeURIComponent(fileId) + '/open')) as {
-          data: { attributes: { onlyoffice: OnlyOfficeConfig } }
+        const stackClient = client.getStackClient()
+        const stackUri = stackClient.uri as string
+        let sessionCode: string | undefined
+        const fetchSessionCode = (
+          stackClient as unknown as { fetchSessionCode?: () => Promise<SessionCodeResponse> }
+        ).fetchSessionCode
+        if (typeof fetchSessionCode === 'function') {
+          const resp = await fetchSessionCode.call(stackClient)
+          sessionCode = resp?.session_code
         }
-        if (cancelled) return
-        const oo = resp?.data?.attributes?.onlyoffice
-        if (!oo?.url || !oo?.document || !oo?.editor || !oo?.token || !oo?.documentType) {
-          throw new Error('OnlyOffice config incomplete')
-        }
-        setConfig(oo)
-        const docTitle = oo.document?.title
-        if (typeof docTitle === 'string' && docTitle) setName(docTitle)
+        if (!sessionCode) throw new Error('Could not obtain session code from cozy stack')
+
+        const url = buildDriveOnlyOfficeUrl(stackUri, fileId, sessionCode)
+        console.log('[OnlyOfficeScreen] editorUrl', url)
+        if (!cancelled) setEditorUrl(url)
       } catch (e) {
-        console.error('[OnlyOfficeScreen] config fetch failed', e)
+        console.error('[OnlyOfficeScreen] failed', e)
         if (!cancelled) setError((e as Error).message ?? 'Failed to load')
       }
     }
@@ -92,22 +73,21 @@ export default function OnlyOfficeScreen() {
     return () => {
       cancelled = true
     }
-  }, [client, fileId])
+  }, [client, fileId, reloadTick])
 
   return (
     <View style={styles.container}>
-      <AppBar title={name || t('drive.onlyoffice.title')} onBack={() => router.back()} />
+      <AppBar title={t('drive.onlyoffice.title')} onBack={() => router.back()} />
       {error ? (
         <ErrorState
           message={error}
           onRetry={() => {
             setError(null)
-            setConfig(null)
-            // re-trigger effect by replacing the route
-            router.replace(`/(drive)/onlyoffice/${fileId}`)
+            setEditorUrl(null)
+            setReloadTick(t => t + 1)
           }}
         />
-      ) : !config ? (
+      ) : !editorUrl ? (
         <LoadingState />
       ) : (
         <WebView
@@ -115,10 +95,14 @@ export default function OnlyOfficeScreen() {
           javaScriptEnabled
           domStorageEnabled
           allowsInlineMediaPlayback
-          source={{ html: buildHtml(config) }}
+          sharedCookiesEnabled
+          source={{ uri: editorUrl }}
           style={styles.webview}
           onMessage={event => {
             console.log('[OnlyOfficeScreen] webview message', event.nativeEvent.data)
+          }}
+          onError={syntheticEvent => {
+            console.error('[OnlyOfficeScreen] webview error', syntheticEvent.nativeEvent)
           }}
         />
       )}
