@@ -2,12 +2,13 @@ import React, { useEffect, useState } from 'react'
 import { StyleSheet, View } from 'react-native'
 import { WebView } from 'react-native-webview'
 import { useLocalSearchParams, useRouter } from 'expo-router'
-import { useClient } from 'cozy-client'
+import { useClient, useQuery } from 'cozy-client'
 import { useTranslation } from 'react-i18next'
 
 import { AppBar } from '@/ui/AppBar'
 import { ErrorState } from '@/ui/ErrorState'
 import { LoadingState } from '@/ui/LoadingState'
+import { fileByIdQuery, fileByIdQueryAs } from '@/client/queries'
 
 // TODO(backend): cozy-stack returns 403 Forbidden on `GET /office/{id}/open`
 // for OAuth clients of kind=mobile. The endpoint is currently restricted to the
@@ -44,6 +45,14 @@ export default function OnlyOfficeScreen() {
   const [error, setError] = useState<string | null>(null)
   const [reloadTick, setReloadTick] = useState(0)
 
+  const fileLookup = useQuery(fileByIdQuery(fileId ?? ''), {
+    as: fileByIdQueryAs(fileId ?? ''),
+    enabled: !!fileId
+  })
+  const lookupData = fileLookup.data
+  const lookupDoc = Array.isArray(lookupData) ? lookupData[0] : lookupData
+  const fileName = (lookupDoc as { name?: string } | null | undefined)?.name
+
   useEffect(() => {
     let cancelled = false
     const run = async () => {
@@ -77,7 +86,7 @@ export default function OnlyOfficeScreen() {
 
   return (
     <View style={styles.container}>
-      <AppBar title={t('drive.onlyoffice.title')} onBack={() => router.back()} />
+      <AppBar title={fileName ?? t('drive.onlyoffice.title')} onBack={() => router.back()} />
       {error ? (
         <ErrorState
           message={error}
