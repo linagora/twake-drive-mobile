@@ -24,8 +24,14 @@ jest.mock('cozy-client', () => ({
         scopes: ['io.cozy.files']
       }
     }),
+    registerPlugin: jest.fn(),
     logout: jest.fn()
   }))
+}))
+
+jest.mock('cozy-flags', () => ({
+  __esModule: true,
+  default: Object.assign(jest.fn(), { plugin: jest.fn() })
 }))
 
 import * as tokenStorage from './tokenStorage'
