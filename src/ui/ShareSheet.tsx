@@ -22,6 +22,8 @@ import { useTranslation } from 'react-i18next'
 import { useClient } from 'cozy-client'
 import * as Clipboard from 'expo-clipboard'
 
+import { useFlag } from '@/client/useFlag'
+
 import {
   PublicLinkPermission,
   SharingDoc,
@@ -65,6 +67,14 @@ export const ShareSheet = forwardRef<ShareSheetHandle>((_, ref) => {
   const { t } = useTranslation()
   const client = useClient()
   const bottomSheetRef = useRef<BottomSheet>(null)
+
+  // Flags mirrored from twake-drive web's ShareFileView / ShareDisplayedFolderView:
+  // - sharing.generate-link-button.enabled gates the public link toggle (false → hide).
+  // - sharing.auto-open-settings.enabled is a no-op here for now since the mobile sheet
+  //   doesn't have an "advanced settings" panel; recorded for parity.
+  const generateLinkEnabled = !!useFlag('sharing.generate-link-button.enabled')
+  // TODO: when an advanced-settings panel is added, gate it on this flag too.
+  // const autoOpenSettingsEnabled = !!useFlag('sharing.auto-open-settings.enabled')
 
   const [file, setFile] = useState<ShareSheetFile | null>(null)
   const [sharing, setSharing] = useState<SharingDoc | null>(null)
@@ -247,37 +257,41 @@ export const ShareSheet = forwardRef<ShareSheetHandle>((_, ref) => {
               </View>
             ) : null}
 
-            {/* Public link section */}
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <Text variant="titleSmall">{t('drive.share.linkTitle')}</Text>
-                <Switch
-                  value={linkPermission !== null}
-                  onValueChange={onToggleLink}
-                  disabled={mutating || loading}
-                />
-              </View>
-              {linkPermission ? (
-                <>
-                  <Text variant="bodySmall" style={styles.sectionHint}>
-                    {t('drive.share.linkOn')}
-                  </Text>
-                  <View style={styles.linkRow}>
-                    <Text style={styles.linkText} numberOfLines={1} ellipsizeMode="middle">
-                      {linkUrl ? truncateMiddle(linkUrl) : ''}
-                    </Text>
-                    <IconButton
-                      icon="content-copy"
-                      onPress={() => void onCopyLink()}
-                      disabled={!linkUrl}
-                      accessibilityLabel={t('drive.share.linkCopy')}
+            {/* Public link section — gated by sharing.generate-link-button.enabled */}
+            {generateLinkEnabled ? (
+              <>
+                <View style={styles.section}>
+                  <View style={styles.sectionHeader}>
+                    <Text variant="titleSmall">{t('drive.share.linkTitle')}</Text>
+                    <Switch
+                      value={linkPermission !== null}
+                      onValueChange={onToggleLink}
+                      disabled={mutating || loading}
                     />
                   </View>
-                </>
-              ) : null}
-            </View>
+                  {linkPermission ? (
+                    <>
+                      <Text variant="bodySmall" style={styles.sectionHint}>
+                        {t('drive.share.linkOn')}
+                      </Text>
+                      <View style={styles.linkRow}>
+                        <Text style={styles.linkText} numberOfLines={1} ellipsizeMode="middle">
+                          {linkUrl ? truncateMiddle(linkUrl) : ''}
+                        </Text>
+                        <IconButton
+                          icon="content-copy"
+                          onPress={() => void onCopyLink()}
+                          disabled={!linkUrl}
+                          accessibilityLabel={t('drive.share.linkCopy')}
+                        />
+                      </View>
+                    </>
+                  ) : null}
+                </View>
 
-            <Divider />
+                <Divider />
+              </>
+            ) : null}
 
             {/* Recipients section */}
             <View style={styles.section}>
