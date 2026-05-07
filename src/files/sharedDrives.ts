@@ -49,17 +49,34 @@ interface RawShortcut {
  */
 export const fetchSharedDrives = async (client: CozyClient): Promise<SharedDriveEntry[]> => {
   const result = (await client.query(
-    Query('io.cozy.files').where({ dir_id: SHARED_DRIVES_DIR_ID }) as never,
+    Query('io.cozy.files')
+      .where({ dir_id: SHARED_DRIVES_DIR_ID })
+      .sortBy([{ type: 'asc' }, { name: 'asc' }]) as never,
     { as: `io.cozy.files/dir/${SHARED_DRIVES_DIR_ID}/drives` } as never
   )) as { data?: RawShortcut[] }
   const shortcuts = result.data ?? []
+  console.log(
+    '[fetchSharedDrives] received',
+    shortcuts.length,
+    'item(s); sample:',
+    shortcuts[0] ? JSON.stringify(shortcuts[0]).slice(0, 800) : '(empty)'
+  )
   return shortcuts
     .map((sc): SharedDriveEntry | null => {
-      if (sc.class !== 'shortcut') return null
       const shortcutId = sc._id ?? sc.id
       const driveId = sc.relationships?.referenced_by?.data?.[0]?.id
       const rootFolderId = sc.metadata?.target?._id
-      if (!shortcutId || !driveId || !rootFolderId) return null
+      if (!shortcutId) return null
+      // Be permissive about class — some stacks/responses may not surface it.
+      if (sc.class && sc.class !== 'shortcut') return null
+      if (!driveId || !rootFolderId) {
+        console.warn('[fetchSharedDrives] dropping', shortcutId, {
+          hasDriveId: !!driveId,
+          hasRootFolderId: !!rootFolderId,
+          class: sc.class
+        })
+        return null
+      }
       const rawName = sc.name ?? ''
       const name = rawName.replace(/\.url$/i, '') || rawName
       return { shortcutId, driveId, rootFolderId, name }
