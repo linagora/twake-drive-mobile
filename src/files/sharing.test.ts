@@ -138,6 +138,36 @@ describe('buildPublicLinkUrl', () => {
     expect(url).toBeNull()
   })
 
+  it('prefers shortcodes.email over shortcodes.code', () => {
+    const url = buildPublicLinkUrl('https://alice.cozy.example/', {
+      _id: 'perm-1',
+      attributes: {
+        shortcodes: { code: 'short-code-key', email: 'short-email-key' }
+      }
+    })
+    expect(url).toBe('https://alice-drive.cozy.example/public?sharecode=short-email-key&id=perm-1')
+  })
+
+  it('falls back to shortcodes.code when email is absent', () => {
+    const url = buildPublicLinkUrl('https://alice.cozy.example/', {
+      _id: 'perm-1',
+      attributes: {
+        shortcodes: { code: 'short-code-key' }
+      }
+    })
+    expect(url).toBe('https://alice-drive.cozy.example/public?sharecode=short-code-key&id=perm-1')
+  })
+
+  it('falls back to codes.email when shortcodes are missing', () => {
+    const url = buildPublicLinkUrl('https://alice.cozy.example/', {
+      _id: 'perm-1',
+      attributes: {
+        codes: { code: 'long-code-key', email: 'long-email-key' }
+      }
+    })
+    expect(url).toBe('https://alice-drive.cozy.example/public?sharecode=long-email-key&id=perm-1')
+  })
+
   it('prefers the shortcode over the long sharecode when both are present', () => {
     const url = buildPublicLinkUrl('https://alice.cozy.example/', {
       _id: 'perm-1',

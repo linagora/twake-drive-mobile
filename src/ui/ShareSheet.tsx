@@ -297,15 +297,16 @@ export const ShareSheet = forwardRef<ShareSheetHandle>((_, ref) => {
                 <View style={styles.section}>
                   <View style={styles.sectionHeader}>
                     <Text variant="titleSmall">{t('drive.share.linkTitle')}</Text>
-                    <View style={styles.linkSwitchRow}>
+                    <View style={styles.linkSwitchSlot}>
                       {linkMutating ? (
-                        <ActivityIndicator animating style={styles.linkSwitchSpinner} />
-                      ) : null}
-                      <Switch
-                        value={linkPermission !== null}
-                        onValueChange={onToggleLink}
-                        disabled={linkMutating || loading}
-                      />
+                        <ActivityIndicator animating />
+                      ) : (
+                        <Switch
+                          value={linkPermission !== null}
+                          onValueChange={onToggleLink}
+                          disabled={loading}
+                        />
+                      )}
                     </View>
                   </View>
                   {linkPermission ? (
@@ -532,8 +533,14 @@ const styles = StyleSheet.create({
   },
   sectionHint: { opacity: 0.7 },
   linkRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  linkSwitchRow: { flexDirection: 'row', alignItems: 'center' },
-  linkSwitchSpinner: { marginRight: 8 },
+  // Slot keeps a fixed width matching Paper's Switch so swapping in the
+  // spinner during a mutation doesn't shift the title left.
+  linkSwitchSlot: {
+    width: 52,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
   linkText: { flex: 1 },
   recipientRow: {
     flexDirection: 'row',

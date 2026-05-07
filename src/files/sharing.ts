@@ -179,11 +179,14 @@ export const buildPublicLinkUrl = (
   stackUri: string,
   permission: PublicLinkPermission
 ): string | null => {
-  // Prefer the short version of the sharecode when the cozy-stack has
-  // generated one — it's much shorter and friendlier to share.
+  // Mirror cozy-sharing's getShortcode() lookup order so we pick the same
+  // value the web modal would: prefer shortcodes.email > shortcodes.code,
+  // then fall back to codes.email > codes.code. The "email" key dates back
+  // to share-by-link, the "code" key is what cozy-client uses by default.
   const shortcodes = linkShortcodesMap(permission)
   const codes = linkCodesMap(permission)
-  const code = Object.values(shortcodes)[0] ?? Object.values(codes)[0]
+  const code =
+    shortcodes.email ?? shortcodes.code ?? codes.email ?? codes.code ?? null
   if (!code) return null
   let url: URL
   try {
