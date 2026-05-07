@@ -12,10 +12,13 @@ const SHARED_DRIVES_DIR_ID = 'io.cozy.files.shared-drives-dir'
 export interface SharedDriveEntry {
   /** Shortcut document _id (the .url file in shared-drives-dir). */
   shortcutId: string
-  /** Sharing document _id — used as driveId in /sharings/drives/{driveId}. */
-  driveId: string
-  /** Root folder _id of the drive (entry point for browsing). */
-  rootFolderId: string
+  /** Sharing document _id — used as driveId in /sharings/drives/{driveId}.
+   *  May be null when the listing did not surface a referenced_by relationship;
+   *  resolve it lazily by re-fetching the shortcut on tap. */
+  driveId: string | null
+  /** Root folder _id of the drive (entry point for browsing). May be null
+   *  for the same reason as driveId. */
+  rootFolderId: string | null
   name: string
 }
 
@@ -82,37 +85,47 @@ export const fetchSharedDrives = async (client: CozyClient): Promise<SharedDrive
     { as: `io.cozy.files/dir/${SHARED_DRIVES_DIR_ID}/drives` } as never
   )) as { data?: RawShortcut[] }
   const shortcuts = result.data ?? []
-  console.log(
-    '[fetchSharedDrives] received',
-    shortcuts.length,
-    'item(s); sample:',
-    shortcuts[0] ? JSON.stringify(shortcuts[0]).slice(0, 1000) : '(empty)'
-  )
   return shortcuts
     .map((sc): SharedDriveEntry | null => {
       const shortcutId = sc._id ?? sc.id
-      const cls = readClass(sc)
-      // Be permissive about class — some stacks/responses may not surface it.
-      if (cls && cls !== 'shortcut') return null
-      const driveId = readRelationships(sc)?.referenced_by?.data?.[0]?.id
-      const rootTarget = readMetadataTarget(sc)
-      const rootFolderId = rootTarget?._id ?? rootTarget?.id
       if (!shortcutId) return null
-      if (!driveId || !rootFolderId) {
-        console.warn('[fetchSharedDrives] dropping', shortcutId, {
-          hasDriveId: !!driveId,
-          hasRootFolderId: !!rootFolderId,
-          class: cls,
-          relationshipsPath: sc.relationships ? 'top' : sc.attributes?.relationships ? 'attrs' : 'none',
-          metadataPath: sc.metadata ? 'top' : sc.attributes?.metadata ? 'attrs' : 'none'
-        })
-        return null
-      }
+      // Only `.url` shortcuts represent shared drives in this folder — the
+      // stack also stores other system documents here (the trash bin, etc.)
+      // which mustn't surface as drives.
+      const cls = readClass(sc)
+      if (cls !== 'shortcut') return null
+      const driveId = readRelationships(sc)?.referenced_by?.data?.[0]?.id ?? null
+      const target = readMetadataTarget(sc)
+      const rootFolderId = target?._id ?? target?.id ?? null
       const rawName = readName(sc)
       const name = rawName.replace(/\.url$/i, '') || rawName
       return { shortcutId, driveId, rootFolderId, name }
     })
     .filter((entry): entry is SharedDriveEntry => entry !== null)
+}
+
+/**
+ * Re-fetch a single shortcut document via `io.cozy.files.shortcuts/{id}` to
+ * recover the drive's rootFolderId / driveId when the listing did not carry
+ * them. Mirrors what cozy-client's `useFetchShortcut` does.
+ */
+export const resolveSharedDriveTarget = async (
+  client: CozyClient,
+  shortcutId: string
+): Promise<{ driveId: string | null; rootFolderId: string | null; url: string | null }> => {
+  const resp = (await client.query(
+    Query('io.cozy.files.shortcuts').getById(shortcutId) as never,
+    {
+      as: `io.cozy.files.shortcuts/${shortcutId}`,
+      singleDocData: true
+    } as never
+  )) as { data?: RawShortcut & { url?: string } }
+  const data = resp.data ?? {}
+  const target = readMetadataTarget(data)
+  const driveId = readRelationships(data)?.referenced_by?.data?.[0]?.id ?? null
+  const rootFolderId = target?._id ?? target?.id ?? null
+  const url = (data.url ?? data.attributes?.['url' as keyof typeof data.attributes]) as string | null | undefined
+  return { driveId, rootFolderId, url: url ?? null }
 }
 
 export interface SharedDriveDirContents {

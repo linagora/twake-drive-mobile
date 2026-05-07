@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
-import { FlatList, RefreshControl, StyleSheet, View } from 'react-native'
+import { FlatList, Linking, RefreshControl, StyleSheet, View } from 'react-native'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useClient } from 'cozy-client'
 import { useTranslation } from 'react-i18next'
+import { Snackbar } from 'react-native-paper'
 
 import { AppBar } from '@/ui/AppBar'
 import { EmptyState } from '@/ui/EmptyState'
@@ -17,6 +18,7 @@ import { getErrorMessageKey } from '@/utils/errorMessages'
 import {
   fetchSharedDriveFolder,
   fetchSharedDrives,
+  resolveSharedDriveTarget,
   SharedDriveEntry
 } from '@/files/sharedDrives'
 import { FileQueryResult } from '@/client/queries'
@@ -75,6 +77,7 @@ export default function SharedDrivesScreen() {
   const sheetRef = useRef<FileMetadataSheetHandle>(null)
   const shareRef = useRef<ShareSheetHandle>(null)
   const [refreshing, setRefreshing] = useState(false)
+  const [resolveError, setResolveError] = useState<string | null>(null)
 
   // path semantics:
   //   []                       → drives list (root)
@@ -138,10 +141,43 @@ export default function SharedDrivesScreen() {
     }
   }, [isRoot, reloadDrives, reloadFolder])
 
+  const onDrivePress = useCallback(
+    async (entry: SharedDriveEntry) => {
+      let driveId = entry.driveId
+      let rootFolderId = entry.rootFolderId
+      let url: string | null = null
+
+      if (!driveId || !rootFolderId) {
+        if (!client) return
+        try {
+          const resolved = await resolveSharedDriveTarget(client, entry.shortcutId)
+          driveId = driveId ?? resolved.driveId
+          rootFolderId = rootFolderId ?? resolved.rootFolderId
+          url = resolved.url
+        } catch (e) {
+          console.error('[SharedDrives] resolveSharedDriveTarget failed', e)
+          setResolveError(t('errors.generic'))
+          return
+        }
+      }
+
+      if (driveId && rootFolderId) {
+        router.push(`/(drive)/shareddrives/${driveId}/${rootFolderId}`)
+        return
+      }
+      if (url) {
+        await Linking.openURL(url)
+        return
+      }
+      setResolveError(t('errors.generic'))
+    },
+    [client, router, t]
+  )
+
   const renderDrive = ({ item }: { item: SharedDriveEntry }) => (
     <FolderRow
-      folder={{ _id: item.driveId, name: item.name }}
-      onPress={() => router.push(`/(drive)/shareddrives/${item.driveId}/${item.rootFolderId}`)}
+      folder={{ _id: item.shortcutId, name: item.name }}
+      onPress={() => void onDrivePress(item)}
     />
   )
 
@@ -204,7 +240,7 @@ export default function SharedDrivesScreen() {
       ) : isRoot ? (
         <FlatList
           data={drives ?? []}
-          keyExtractor={item => item.driveId}
+          keyExtractor={item => item.shortcutId}
           renderItem={renderDrive}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         />
@@ -221,6 +257,13 @@ export default function SharedDrivesScreen() {
         onShareRequested={file => shareRef.current?.present(file)}
       />
       <ShareSheet ref={shareRef} />
+      <Snackbar
+        visible={!!resolveError}
+        onDismiss={() => setResolveError(null)}
+        duration={3000}
+      >
+        {resolveError ?? ''}
+      </Snackbar>
     </View>
   )
 }

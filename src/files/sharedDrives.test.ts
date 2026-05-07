@@ -42,26 +42,23 @@ describe('fetchSharedDrives', () => {
     expect(definition.selector).toMatchObject({ dir_id: 'io.cozy.files.shared-drives-dir' })
   })
 
-  it('skips non-shortcut items and entries missing a sharing reference or target', async () => {
+  it('keeps every shortcut even when driveId/rootFolderId are missing (resolved lazily on tap)', async () => {
     const { client } = buildClient({
       data: [
-        // not a shortcut - skip
+        // not a shortcut — must be filtered out (e.g. system trash entry)
         { _id: 'a', name: 'plain.txt', class: 'text', type: 'file' },
-        // missing referenced_by - skip
         {
           _id: 'b',
           name: 'Orphan.url',
           class: 'shortcut',
           metadata: { target: { _id: 'root-b' } }
         },
-        // missing metadata.target - skip
         {
           _id: 'c',
           name: 'NoTarget.url',
           class: 'shortcut',
           relationships: { referenced_by: { data: [{ id: 'sh-c' }] } }
         },
-        // good
         {
           _id: 'd',
           name: 'Engineering.url',
@@ -72,8 +69,33 @@ describe('fetchSharedDrives', () => {
       ]
     })
     const drives = await fetchSharedDrives(client)
-    expect(drives.map(d => d.shortcutId)).toEqual(['d'])
-    expect(drives[0]).toMatchObject({ driveId: 'sh-d', rootFolderId: 'root-d', name: 'Engineering' })
+    expect(drives.map(d => d.shortcutId)).toEqual(['b', 'c', 'd'])
+    expect(drives[0]).toMatchObject({ driveId: null, rootFolderId: 'root-b' })
+    expect(drives[1]).toMatchObject({ driveId: 'sh-c', rootFolderId: null })
+    expect(drives[2]).toMatchObject({ driveId: 'sh-d', rootFolderId: 'root-d', name: 'Engineering' })
+  })
+
+  it('reads metadata.target / relationships from JSON-API attributes when not normalized', async () => {
+    const { client } = buildClient({
+      data: [
+        {
+          _id: 'jsonapi-1',
+          attributes: {
+            name: 'Marketing.url',
+            class: 'shortcut',
+            metadata: { target: { _id: 'root-Z' } },
+            relationships: { referenced_by: { data: [{ id: 'sh-Z' }] } }
+          }
+        }
+      ]
+    })
+    const drives = await fetchSharedDrives(client)
+    expect(drives[0]).toMatchObject({
+      shortcutId: 'jsonapi-1',
+      driveId: 'sh-Z',
+      rootFolderId: 'root-Z',
+      name: 'Marketing'
+    })
   })
 
   it('keeps the original name when stripping .url leaves it empty', async () => {
