@@ -118,7 +118,7 @@ describe('buildPublicLinkUrl', () => {
       attributes: { codes: { code: 'XYZCODE' } }
     })
     expect(url).toBe(
-      'https://alice-drive.cozy.example/public?sharecode=XYZCODE&id=perm-1'
+      'https://alice-drive.cozy.example/public?sharecode=XYZCODE'
     )
   })
 
@@ -145,7 +145,7 @@ describe('buildPublicLinkUrl', () => {
         shortcodes: { code: 'short-code-key', email: 'short-email-key' }
       }
     })
-    expect(url).toBe('https://alice-drive.cozy.example/public?sharecode=short-email-key&id=perm-1')
+    expect(url).toBe('https://alice-drive.cozy.example/public?sharecode=short-email-key')
   })
 
   it('falls back to shortcodes.code when email is absent', () => {
@@ -155,7 +155,7 @@ describe('buildPublicLinkUrl', () => {
         shortcodes: { code: 'short-code-key' }
       }
     })
-    expect(url).toBe('https://alice-drive.cozy.example/public?sharecode=short-code-key&id=perm-1')
+    expect(url).toBe('https://alice-drive.cozy.example/public?sharecode=short-code-key')
   })
 
   it('falls back to codes.email when shortcodes are missing', () => {
@@ -165,7 +165,7 @@ describe('buildPublicLinkUrl', () => {
         codes: { code: 'long-code-key', email: 'long-email-key' }
       }
     })
-    expect(url).toBe('https://alice-drive.cozy.example/public?sharecode=long-email-key&id=perm-1')
+    expect(url).toBe('https://alice-drive.cozy.example/public?sharecode=long-email-key')
   })
 
   it('prefers the shortcode over the long sharecode when both are present', () => {
@@ -176,7 +176,7 @@ describe('buildPublicLinkUrl', () => {
         shortcodes: { code: 'k7Hv2x9p' }
       }
     })
-    expect(url).toBe('https://alice-drive.cozy.example/public?sharecode=k7Hv2x9p&id=perm-1')
+    expect(url).toBe('https://alice-drive.cozy.example/public?sharecode=k7Hv2x9p')
   })
 
   it('falls back to the long sharecode when shortcodes are absent', () => {
@@ -185,7 +185,7 @@ describe('buildPublicLinkUrl', () => {
       attributes: { codes: { code: 'LONGFULLSHARECODE' } }
     })
     expect(url).toBe(
-      'https://alice-drive.cozy.example/public?sharecode=LONGFULLSHARECODE&id=perm-1'
+      'https://alice-drive.cozy.example/public?sharecode=LONGFULLSHARECODE'
     )
   })
 })

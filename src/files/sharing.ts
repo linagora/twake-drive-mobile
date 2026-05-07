@@ -196,8 +196,7 @@ export const buildPublicLinkUrl = (
   }
   const [instance, ...rest] = url.host.split('.')
   if (!instance || rest.length === 0) return null
-  const permissionId = permission._id ?? permission.id ?? ''
-  return `${url.protocol}//${instance}-drive.${rest.join('.')}/public?sharecode=${encodeURIComponent(code)}&id=${encodeURIComponent(permissionId)}`
+  return `${url.protocol}//${instance}-drive.${rest.join('.')}/public?sharecode=${encodeURIComponent(code)}`
 }
 
 /**
