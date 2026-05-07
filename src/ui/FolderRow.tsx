@@ -4,6 +4,8 @@ import { IconButton, List, Menu } from 'react-native-paper'
 import { useTranslation } from 'react-i18next'
 
 import { FileTypeIcon } from '@/ui/icons/FileTypeIcon'
+import { useFileSharingStatus } from '@/sharing/SharingProvider'
+import { SharedBadge } from './SharedBadge'
 
 export interface FolderItem {
   _id: string
@@ -24,6 +26,7 @@ interface Props {
 export const FolderRow = ({ folder, onPress, onShare }: Props) => {
   const { t } = useTranslation()
   const [menuVisible, setMenuVisible] = useState(false)
+  const sharingStatus = useFileSharingStatus(folder._id)
 
   return (
     <List.Item
@@ -33,6 +36,7 @@ export const FolderRow = ({ folder, onPress, onShare }: Props) => {
       left={props => (
         <View style={[props.style, styles.leftSlot]}>
           <FileTypeIcon icon="folder" size={40} />
+          <SharedBadge status={sharingStatus} />
         </View>
       )}
       right={props =>

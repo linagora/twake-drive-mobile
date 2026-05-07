@@ -46,6 +46,7 @@ import {
   revokePublicLink,
   revokeRecipientAtIndex
 } from '@/files/sharing'
+import { useRefreshSharings } from '@/sharing/SharingProvider'
 import { FileThumbnail } from './FileThumbnail'
 
 export interface ShareSheetFile {
@@ -73,6 +74,7 @@ export const ShareSheet = forwardRef<ShareSheetHandle>((_, ref) => {
   const theme = useTheme()
   const { t } = useTranslation()
   const client = useClient()
+  const refreshSharings = useRefreshSharings()
   const bottomSheetRef = useRef<BottomSheet>(null)
 
   // Flags mirrored from twake-drive web's ShareFileView / ShareDisplayedFolderView:
@@ -153,6 +155,7 @@ export const ShareSheet = forwardRef<ShareSheetHandle>((_, ref) => {
         await revokePublicLink(client, file)
       }
       await refresh(file, { silent: true })
+      refreshSharings()
     } catch (e) {
       console.error('[ShareSheet] toggle link failed', e)
       setError(t('drive.share.errorMutate'))
@@ -187,6 +190,7 @@ export const ShareSheet = forwardRef<ShareSheetHandle>((_, ref) => {
       setEmailInput('')
       setShowAddForm(false)
       await refresh(file, { silent: true })
+      refreshSharings()
     } catch (e) {
       console.error('[ShareSheet] add recipient failed', e)
       setError(t('drive.share.errorMutate'))
@@ -204,6 +208,7 @@ export const ShareSheet = forwardRef<ShareSheetHandle>((_, ref) => {
     try {
       await revokeRecipientAtIndex(client, sharing, memberIndex)
       await refresh(file, { silent: true })
+      refreshSharings()
     } catch (e) {
       console.error('[ShareSheet] revoke recipient failed', e)
       setError(t('drive.share.errorMutate'))

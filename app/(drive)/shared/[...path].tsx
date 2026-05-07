@@ -124,12 +124,13 @@ export default function SharedScreen() {
         sharedFilesQuery.fetchStatus === 'loading' &&
         data.length === 0)
     : folderQuery.fetchStatus === 'loading'
+  // Note: SharingProvider swallows its own fetch errors, so sharedIds no
+  // longer surfaces a 'failed' state — failures of the secondary
+  // filesByIdsQuery fetch still drive the failed UI here.
   const isFailed = isRoot
-    ? sharedIds.status === 'failed' || sharedFilesQuery.fetchStatus === 'failed'
+    ? sharedFilesQuery.fetchStatus === 'failed'
     : folderQuery.fetchStatus === 'failed'
-  const error = isRoot
-    ? (sharedIds.error ?? sharedFilesQuery.lastError)
-    : folderQuery.lastError
+  const error = isRoot ? sharedFilesQuery.lastError : folderQuery.lastError
   const hasNothingYet = data.length === 0
   const retry = () => {
     if (isRoot) {

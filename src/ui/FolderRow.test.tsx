@@ -2,6 +2,11 @@ import React from 'react'
 import { Provider as PaperProvider } from 'react-native-paper'
 import { fireEvent, render, screen } from '@testing-library/react-native'
 
+jest.mock('cozy-client', () => ({
+  __esModule: true,
+  useClient: () => null
+}))
+
 import { FolderRow, FolderItem } from './FolderRow'
 
 const folder: FolderItem = { _id: 'd1', name: 'Documents' }

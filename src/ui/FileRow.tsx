@@ -4,7 +4,9 @@ import { List } from 'react-native-paper'
 import { formatDistanceToNow } from 'date-fns'
 
 import { formatFileSize } from '@/utils/formatters'
+import { useFileSharingStatus } from '@/sharing/SharingProvider'
 import { FileThumbnail } from './FileThumbnail'
+import { SharedBadge } from './SharedBadge'
 
 export interface FileItem {
   _id: string
@@ -28,6 +30,7 @@ export const FileRow = ({ file, onPress }: Props) => {
     ? formatDistanceToNow(new Date(file.updated_at), { addSuffix: true })
     : ''
   const description = date ? `${size} · ${date}` : size
+  const sharingStatus = useFileSharingStatus(file._id)
 
   return (
     <List.Item
@@ -38,6 +41,7 @@ export const FileRow = ({ file, onPress }: Props) => {
       left={props => (
         <View style={[props.style, styles.leftSlot]}>
           <FileThumbnail file={file} size={40} />
+          <SharedBadge status={sharingStatus} />
         </View>
       )}
       onPress={() => onPress(file)}
