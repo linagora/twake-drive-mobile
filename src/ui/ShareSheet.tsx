@@ -92,6 +92,7 @@ export const ShareSheet = forwardRef<ShareSheetHandle>((_, ref) => {
   const [linkPermission, setLinkPermission] = useState<PublicLinkPermission | null>(null)
   const [loading, setLoading] = useState(false)
   const [mutating, setMutating] = useState(false)
+  const [linkMutating, setLinkMutating] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [snack, setSnack] = useState<string | null>(null)
 
@@ -141,7 +142,8 @@ export const ShareSheet = forwardRef<ShareSheetHandle>((_, ref) => {
   }))
 
   const onToggleLink = async (next: boolean): Promise<void> => {
-    if (!client || !file || mutating) return
+    if (!client || !file || linkMutating) return
+    setLinkMutating(true)
     setMutating(true)
     setError(null)
     try {
@@ -155,6 +157,7 @@ export const ShareSheet = forwardRef<ShareSheetHandle>((_, ref) => {
       console.error('[ShareSheet] toggle link failed', e)
       setError(t('drive.share.errorMutate'))
     } finally {
+      setLinkMutating(false)
       setMutating(false)
     }
   }
@@ -294,11 +297,16 @@ export const ShareSheet = forwardRef<ShareSheetHandle>((_, ref) => {
                 <View style={styles.section}>
                   <View style={styles.sectionHeader}>
                     <Text variant="titleSmall">{t('drive.share.linkTitle')}</Text>
-                    <Switch
-                      value={linkPermission !== null}
-                      onValueChange={onToggleLink}
-                      disabled={mutating || loading}
-                    />
+                    <View style={styles.linkSwitchRow}>
+                      {linkMutating ? (
+                        <ActivityIndicator animating style={styles.linkSwitchSpinner} />
+                      ) : null}
+                      <Switch
+                        value={linkPermission !== null}
+                        onValueChange={onToggleLink}
+                        disabled={linkMutating || loading}
+                      />
+                    </View>
                   </View>
                   {linkPermission ? (
                     <>
@@ -524,6 +532,8 @@ const styles = StyleSheet.create({
   },
   sectionHint: { opacity: 0.7 },
   linkRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  linkSwitchRow: { flexDirection: 'row', alignItems: 'center' },
+  linkSwitchSpinner: { marginRight: 8 },
   linkText: { flex: 1 },
   recipientRow: {
     flexDirection: 'row',

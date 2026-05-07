@@ -137,6 +137,27 @@ describe('buildPublicLinkUrl', () => {
     })
     expect(url).toBeNull()
   })
+
+  it('prefers the shortcode over the long sharecode when both are present', () => {
+    const url = buildPublicLinkUrl('https://alice.cozy.example/', {
+      _id: 'perm-1',
+      attributes: {
+        codes: { code: 'LONGFULLSHARECODE' },
+        shortcodes: { code: 'k7Hv2x9p' }
+      }
+    })
+    expect(url).toBe('https://alice-drive.cozy.example/public?sharecode=k7Hv2x9p&id=perm-1')
+  })
+
+  it('falls back to the long sharecode when shortcodes are absent', () => {
+    const url = buildPublicLinkUrl('https://alice.cozy.example/', {
+      _id: 'perm-1',
+      attributes: { codes: { code: 'LONGFULLSHARECODE' } }
+    })
+    expect(url).toBe(
+      'https://alice-drive.cozy.example/public?sharecode=LONGFULLSHARECODE&id=perm-1'
+    )
+  })
 })
 
 describe('getRecipients', () => {
@@ -242,15 +263,14 @@ describe('revokeRecipientAtIndex', () => {
 })
 
 describe('createPublicLink', () => {
-  it('calls createSharingLink with the file as a doc reference', async () => {
+  it('calls createSharingLink with the file as a doc reference and tiny:true to request a shortcode', async () => {
     const createSharingLink = jest.fn().mockResolvedValue({ data: { _id: 'p1' } })
     const client = makeClient({ 'io.cozy.permissions': { createSharingLink } })
     await createPublicLink(client, { _id: 'file-1', type: 'file' })
-    expect(createSharingLink).toHaveBeenCalledWith({
-      _id: 'file-1',
-      _type: 'io.cozy.files',
-      type: 'file'
-    })
+    expect(createSharingLink).toHaveBeenCalledWith(
+      { _id: 'file-1', _type: 'io.cozy.files', type: 'file' },
+      { tiny: true }
+    )
   })
 })
 

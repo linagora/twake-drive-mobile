@@ -44,10 +44,12 @@ export interface PublicLinkPermission {
   id?: string
   attributes?: {
     codes?: Record<string, string>
+    shortcodes?: Record<string, string>
     permissions?: Record<string, { type?: string; values?: string[]; verbs?: string[] }>
   }
   // Normalizer also flattens these to top-level.
   codes?: Record<string, string>
+  shortcodes?: Record<string, string>
   permissions?: Record<string, { type?: string; values?: string[]; verbs?: string[] }>
 }
 
@@ -120,6 +122,9 @@ const linkPermissionsMap = (
 const linkCodesMap = (permission: PublicLinkPermission): Record<string, string> =>
   permission.attributes?.codes ?? permission.codes ?? {}
 
+const linkShortcodesMap = (permission: PublicLinkPermission): Record<string, string> =>
+  permission.attributes?.shortcodes ?? permission.shortcodes ?? {}
+
 const filesContains = (sharing: SharingDoc, fileId: string): boolean => {
   const rules = sharingRules(sharing)
   return rules.some(
@@ -174,8 +179,11 @@ export const buildPublicLinkUrl = (
   stackUri: string,
   permission: PublicLinkPermission
 ): string | null => {
+  // Prefer the short version of the sharecode when the cozy-stack has
+  // generated one — it's much shorter and friendlier to share.
+  const shortcodes = linkShortcodesMap(permission)
   const codes = linkCodesMap(permission)
-  const code = Object.values(codes)[0]
+  const code = Object.values(shortcodes)[0] ?? Object.values(codes)[0]
   if (!code) return null
   let url: URL
   try {
@@ -197,7 +205,9 @@ export const createPublicLink = async (
   file: { _id: string; type?: 'file' | 'directory' }
 ): Promise<PublicLinkPermission> => {
   const document = { _id: file._id, _type: FILES_DOCTYPE, type: file.type }
-  const result = await getPermissions(client).createSharingLink(document)
+  // tiny: true asks the cozy-stack to also generate a shortcode alongside the
+  // long sharecode. buildPublicLinkUrl prefers the shortcode when available.
+  const result = await getPermissions(client).createSharingLink(document, { tiny: true })
   return result.data
 }
 
