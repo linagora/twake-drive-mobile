@@ -1,7 +1,7 @@
-import React, { useCallback, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { FlatList, RefreshControl, StyleSheet, View } from 'react-native'
 import { useLocalSearchParams, useRouter } from 'expo-router'
-import { useQuery } from 'cozy-client'
+import { useClient, useQuery } from 'cozy-client'
 import { useTranslation } from 'react-i18next'
 
 import { AppBar } from '@/ui/AppBar'
@@ -14,12 +14,12 @@ import { FileMetadataSheet, FileMetadataSheetHandle } from '@/ui/FileMetadataShe
 import { ShareSheet, ShareSheetHandle } from '@/ui/ShareSheet'
 import { useAuth } from '@/auth/useAuth'
 import { getErrorMessageKey } from '@/utils/errorMessages'
+import { fetchSharedDrives, SharedDriveEntry } from '@/files/sharedDrives'
 import {
   fileByIdQuery,
   fileByIdQueryAs,
   folderContentsQuery,
   folderContentsQueryAs,
-  SHARED_DRIVES_DIR_ID,
   FileQueryResult
 } from '@/client/queries'
 
@@ -27,6 +27,7 @@ export default function SharedDrivesScreen() {
   const router = useRouter()
   const { t } = useTranslation()
   const { logout } = useAuth()
+  const client = useClient()
   const params = useLocalSearchParams<{ path?: string | string[] }>()
   const rawPath = params.path
   const path: string[] | undefined =
@@ -42,14 +43,23 @@ export default function SharedDrivesScreen() {
   const [refreshing, setRefreshing] = useState(false)
 
   const isRoot = !path || path.length === 0
-  const currentDirId = isRoot ? SHARED_DRIVES_DIR_ID : path![path!.length - 1]
+  // At the root of the Drives tab the cozy-stack returns shortcut docs in
+  // shared-drives-dir; the real list of shared drives comes from the dedicated
+  // `/sharings/drives` endpoint (mirrors twake-drive web's useSharedDrives).
+  // Inside a drive we fall back to the regular folder listing on the drive's
+  // root folder _id.
+  const currentDirId = isRoot ? null : path![path!.length - 1]
 
-  const query = useQuery(folderContentsQuery(currentDirId), {
-    as: folderContentsQueryAs(currentDirId)
-  })
+  const folderQuery = useQuery(
+    currentDirId ? folderContentsQuery(currentDirId) : folderContentsQuery('__noop__'),
+    {
+      as: currentDirId ? folderContentsQueryAs(currentDirId) : folderContentsQueryAs('__noop__'),
+      enabled: !isRoot
+    }
+  )
 
-  const currentDirLookup = useQuery(fileByIdQuery(currentDirId), {
-    as: fileByIdQueryAs(currentDirId),
+  const currentDirLookup = useQuery(fileByIdQuery(currentDirId ?? '__noop__'), {
+    as: fileByIdQueryAs(currentDirId ?? '__noop__'),
     enabled: !isRoot
   })
   const lookupData = currentDirLookup.data
@@ -58,20 +68,47 @@ export default function SharedDrivesScreen() {
     ? t('drive.sharedDrives')
     : ((lookupDoc as { name?: string } | null | undefined)?.name ?? '')
 
+  const [drives, setDrives] = useState<SharedDriveEntry[] | null>(null)
+  const [drivesError, setDrivesError] = useState<unknown>(null)
+  const [drivesLoading, setDrivesLoading] = useState(false)
+
+  const reloadDrives = useCallback(async () => {
+    if (!client) return
+    setDrivesLoading(true)
+    setDrivesError(null)
+    try {
+      const list = await fetchSharedDrives(client)
+      setDrives(list)
+    } catch (e) {
+      console.error('[SharedDrivesScreen] fetchSharedDrives failed', e)
+      setDrivesError(e)
+    } finally {
+      setDrivesLoading(false)
+    }
+  }, [client])
+
+  useEffect(() => {
+    if (isRoot) void reloadDrives()
+  }, [isRoot, reloadDrives])
+
   const onRefresh = useCallback(async () => {
     setRefreshing(true)
     try {
-      await query.fetch()
+      if (isRoot) {
+        await reloadDrives()
+      } else {
+        await folderQuery.fetch()
+      }
     } finally {
       setRefreshing(false)
     }
-  }, [query])
+  }, [isRoot, reloadDrives, folderQuery])
 
-  const renderItem = ({ item }: { item: FileQueryResult }) => {
+  const renderItem = ({ item }: { item: FileQueryResult | SharedDriveEntry }) => {
     if (item.type === 'directory') {
       return (
         <FolderRow
-          folder={item}
+          folder={item as FileQueryResult}
           onPress={folder =>
             router.push(`/(drive)/shareddrives/${[...(path ?? []), folder._id].join('/')}`)
           }
@@ -85,21 +122,27 @@ export default function SharedDrivesScreen() {
         />
       )
     }
+    const fileItem = item as FileQueryResult
     return (
       <FileRow
-        file={{ ...item, size: item.size ?? null }}
+        file={{ ...fileItem, size: fileItem.size ?? null }}
         onPress={file =>
           sheetRef.current?.present({
             ...file,
-            cozyMetadata: item.cozyMetadata,
-            path: item.path
+            cozyMetadata: fileItem.cozyMetadata,
+            path: fileItem.path
           })
         }
       />
     )
   }
 
-  const data = (query.data as FileQueryResult[] | null | undefined) ?? []
+  const isLoading = isRoot ? drivesLoading && drives === null : folderQuery.fetchStatus === 'loading'
+  const hasFailed = isRoot ? !!drivesError : folderQuery.fetchStatus === 'failed'
+  const errorObj = isRoot ? drivesError : folderQuery.lastError
+  const data: Array<FileQueryResult | SharedDriveEntry> = isRoot
+    ? (drives ?? [])
+    : ((folderQuery.data as FileQueryResult[] | null | undefined) ?? [])
 
   return (
     <View style={styles.container}>
@@ -108,12 +151,12 @@ export default function SharedDrivesScreen() {
         onBack={isRoot ? undefined : () => router.back()}
         onLogout={isRoot ? logout : undefined}
       />
-      {query.fetchStatus === 'loading' && data.length === 0 ? (
+      {isLoading && data.length === 0 ? (
         <LoadingState />
-      ) : query.fetchStatus === 'failed' ? (
+      ) : hasFailed ? (
         <ErrorState
-          message={t(getErrorMessageKey(query.lastError))}
-          onRetry={() => query.fetch()}
+          message={t(getErrorMessageKey(errorObj))}
+          onRetry={() => (isRoot ? void reloadDrives() : folderQuery.fetch())}
         />
       ) : data.length === 0 ? (
         <EmptyState message={t('drive.emptySharedDrives')} />
@@ -124,7 +167,7 @@ export default function SharedDrivesScreen() {
           renderItem={renderItem}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
           onEndReachedThreshold={0.5}
-          onEndReached={() => query.fetchMore?.()}
+          onEndReached={() => (isRoot ? undefined : folderQuery.fetchMore?.())}
         />
       )}
       <FileMetadataSheet
