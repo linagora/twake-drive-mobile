@@ -32,21 +32,17 @@ import {
 import { filterContactSuggestions } from '@/files/contactSuggestions'
 
 import {
-  PublicLinkPermission,
-  SharingDoc,
   SharingMember,
   absoluteMemberIndex,
   addRecipient,
   buildPublicLinkUrl,
   createPublicLink,
   createSharingForFile,
-  findPublicLinkForFile,
-  findSharingForFile,
   getRecipients,
   revokePublicLink,
   revokeRecipientAtIndex
 } from '@/files/sharing'
-import { useRefreshSharings } from '@/sharing/SharingProvider'
+import { useFileSharing, useRefreshSharings } from '@/sharing/SharingProvider'
 import { FileThumbnail } from './FileThumbnail'
 
 export interface ShareSheetFile {
@@ -90,9 +86,6 @@ export const ShareSheet = forwardRef<ShareSheetHandle>((_, ref) => {
   // const autoOpenSettingsEnabled = !!useFlag('sharing.auto-open-settings.enabled')
 
   const [file, setFile] = useState<ShareSheetFile | null>(null)
-  const [sharing, setSharing] = useState<SharingDoc | null>(null)
-  const [linkPermission, setLinkPermission] = useState<PublicLinkPermission | null>(null)
-  const [loading, setLoading] = useState(false)
   const [mutating, setMutating] = useState(false)
   const [linkMutating, setLinkMutating] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -102,43 +95,28 @@ export const ShareSheet = forwardRef<ShareSheetHandle>((_, ref) => {
   const [emailInput, setEmailInput] = useState('')
   const [readOnlyInput, setReadOnlyInput] = useState(true)
 
+  // Read sharing + link from the global SharingProvider — no local fetch.
+  // The provider has already fetched both once at drive layout mount, and
+  // refreshSharings() invalidates it after each mutation here.
+  const { loaded: contextLoaded, entry } = useFileSharing(file?._id)
+  const sharing = entry?.sharing ?? null
+  const linkPermission = entry?.linkPermission ?? null
+  // Only the very first session-open before the provider has resolved should
+  // show a placeholder. Subsequent opens hit the warm context and are instant.
+  const initialLoading = !contextLoaded && !entry
+
   const stackUri = client?.getStackClient()?.uri as string | undefined
   const linkUrl =
     linkPermission && stackUri ? buildPublicLinkUrl(stackUri, linkPermission) : null
 
-  const refresh = useCallback(
-    async (target: ShareSheetFile, { silent = false }: { silent?: boolean } = {}) => {
-      if (!client) return
-      if (!silent) setLoading(true)
-      setError(null)
-      try {
-        const [s, p] = await Promise.all([
-          findSharingForFile(client, target._id),
-          findPublicLinkForFile(client, target._id)
-        ])
-        setSharing(s)
-        setLinkPermission(p)
-      } catch (e) {
-        console.error('[ShareSheet] load failed', e)
-        setError(t('drive.share.errorLoad'))
-      } finally {
-        if (!silent) setLoading(false)
-      }
-    },
-    [client, t]
-  )
-
   useImperativeHandle(ref, () => ({
     present: (f: ShareSheetFile) => {
       setFile(f)
-      setSharing(null)
-      setLinkPermission(null)
       setError(null)
       setShowAddForm(false)
       setEmailInput('')
       setReadOnlyInput(true)
       bottomSheetRef.current?.expand()
-      void refresh(f)
     },
     dismiss: () => bottomSheetRef.current?.close()
   }))
@@ -154,7 +132,6 @@ export const ShareSheet = forwardRef<ShareSheetHandle>((_, ref) => {
       } else {
         await revokePublicLink(client, file)
       }
-      await refresh(file, { silent: true })
       refreshSharings()
     } catch (e) {
       console.error('[ShareSheet] toggle link failed', e)
@@ -189,7 +166,6 @@ export const ShareSheet = forwardRef<ShareSheetHandle>((_, ref) => {
       }
       setEmailInput('')
       setShowAddForm(false)
-      await refresh(file, { silent: true })
       refreshSharings()
     } catch (e) {
       console.error('[ShareSheet] add recipient failed', e)
@@ -207,7 +183,6 @@ export const ShareSheet = forwardRef<ShareSheetHandle>((_, ref) => {
     setError(null)
     try {
       await revokeRecipientAtIndex(client, sharing, memberIndex)
-      await refresh(file, { silent: true })
       refreshSharings()
     } catch (e) {
       console.error('[ShareSheet] revoke recipient failed', e)
@@ -276,7 +251,7 @@ export const ShareSheet = forwardRef<ShareSheetHandle>((_, ref) => {
             </View>
             <Divider />
 
-            {loading ? (
+            {initialLoading ? (
               <View style={styles.loaderRow}>
                 <ActivityIndicator animating />
               </View>
@@ -285,12 +260,7 @@ export const ShareSheet = forwardRef<ShareSheetHandle>((_, ref) => {
             {error ? (
               <View style={styles.errorBox}>
                 <Text style={[styles.errorText, { color: theme.colors.error }]}>{error}</Text>
-                <Button
-                  mode="text"
-                  onPress={() => {
-                    if (file) void refresh(file)
-                  }}
-                >
+                <Button mode="text" onPress={() => refreshSharings()}>
                   {t('common.retry')}
                 </Button>
               </View>
@@ -309,7 +279,7 @@ export const ShareSheet = forwardRef<ShareSheetHandle>((_, ref) => {
                         <Switch
                           value={linkPermission !== null}
                           onValueChange={onToggleLink}
-                          disabled={loading}
+                          disabled={initialLoading}
                         />
                       )}
                     </View>
@@ -466,7 +436,7 @@ export const ShareSheet = forwardRef<ShareSheetHandle>((_, ref) => {
                   icon="account-plus"
                   onPress={() => setShowAddForm(true)}
                   style={styles.addButton}
-                  disabled={loading}
+                  disabled={initialLoading}
                 >
                   {t('drive.share.addRecipient')}
                 </Button>

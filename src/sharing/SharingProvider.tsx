@@ -18,6 +18,7 @@ import { PublicLinkPermission, SharingDoc, SharingMember } from '@/files/sharing
  */
 export interface FileSharingEntry {
   sharing?: SharingDoc
+  linkPermission?: PublicLinkPermission
   isOwner: boolean
   hasLink: boolean
   recipients: SharingMember[]
@@ -100,7 +101,11 @@ export const buildByIdMap = (
     for (const fid of linkFilesIds(p)) {
       if (!fid) continue
       const existing = map.get(fid) ?? { isOwner: false, hasLink: false, recipients: [] }
-      map.set(fid, { ...existing, hasLink: true })
+      map.set(fid, {
+        ...existing,
+        hasLink: true,
+        linkPermission: existing.linkPermission ?? p
+      })
     }
   }
 
@@ -196,3 +201,16 @@ export const useFileSharingStatus = (fileId: string | undefined): FileSharingSta
  * the provider to re-fetch and rebuild its map.
  */
 export const useRefreshSharings = (): (() => void) => useContext(SharingContext).refresh
+
+/**
+ * Read-side hook for the ShareSheet — returns the full entry plus the
+ * provider's loaded flag so callers can render a placeholder while the
+ * initial fetch is still in flight (typically only on first session open).
+ */
+export const useFileSharing = (
+  fileId: string | undefined
+): { loaded: boolean; entry: FileSharingEntry | undefined } => {
+  const ctx = useContext(SharingContext)
+  if (!fileId) return { loaded: ctx.loaded, entry: undefined }
+  return { loaded: ctx.loaded, entry: ctx.byId.get(fileId) }
+}
