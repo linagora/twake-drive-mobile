@@ -43,6 +43,15 @@ export default function DriveLayout() {
           }}
         />
         <Tabs.Screen
+          name="shareddrives"
+          options={{
+            title: t('drive.sharedDrives'),
+            tabBarIcon: ({ color, size }) => (
+              <Icon name="folder-multiple-outline" color={color} size={size} />
+            )
+          }}
+        />
+        <Tabs.Screen
           name="trash"
           options={{
             title: t('drive.trash'),

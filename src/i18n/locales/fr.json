@@ -20,10 +20,12 @@
   "drive": {
     "myFiles": "Mes fichiers",
     "shared": "Partagés avec moi",
+    "sharedDrives": "Drives",
     "recent": "Récents",
     "trash": "Corbeille",
     "emptyFolder": "Aucun fichier dans ce dossier",
     "emptyShared": "Aucun fichier partagé avec vous",
+    "emptySharedDrives": "Aucun drive partagé",
     "emptyRecent": "Aucun fichier récent",
     "emptyTrash": "Corbeille vide",
     "fileMeta": {
