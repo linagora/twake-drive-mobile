@@ -440,9 +440,9 @@ TDD strict sur la logique pure d'auth. Pas de TDD sur l'UI au MVP.
 
 ## 13. Hors-périmètre, à reprendre dans v2+
 
-- Upload (création/édition de fichiers depuis le mobile).
-- Preview natif des fichiers : livré en v1.1 via `react-native-file-viewer` (Quick Look iOS / intent Android), avec téléchargement en cache via `expo-file-system`.
-- Création et gestion de partages.
+- Upload (création/édition de fichiers depuis le mobile). Partiellement levé : création de dossier, note Cozy, et fichiers Office vides (cf. §14.3). Reste : upload de binaires (camera roll, partage iOS / Android intent).
+- Preview natif des fichiers : v1.1 livrée via `react-native-file-viewer` (Quick Look iOS / intent Android, téléchargement en cache via `expo-file-system`). Étendu en v1.4 avec un viewer in-app multi-type (cf. §14.4).
+- Création et gestion de partages : livré en v1.2 (cf. §14.1).
 - Recherche.
 - Offline persistant (PouchDB ou équivalent).
 - Notifications push.
@@ -451,3 +451,132 @@ TDD strict sur la logique pure d'auth. Pas de TDD sur l'UI au MVP.
 - Switch manuel light/dark.
 - Sentry / crash reporting.
 - Tests E2E (Detox / Maestro).
+
+---
+
+## 14. Itérations post-v1
+
+Cette section retrace les ajouts livrés au-delà du périmètre v1 défini ci-dessus, par phase, dans l'ordre chronologique. Elle ne réécrit pas le design d'origine — elle le complète. Les principes structurants restent les mêmes : un seul groupe `(auth)` + `(drive)`, queries cozy-client alignées sur `twake-drive-web`, hooks Paper, theming via `useTheme`, i18n FR/EN.
+
+**Règle d'or établie en v1.4** : avant de coder un appel `cozy-client` ou `cozy-stack-client`, vérifier ce que `twake-drive-web` fait pour la même opération et utiliser **exactement** la même API à la même couche d'abstraction. Pas de `stackClient.fetchJSON('/...')` manuel quand un helper de plus haut niveau existe ; pas de `client.collection().destroy()` quand `client.destroy()` au top-level invalide aussi le cache. Cf. `memory/feedback_mirror_web.md`.
+
+### 14.1 Partage (v1.2)
+
+Surface en deux temps :
+
+- **Bouton de partage par row** (`FolderRow` `onShare`, bouton dans `FileMetadataSheet`).
+- **`ShareSheet`** : bottom sheet plein écran qui mirror la modale du Drive web. Structure :
+  - **Lien public** (toggle Switch + spinner pendant la mutation, choix Lecteur/Éditeur, copier-coller). URL générée à partir du `shortcode` de cozy-sharing (pas du sharecode brut), gated derrière le flag `sharing.generate-link-button.enabled`.
+  - **Destinataires** : autocomplete email basé sur `io.cozy.contacts` (via `reachableContactsQuery`, mêmes selectors que `cozy-sharing`'s `buildReachableContactsQuery`), choix Lecteur/Éditeur, send → cozy-stack `POST /sharings`.
+  - **Liste des membres** avec leur statut (`pending`, `ready`, `revoked`) et action de révocation.
+- **`SharingProvider` + `useFileSharingStatus(id)`** : context React qui pré-charge `io.cozy.sharings` une seule fois au mount du layout `(drive)/_layout`, indexe les sharings par fileId, et expose un statut (`shared` / `recipient` / `none`) consommé par `FileRow`/`FolderRow` pour afficher le `SharedBadge` (point coloré au-dessus de la thumbnail).
+
+### 14.2 Onglet « Drives » et drives partagés (v1.2.1)
+
+Cinquième onglet du `(drive)` group, en plus de Mes fichiers / Partagés / Récents / Corbeille. Affiche les drives partagés dont l'utilisateur est destinataire.
+
+- **Listing** : on n'utilise PAS la route v60 `GET /sharings/drives` (404 sur les stacks plus anciennes côté instance utilisateur). À la place, on liste les enfants de `io.cozy.files.shared-drives-dir` qui sont des `class === 'shortcut'` (les `.url` que cozy-stack y dépose pour chaque drive partagé). Le `relationships.referenced_by` du shortcut donne le `io.cozy.sharings._id` qui sert de `driveId` pour les routes per-drive. `metadata.target._id` donne le rootFolderId.
+- **Navigation in-app** : `app/(drive)/shareddrives/[...path].tsx` — `[]` = liste des drives, `[driveId, folderId, ...]` = à l'intérieur. Au tap d'un drive, on `router.push('/(drive)/shareddrives/{driveId}/{rootFolderId}')` ; si la liste n'a pas extrait les ids (fallback), on les ré-résout via `Q('io.cozy.files.shortcuts').getById(shortcutId)`.
+- **Contenu d'un dossier dans un drive** : `stackClient.collection('io.cozy.files', { driveId }).get(folderId)`. La v60 du `cozy-stack-client` reroute le préfixe vers `sharedDriveApiPrefix(driveId)` = `/sharings/drives/{driveId}` automatiquement, donc même URL que web sans aucun fetchJSON manuel.
+- **Filtre** : on n'affiche que les `class === 'shortcut'` (le shared-drives-dir contient aussi des docs système type trash bin qu'il ne faut pas surfacer comme drive).
+
+### 14.3 Notes, OnlyOffice, et création de fichiers (v1.3)
+
+- **Cozy Notes** : nouveau type `.cozy-note`, rendu via `app/(drive)/note/[fileId].tsx` qui charge le drive web app dans une `WebView` avec un `session_code` obtenu via `stackClient.fetchSessionCode()`. Détection via `isCozyNoteFile(name)` dans `FileMetadataSheet`.
+- **Docs notes** (`.docs-note`) : icône dédiée, ouverture via la même technique WebView pointant la drive web app `/#/docs/{id}`. Création directe d'une nouvelle note depuis la FAB.
+- **OnlyOffice** : `app/(drive)/onlyoffice/[fileId].tsx` — WebView vers la drive web app `/#/onlyoffice/{id}` avec `session_code`. La création de document Word/Excel/PowerPoint passe par `createOfficeFile(client, class, name, dirId)` qui crée un fichier vide avec le bon mime, puis on push directement le screen onlyoffice sur le doc créé. **TODO backend** documenté : la stack actuelle bloque `GET /office/{id}/open` pour les OAuth clients `kind=mobile` ; à fixer côté stack pour rendre l'éditeur natif.
+- **Création depuis la FAB** : `FAB.Group` dans Mes fichiers, actions `New folder`, `New note`, `New document` (gated `drive.lasuitedocs.enabled`), `Word`, `Spreadsheet`, `Presentation`. Dialogs `CreateFolderDialog` et `CreateOfficeFileDialog`.
+- **Shortcuts (`.url`)** : `isShortcutFile()` détection + `fetchShortcutUrl()` qui lit `io.cozy.files.shortcuts/{id}`.url et ouvre via `Linking.openURL`.
+
+### 14.4 Viewer in-app (v1.4)
+
+`app/(drive)/preview/[fileId].tsx` : screen plein écran qui dispatch par type de fichier détecté via `getPreviewKind(file)` (basé sur `class` + `mime`). Streaming systématique via `/files/download/{id}` avec header `Authorization: Bearer {token}` — pas de download complet pour les médias.
+
+| Kind | Composant | Source |
+|------|-----------|--------|
+| `pdf` | `react-native-pdf` (`cache: true`) | URL + headers, range requests natifs |
+| `image` | `expo-image` | URL + headers, `placeholder` = thumbnail (`large`) |
+| `video` | `expo-video` (`useVideoPlayer`) | HLS / Range, `nativeControls`, `allowsFullscreen` |
+| `audio` | `expo-audio` (`useAudioPlayer`) | Range, scrubber custom + play/pause |
+| `text` | `fetch` partiel (`Range: bytes=0-999999`) | ScrollView monospace, indicateur "(truncated)" |
+| autre | `openFileNatively` (download + `react-native-file-viewer`) | fallback, comme v1.1 |
+
+- **Loaders** sur tous les types (overlay `ActivityIndicator` + `ProgressBar` pour PDF) jusqu'à l'event `onLoadComplete` / `onLoad` / `readyToPlay` / `isLoaded`.
+- **Placeholder thumbnail** : pour les images via `placeholder={{ uri: thumbnailUrl }}` d'`expo-image`, et pour les PDFs via une `<Image>` posée en `absoluteFill` sous le `<Pdf>` jusqu'à ce qu'il rende sa première page. Les thumbnails viennent des `links.tiny/small/medium/large` du doc, prefixés par `stackClient.uri`.
+- **Helper centralisé** : `src/files/streamUrl.ts` exporte `buildFileStreamSource(client, fileId)`, `buildThumbnailUrl(client, links, size)`, `getPreviewKind(file)`, `canPreviewInApp(file)`.
+- **Routing** : `FileMetadataSheet.onOpen` route vers `/preview/{id}` quand `canPreviewInApp(file)` est vrai, sinon comportement v1.1 (download + intent).
+- **Bouton « Open externally »** depuis le viewer pour les types supportés (avec loader pendant le download).
+
+Pas de Nitro Modules : tous les viewers font le streaming au niveau natif (NSURLSession / OkHttp), aucun chatter JS↔native pendant la lecture.
+
+### 14.5 Soft-delete (v1.5)
+
+Fichiers et dossiers déplaçables dans la corbeille depuis Mes fichiers et Récents.
+
+- **`src/files/deleteFile.ts`** — `softDeleteEntry(client, entry)` appelle `client.destroy(doc)` (top-level, **pas** `client.collection().destroy()`). Le top-level dispatch `Mutations.deleteDocument` qui invalide les query results en cache. Sans ça, le doc supprimé reste dans la liste jusqu'à un reload complet de l'app.
+- **UI** :
+  - `FolderRow` : item « Supprimer » dans le menu `…` (corbeille rouge).
+  - `FileRow` : même item dans son menu `…` (ajouté en parité avec FolderRow).
+  - `FileMetadataSheet` : bouton « Supprimer » en `theme.colors.error`.
+- **Confirmation** : `src/ui/ConfirmDeleteDialog.tsx` (Paper Dialog), titre adapté file/folder, body interpole le nom.
+- **Feedback** : Snackbar « Fichier/Dossier déplacé dans la corbeille » + retour du cache mis à jour immédiatement.
+- **Pas activé** dans `shared/` (delete = stop sharing, sémantique différente) ni `shareddrives/`.
+
+### 14.6 Multi-select (v1.6)
+
+Sélection multiple par long-press, avec barre d'action en haut, dans Mes fichiers (élargissable aux autres écrans).
+
+- **Hook partagé** : `src/ui/useMultiSelect.ts` — `{ selectedIds, count, isSelecting, isSelected, select, deselect, toggle, clear }`. Memoïsé pour éviter les re-renders en cascade.
+- **AppBar** : prop optionnelle `selection={ count, onCancel, actions }` qui swap entièrement le header (close à gauche, count traduit via `t('drive.selection.count', { count })` au centre, icônes destructive à droite).
+- **Rows** : `FileRow` et `FolderRow` reçoivent `selected` et `onLongPress`. En mode sélection :
+  - Le thumbnail / l'icône folder est remplacé par un check tinté (`theme.colors.primary` + `onPrimary`).
+  - Le row prend `theme.colors.primaryContainer` en arrière-plan.
+  - Le menu `…` est masqué (les actions passent par la barre du haut).
+- **Comportement** :
+  - Long-press → entre en sélection et sélectionne le row pressé.
+  - Tap en mode sélection → toggle (et exit auto quand le count retombe à 0).
+  - Tap sur le X → `selection.clear()`.
+  - FAB caché tant qu'on est en sélection.
+- **Actions bulk** : pour l'instant un seul, `Delete`, qui ouvre `ConfirmDeleteDialog` en mode `bulkCount`. La suppression boucle séquentiellement sur `softDeleteEntry` (cozy-stack 409 sur mutations parallèles sur le même `dir_id`). Snackbar « N éléments déplacés dans la corbeille ».
+- **Extensible** : la prop `actions: AppBarSelectionAction[]` accepte un tableau, donc Share / Move / Download peuvent s'ajouter sans modifier l'AppBar.
+
+### 14.7 Upgrade cozy-client v58 → v60.24 (v1.6)
+
+Bump `cozy-client` et `cozy-stack-client` vers 60.24.0 pour aligner l'API mobile sur celle de `twake-drive-web`. Aucun breaking change dans le code applicatif (220+ tests passent).
+
+Ce qui change concrètement :
+
+- **`Q().sharingById(driveId)`** disponible nativement (utilisé via `stackClient.collection({ driveId })`).
+- **`client.destroy(doc)`** (top-level) qui passe par `Mutations.deleteDocument` et invalide le cache des queries (cf. §14.5). C'est ce que web utilise.
+- **Folder listing** : on adopte le pattern `buildDriveQuery({ currentFolderId, type })` de cozy-drive — **deux queries** par dossier (`folderSubfoldersQuery(dirId)` + `folderFilesQuery(dirId)`), mergées au niveau de l'écran. Selector :
+  ```ts
+  Q('io.cozy.files')
+    .where({ dir_id: dirId, type, name: { $gt: null } })
+    .partialIndex({ _id: { $ne: TRASH_DIR_ID } })
+    .indexFields(['dir_id', 'type', 'name'])
+    .sortBy([{ dir_id: 'asc' }, { type: 'asc' }, { name: 'asc' }])
+    .limitBy(100)
+  ```
+  Le `name: { $gt: null }` est la sentinelle web qui force cozy-stack à utiliser un index sur `name`. Le `partialIndex` exclut le doc `trash-dir` lui-même au niveau de l'index.
+
+- **Shared-drive contents** : `stackClient.collection('io.cozy.files', { driveId }).get(folderId)` — la v60 swap le préfixe vers `/sharings/drives/{driveId}` automatiquement (`sharedDriveApiPrefix`). Plus de `fetchJSON` manuel.
+
+### 14.8 Récap des dépendances ajoutées post-v1
+
+| Package | Version | Itération | Native ? |
+|---------|---------|-----------|----------|
+| `expo-image` | ~3.0.11 | v1.4 | Pré-linké Expo |
+| `react-native-pdf` | ^7.0.4 | v1.4 | Oui (Pods) |
+| `react-native-blob-util` | ^0.24.7 | v1.4 (peer de pdf) | Oui (Pods) |
+| `expo-video` | ~3.0.16 | v1.4 | Oui (config plugin) |
+| `expo-audio` | ~1.1.1 | v1.4 | Oui (config plugin) |
+| `cozy-client` | ^60.24.0 (bump) | v1.6 | Non |
+| `cozy-stack-client` | ^60.24.0 (bump) | v1.6 | Non |
+
+Chaque ajout de module natif → `pod install` + `expo run:ios` pour le rebuild.
+
+### 14.9 Hors-périmètre, à reprendre
+
+- Upload de binaires (camera roll, share extension iOS, intent Android).
+- Multi-select : étendre aux écrans `shared/` (avec sémantique « stop sharing ») et `recent/`. Ajouter Move / Share / Download dans la barre d'action.
+- Recherche, offline persistant (PouchDB), realtime, push, biométrie, light/dark switch, Sentry, E2E — inchangé depuis v1.

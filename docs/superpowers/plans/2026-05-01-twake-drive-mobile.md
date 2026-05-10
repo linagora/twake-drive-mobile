@@ -3451,17 +3451,330 @@ git commit -m "docs: add minimal README"
 
 ## Done criteria (recap from spec)
 
-- [ ] User enters email → InAppBrowser opens → returns with session.
-- [ ] Session persists across app restarts.
-- [ ] Mes fichiers tab lists root files; navigation into subfolders works.
-- [ ] Partagés / Récents / Corbeille tabs each load and display content.
-- [ ] Tap on file → metadata bottom sheet.
-- [ ] Tap on folder → navigation in.
-- [ ] Swipe-back works on iOS and Android.
-- [ ] Breadcrumb visible below AppBar (except at root).
-- [ ] Pull-to-refresh works on all lists.
-- [ ] Dark mode follows OS.
-- [ ] FR + EN switchable via OS language.
-- [ ] Logout clears session and returns to welcome.
-- [ ] All Jest tests green.
-- [ ] iOS + Android prebuild + boot OK.
+- [x] User enters email → InAppBrowser opens → returns with session.
+- [x] Session persists across app restarts.
+- [x] Mes fichiers tab lists root files; navigation into subfolders works.
+- [x] Partagés / Récents / Corbeille tabs each load and display content.
+- [x] Tap on file → metadata bottom sheet.
+- [x] Tap on folder → navigation in.
+- [x] Swipe-back works on iOS and Android.
+- [x] Breadcrumb visible below AppBar (except at root).
+- [x] Pull-to-refresh works on all lists.
+- [x] Dark mode follows OS.
+- [x] FR + EN switchable via OS language.
+- [x] Logout clears session and returns to welcome.
+- [x] All Jest tests green.
+- [x] iOS + Android prebuild + boot OK.
+
+---
+
+## Phase 9 — Sharing (post-v1, livré)
+
+> Spec §14.1. Mirrors `cozy-sharing` patterns: `useSharingContext`, `buildReachableContactsQuery`, public link generated from `shortcode` (not raw `sharecode`).
+
+### Task 9.1: `ShareSheet` UI shell
+
+**Files:**
+- Create: `src/ui/ShareSheet.tsx`, `src/ui/ShareSheet.test.tsx`
+- Modify: `src/ui/FolderRow.tsx` (add `onShare`), `src/ui/FileMetadataSheet.tsx` (add Share button)
+
+- [x] Bottom sheet with three sections: Public link (Switch + spinner during mutation), Recipients (autocomplete email + add), Members list (status pill + revoke).
+
+### Task 9.2: Public-link toggle
+
+**Files:**
+- Modify: `src/ui/ShareSheet.tsx`
+- Create: `src/files/sharing.ts`, `src/files/sharing.test.ts`
+
+- [x] Switch flips the public link on/off via `cozy-sharing` Permission collection.
+- [x] URL built from `shortcode` (mirrors web), no `&id=` param.
+- [x] Reader/Editor right via segmented buttons.
+- [x] Gated on `sharing.generate-link-button.enabled` flag.
+
+### Task 9.3: Contact autocomplete
+
+**Files:**
+- Create: `src/files/contactSuggestions.ts`, `src/files/contactSuggestions.test.ts`
+- Modify: `src/client/queries.ts` (add `reachableContactsQuery` with same `partialIndex` as cozy-sharing)
+
+- [x] Pre-fetched once via `useQuery(reachableContactsQuery())`, filtered client-side by name/email substring.
+- [x] Display: avatar (initials) + name + primary email.
+
+### Task 9.4: `SharingProvider` + `SharedBadge`
+
+**Files:**
+- Create: `src/sharing/SharingProvider.tsx`, `src/sharing/SharingProvider.test.tsx`
+- Create: `src/ui/SharedBadge.tsx`
+- Modify: `app/(drive)/_layout.tsx` (wrap with `<SharingProvider>`)
+- Modify: `src/ui/FileRow.tsx`, `src/ui/FolderRow.tsx` (consume `useFileSharingStatus`)
+
+- [x] Single `useQuery(io.cozy.sharings)` at the layout root, indexed by `attributes.rules[].values[]` (file IDs).
+- [x] Hook returns `'shared' | 'recipient' | 'none'` per file ID.
+- [x] Badge: small coloured dot above the row's thumbnail (blue = shared by me, orange = shared with me).
+
+---
+
+## Phase 10 — Shared drives tab (post-v1, livré)
+
+> Spec §14.2. Cinquième onglet, route hidden in tab bar config when v60 stack endpoint absent.
+
+### Task 10.1: `(drive)/shareddrives/[...path].tsx`
+
+**Files:**
+- Create: `app/(drive)/shareddrives/[...path].tsx`
+- Modify: `app/(drive)/_layout.tsx` (register tab)
+
+- [x] Root `[]` lists drives; `[driveId, folderId]` lists folder content inside a drive.
+- [x] Source `src/files/sharedDrives.ts` (next task).
+
+### Task 10.2: `sharedDrives.ts` helpers
+
+**Files:**
+- Create: `src/files/sharedDrives.ts`, `src/files/sharedDrives.test.ts`
+
+- [x] `fetchSharedDrives(client)`: query `io.cozy.files where dir_id = io.cozy.files.shared-drives-dir`, keep only `class === 'shortcut'`, map `metadata.target._id` → `rootFolderId`, `relationships.referenced_by[0].id` → `driveId`.
+- [x] `resolveSharedDriveTarget(client, shortcutId)`: re-fetch `io.cozy.files.shortcuts/{id}` when listing didn't surface IDs.
+- [x] `fetchSharedDriveFolder(client, driveId, folderId)`: `stackClient.collection('io.cozy.files', { driveId }).get(folderId)`. **Updated in Phase 13** to use the v60 cozy-stack-client `driveId` option (was a manual `fetchJSON('/sharings/drives/{driveId}/{folderId}')` initially).
+
+### Task 10.3: i18n + filter
+
+- [x] Filter shortcuts only (skip system docs in `shared-drives-dir`).
+- [x] Strip `.url` suffix from displayed name.
+- [x] FR + EN keys for `drive.sharedDrives`, `drive.emptySharedDrives`.
+
+---
+
+## Phase 11 — Notes, OnlyOffice, Docs creation (post-v1, livré)
+
+> Spec §14.3. WebView-delegated for editors (stack restricts `/office/{id}/open` to drive web app for OAuth `kind=mobile`).
+
+### Task 11.1: Cozy Notes screen
+
+**Files:**
+- Create: `app/(drive)/note/[fileId].tsx`
+- Modify: `src/ui/FileMetadataSheet.tsx` (`isCozyNoteFile` routing)
+
+- [x] WebView pointing at the drive web app's note URL with `session_code` from `stackClient.fetchSessionCode()`.
+- [x] Fallback to native `openFileNatively` if session code unavailable.
+
+### Task 11.2: Docs notes (`.docs-note`)
+
+**Files:**
+- Create: `app/(drive)/docs/[fileId].tsx`, `app/(drive)/docs/new/[folderId].tsx`
+- Modify: `src/files/fileTypes.ts` (`isDocsNoteFile`), `src/utils/fileIcons.ts` (dedicated icon)
+- Modify: `src/ui/FileMetadataSheet.tsx`
+
+- [x] WebView to drive web app `/#/docs/{id}` and `/#/docs/new/{folderId}`.
+- [x] FAB action gated on `drive.lasuitedocs.enabled` flag.
+
+### Task 11.3: OnlyOffice screen
+
+**Files:**
+- Create: `app/(drive)/onlyoffice/[fileId].tsx`
+- Modify: `src/ui/FileMetadataSheet.tsx` (`isOfficeFile` mime check)
+
+- [x] WebView to drive web app `/#/onlyoffice/{id}` with `session_code`.
+- [x] TODO(backend) comment in source: replace with native editor once stack permits OAuth `kind=mobile` to call `/office/{id}/open` directly.
+
+### Task 11.4: Office file creation
+
+**Files:**
+- Create: `src/files/createOfficeFile.ts`, `src/files/createOfficeFile.test.ts`
+- Create: `src/ui/CreateOfficeFileDialog.tsx`
+- Modify: `app/(drive)/files/[...path].tsx` (FAB.Group with text/sheet/slide actions)
+
+- [x] `createOfficeFile(client, class, name, dirId)` POSTs an empty doc with the right MIME, returns the created file.
+- [x] Push `/(drive)/onlyoffice/{id}` after creation.
+
+### Task 11.5: Note creation
+
+**Files:**
+- Create: `src/files/createCozyNote.ts`, `src/files/createCozyNote.test.ts`
+- Modify: `app/(drive)/files/[...path].tsx` (FAB action `New note`)
+
+- [x] Calls cozy-stack `POST /notes` with parent dir.
+- [x] Push `/(drive)/note/{id}` after creation.
+
+### Task 11.6: Folder creation + Shortcut handling
+
+**Files:**
+- Create: `src/files/createFolder.ts`, `src/files/createFolder.test.ts`, `src/ui/CreateFolderDialog.tsx`
+- Create: `src/files/shortcuts.ts`, `src/files/shortcuts.test.ts`
+
+- [x] `createFolder(client, name, dirId)` via `client.collection('io.cozy.files').create()`.
+- [x] `fetchShortcutUrl()` reads `io.cozy.files.shortcuts/{id}.url`, opens via `Linking.openURL` from `FileMetadataSheet`.
+
+---
+
+## Phase 12 — In-app file preview (post-v1, livré)
+
+> Spec §14.4. Streaming via `/files/download/{id}` + Authorization bearer header. Native components, no JS↔native chatter during playback.
+
+### Task 12.1: Stream URL helper
+
+**Files:**
+- Create: `src/files/streamUrl.ts`, `src/files/streamUrl.test.ts`
+
+- [x] `buildFileStreamSource(client, fileId)` → `{ uri, headers: { Authorization } }`.
+- [x] `buildThumbnailUrl(client, links, size)` for placeholder thumbnails.
+- [x] `getPreviewKind(file)` → `'pdf' | 'image' | 'video' | 'audio' | 'text' | 'unsupported'` based on `class` + `mime`.
+- [x] `canPreviewInApp(file)` derived helper.
+
+### Task 12.2: Preview screen
+
+**Files:**
+- Create: `app/(drive)/preview/[fileId].tsx`
+- Modify: `app/(drive)/_layout.tsx` (register hidden route)
+
+- [x] Fullscreen screen, dispatches per kind:
+  - `pdf` → `<Pdf source={{ uri, headers, cache: true }} />` with thumbnail in `absoluteFill` until `onLoadComplete`.
+  - `image` → `<Image source={{ uri, headers }} placeholder={{ uri: thumbnail }} />` from `expo-image`.
+  - `video` → `<VideoView player={useVideoPlayer({ uri, headers })} nativeControls allowsFullscreen />`.
+  - `audio` → custom card with `useAudioPlayer({ uri, headers })` + scrubber.
+  - `text` → fetch `Range: bytes=0-999999`, render in monospace ScrollView with `(truncated)` indicator.
+  - `unsupported` → call `openFileNatively` then `router.back()`.
+- [x] Loading overlay for every type until ready.
+- [x] "Open externally" button with loader during download.
+
+### Task 12.3: Wire preview into FileMetadataSheet
+
+**Files:**
+- Modify: `src/ui/FileMetadataSheet.tsx`
+
+- [x] In `onOpen`, route to `/preview/{id}` when `canPreviewInApp(file)` is true (before the existing native fallback path).
+
+### Task 12.4: Native deps
+
+**Files:**
+- Modify: `package.json` (`expo-image`, `react-native-pdf`, `react-native-blob-util`, `expo-video`, `expo-audio`)
+- Modify: `app.json` (add `expo-video`, `expo-audio` to plugins)
+- Modify: `ios/Podfile.lock`, `ios/TwakeDrive.xcodeproj/project.pbxproj` (via pod install)
+
+- [x] `npx expo install expo-image expo-video expo-audio`
+- [x] `npm install react-native-pdf react-native-blob-util --legacy-peer-deps`
+- [x] `cd ios && pod install && cd .. && npx expo run:ios`
+
+---
+
+## Phase 13 — Soft-delete + cozy-client v60 alignment (post-v1, livré)
+
+> Spec §14.5 + §14.7. Bumped cozy-client because `client.destroy(doc)` (top-level) is what invalidates query caches — `client.collection().destroy()` only sends the network call.
+
+### Task 13.1: `softDeleteEntry`
+
+**Files:**
+- Create: `src/files/deleteFile.ts`, `src/files/deleteFile.test.ts`
+
+- [x] Use `client.destroy({ _id, _rev, _type: 'io.cozy.files' })` — top-level, **not** `client.collection().destroy()`. Web does the same; without it the doc lingers in the cached query result.
+
+### Task 13.2: Confirm dialog + UI buttons
+
+**Files:**
+- Create: `src/ui/ConfirmDeleteDialog.tsx`
+- Modify: `src/ui/FolderRow.tsx` (add `onDelete` menu item), `src/ui/FileRow.tsx` (same), `src/ui/FileMetadataSheet.tsx` (add Delete button)
+
+- [x] Dialog interpolates target name, "Move to trash" semantics in body.
+- [x] FR + EN keys: `drive.fileMeta.delete`, `drive.delete.{confirmFileTitle, confirmFolderTitle, confirmBody, confirm, successFile, successFolder, errorGeneric}`.
+
+### Task 13.3: Wire into screens
+
+**Files:**
+- Modify: `app/(drive)/files/[...path].tsx`, `app/(drive)/recent.tsx`
+
+- [x] State: `pendingDelete`, `deleting`, `snackbar`.
+- [x] On confirm: call `softDeleteEntry` + Snackbar (success or error). The cache invalidation removes the row immediately.
+
+### Task 13.4: Bump cozy-client + cozy-stack-client to v60.24
+
+**Files:**
+- Modify: `package.json`, `package-lock.json`
+
+- [x] `npm install --save cozy-client@60.24.0 cozy-stack-client@60.24.0 --legacy-peer-deps`.
+- [x] No code change required for the bump itself (220 tests stayed green).
+
+### Task 13.5: Folder query split (`buildDriveQuery`)
+
+**Files:**
+- Modify: `src/client/queries.ts` (drop `folderContentsQuery`, add `folderSubfoldersQuery` + `folderFilesQuery` + private `buildDriveQuery`)
+- Modify: `app/(drive)/files/[...path].tsx`, `app/(drive)/shared/[...path].tsx` (consume the two queries, merge `[...folders, ...files]`)
+
+- [x] One query per type with `name: { $gt: null }` sentinel, `partialIndex({ _id: { $ne: TRASH_DIR_ID } })`, `indexFields(['dir_id', 'type', 'name'])`, `sortBy([{ dir_id: 'asc' }, { type: 'asc' }, { name: 'asc' }])`, `limitBy(100)`.
+- [x] `Promise.all` for `onRefresh`, both `fetchMore` on `onEndReached`, both `lastError` for the failed UI.
+
+### Task 13.6: Shared-drive content via FileCollection
+
+**Files:**
+- Modify: `src/files/sharedDrives.ts`, `src/files/sharedDrives.test.ts`
+
+- [x] Replace manual `stackClient.fetchJSON('GET', '/sharings/drives/{driveId}/{folderId}')` with `stackClient.collection('io.cozy.files', { driveId }).get(folderId)`. v60's `sharedDriveApiPrefix` swap routes the same path automatically.
+
+---
+
+## Phase 14 — Multi-select with action bar (post-v1, livré)
+
+> Spec §14.6. Long-press to enter selection, AppBar swap, bulk delete first; extensible to other bulk actions.
+
+### Task 14.1: `useMultiSelect` hook
+
+**Files:**
+- Create: `src/ui/useMultiSelect.ts`, `src/ui/useMultiSelect.test.ts`
+
+- [x] State: `Set<string>`, derived `count` and `isSelecting`.
+- [x] Actions: `select`, `deselect`, `toggle`, `clear`, `isSelected`.
+- [x] Memoized so consumers don't re-render on unrelated state changes.
+
+### Task 14.2: AppBar selection mode
+
+**Files:**
+- Modify: `src/ui/AppBar.tsx`
+
+- [x] New optional `selection?: { count, onCancel, actions: AppBarSelectionAction[] }` prop.
+- [x] When set: close icon left, count title (`drive.selection.count` with i18n plurals), action icons right (with `destructive` flag for tinted error colour).
+
+### Task 14.3: Row selection visuals
+
+**Files:**
+- Modify: `src/ui/FileRow.tsx`, `src/ui/FolderRow.tsx`
+
+- [x] New `selected?: boolean` and `onLongPress?: (item) => void` props.
+- [x] When `selected`: thumbnail/icon swapped for a tinted check, row background = `theme.colors.primaryContainer`, "..." menu hidden.
+
+### Task 14.4: Confirm dialog bulk mode
+
+**Files:**
+- Modify: `src/ui/ConfirmDeleteDialog.tsx`
+
+- [x] New optional `bulkCount?: number` prop. When > 0, renders bulk title/body with count interpolation (`drive.delete.confirmBulk{Title,Body}`).
+
+### Task 14.5: Wire into FilesScreen
+
+**Files:**
+- Modify: `app/(drive)/files/[...path].tsx`
+
+- [x] `const selection = useMultiSelect()` at the screen.
+- [x] Long-press → `selection.select(item._id)`. Tap in selection mode → `selection.toggle`.
+- [x] AppBar receives `selection` prop with bulk delete action.
+- [x] FAB hidden during selection (`visible={!selection.isSelecting}`).
+- [x] `confirmBulkDelete`: sequential loop on `softDeleteEntry` (cozy-stack 409 on parallel mutations on same `dir_id`), Snackbar success, `selection.clear()`.
+
+### Task 14.6: i18n keys
+
+**Files:**
+- Modify: `src/i18n/locales/en.json`, `src/i18n/locales/fr.json`
+
+- [x] `drive.selection.count_one` / `count_other`.
+- [x] `drive.delete.confirmBulkTitle`, `confirmBulkBody`, `successBulk`.
+
+---
+
+## Post-v1 done criteria
+
+- [x] Sharing: public link toggle, contact autocomplete, recipient list with revoke, badge in row.
+- [x] Shared drives tab: list drives, navigate inside without leaving the app.
+- [x] Notes / Docs / OnlyOffice: open & create from FAB; routing per file type.
+- [x] In-app preview: PDF + image + video + audio + text streaming with placeholders + loaders.
+- [x] Soft-delete: file + folder via row menu / sheet button, confirm dialog, snackbar, cache invalidates immediately.
+- [x] Multi-select: long-press to enter, top action bar with bulk delete, FAB hidden during selection.
+- [x] cozy-client / cozy-stack-client on 60.24, queries aligned on twake-drive-web's `buildDriveQuery` shape.
+- [x] All Jest tests green (227 passing).
+- [x] iOS build green; native deps wired through pod install + expo run:ios.
