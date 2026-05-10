@@ -2,14 +2,21 @@ import { fetchSharedDriveFolder, fetchSharedDrives } from './sharedDrives'
 
 const buildClient = (
   queryResponse: unknown,
-  fetchJSONResponse?: unknown
-): { client: never; query: jest.Mock; fetchJSON: jest.Mock } => {
+  collectionGetResponse?: unknown
+): {
+  client: never
+  query: jest.Mock
+  collectionGet: jest.Mock
+  collection: jest.Mock
+} => {
   const query = jest.fn().mockResolvedValue(queryResponse)
-  const fetchJSON = jest.fn().mockResolvedValue(fetchJSONResponse)
+  const collectionGet = jest.fn().mockResolvedValue(collectionGetResponse)
+  const collection = jest.fn(() => ({ get: collectionGet }))
   return {
-    client: { query, getStackClient: () => ({ fetchJSON }) } as never,
+    client: { query, getStackClient: () => ({ collection }) } as never,
     query,
-    fetchJSON
+    collectionGet,
+    collection
   }
 }
 
@@ -116,28 +123,20 @@ describe('fetchSharedDrives', () => {
 })
 
 describe('fetchSharedDriveFolder', () => {
-  it('hits /sharings/drives/{driveId}/{folderId} and returns folder + children', async () => {
-    const { client, fetchJSON } = buildClient(
-      undefined,
-      {
-        data: { _id: 'folder-1', attributes: { name: 'Shared Folder' } },
-        included: [
-          { _id: 'child-a', name: 'a.txt', type: 'file', class: 'text' },
-          { _id: 'child-b', name: 'sub', type: 'directory' }
-        ]
-      }
-    )
+  it('opens FileCollection with driveId and calls .get(folderId)', async () => {
+    const { client, collection, collectionGet } = buildClient(undefined, {
+      data: { _id: 'folder-1', attributes: { name: 'Shared Folder' } },
+      included: [
+        { _id: 'child-a', name: 'a.txt', type: 'file', class: 'text' },
+        { _id: 'child-b', name: 'sub', type: 'directory' }
+      ]
+    })
     const result = await fetchSharedDriveFolder(client, 'sharing-A', 'folder-1')
-    expect(fetchJSON).toHaveBeenCalledWith('GET', '/sharings/drives/sharing-A/folder-1')
+    expect(collection).toHaveBeenCalledWith('io.cozy.files', { driveId: 'sharing-A' })
+    expect(collectionGet).toHaveBeenCalledWith('folder-1')
     expect(result.folder).toEqual({ _id: 'folder-1', name: 'Shared Folder' })
     expect(result.children).toHaveLength(2)
     expect(result.children[0]._id).toBe('child-a')
-  })
-
-  it('URL-encodes drive and folder ids', async () => {
-    const { client, fetchJSON } = buildClient(undefined, { data: {} })
-    await fetchSharedDriveFolder(client, 'a/b', 'c d')
-    expect(fetchJSON).toHaveBeenCalledWith('GET', '/sharings/drives/a%2Fb/c%20d')
   })
 
   it('returns empty children array when included is missing', async () => {

@@ -11,6 +11,7 @@ import { formatFileSize } from '@/utils/formatters'
 import { openFileNatively } from '@/files/openFile'
 import { isCozyNoteFile, isDocsNoteFile, isOfficeFile, isShortcutFile } from '@/files/fileTypes'
 import { fetchShortcutUrl } from '@/files/shortcuts'
+import { canPreviewInApp } from '@/files/streamUrl'
 import { FileThumbnail } from './FileThumbnail'
 
 export interface FileMetadata {
@@ -35,10 +36,11 @@ export interface FileMetadataSheetHandle {
 
 interface FileMetadataSheetProps {
   onShareRequested?: (file: FileMetadata) => void
+  onDeleteRequested?: (file: FileMetadata) => void
 }
 
 export const FileMetadataSheet = forwardRef<FileMetadataSheetHandle, FileMetadataSheetProps>(
-  ({ onShareRequested }, ref) => {
+  ({ onShareRequested, onDeleteRequested }, ref) => {
   const theme = useTheme()
   const { t } = useTranslation()
   const client = useClient()
@@ -72,6 +74,11 @@ export const FileMetadataSheet = forwardRef<FileMetadataSheetHandle, FileMetadat
     if (isOfficeFile(file.mime)) {
       bottomSheetRef.current?.close()
       router.push(`/(drive)/onlyoffice/${file._id}`)
+      return
+    }
+    if (canPreviewInApp(file)) {
+      bottomSheetRef.current?.close()
+      router.push(`/(drive)/preview/${file._id}`)
       return
     }
     if (isShortcutFile(file)) {
@@ -110,6 +117,12 @@ export const FileMetadataSheet = forwardRef<FileMetadataSheetHandle, FileMetadat
     if (!file || !onShareRequested) return
     bottomSheetRef.current?.close()
     onShareRequested(file)
+  }
+
+  const onDelete = (): void => {
+    if (!file || !onDeleteRequested) return
+    bottomSheetRef.current?.close()
+    onDeleteRequested(file)
   }
 
   return (
@@ -162,6 +175,16 @@ export const FileMetadataSheet = forwardRef<FileMetadataSheetHandle, FileMetadat
               {onShareRequested ? (
                 <Button mode="outlined" onPress={onShare} icon="share-variant">
                   {t('drive.fileMeta.share')}
+                </Button>
+              ) : null}
+              {onDeleteRequested ? (
+                <Button
+                  mode="outlined"
+                  onPress={onDelete}
+                  icon="trash-can-outline"
+                  textColor={theme.colors.error}
+                >
+                  {t('drive.fileMeta.delete')}
                 </Button>
               ) : null}
               <Button mode="outlined" onPress={() => bottomSheetRef.current?.close()}>

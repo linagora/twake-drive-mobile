@@ -34,7 +34,9 @@
       "expo-secure-store",
       "expo-web-browser",
       "expo-localization",
-      "expo-asset"
+      "expo-asset",
+      "expo-video",
+      "expo-audio"
     ],
     "experiments": {
       "typedRoutes": true

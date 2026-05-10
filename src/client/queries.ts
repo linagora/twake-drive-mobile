@@ -16,10 +16,12 @@ export const HIDDEN_ROOT_DIR_IDS: readonly string[] = [SHARED_DRIVES_DIR_ID, TRA
 
 export interface FileQueryResult {
   _id: string
+  _rev?: string
   _type: string
   name: string
   type: 'file' | 'directory'
   dir_id?: string
+  trashed?: boolean
   size?: number | null
   mime?: string
   class?: string
@@ -36,12 +38,32 @@ export interface FileQueryResult {
   }
 }
 
-export const folderContentsQuery = (dirId: string): QueryDefinition =>
+// Mirrors twake-drive-web / cozy-drive's `buildDriveQuery`: two separate
+// queries per folder, one for sub-directories and one for files, merged at
+// the screen level. The `name: { $gt: null }` sentinel ensures cozy-stack
+// has a usable index on `name`. The partialIndex excludes the trash-dir doc
+// itself when listing the root.
+const buildDriveQuery = (dirId: string, type: 'directory' | 'file'): QueryDefinition =>
   Q('io.cozy.files')
-    .where({ dir_id: dirId })
-    .sortBy([{ type: 'asc' }, { name: 'asc' }])
+    .where({ dir_id: dirId, type, name: { $gt: null } })
+    .partialIndex({ _id: { $ne: TRASH_DIR_ID } })
+    .indexFields(['dir_id', 'type', 'name'])
+    .sortBy([
+      { dir_id: 'asc' },
+      { type: 'asc' },
+      { name: 'asc' }
+    ])
+    .limitBy(100)
 
-export const folderContentsQueryAs = (dirId: string): string => `io.cozy.files/dir/${dirId}`
+export const folderSubfoldersQuery = (dirId: string): QueryDefinition =>
+  buildDriveQuery(dirId, 'directory')
+export const folderSubfoldersQueryAs = (dirId: string): string =>
+  `io.cozy.files/dir/${dirId}/folders`
+
+export const folderFilesQuery = (dirId: string): QueryDefinition =>
+  buildDriveQuery(dirId, 'file')
+export const folderFilesQueryAs = (dirId: string): string =>
+  `io.cozy.files/dir/${dirId}/files`
 
 export interface SharingRule {
   title: string

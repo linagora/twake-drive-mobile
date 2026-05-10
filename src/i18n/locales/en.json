@@ -36,7 +36,24 @@
       "owner": "Owner",
       "open": "Open",
       "downloading": "Downloading…",
-      "share": "Share"
+      "share": "Share",
+      "delete": "Delete"
+    },
+    "delete": {
+      "confirmFileTitle": "Delete file?",
+      "confirmFolderTitle": "Delete folder?",
+      "confirmBulkTitle": "Delete {{count}} items?",
+      "confirmBody": "\"{{name}}\" will be moved to the trash.",
+      "confirmBulkBody": "{{count}} items will be moved to the trash.",
+      "confirm": "Delete",
+      "successFile": "File moved to trash",
+      "successFolder": "Folder moved to trash",
+      "successBulk": "{{count}} items moved to trash",
+      "errorGeneric": "Could not delete"
+    },
+    "selection": {
+      "count_one": "{{count}} selected",
+      "count_other": "{{count}} selected"
     },
     "share": {
       "title": "Share",
@@ -81,6 +98,11 @@
     },
     "onlyoffice": {
       "title": "Document"
+    },
+    "preview": {
+      "title": "Preview",
+      "loadFailed": "Could not load preview",
+      "openExternally": "Open with another app"
     },
     "note": {
       "title": "Note"

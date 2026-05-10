@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { StyleSheet, View } from 'react-native'
-import { IconButton, List, Menu } from 'react-native-paper'
+import { IconButton, List, Menu, useTheme } from 'react-native-paper'
 import { useTranslation } from 'react-i18next'
 
 import { FileTypeIcon } from '@/ui/icons/FileTypeIcon'
@@ -15,18 +15,32 @@ export interface FolderItem {
 interface Props {
   folder: FolderItem
   onPress: (folder: FolderItem) => void
+  onLongPress?: (folder: FolderItem) => void
+  /** Render the row in the "selected" state (tinted background). */
+  selected?: boolean
   /**
-   * When provided, a 3-dot menu is rendered with a "Share" item that calls
-   * this callback. Without this prop, the chevron-right is shown (current
-   * behaviour is preserved for callers that don't wire sharing in).
+   * When `onShare` or `onDelete` is provided, a 3-dot menu is rendered with
+   * the corresponding action(s). Without any, the chevron-right is shown.
+   * The menu is hidden while `selected` to keep the row in pure selection
+   * mode.
    */
   onShare?: (folder: FolderItem) => void
+  onDelete?: (folder: FolderItem) => void
 }
 
-export const FolderRow = ({ folder, onPress, onShare }: Props) => {
+export const FolderRow = ({
+  folder,
+  onPress,
+  onLongPress,
+  selected,
+  onShare,
+  onDelete
+}: Props) => {
   const { t } = useTranslation()
+  const theme = useTheme()
   const [menuVisible, setMenuVisible] = useState(false)
   const sharingStatus = useFileSharingStatus(folder._id)
+  const hasMenu = (!!onShare || !!onDelete) && !selected
 
   return (
     <List.Item
@@ -35,12 +49,22 @@ export const FolderRow = ({ folder, onPress, onShare }: Props) => {
       // with file thumbnails in the same list (matching column widths).
       left={props => (
         <View style={[props.style, styles.leftSlot]}>
-          <FileTypeIcon icon="folder" size={40} />
-          <SharedBadge status={sharingStatus} />
+          {selected ? (
+            <View
+              style={[styles.checkmark, { backgroundColor: theme.colors.primary }]}
+            >
+              <List.Icon icon="check" color={theme.colors.onPrimary} />
+            </View>
+          ) : (
+            <>
+              <FileTypeIcon icon="folder" size={40} />
+              <SharedBadge status={sharingStatus} />
+            </>
+          )}
         </View>
       )}
       right={props =>
-        onShare ? (
+        hasMenu ? (
           <Menu
             visible={menuVisible}
             onDismiss={() => setMenuVisible(false)}
@@ -53,26 +77,49 @@ export const FolderRow = ({ folder, onPress, onShare }: Props) => {
               />
             }
           >
-            <Menu.Item
-              leadingIcon="share-variant"
-              title={t('drive.fileMeta.share')}
-              onPress={() => {
-                setMenuVisible(false)
-                onShare(folder)
-              }}
-            />
+            {onShare ? (
+              <Menu.Item
+                leadingIcon="share-variant"
+                title={t('drive.fileMeta.share')}
+                onPress={() => {
+                  setMenuVisible(false)
+                  onShare(folder)
+                }}
+              />
+            ) : null}
+            {onDelete ? (
+              <Menu.Item
+                leadingIcon="trash-can-outline"
+                title={t('drive.fileMeta.delete')}
+                onPress={() => {
+                  setMenuVisible(false)
+                  onDelete(folder)
+                }}
+              />
+            ) : null}
           </Menu>
         ) : (
           <List.Icon {...props} icon="chevron-right" />
         )
       }
       onPress={() => onPress(folder)}
-      style={styles.row}
+      onLongPress={onLongPress ? () => onLongPress(folder) : undefined}
+      style={[
+        styles.row,
+        selected && { backgroundColor: theme.colors.primaryContainer }
+      ]}
     />
   )
 }
 
 const styles = StyleSheet.create({
   row: { paddingVertical: 4 },
-  leftSlot: { justifyContent: 'center', alignItems: 'center', width: 40, height: 40 }
+  leftSlot: { justifyContent: 'center', alignItems: 'center', width: 40, height: 40 },
+  checkmark: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center'
+  }
 })

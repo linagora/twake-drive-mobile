@@ -22,8 +22,15 @@ export interface SharedDriveEntry {
   name: string
 }
 
+interface FileCollectionV60 {
+  get: (id: string) => Promise<{
+    data?: { _id?: string; id?: string; name?: string; attributes?: { name?: string } }
+    included?: RawShortcut[]
+  }>
+}
+
 interface MinimalStackClient {
-  fetchJSON: (method: string, path: string) => Promise<unknown>
+  collection: (doctype: string, options?: { driveId?: string }) => FileCollectionV60
 }
 
 interface RawTarget {
@@ -134,13 +141,12 @@ export interface SharedDriveDirContents {
 }
 
 /**
- * Fetch the contents of a folder *inside* a shared drive — the route the
- * cozy-stack exposes for both owners and recipients of the sharing.
+ * Fetch the contents of a folder *inside* a shared drive.
  *
- * Mirrors v60 cozy-stack-client: `FileCollection({ driveId }).statById(id)`
- * which builds the URL `${sharedDriveApiPrefix(driveId)}/${id}` =
- * `/sharings/drives/{driveId}/{folderId}`. The response uses JSON-API with
- * `data` for the folder itself and `included` for its direct children.
+ * Uses cozy-stack-client v60's per-drive `FileCollection`: passing
+ * `{ driveId }` swaps the request prefix to `/sharings/drives/{driveId}`,
+ * so `.get(folderId)` hits `/sharings/drives/{driveId}/{folderId}`. Same
+ * route twake-drive-web uses, no manual fetchJSON.
  */
 export const fetchSharedDriveFolder = async (
   client: CozyClient,
@@ -148,11 +154,8 @@ export const fetchSharedDriveFolder = async (
   folderId: string
 ): Promise<SharedDriveDirContents> => {
   const stackClient = client.getStackClient() as unknown as MinimalStackClient
-  const path = `/sharings/drives/${encodeURIComponent(driveId)}/${encodeURIComponent(folderId)}`
-  const resp = (await stackClient.fetchJSON('GET', path)) as {
-    data?: { id?: string; _id?: string; attributes?: { name?: string }; name?: string }
-    included?: RawShortcut[]
-  }
+  const collection = stackClient.collection('io.cozy.files', { driveId })
+  const resp = await collection.get(folderId)
   const data = resp.data ?? {}
   return {
     folder: {

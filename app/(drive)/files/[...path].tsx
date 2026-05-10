@@ -1,6 +1,6 @@
 import React, { useCallback, useRef, useState } from 'react'
 import { FlatList, RefreshControl, StyleSheet, View } from 'react-native'
-import { FAB } from 'react-native-paper'
+import { FAB, Snackbar } from 'react-native-paper'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useClient, useQuery } from 'cozy-client'
 import { useTranslation } from 'react-i18next'
@@ -15,17 +15,22 @@ import { FileMetadataSheet, FileMetadataSheetHandle } from '@/ui/FileMetadataShe
 import { ShareSheet, ShareSheetHandle } from '@/ui/ShareSheet'
 import { CreateFolderDialog } from '@/ui/CreateFolderDialog'
 import { CreateOfficeFileDialog } from '@/ui/CreateOfficeFileDialog'
+import { ConfirmDeleteDialog } from '@/ui/ConfirmDeleteDialog'
+import { useMultiSelect } from '@/ui/useMultiSelect'
 import { useAuth } from '@/auth/useAuth'
 import { getErrorMessageKey } from '@/utils/errorMessages'
 import { createFolder } from '@/files/createFolder'
 import { createCozyNote } from '@/files/createCozyNote'
 import { createOfficeFile, OfficeFileClass } from '@/files/createOfficeFile'
+import { softDeleteEntry } from '@/files/deleteFile'
 import { useFlag } from '@/client/useFlag'
 import {
   fileByIdQuery,
   fileByIdQueryAs,
-  folderContentsQuery,
-  folderContentsQueryAs,
+  folderFilesQuery,
+  folderFilesQueryAs,
+  folderSubfoldersQuery,
+  folderSubfoldersQueryAs,
   ROOT_DIR_ID,
   HIDDEN_ROOT_DIR_IDS,
   FileQueryResult
@@ -51,14 +56,22 @@ export default function FilesScreen() {
   const [createFolderVisible, setCreateFolderVisible] = useState(false)
   const [creatingClass, setCreatingClass] = useState<OfficeFileClass | null>(null)
   const [fabOpen, setFabOpen] = useState(false)
+  const [pendingDelete, setPendingDelete] = useState<FileQueryResult | null>(null)
+  const [bulkConfirmVisible, setBulkConfirmVisible] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [snackbar, setSnackbar] = useState<string | null>(null)
+  const selection = useMultiSelect()
   const client = useClient()
   const docsEnabled = !!useFlag('drive.lasuitedocs.enabled')
 
   const isRoot = !path || path.length === 0
   const currentDirId = isRoot ? ROOT_DIR_ID : path![path!.length - 1]
 
-  const query = useQuery(folderContentsQuery(currentDirId), {
-    as: folderContentsQueryAs(currentDirId)
+  const foldersQuery = useQuery(folderSubfoldersQuery(currentDirId), {
+    as: folderSubfoldersQueryAs(currentDirId)
+  })
+  const filesQuery = useQuery(folderFilesQuery(currentDirId), {
+    as: folderFilesQueryAs(currentDirId)
   })
 
   const currentDirLookup = useQuery(fileByIdQuery(currentDirId), {
@@ -74,17 +87,17 @@ export default function FilesScreen() {
   const onRefresh = useCallback(async () => {
     setRefreshing(true)
     try {
-      await query.fetch()
+      await Promise.all([foldersQuery.fetch(), filesQuery.fetch()])
     } finally {
       setRefreshing(false)
     }
-  }, [query])
+  }, [foldersQuery, filesQuery])
 
   const handleCreate = async (name: string) => {
     if (!client) throw new Error('No client')
     await createFolder(client, name, currentDirId)
     setCreateFolderVisible(false)
-    await query.fetch()
+    await Promise.all([foldersQuery.fetch(), filesQuery.fetch()])
   }
 
   const handleCreateOffice = async (name: string) => {
@@ -92,7 +105,7 @@ export default function FilesScreen() {
     const cls = creatingClass
     const created = await createOfficeFile(client, cls, name, currentDirId)
     setCreatingClass(null)
-    await query.fetch()
+    await Promise.all([foldersQuery.fetch(), filesQuery.fetch()])
     router.push(`/(drive)/onlyoffice/${created._id}`)
   }
 
@@ -100,7 +113,7 @@ export default function FilesScreen() {
     if (!client) return
     try {
       const created = await createCozyNote(client, currentDirId)
-      await query.fetch()
+      await Promise.all([foldersQuery.fetch(), filesQuery.fetch()])
       router.push(`/(drive)/note/${created._id}`)
     } catch (e) {
       console.error('[FilesScreen] note creation failed', e)
@@ -111,43 +124,129 @@ export default function FilesScreen() {
     router.push(`/(drive)/docs/new/${currentDirId}`)
   }
 
+  const requestDelete = (entry: FileQueryResult): void => {
+    setPendingDelete(entry)
+  }
+
+  const confirmDelete = async (): Promise<void> => {
+    if (!client || !pendingDelete) return
+    setDeleting(true)
+    try {
+      await softDeleteEntry(client, {
+        _id: pendingDelete._id,
+        _rev: (pendingDelete as unknown as { _rev?: string })._rev,
+        name: pendingDelete.name,
+        type: pendingDelete.type
+      })
+      setSnackbar(
+        t(
+          pendingDelete.type === 'directory'
+            ? 'drive.delete.successFolder'
+            : 'drive.delete.successFile'
+        )
+      )
+      setPendingDelete(null)
+    } catch (e) {
+      console.error('[FilesScreen] delete failed', e)
+      setSnackbar(t('drive.delete.errorGeneric'))
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  const confirmBulkDelete = async (): Promise<void> => {
+    if (!client) return
+    const items = data.filter(d => selection.isSelected(d._id))
+    if (items.length === 0) return
+    setDeleting(true)
+    try {
+      // Sequential rather than parallel: cozy-stack can race on concurrent
+      // dir_id mutations and we want to surface any single failure.
+      for (const item of items) {
+        await softDeleteEntry(client, {
+          _id: item._id,
+          _rev: (item as unknown as { _rev?: string })._rev,
+          name: item.name,
+          type: item.type
+        })
+      }
+      setSnackbar(t('drive.delete.successBulk', { count: items.length }))
+      selection.clear()
+      setBulkConfirmVisible(false)
+    } catch (e) {
+      console.error('[FilesScreen] bulk delete failed', e)
+      setSnackbar(t('drive.delete.errorGeneric'))
+    } finally {
+      setDeleting(false)
+    }
+  }
+
   const renderItem = ({ item }: { item: FileQueryResult }) => {
+    const isSelected = selection.isSelected(item._id)
     if (item.type === 'directory') {
       return (
         <FolderRow
           folder={item}
-          onPress={folder =>
-            router.push(`/(drive)/files/${[...(path ?? []), folder._id].join('/')}`)
+          selected={isSelected}
+          onPress={folder => {
+            if (selection.isSelecting) selection.toggle(folder._id)
+            else router.push(`/(drive)/files/${[...(path ?? []), folder._id].join('/')}`)
+          }}
+          onLongPress={folder => selection.select(folder._id)}
+          onShare={
+            selection.isSelecting
+              ? undefined
+              : folder =>
+                  shareRef.current?.present({
+                    _id: folder._id,
+                    name: folder.name,
+                    type: 'directory'
+                  })
           }
-          onShare={folder =>
-            shareRef.current?.present({
-              _id: folder._id,
-              name: folder.name,
-              type: 'directory'
-            })
-          }
+          onDelete={selection.isSelecting ? undefined : () => requestDelete(item)}
         />
       )
     }
     return (
       <FileRow
         file={{ ...item, size: item.size ?? null }}
+        selected={isSelected}
         onPress={file => {
+          if (selection.isSelecting) {
+            selection.toggle(file._id)
+            return
+          }
           sheetRef.current?.present({
             ...file,
             cozyMetadata: item.cozyMetadata,
             path: item.path
           })
         }}
+        onLongPress={file => selection.select(file._id)}
+        onShare={
+          selection.isSelecting
+            ? undefined
+            : file =>
+                shareRef.current?.present({
+                  _id: file._id,
+                  name: file.name,
+                  type: 'file'
+                })
+        }
+        onDelete={selection.isSelecting ? undefined : () => requestDelete(item)}
       />
     )
   }
 
-  const rawData = (query.data as FileQueryResult[] | null | undefined) ?? []
+  // Folders first, then files — same display order as twake-drive-web.
+  const folderDocs = (foldersQuery.data as FileQueryResult[] | null | undefined) ?? []
+  const fileDocs = (filesQuery.data as FileQueryResult[] | null | undefined) ?? []
   // Hide the virtual shared-drives-dir + trash-dir from the listing — they
   // appear as children of the root in raw io.cozy.files responses but are
   // surfaced via dedicated screens instead. Same convention as twake-drive web.
-  const data = rawData.filter(item => !HIDDEN_ROOT_DIR_IDS.includes(item._id))
+  const data = [...folderDocs, ...fileDocs].filter(
+    item => !HIDDEN_ROOT_DIR_IDS.includes(item._id)
+  )
 
   const fabActions = [
     {
@@ -192,13 +291,35 @@ export default function FilesScreen() {
         title={currentDirName}
         onBack={isRoot ? undefined : () => router.back()}
         onLogout={isRoot ? logout : undefined}
+        selection={
+          selection.isSelecting
+            ? {
+                count: selection.count,
+                onCancel: () => selection.clear(),
+                actions: [
+                  {
+                    icon: 'trash-can-outline',
+                    onPress: () => setBulkConfirmVisible(true),
+                    accessibilityLabel: t('drive.fileMeta.delete'),
+                    destructive: true
+                  }
+                ]
+              }
+            : undefined
+        }
       />
-      {query.fetchStatus === 'loading' && data.length === 0 ? (
+      {(foldersQuery.fetchStatus === 'loading' || filesQuery.fetchStatus === 'loading') &&
+      data.length === 0 ? (
         <LoadingState />
-      ) : query.fetchStatus === 'failed' ? (
+      ) : foldersQuery.fetchStatus === 'failed' || filesQuery.fetchStatus === 'failed' ? (
         <ErrorState
-          message={t(getErrorMessageKey(query.lastError))}
-          onRetry={() => query.fetch()}
+          message={t(
+            getErrorMessageKey(foldersQuery.lastError ?? filesQuery.lastError)
+          )}
+          onRetry={() => {
+            void foldersQuery.fetch()
+            void filesQuery.fetch()
+          }}
         />
       ) : data.length === 0 ? (
         <EmptyState message={t('drive.emptyFolder')} />
@@ -209,17 +330,24 @@ export default function FilesScreen() {
           renderItem={renderItem}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
           onEndReachedThreshold={0.5}
-          onEndReached={() => query.fetchMore?.()}
+          onEndReached={() => {
+            void foldersQuery.fetchMore?.()
+            void filesQuery.fetchMore?.()
+          }}
         />
       )}
       <FileMetadataSheet
         ref={sheetRef}
         onShareRequested={file => shareRef.current?.present(file)}
+        onDeleteRequested={file => {
+          const full = data.find(d => d._id === file._id)
+          if (full) requestDelete(full)
+        }}
       />
       <ShareSheet ref={shareRef} />
       <FAB.Group
         open={fabOpen}
-        visible
+        visible={!selection.isSelecting}
         icon={fabOpen ? 'close' : 'plus'}
         actions={fabActions}
         onStateChange={({ open }) => setFabOpen(open)}
@@ -235,6 +363,27 @@ export default function FilesScreen() {
         onDismiss={() => setCreatingClass(null)}
         onSubmit={handleCreateOffice}
       />
+      <ConfirmDeleteDialog
+        visible={!!pendingDelete}
+        target={pendingDelete}
+        loading={deleting}
+        onConfirm={() => void confirmDelete()}
+        onDismiss={() => (deleting ? undefined : setPendingDelete(null))}
+      />
+      <ConfirmDeleteDialog
+        visible={bulkConfirmVisible}
+        bulkCount={selection.count}
+        loading={deleting}
+        onConfirm={() => void confirmBulkDelete()}
+        onDismiss={() => (deleting ? undefined : setBulkConfirmVisible(false))}
+      />
+      <Snackbar
+        visible={!!snackbar}
+        onDismiss={() => setSnackbar(null)}
+        duration={3000}
+      >
+        {snackbar ?? ''}
+      </Snackbar>
     </View>
   )
 }

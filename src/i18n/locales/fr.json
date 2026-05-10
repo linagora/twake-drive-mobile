@@ -36,7 +36,24 @@
       "owner": "Propriétaire",
       "open": "Ouvrir",
       "downloading": "Téléchargement…",
-      "share": "Partager"
+      "share": "Partager",
+      "delete": "Supprimer"
+    },
+    "delete": {
+      "confirmFileTitle": "Supprimer le fichier ?",
+      "confirmFolderTitle": "Supprimer le dossier ?",
+      "confirmBulkTitle": "Supprimer {{count}} éléments ?",
+      "confirmBody": "« {{name}} » sera déplacé dans la corbeille.",
+      "confirmBulkBody": "{{count}} éléments seront déplacés dans la corbeille.",
+      "confirm": "Supprimer",
+      "successFile": "Fichier déplacé dans la corbeille",
+      "successFolder": "Dossier déplacé dans la corbeille",
+      "successBulk": "{{count}} éléments déplacés dans la corbeille",
+      "errorGeneric": "Impossible de supprimer"
+    },
+    "selection": {
+      "count_one": "{{count}} sélectionné",
+      "count_other": "{{count}} sélectionnés"
     },
     "share": {
       "title": "Partager",
@@ -81,6 +98,11 @@
     },
     "onlyoffice": {
       "title": "Document"
+    },
+    "preview": {
+      "title": "Aperçu",
+      "loadFailed": "Impossible de charger l'aperçu",
+      "openExternally": "Ouvrir avec une autre app"
     },
     "note": {
       "title": "Note"

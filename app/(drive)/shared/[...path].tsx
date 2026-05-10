@@ -19,8 +19,10 @@ import {
   fileByIdQueryAs,
   filesByIdsQuery,
   filesByIdsQueryAs,
-  folderContentsQuery,
-  folderContentsQueryAs,
+  folderFilesQuery,
+  folderFilesQueryAs,
+  folderSubfoldersQuery,
+  folderSubfoldersQueryAs,
   FileQueryResult
 } from '@/client/queries'
 import { useSharedFileIds } from '@/client/useSharedFiles'
@@ -52,8 +54,12 @@ export default function SharedScreen() {
     enabled: isRoot && sharedIds.status === 'loaded' && sharedIds.ids.length > 0
   })
 
-  const folderQuery = useQuery(folderContentsQuery(safeCurrentDirId), {
-    as: folderContentsQueryAs(safeCurrentDirId),
+  const subfoldersQuery = useQuery(folderSubfoldersQuery(safeCurrentDirId), {
+    as: folderSubfoldersQueryAs(safeCurrentDirId),
+    enabled: !isRoot
+  })
+  const folderFilesQ = useQuery(folderFilesQuery(safeCurrentDirId), {
+    as: folderFilesQueryAs(safeCurrentDirId),
     enabled: !isRoot
   })
 
@@ -74,12 +80,12 @@ export default function SharedScreen() {
         sharedIds.refresh()
         await sharedFilesQuery.fetch?.()
       } else {
-        await folderQuery.fetch()
+        await Promise.all([subfoldersQuery.fetch(), folderFilesQ.fetch()])
       }
     } finally {
       setRefreshing(false)
     }
-  }, [isRoot, sharedIds, sharedFilesQuery, folderQuery])
+  }, [isRoot, sharedIds, sharedFilesQuery, subfoldersQuery, folderFilesQ])
 
   const renderFileItem = ({ item }: { item: FileQueryResult }) => {
     if (item.type === 'directory') {
@@ -109,13 +115,22 @@ export default function SharedScreen() {
             path: item.path
           })
         }}
+        onShare={file =>
+          shareRef.current?.present({ _id: file._id, name: file.name, type: 'file' })
+        }
       />
     )
   }
 
+  const folderListing: FileQueryResult[] = isRoot
+    ? []
+    : [
+        ...((subfoldersQuery.data as FileQueryResult[] | null | undefined) ?? []),
+        ...((folderFilesQ.data as FileQueryResult[] | null | undefined) ?? [])
+      ]
   const data: FileQueryResult[] = isRoot
     ? ((sharedFilesQuery.data as FileQueryResult[] | null | undefined) ?? [])
-    : ((folderQuery.data as FileQueryResult[] | null | undefined) ?? [])
+    : folderListing
 
   const isLoading = isRoot
     ? sharedIds.status === 'loading' ||
@@ -123,21 +138,24 @@ export default function SharedScreen() {
         sharedIds.ids.length > 0 &&
         sharedFilesQuery.fetchStatus === 'loading' &&
         data.length === 0)
-    : folderQuery.fetchStatus === 'loading'
+    : subfoldersQuery.fetchStatus === 'loading' || folderFilesQ.fetchStatus === 'loading'
   // Note: SharingProvider swallows its own fetch errors, so sharedIds no
   // longer surfaces a 'failed' state — failures of the secondary
   // filesByIdsQuery fetch still drive the failed UI here.
   const isFailed = isRoot
     ? sharedFilesQuery.fetchStatus === 'failed'
-    : folderQuery.fetchStatus === 'failed'
-  const error = isRoot ? sharedFilesQuery.lastError : folderQuery.lastError
+    : subfoldersQuery.fetchStatus === 'failed' || folderFilesQ.fetchStatus === 'failed'
+  const error = isRoot
+    ? sharedFilesQuery.lastError
+    : (subfoldersQuery.lastError ?? folderFilesQ.lastError)
   const hasNothingYet = data.length === 0
   const retry = () => {
     if (isRoot) {
       sharedIds.refresh()
       void sharedFilesQuery.fetch?.()
     } else {
-      void folderQuery.fetch()
+      void subfoldersQuery.fetch()
+      void folderFilesQ.fetch()
     }
   }
 
@@ -161,7 +179,14 @@ export default function SharedScreen() {
           renderItem={renderFileItem}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
           onEndReachedThreshold={0.5}
-          onEndReached={isRoot ? undefined : () => folderQuery.fetchMore?.()}
+          onEndReached={
+            isRoot
+              ? undefined
+              : () => {
+                  void subfoldersQuery.fetchMore?.()
+                  void folderFilesQ.fetchMore?.()
+                }
+          }
         />
       )}
       <FileMetadataSheet
