@@ -1,3 +1,8 @@
+const mockSyncImmediately = jest.fn()
+jest.mock('@/client/createClient', () => ({
+  pouchLink: { syncImmediately: (...args: unknown[]) => mockSyncImmediately(...args) }
+}))
+
 import {
   absoluteMemberIndex,
   addRecipient,
