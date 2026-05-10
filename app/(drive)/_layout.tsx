@@ -5,92 +5,95 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons'
 import { useTranslation } from 'react-i18next'
 
 import { SharingProvider } from '@/sharing/SharingProvider'
+import { SyncProvider } from '@/sync/SyncProvider'
 
 export default function DriveLayout() {
   const theme = useTheme()
   const { t } = useTranslation()
   return (
     <SharingProvider>
-      <Tabs
-        screenOptions={{
-          headerShown: false,
-          tabBarActiveTintColor: theme.colors.primary
-        }}
-      >
-        <Tabs.Screen
-          name="files"
-          options={{
-            title: t('drive.myFiles'),
-            tabBarIcon: ({ color, size }) => <Icon name="folder" color={color} size={size} />
+      <SyncProvider>
+        <Tabs
+          screenOptions={{
+            headerShown: false,
+            tabBarActiveTintColor: theme.colors.primary
           }}
-        />
-        <Tabs.Screen
-          name="shared"
-          options={{
-            title: t('drive.shared'),
-            tabBarIcon: ({ color, size }) => (
-              <Icon name="account-multiple" color={color} size={size} />
-            )
-          }}
-        />
-        <Tabs.Screen
-          name="recent"
-          options={{
-            title: t('drive.recent'),
-            tabBarIcon: ({ color, size }) => (
-              <Icon name="clock-outline" color={color} size={size} />
-            )
-          }}
-        />
-        <Tabs.Screen
-          name="shareddrives"
-          options={{
-            title: t('drive.sharedDrives'),
-            tabBarIcon: ({ color, size }) => (
-              <Icon name="folder-multiple-outline" color={color} size={size} />
-            )
-          }}
-        />
-        <Tabs.Screen
-          name="trash"
-          options={{
-            title: t('drive.trash'),
-            tabBarIcon: ({ color, size }) => (
-              <Icon name="trash-can-outline" color={color} size={size} />
-            )
-          }}
-        />
-        <Tabs.Screen
-          name="onlyoffice/[fileId]"
-          options={{
-            href: null
-          }}
-        />
-        <Tabs.Screen
-          name="note/[fileId]"
-          options={{
-            href: null
-          }}
-        />
-        <Tabs.Screen
-          name="docs/[fileId]"
-          options={{
-            href: null
-          }}
-        />
-        <Tabs.Screen
-          name="docs/new/[folderId]"
-          options={{
-            href: null
-          }}
-        />
-        <Tabs.Screen
-          name="preview/[fileId]"
-          options={{
-            href: null
-          }}
-        />
-      </Tabs>
+        >
+          <Tabs.Screen
+            name="files"
+            options={{
+              title: t('drive.myFiles'),
+              tabBarIcon: ({ color, size }) => <Icon name="folder" color={color} size={size} />
+            }}
+          />
+          <Tabs.Screen
+            name="shared"
+            options={{
+              title: t('drive.shared'),
+              tabBarIcon: ({ color, size }) => (
+                <Icon name="account-multiple" color={color} size={size} />
+              )
+            }}
+          />
+          <Tabs.Screen
+            name="recent"
+            options={{
+              title: t('drive.recent'),
+              tabBarIcon: ({ color, size }) => (
+                <Icon name="clock-outline" color={color} size={size} />
+              )
+            }}
+          />
+          <Tabs.Screen
+            name="shareddrives"
+            options={{
+              title: t('drive.sharedDrives'),
+              tabBarIcon: ({ color, size }) => (
+                <Icon name="folder-multiple-outline" color={color} size={size} />
+              )
+            }}
+          />
+          <Tabs.Screen
+            name="trash"
+            options={{
+              title: t('drive.trash'),
+              tabBarIcon: ({ color, size }) => (
+                <Icon name="trash-can-outline" color={color} size={size} />
+              )
+            }}
+          />
+          <Tabs.Screen
+            name="onlyoffice/[fileId]"
+            options={{
+              href: null
+            }}
+          />
+          <Tabs.Screen
+            name="note/[fileId]"
+            options={{
+              href: null
+            }}
+          />
+          <Tabs.Screen
+            name="docs/[fileId]"
+            options={{
+              href: null
+            }}
+          />
+          <Tabs.Screen
+            name="docs/new/[folderId]"
+            options={{
+              href: null
+            }}
+          />
+          <Tabs.Screen
+            name="preview/[fileId]"
+            options={{
+              href: null
+            }}
+          />
+        </Tabs>
+      </SyncProvider>
     </SharingProvider>
   )
 }
