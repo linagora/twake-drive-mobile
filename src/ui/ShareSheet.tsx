@@ -47,6 +47,8 @@ import {
   revokeRecipientAtIndex
 } from '@/files/sharing'
 import { useFileSharing, useRefreshSharings } from '@/sharing/SharingProvider'
+import { useSyncStatus } from '@/sync/useSyncStatus'
+import { requireOnline } from '@/sync/requireOnline'
 import { FileThumbnail } from './FileThumbnail'
 
 export interface ShareSheetFile {
@@ -75,6 +77,7 @@ export const ShareSheet = forwardRef<ShareSheetHandle>((_, ref) => {
   const { t } = useTranslation()
   const client = useClient()
   const refreshSharings = useRefreshSharings()
+  const { status: syncStatus } = useSyncStatus()
   const bottomSheetRef = useRef<BottomSheet>(null)
 
   // Flags mirrored from twake-drive web's ShareFileView / ShareDisplayedFolderView:
@@ -140,6 +143,7 @@ export const ShareSheet = forwardRef<ShareSheetHandle>((_, ref) => {
   }))
 
   const onToggleLink = async (next: boolean): Promise<void> => {
+    if (!requireOnline(syncStatus, m => setSnack(m), t)) return
     if (!client || !file || linkMutating) return
     setLinkMutating(true)
     setMutating(true)
@@ -166,6 +170,7 @@ export const ShareSheet = forwardRef<ShareSheetHandle>((_, ref) => {
     // responsive even when the link doesn't yet exist.
     setEditingRights(next)
     if (!linkPermission || !client || !file) return // local-only change before link exists
+    if (!requireOnline(syncStatus, m => setSnack(m), t)) return
     if (linkMutating) return
     // Existing link: swap rights via revoke + recreate. This changes the
     // public URL — the simplest correct path until cozy-stack exposes a way
@@ -203,6 +208,7 @@ export const ShareSheet = forwardRef<ShareSheetHandle>((_, ref) => {
   }
 
   const onSubmitRecipient = async (): Promise<void> => {
+    if (!requireOnline(syncStatus, m => setSnack(m), t)) return
     const email = emailInput.trim()
     if (!client || !file || !email || mutating) return
     setMutating(true)
@@ -225,6 +231,7 @@ export const ShareSheet = forwardRef<ShareSheetHandle>((_, ref) => {
   }
 
   const onRemoveRecipient = async (recipientIndex: number): Promise<void> => {
+    if (!requireOnline(syncStatus, m => setSnack(m), t)) return
     if (!client || !file || !sharing || mutating) return
     const memberIndex = absoluteMemberIndex(sharing, recipientIndex)
     if (memberIndex < 0) return
