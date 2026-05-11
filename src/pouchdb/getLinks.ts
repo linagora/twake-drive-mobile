@@ -1,4 +1,4 @@
-import CozyClient, { CozyLink, StackLink } from 'cozy-client'
+import CozyClient, { CozyLink, Q, StackLink } from 'cozy-client'
 import PouchLink from 'cozy-pouch-link'
 
 import { platformReactNative } from './platformReactNative'
@@ -18,8 +18,31 @@ export const offlineDoctypes = [
   'io.cozy.contacts'
 ] as const
 
+// Warmup queries are GATES: until they complete on the first replication
+// loop, every query for the doctype is FORWARDED to the next link (StackLink)
+// instead of being served from (possibly empty) local Pouch. After warmup,
+// queries are served from local Pouch. Without warmupQueries, PouchLink would
+// serve queries immediately — returning partial or empty results during the
+// initial replication, which the UI then caches forever.
+//
+// Shape required by cozy-pouch-link (see CozyPouchLink.spec.js + PouchManager.spec.js):
+//   { definition: () => QueryDefinition, options: { as: string } }
+//
+// We use a single trivial warmup per doctype — its purpose is just to gate
+// the local-vs-stack decision, not to pre-fetch anything specific.
+const buildWarmupQuery = (doctype: string): unknown => ({
+  definition: () => Q(doctype).limitBy(1),
+  options: { as: `${doctype}/warmup` }
+})
+
 const doctypesReplicationOptions = Object.fromEntries(
-  offlineDoctypes.map(dt => [dt, { strategy: 'fromRemote' as const }])
+  offlineDoctypes.map(dt => [
+    dt,
+    {
+      strategy: 'fromRemote' as const,
+      warmupQueries: [buildWarmupQuery(dt)]
+    }
+  ])
 )
 
 export const getLinks = (): CozyLink[] => {
@@ -31,7 +54,7 @@ export const getLinks = (): CozyLink[] => {
     syncDebounceDelayInMs: REPLICATION_DEBOUNCE,
     syncDebounceMaxDelayInMs: REPLICATION_DEBOUNCE_MAX_DELAY,
     platform: platformReactNative,
-    ignoreWarmup: true,
+    ignoreWarmup: false,
     doctypesReplicationOptions,
     pouch: {
       options: {
