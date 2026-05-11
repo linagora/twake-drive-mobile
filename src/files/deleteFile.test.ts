@@ -1,6 +1,15 @@
+jest.mock('@/pouchdb/triggerReplication', () => ({
+  triggerPouchReplication: jest.fn()
+}))
+
+import { triggerPouchReplication } from '@/pouchdb/triggerReplication'
 import { softDeleteEntry } from './deleteFile'
 
 describe('softDeleteEntry', () => {
+  beforeEach(() => {
+    ;(triggerPouchReplication as jest.Mock).mockClear()
+  })
+
   it('calls client.destroy with the entry doc', async () => {
     const destroy = jest.fn().mockResolvedValue({})
     const client = { destroy } as unknown as Parameters<typeof softDeleteEntry>[0]
@@ -38,5 +47,19 @@ describe('softDeleteEntry', () => {
     const destroy = jest.fn().mockRejectedValue(new Error('boom'))
     const client = { destroy } as unknown as Parameters<typeof softDeleteEntry>[0]
     await expect(softDeleteEntry(client, { _id: 'abc' })).rejects.toThrow('boom')
+  })
+
+  it('triggers a pouch replication on success', async () => {
+    const destroy = jest.fn().mockResolvedValue({})
+    const client = { destroy } as unknown as Parameters<typeof softDeleteEntry>[0]
+    await softDeleteEntry(client, { _id: 'abc', _rev: '1-x' })
+    expect(triggerPouchReplication).toHaveBeenCalledWith(client, 'io.cozy.files')
+  })
+
+  it('does NOT trigger pouch replication on failure', async () => {
+    const destroy = jest.fn().mockRejectedValue(new Error('boom'))
+    const client = { destroy } as unknown as Parameters<typeof softDeleteEntry>[0]
+    await expect(softDeleteEntry(client, { _id: 'abc' })).rejects.toThrow('boom')
+    expect(triggerPouchReplication).not.toHaveBeenCalled()
   })
 })
