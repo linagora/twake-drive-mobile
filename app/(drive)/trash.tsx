@@ -33,28 +33,21 @@ export default function TrashScreen() {
   const client = useClient()
   const theme = useTheme()
   const sheetRef = useRef<FileMetadataSheetHandle>(null)
-  // Bypass the local Pouch for the trash query and always hit the stack:
-  //  - cozy-stack's `DELETE /files/trash` purges asynchronously, so the
-  //    polling replication right after `emptyTrash` may still see the
-  //    docs and re-populate the local SQLite. The trash screen would
-  //    then keep showing them until polling eventually catches up.
-  //  - the trash is rarely consulted offline, so losing offline trash
-  //    listing is acceptable in exchange for always-correct state.
-  //
-  // `forceStack: true` is the CozyPouchLink option that short-circuits
-  // its supportsOperation logic and forwards the request to the next
-  // link (StackLink). Same path twake-drive-web takes for its own
-  // trash view.
-  const query = useQuery(trashQuery(), {
-    as: trashQueryAs,
-    forceStack: true
-  } as never)
+  const query = useQuery(trashQuery(), { as: trashQueryAs })
   const { status: syncStatus } = useSyncStatus()
   const [snackbar, setSnackbar] = useState<string | null>(null)
   const [emptyDialogVisible, setEmptyDialogVisible] = useState(false)
   const [emptying, setEmptying] = useState(false)
+  // After a successful `emptyTrash`, hide the list locally even though
+  // the polling replication hasn't yet reconciled the local SQLite with
+  // the stack's purge (cozy-stack's `DELETE /files/trash` is async +
+  // its changes feed lag can leave the local Pouch stale for tens of
+  // seconds). The 30s polling will catch up; until then, this flag
+  // keeps the UI honest. Cleared on the next pull-to-refresh.
+  const [optimisticallyEmpty, setOptimisticallyEmpty] = useState(false)
 
-  const data = (query.data as FileQueryResult[] | null | undefined) ?? []
+  const rawData = (query.data as FileQueryResult[] | null | undefined) ?? []
+  const data = optimisticallyEmpty ? [] : rawData
 
   const handleRestore = async (item: FileQueryResult): Promise<void> => {
     if (!requireOnline(syncStatus, m => setSnackbar(m), t)) return
@@ -77,13 +70,23 @@ export default function TrashScreen() {
       await emptyTrash(client)
       setSnackbar(t('drive.trashActions.emptySuccess'))
       setEmptyDialogVisible(false)
-      await query.fetch()
+      // The stack has accepted the purge but the polling replication
+      // won't reconcile the local SQLite until the changes feed picks
+      // up the deletions (can take seconds). Show the empty state
+      // locally so the user gets immediate feedback; pull-to-refresh
+      // (below) drops this flag once they ask for the real state.
+      setOptimisticallyEmpty(true)
     } catch (e) {
       console.error('[TrashScreen] empty failed', e)
       setSnackbar(t('drive.trashActions.emptyError'))
     } finally {
       setEmptying(false)
     }
+  }
+
+  const onRefresh = (): void => {
+    setOptimisticallyEmpty(false)
+    void query.fetch()
   }
 
   const renderItem = ({ item }: { item: FileQueryResult }) => {
@@ -114,24 +117,27 @@ export default function TrashScreen() {
   return (
     <View style={styles.container}>
       <AppBar title={t('drive.trash')} onLogout={logout} />
-      {query.fetchStatus === 'loading' && data.length === 0 ? (
+      {query.fetchStatus === 'loading' && rawData.length === 0 ? (
         <LoadingState />
       ) : query.fetchStatus === 'failed' ? (
         <ErrorState
           message={t(getErrorMessageKey(query.lastError))}
-          onRetry={() => query.fetch()}
+          onRetry={onRefresh}
         />
-      ) : data.length === 0 ? (
-        <EmptyState message={t('drive.emptyTrash')} />
       ) : (
+        // Always render the FlatList (even when empty) so the
+        // RefreshControl stays available — that's how the user drops
+        // the `optimisticallyEmpty` flag after an emptyTrash.
         <FlatList
           data={data}
           keyExtractor={item => item._id}
           renderItem={renderItem}
+          ListEmptyComponent={<EmptyState message={t('drive.emptyTrash')} />}
+          contentContainerStyle={data.length === 0 ? styles.emptyContent : undefined}
           refreshControl={
             <RefreshControl
               refreshing={query.fetchStatus === 'loading'}
-              onRefresh={() => query.fetch()}
+              onRefresh={onRefresh}
             />
           }
         />
@@ -179,5 +185,6 @@ export default function TrashScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  fab: { position: 'absolute', right: 16, bottom: 16 }
+  fab: { position: 'absolute', right: 16, bottom: 16 },
+  emptyContent: { flexGrow: 1, justifyContent: 'center' }
 })
