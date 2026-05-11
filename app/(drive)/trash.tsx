@@ -73,32 +73,32 @@ export default function TrashScreen() {
   }
 
   /**
-   * Pull-to-refresh / focus refresh on a CozyPouchLink-replicated
-   * doctype, the trash flavour:
+   * Pull-to-refresh / focus refresh: run a real Pouch replication and
+   * AWAIT it to completion (not the fire-and-forget `syncImmediately`),
+   * then re-read.
    *
-   * 1. Trigger a Pouch replication (`syncImmediately`) so the local
-   *    SQLite catches up *eventually*. We don't wait on this — when
-   *    cozy-stack's `DELETE /files/trash` purges asynchronously, the
-   *    changes feed lags and the replication can finish before the
-   *    deletions are visible.
-   * 2. Run the same trash query with `forceStack: true`. The
-   *    CozyPouchLink short-circuits and forwards to StackLink — we
-   *    get the authoritative server state right now and the in-memory
-   *    cozy-client store updates accordingly. `useQuery` re-renders
-   *    with that fresh result.
+   * `pouchLink.syncImmediately()` only schedules an immediate task on
+   * the replication loop and returns void — we can't tell when "our"
+   * sync actually finishes. The `pouchlink:sync:end` event fires for
+   * every sync, including ones that started before our pull, so
+   * waiting on it can resolve too early.
    *
-   * Steady-state reads (initial render, navigation back to the tab
-   * once focused) are still served from Pouch, so offline trash
-   * browsing keeps working. Only the explicit refresh hits the stack.
+   * Reaching into `pouchLink.pouches.replicateOnce()` lets us await
+   * the actual replication promise. That's the only way to be sure
+   * the local SQLite reflects the server state before we re-query.
    */
   const onRefresh = useCallback(async (): Promise<void> => {
     if (!client) return
-    pouchLink.syncImmediately()
-    await client.query(trashQuery(), {
-      as: trashQueryAs,
-      forceStack: true
-    } as never)
-  }, [client])
+    const internal = pouchLink as unknown as {
+      pouches?: { replicateOnce?: () => Promise<unknown> }
+    }
+    try {
+      await internal.pouches?.replicateOnce?.()
+    } catch (e) {
+      console.error('[TrashScreen] replicateOnce failed', e)
+    }
+    await query.fetch()
+  }, [client, query])
 
   useFocusEffect(
     useCallback(() => {
