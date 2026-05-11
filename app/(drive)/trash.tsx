@@ -24,8 +24,6 @@ import { useAuth } from '@/auth/useAuth'
 import { getErrorMessageKey } from '@/utils/errorMessages'
 import { trashQuery, trashQueryAs, FileQueryResult } from '@/client/queries'
 import { restoreEntry, emptyTrash } from '@/files/trashActions'
-import { useSyncStatus } from '@/sync/useSyncStatus'
-import { requireOnline } from '@/sync/requireOnline'
 
 export default function TrashScreen() {
   const { t } = useTranslation()
@@ -34,7 +32,6 @@ export default function TrashScreen() {
   const theme = useTheme()
   const sheetRef = useRef<FileMetadataSheetHandle>(null)
   const query = useQuery(trashQuery(), { as: trashQueryAs })
-  const { status: syncStatus } = useSyncStatus()
   const [snackbar, setSnackbar] = useState<string | null>(null)
   const [emptyDialogVisible, setEmptyDialogVisible] = useState(false)
   const [emptying, setEmptying] = useState(false)
@@ -42,7 +39,6 @@ export default function TrashScreen() {
   const data = (query.data as FileQueryResult[] | null | undefined) ?? []
 
   const handleRestore = async (item: FileQueryResult): Promise<void> => {
-    if (!requireOnline(syncStatus, m => setSnackbar(m), t)) return
     if (!client) return
     try {
       await restoreEntry(client, item._id)
@@ -55,7 +51,6 @@ export default function TrashScreen() {
   }
 
   const handleEmpty = async (): Promise<void> => {
-    if (!requireOnline(syncStatus, m => setSnackbar(m), t)) return
     if (!client) return
     setEmptying(true)
     try {
