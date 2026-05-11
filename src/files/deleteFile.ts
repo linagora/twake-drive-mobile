@@ -1,5 +1,7 @@
 import type CozyClient from 'cozy-client'
 
+import { triggerPouchReplication } from '@/pouchdb/triggerReplication'
+
 export interface DeletableEntry {
   _id: string
   _rev?: string
@@ -27,4 +29,5 @@ export const softDeleteEntry = async (
     _rev: entry._rev,
     _type: entry._type ?? 'io.cozy.files'
   })
+  triggerPouchReplication(client, 'io.cozy.files')
 }
