@@ -1,5 +1,7 @@
 import type CozyClient from 'cozy-client'
 
+import { triggerPouchReplication } from '@/pouchdb/triggerReplication'
+
 // Doctype constants used throughout this module.
 const FILES_DOCTYPE = 'io.cozy.files'
 const SHARINGS_DOCTYPE = 'io.cozy.sharings'
@@ -228,6 +230,8 @@ export const createPublicLink = async (
     tiny: true,
     verbs
   })
+  triggerPouchReplication(client, 'io.cozy.sharings')
+  triggerPouchReplication(client, 'io.cozy.permissions')
   return result.data
 }
 
@@ -261,6 +265,8 @@ export const revokePublicLink = async (
 ): Promise<void> => {
   const document = { _id: file._id, _type: FILES_DOCTYPE, type: file.type }
   await getPermissions(client).revokeSharingLink(document)
+  triggerPouchReplication(client, 'io.cozy.sharings')
+  triggerPouchReplication(client, 'io.cozy.permissions')
 }
 
 /**
@@ -311,6 +317,8 @@ export const addRecipient = async (
     readOnlyRecipients: readOnly ? [recipient] : []
   }
   await getSharings(client).addRecipients(args)
+  triggerPouchReplication(client, 'io.cozy.sharings')
+  triggerPouchReplication(client, 'io.cozy.permissions')
 }
 
 /**
@@ -326,6 +334,8 @@ export const revokeRecipientAtIndex = async (
   index: number
 ): Promise<void> => {
   await getSharings(client).revokeRecipient({ _id: sharing._id }, index)
+  triggerPouchReplication(client, 'io.cozy.sharings')
+  triggerPouchReplication(client, 'io.cozy.permissions')
 }
 
 /**
@@ -367,5 +377,7 @@ export const createSharingForFile = async (
     readOnlyRecipients: readOnly ? [recipient] : []
   }
   const resp = await getSharings(client).create(args)
+  triggerPouchReplication(client, 'io.cozy.sharings')
+  triggerPouchReplication(client, 'io.cozy.permissions')
   return resp.data
 }
