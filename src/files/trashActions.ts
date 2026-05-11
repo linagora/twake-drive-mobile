@@ -24,10 +24,18 @@ export const restoreEntry = async (
 /**
  * Empty the entire trash (hard delete every doc in trash-dir).
  * Wraps cozy-stack-client's `FileCollection.emptyTrash()`
- * (DELETE /files/trash). Triggers an immediate pouch sync.
+ * (DELETE /files/trash).
+ *
+ * **No `pouchLink.syncImmediately()` here on purpose**: cozy-stack
+ * processes the purge asynchronously, so an immediate replication
+ * would re-pull the still-present docs back into the local SQLite
+ * and the trash screen would keep showing them until the next
+ * polling tick (30s+) eventually catches up. The trash screen uses
+ * `forceStack: true` on its useQuery to always hit the stack, so
+ * a `query.fetch()` after `emptyTrash` is enough to render the
+ * authoritative state.
  */
 export const emptyTrash = async (client: CozyClient): Promise<void> => {
   const collection = client.collection('io.cozy.files') as unknown as FilesCollection
   await collection.emptyTrash()
-  pouchLink.syncImmediately()
 }

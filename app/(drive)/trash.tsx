@@ -33,7 +33,22 @@ export default function TrashScreen() {
   const client = useClient()
   const theme = useTheme()
   const sheetRef = useRef<FileMetadataSheetHandle>(null)
-  const query = useQuery(trashQuery(), { as: trashQueryAs })
+  // Bypass the local Pouch for the trash query and always hit the stack:
+  //  - cozy-stack's `DELETE /files/trash` purges asynchronously, so the
+  //    polling replication right after `emptyTrash` may still see the
+  //    docs and re-populate the local SQLite. The trash screen would
+  //    then keep showing them until polling eventually catches up.
+  //  - the trash is rarely consulted offline, so losing offline trash
+  //    listing is acceptable in exchange for always-correct state.
+  //
+  // `forceStack: true` is the CozyPouchLink option that short-circuits
+  // its supportsOperation logic and forwards the request to the next
+  // link (StackLink). Same path twake-drive-web takes for its own
+  // trash view.
+  const query = useQuery(trashQuery(), {
+    as: trashQueryAs,
+    forceStack: true
+  } as never)
   const { status: syncStatus } = useSyncStatus()
   const [snackbar, setSnackbar] = useState<string | null>(null)
   const [emptyDialogVisible, setEmptyDialogVisible] = useState(false)

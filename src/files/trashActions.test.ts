@@ -53,15 +53,14 @@ describe('emptyTrash', () => {
     expect(trash).toHaveBeenCalledWith()
   })
 
-  it('schedules a pouch sync after success', async () => {
+  it('does NOT trigger pouchLink.syncImmediately (stack purge is async, would re-pull stale docs)', async () => {
     const trash = jest.fn().mockResolvedValue({})
     await emptyTrash(buildClient({ emptyTrash: trash }))
-    expect(mockSyncImmediately).toHaveBeenCalledTimes(1)
+    expect(mockSyncImmediately).not.toHaveBeenCalled()
   })
 
-  it('does not call syncImmediately when emptyTrash throws', async () => {
+  it('propagates errors from emptyTrash', async () => {
     const trash = jest.fn().mockRejectedValue(new Error('boom'))
     await expect(emptyTrash(buildClient({ emptyTrash: trash }))).rejects.toThrow('boom')
-    expect(mockSyncImmediately).not.toHaveBeenCalled()
   })
 })
