@@ -35,6 +35,7 @@ jest.mock('cozy-client', () => ({
       }
     }),
     registerPlugin: jest.fn(),
+    login: jest.fn().mockResolvedValue(undefined),
     logout: jest.fn()
   })),
   StackLink: jest.fn()

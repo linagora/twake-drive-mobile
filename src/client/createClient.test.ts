@@ -17,6 +17,7 @@ jest.mock('cozy-client', () => ({
   default: jest.fn(function (this: any, opts: unknown) {
     this.options = opts
     this.registerPlugin = jest.fn().mockResolvedValue(undefined)
+    this.login = jest.fn().mockResolvedValue(undefined)
   }),
   StackLink: jest.fn(function (this: any) {
     this.kind = 'StackLink-stub'

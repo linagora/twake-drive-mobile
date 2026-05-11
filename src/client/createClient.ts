@@ -55,5 +55,12 @@ export const createClient = (session: Session): CozyClient => {
     links: [pouchLink, new StackLink()]
   })
   void client.registerPlugin(flag.plugin, null)
+  // Critical: cozy-client only fires `link.onLogin()` on every link when
+  // `client.login()` is explicitly called. Passing `oauth.token` in the
+  // constructor is NOT enough — without this call, CozyPouchLink never
+  // initialises its PouchManager, the local SQLite files are never
+  // opened, and every read falls through to StackLink (i.e. the offline
+  // cache is silently disabled).
+  void client.login()
   return client
 }
