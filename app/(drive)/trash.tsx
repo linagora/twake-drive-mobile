@@ -64,17 +64,6 @@ export default function TrashScreen() {
       await emptyTrash(client)
       setSnackbar(t('drive.trashActions.emptySuccess'))
       setEmptyDialogVisible(false)
-      // cozy-stack's bulk DELETE /files/trash doesn't reliably surface
-      // the per-doc deletions in the changes feed, so a plain
-      // replicateOnce (incremental via changes) won't see the empty
-      // state. Wiping syncedDoctypes forces the next replication to
-      // run as an initial replication (replicateAllDocs via _all_docs),
-      // which DOES reflect the post-purge state because the trash docs
-      // are no longer listed.
-      const internal = pouchLink as unknown as {
-        pouches?: { clearSyncedDoctypes?: () => Promise<unknown> }
-      }
-      await internal.pouches?.clearSyncedDoctypes?.()
       await onRefresh()
     } catch (e) {
       console.error('[TrashScreen] empty failed', e)
