@@ -131,12 +131,6 @@
     },
     "docs": {
       "title": "Document"
-    },
-    "offline": {
-      "requiresOnline": "Available when you're back online",
-      "lastSynced": "Last synced {{when}}",
-      "syncing": "Syncing…",
-      "storageUnavailable": "Offline storage unavailable — the app works online"
     }
   },
   "errors": {

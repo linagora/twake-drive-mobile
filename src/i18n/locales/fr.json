@@ -131,12 +131,6 @@
     },
     "docs": {
       "title": "Document"
-    },
-    "offline": {
-      "requiresOnline": "Disponible quand vous serez en ligne",
-      "lastSynced": "Synchronisé {{when}}",
-      "syncing": "Synchronisation…",
-      "storageUnavailable": "Stockage hors-ligne indisponible — l'app fonctionne en ligne"
     }
   },
   "errors": {
