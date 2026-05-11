@@ -1,5 +1,7 @@
 import type CozyClient from 'cozy-client'
 
+import { triggerPouchReplication } from '@/pouchdb/triggerReplication'
+
 export interface CreatedNote {
   _id: string
   name?: string
@@ -26,6 +28,8 @@ export const createCozyNote = async (
 ): Promise<CreatedNote> => {
   const collection = client.collection('io.cozy.notes') as unknown as NotesCollection
   const result = await collection.create({ dir_id: dirId })
+  triggerPouchReplication(client, 'io.cozy.files')
+  triggerPouchReplication(client, 'io.cozy.notes')
   const data = result.data
   const id = data._id ?? data.id
   if (!id) throw new Error('Note creation returned no id')
