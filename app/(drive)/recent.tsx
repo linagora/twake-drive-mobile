@@ -19,8 +19,6 @@ import { getErrorMessageKey } from '@/utils/errorMessages'
 import { recentQuery, recentQueryAs, FileQueryResult } from '@/client/queries'
 import { softDeleteEntry } from '@/files/deleteFile'
 import { renameEntry } from '@/files/renameEntry'
-import { useSyncStatus } from '@/sync/useSyncStatus'
-import { requireOnline } from '@/sync/requireOnline'
 
 export default function RecentScreen() {
   const router = useRouter()
@@ -34,10 +32,8 @@ export default function RecentScreen() {
   const [pendingRename, setPendingRename] = useState<FileQueryResult | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [snackbar, setSnackbar] = useState<string | null>(null)
-  const { status: syncStatus } = useSyncStatus()
 
   const confirmDelete = async (): Promise<void> => {
-    if (!requireOnline(syncStatus, m => setSnackbar(m), t)) return
     if (!client || !pendingDelete) return
     setDeleting(true)
     try {
@@ -59,7 +55,6 @@ export default function RecentScreen() {
   }
 
   const submitRename = async (newName: string): Promise<void> => {
-    if (!requireOnline(syncStatus, m => setSnackbar(m), t)) return
     if (!client || !pendingRename) return
     await renameEntry(client, pendingRename._id, newName)
     setSnackbar(t('drive.rename.successFile'))

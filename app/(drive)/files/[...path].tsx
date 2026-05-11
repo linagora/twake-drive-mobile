@@ -26,8 +26,6 @@ import { createOfficeFile, OfficeFileClass } from '@/files/createOfficeFile'
 import { softDeleteEntry } from '@/files/deleteFile'
 import { renameEntry } from '@/files/renameEntry'
 import { useFlag } from '@/client/useFlag'
-import { useSyncStatus } from '@/sync/useSyncStatus'
-import { requireOnline } from '@/sync/requireOnline'
 import {
   fileByIdQuery,
   fileByIdQueryAs,
@@ -68,7 +66,6 @@ export default function FilesScreen() {
   const selection = useMultiSelect()
   const client = useClient()
   const docsEnabled = !!useFlag('drive.lasuitedocs.enabled')
-  const { status: syncStatus } = useSyncStatus()
 
   const isRoot = !path || path.length === 0
   const currentDirId = isRoot ? ROOT_DIR_ID : path![path!.length - 1]
@@ -100,7 +97,6 @@ export default function FilesScreen() {
   }, [foldersQuery, filesQuery])
 
   const handleCreate = async (name: string) => {
-    if (!requireOnline(syncStatus, m => setSnackbar(m), t)) return
     if (!client) throw new Error('No client')
     await createFolder(client, name, currentDirId)
     setCreateFolderVisible(false)
@@ -108,7 +104,6 @@ export default function FilesScreen() {
   }
 
   const handleCreateOffice = async (name: string) => {
-    if (!requireOnline(syncStatus, m => setSnackbar(m), t)) return
     if (!client || !creatingClass) throw new Error('No client or class')
     const cls = creatingClass
     const created = await createOfficeFile(client, cls, name, currentDirId)
@@ -118,7 +113,6 @@ export default function FilesScreen() {
   }
 
   const handleCreateNote = async (): Promise<void> => {
-    if (!requireOnline(syncStatus, m => setSnackbar(m), t)) return
     if (!client) return
     try {
       const created = await createCozyNote(client, currentDirId)
@@ -130,7 +124,6 @@ export default function FilesScreen() {
   }
 
   const handleCreateDocs = (): void => {
-    if (!requireOnline(syncStatus, m => setSnackbar(m), t)) return
     router.push(`/(drive)/docs/new/${currentDirId}`)
   }
 
@@ -143,7 +136,6 @@ export default function FilesScreen() {
   }
 
   const submitRename = async (newName: string): Promise<void> => {
-    if (!requireOnline(syncStatus, m => setSnackbar(m), t)) return
     if (!client || !pendingRename) return
     await renameEntry(client, pendingRename._id, newName)
     setSnackbar(
@@ -158,7 +150,6 @@ export default function FilesScreen() {
   }
 
   const confirmDelete = async (): Promise<void> => {
-    if (!requireOnline(syncStatus, m => setSnackbar(m), t)) return
     if (!client || !pendingDelete) return
     setDeleting(true)
     try {
@@ -185,7 +176,6 @@ export default function FilesScreen() {
   }
 
   const confirmBulkDelete = async (): Promise<void> => {
-    if (!requireOnline(syncStatus, m => setSnackbar(m), t)) return
     if (!client) return
     const items = data.filter(d => selection.isSelected(d._id))
     if (items.length === 0) return
