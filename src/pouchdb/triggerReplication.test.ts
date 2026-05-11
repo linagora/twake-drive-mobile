@@ -8,29 +8,25 @@ const makeClient = (link: unknown): CozyClient =>
   ({ links: [link] } as unknown as CozyClient)
 
 describe('triggerPouchReplication', () => {
-  it('calls startReplicationWithDebounce by default', () => {
+  it('calls startReplication on the PouchLink in the chain', () => {
     const link = Object.create((PouchLink as unknown as jest.Mock).prototype)
-    link.startReplicationWithDebounce = jest.fn()
     link.startReplication = jest.fn()
     triggerPouchReplication(makeClient(link))
-    expect(link.startReplicationWithDebounce).toHaveBeenCalled()
-    expect(link.startReplication).not.toHaveBeenCalled()
-  })
-
-  it('calls startReplication immediately when "immediate" option is set', () => {
-    const link = Object.create((PouchLink as unknown as jest.Mock).prototype)
-    link.startReplication = jest.fn()
-    link.startReplicationWithDebounce = jest.fn()
-    triggerPouchReplication(makeClient(link), undefined, { immediate: true })
     expect(link.startReplication).toHaveBeenCalled()
-    expect(link.startReplicationWithDebounce).not.toHaveBeenCalled()
   })
 
   it('accepts a doctype hint as 2nd arg (used by mutation sites)', () => {
     const link = Object.create((PouchLink as unknown as jest.Mock).prototype)
-    link.startReplicationWithDebounce = jest.fn()
+    link.startReplication = jest.fn()
     triggerPouchReplication(makeClient(link), 'io.cozy.files')
-    expect(link.startReplicationWithDebounce).toHaveBeenCalled()
+    expect(link.startReplication).toHaveBeenCalled()
+  })
+
+  it('ignores the immediate opt (kept for backward-compat) and still calls startReplication', () => {
+    const link = Object.create((PouchLink as unknown as jest.Mock).prototype)
+    link.startReplication = jest.fn()
+    triggerPouchReplication(makeClient(link), undefined, { immediate: true })
+    expect(link.startReplication).toHaveBeenCalled()
   })
 
   it('is a no-op when no PouchLink in the chain', () => {

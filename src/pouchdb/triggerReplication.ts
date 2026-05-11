@@ -11,24 +11,21 @@ const log = Minilog('PouchReplication')
  * @param doctype   Optional doctype hint. v1: informational only (the link replicates all
  *                  configured doctypes). The arg exists so mutation sites can declare WHICH
  *                  doctype they touched — useful for telemetry today, per-doctype sync later.
- * @param opts      `immediate: true` → bypasses the 60s debounce. Default false (debounced).
+ * @param opts      Accepted for backward compatibility with prior callers — but ignored.
+ *                  cozy-pouch-link refuses to debounce when `periodicSync: true` (it throws
+ *                  `createDebounceableReplication cannot be called when periodic sync is
+ *                  configured`), so every trigger calls `startReplication()` directly.
  */
 export const triggerPouchReplication = (
   client?: CozyClient,
   doctype?: string,
-  opts: { immediate?: boolean } = {}
+  _opts: { immediate?: boolean } = {}
 ): void => {
   const pouchLink = getPouchLink(client)
   if (!pouchLink) return
-  if (opts.immediate) {
-    log.debug('startReplication (immediate)', doctype ?? '')
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any
-    ;(pouchLink as any).startReplication()
-  } else {
-    log.debug('startReplicationWithDebounce', doctype ?? '')
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any
-    ;(pouchLink as any).startReplicationWithDebounce()
-  }
+  log.debug('startReplication', doctype ?? '')
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any
+  ;(pouchLink as any).startReplication()
 }
 
 export const getPouchLink = (client?: CozyClient): PouchLink | null => {
