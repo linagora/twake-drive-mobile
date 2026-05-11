@@ -1,3 +1,8 @@
+jest.mock('@/pouchdb/triggerReplication', () => ({
+  triggerPouchReplication: jest.fn()
+}))
+
+import { triggerPouchReplication } from '@/pouchdb/triggerReplication'
 import { createFolder, FolderConflictError } from './createFolder'
 
 const makeClient = (createImpl: (...args: unknown[]) => unknown) =>
@@ -6,6 +11,10 @@ const makeClient = (createImpl: (...args: unknown[]) => unknown) =>
   }) as unknown as import('cozy-client').default
 
 describe('createFolder', () => {
+  beforeEach(() => {
+    ;(triggerPouchReplication as jest.Mock).mockClear()
+  })
+
   it('calls collection.create with name + dirId + type:directory', async () => {
     const create = jest
       .fn()
@@ -53,5 +62,21 @@ describe('createFolder', () => {
     const err = new Error('boom')
     const create = jest.fn().mockRejectedValue(err)
     await expect(createFolder(makeClient(create), 'Foo', 'parent-id')).rejects.toBe(err)
+  })
+
+  it('triggers a pouch replication on success', async () => {
+    const create = jest
+      .fn()
+      .mockResolvedValue({ data: { _id: 'new', name: 'Foo', type: 'directory' } })
+    const client = makeClient(create)
+    await createFolder(client, 'Foo', 'parent-id')
+    expect(triggerPouchReplication).toHaveBeenCalledWith(client, 'io.cozy.files')
+  })
+
+  it('does NOT trigger pouch replication on failure', async () => {
+    const create = jest.fn().mockRejectedValue(new Error('boom'))
+    const client = makeClient(create)
+    await expect(createFolder(client, 'Foo', 'parent-id')).rejects.toThrow('boom')
+    expect(triggerPouchReplication).not.toHaveBeenCalled()
   })
 })

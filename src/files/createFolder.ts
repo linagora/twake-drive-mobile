@@ -1,5 +1,7 @@
 import type CozyClient from 'cozy-client'
 
+import { triggerPouchReplication } from '@/pouchdb/triggerReplication'
+
 export class FolderConflictError extends Error {
   constructor(name: string) {
     super(`A folder named "${name}" already exists in this directory`)
@@ -37,6 +39,7 @@ export const createFolder = async (
       dirId,
       type: 'directory'
     })
+    triggerPouchReplication(client, 'io.cozy.files')
     return result.data
   } catch (e) {
     const err = e as { status?: number; response?: { status?: number } }
