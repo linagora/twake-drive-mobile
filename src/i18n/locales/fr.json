@@ -131,6 +131,9 @@
     },
     "docs": {
       "title": "Document"
+    },
+    "offline": {
+      "requiresOnline": "Disponible quand vous serez en ligne"
     }
   },
   "errors": {
