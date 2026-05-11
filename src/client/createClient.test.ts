@@ -26,8 +26,13 @@ jest.mock('cozy-flags', () => ({
   default: { plugin: 'flag-plugin' }
 }))
 
+jest.mock('@/pouchdb/triggerReplication', () => ({
+  triggerPouchReplication: jest.fn()
+}))
+
 import CozyClient from 'cozy-client'
 import PouchLink from 'cozy-pouch-link'
+import { triggerPouchReplication } from '@/pouchdb/triggerReplication'
 import { createClient } from './createClient'
 
 const mockCozyClient = CozyClient as unknown as jest.Mock
@@ -42,6 +47,7 @@ describe('createClient', () => {
   beforeEach(() => {
     mockCozyClient.mockClear()
     ;(PouchLink as unknown as jest.Mock).mockClear()
+    ;(triggerPouchReplication as jest.Mock).mockClear()
   })
 
   it('instantiates CozyClient with the session uri + oauth opts', async () => {
@@ -72,5 +78,14 @@ describe('createClient', () => {
       uri: 'https://alice.example.com',
       token: { accessToken: 'tok' }
     })
+  })
+
+  it('triggers an immediate pouch replication after login', async () => {
+    await createClient(session)
+    expect(triggerPouchReplication).toHaveBeenCalledWith(
+      expect.anything(),
+      undefined,
+      { immediate: true }
+    )
   })
 })

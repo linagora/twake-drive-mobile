@@ -3,6 +3,7 @@ import flag from 'cozy-flags'
 
 import { Session } from '@/auth/types'
 import { getLinks } from '@/pouchdb/getLinks'
+import { triggerPouchReplication } from '@/pouchdb/triggerReplication'
 
 export const createClient = async (session: Session): Promise<CozyClient> => {
   console.log(
@@ -32,6 +33,9 @@ export const createClient = async (session: Session): Promise<CozyClient> => {
   // accepts the full OAuthToken object — cast to bypass the inaccurate type.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await client.login({ uri: session.uri, token: session.token } as any)
+
+  // Kick off the initial sync after login (non-blocking, immediate — no debounce).
+  triggerPouchReplication(client, undefined, { immediate: true })
 
   return client
 }
