@@ -29,7 +29,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setState({ status: 'unauthenticated', client: null })
         return
       }
-      setState({ status: 'authenticated', client: createClient(session) })
+      try {
+        const client = await createClient(session)
+        setState({ status: 'authenticated', client })
+      } catch (err) {
+        console.warn('[useAuth] createClient failed on bootstrap', err)
+        setState({ status: 'unauthenticated', client: null })
+      }
     }
     void bootstrap()
   }, [])
@@ -47,7 +53,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     await saveSession(session)
     console.log('[useAuth] session saved, transitioning to authenticated')
 
-    setState({ status: 'authenticated', client: createClient(session) })
+    const client = await createClient(session)
+    setState({ status: 'authenticated', client })
   }, [])
 
   const logout = useCallback(async (): Promise<void> => {
