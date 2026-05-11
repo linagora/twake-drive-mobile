@@ -73,37 +73,32 @@ export default function TrashScreen() {
   }
 
   /**
-   * Pull-to-refresh on a CozyPouchLink-replicated doctype: the default
-   * `query.fetch()` only re-runs the link chain, which still serves
-   * from the local Pouch — pulling shows the same cached state.
+   * Pull-to-refresh / focus refresh on a CozyPouchLink-replicated
+   * doctype, the trash flavour:
    *
-   * To actually reflect the server (after emptyTrash, after another
-   * client deleted things, etc.), we have to trigger a real
-   * replication and *wait* for it to land before re-reading.
+   * 1. Trigger a Pouch replication (`syncImmediately`) so the local
+   *    SQLite catches up *eventually*. We don't wait on this — when
+   *    cozy-stack's `DELETE /files/trash` purges asynchronously, the
+   *    changes feed lags and the replication can finish before the
+   *    deletions are visible.
+   * 2. Run the same trash query with `forceStack: true`. The
+   *    CozyPouchLink short-circuits and forwards to StackLink — we
+   *    get the authoritative server state right now and the in-memory
+   *    cozy-client store updates accordingly. `useQuery` re-renders
+   *    with that fresh result.
    *
-   * Also called on screen focus (useFocusEffect below) so that newly-
-   * trashed docs from My Files / Recent show up the first time the
-   * user opens this tab — without it, cozy-client's in-memory query
-   * cache stays stale until a manual pull or app reload.
+   * Steady-state reads (initial render, navigation back to the tab
+   * once focused) are still served from Pouch, so offline trash
+   * browsing keeps working. Only the explicit refresh hits the stack.
    */
   const onRefresh = useCallback(async (): Promise<void> => {
     if (!client) return
-    await new Promise<void>(resolve => {
-      let resolved = false
-      const done = () => {
-        if (resolved) return
-        resolved = true
-        client.removeListener?.('pouchlink:sync:end', done)
-        resolve()
-      }
-      client.on('pouchlink:sync:end', done)
-      pouchLink.syncImmediately()
-      // Safety net: if the sync is a no-op (offline) or the event
-      // gets lost, don't block the spinner forever.
-      setTimeout(done, 10000)
-    })
-    await query.fetch()
-  }, [client, query])
+    pouchLink.syncImmediately()
+    await client.query(trashQuery(), {
+      as: trashQueryAs,
+      forceStack: true
+    } as never)
+  }, [client])
 
   useFocusEffect(
     useCallback(() => {
