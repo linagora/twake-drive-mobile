@@ -12,6 +12,7 @@ import { openFileNatively } from '@/files/openFile'
 import { isCozyNoteFile, isDocsNoteFile, isOfficeFile, isShortcutFile } from '@/files/fileTypes'
 import { fetchShortcutUrl } from '@/files/shortcuts'
 import { canPreviewInApp } from '@/files/streamUrl'
+import { useIsOnline } from '@/network/useIsOnline'
 import { FileThumbnail } from './FileThumbnail'
 
 export interface FileMetadata {
@@ -46,6 +47,7 @@ export const FileMetadataSheet = forwardRef<FileMetadataSheetHandle, FileMetadat
   const { t } = useTranslation()
   const client = useClient()
   const router = useRouter()
+  const isOnline = useIsOnline()
   const bottomSheetRef = useRef<BottomSheet>(null)
   const [file, setFile] = React.useState<FileMetadata | null>(null)
   const [opening, setOpening] = useState(false)
@@ -166,7 +168,7 @@ export const FileMetadataSheet = forwardRef<FileMetadataSheetHandle, FileMetadat
                 mode="contained"
                 onPress={onOpen}
                 loading={opening}
-                disabled={opening}
+                disabled={opening || !isOnline}
                 icon="open-in-new"
               >
                 {t('drive.fileMeta.open')}
@@ -180,12 +182,22 @@ export const FileMetadataSheet = forwardRef<FileMetadataSheetHandle, FileMetadat
                 </Text>
               ) : null}
               {onShareRequested ? (
-                <Button mode="outlined" onPress={onShare} icon="share-variant">
+                <Button
+                  mode="outlined"
+                  onPress={onShare}
+                  icon="share-variant"
+                  disabled={!isOnline}
+                >
                   {t('drive.fileMeta.share')}
                 </Button>
               ) : null}
               {onRenameRequested ? (
-                <Button mode="outlined" onPress={onRename} icon="pencil-outline">
+                <Button
+                  mode="outlined"
+                  onPress={onRename}
+                  icon="pencil-outline"
+                  disabled={!isOnline}
+                >
                   {t('drive.fileMeta.rename')}
                 </Button>
               ) : null}
@@ -195,9 +207,18 @@ export const FileMetadataSheet = forwardRef<FileMetadataSheetHandle, FileMetadat
                   onPress={onDelete}
                   icon="trash-can-outline"
                   textColor={theme.colors.error}
+                  disabled={!isOnline}
                 >
                   {t('drive.fileMeta.delete')}
                 </Button>
+              ) : null}
+              {!isOnline ? (
+                <Text
+                  variant="bodySmall"
+                  style={[styles.hint, { color: theme.colors.outline }]}
+                >
+                  {t('drive.offline.requiresOnline')}
+                </Text>
               ) : null}
               <Button mode="outlined" onPress={() => bottomSheetRef.current?.close()}>
                 {t('common.close')}
@@ -230,7 +251,8 @@ const styles = StyleSheet.create({
   label: { flex: 1 },
   value: { flex: 2, textAlign: 'right' },
   footer: { marginTop: 24, gap: 8 },
-  errorText: { textAlign: 'center' }
+  errorText: { textAlign: 'center' },
+  hint: { textAlign: 'center', marginTop: 4 }
 })
 
 FileMetadataSheet.displayName = 'FileMetadataSheet'

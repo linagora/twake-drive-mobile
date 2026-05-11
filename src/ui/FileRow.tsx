@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next'
 
 import { formatFileSize } from '@/utils/formatters'
 import { useFileSharingStatus } from '@/sharing/SharingProvider'
+import { useIsOnline } from '@/network/useIsOnline'
 import { FileThumbnail } from './FileThumbnail'
 import { SharedBadge } from './SharedBadge'
 
@@ -49,6 +50,7 @@ export const FileRow = ({
 }: Props) => {
   const { t } = useTranslation()
   const theme = useTheme()
+  const isOnline = useIsOnline()
   const [menuVisible, setMenuVisible] = useState(false)
   const size = formatFileSize(file.size)
   const date = file.updated_at
@@ -98,6 +100,7 @@ export const FileRow = ({
               <Menu.Item
                 leadingIcon="share-variant"
                 title={t('drive.fileMeta.share')}
+                disabled={!isOnline}
                 onPress={() => {
                   setMenuVisible(false)
                   onShare(file)
@@ -108,6 +111,7 @@ export const FileRow = ({
               <Menu.Item
                 leadingIcon="pencil-outline"
                 title={t('drive.fileMeta.rename')}
+                disabled={!isOnline}
                 onPress={() => {
                   setMenuVisible(false)
                   onRename(file)
@@ -118,6 +122,7 @@ export const FileRow = ({
               <Menu.Item
                 leadingIcon="restore"
                 title={t('drive.trashActions.restore')}
+                disabled={!isOnline}
                 onPress={() => {
                   setMenuVisible(false)
                   onRestore(file)
@@ -128,6 +133,7 @@ export const FileRow = ({
               <Menu.Item
                 leadingIcon="trash-can-outline"
                 title={t('drive.fileMeta.delete')}
+                disabled={!isOnline}
                 onPress={() => {
                   setMenuVisible(false)
                   onDelete(file)

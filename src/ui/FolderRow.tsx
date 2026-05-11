@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 
 import { FileTypeIcon } from '@/ui/icons/FileTypeIcon'
 import { useFileSharingStatus } from '@/sharing/SharingProvider'
+import { useIsOnline } from '@/network/useIsOnline'
 import { SharedBadge } from './SharedBadge'
 
 export interface FolderItem {
@@ -42,6 +43,7 @@ export const FolderRow = ({
 }: Props) => {
   const { t } = useTranslation()
   const theme = useTheme()
+  const isOnline = useIsOnline()
   const [menuVisible, setMenuVisible] = useState(false)
   const sharingStatus = useFileSharingStatus(folder._id)
   const hasMenu = (!!onShare || !!onRename || !!onRestore || !!onDelete) && !selected
@@ -85,6 +87,7 @@ export const FolderRow = ({
               <Menu.Item
                 leadingIcon="share-variant"
                 title={t('drive.fileMeta.share')}
+                disabled={!isOnline}
                 onPress={() => {
                   setMenuVisible(false)
                   onShare(folder)
@@ -95,6 +98,7 @@ export const FolderRow = ({
               <Menu.Item
                 leadingIcon="pencil-outline"
                 title={t('drive.fileMeta.rename')}
+                disabled={!isOnline}
                 onPress={() => {
                   setMenuVisible(false)
                   onRename(folder)
@@ -105,6 +109,7 @@ export const FolderRow = ({
               <Menu.Item
                 leadingIcon="restore"
                 title={t('drive.trashActions.restore')}
+                disabled={!isOnline}
                 onPress={() => {
                   setMenuVisible(false)
                   onRestore(folder)
@@ -115,6 +120,7 @@ export const FolderRow = ({
               <Menu.Item
                 leadingIcon="trash-can-outline"
                 title={t('drive.fileMeta.delete')}
+                disabled={!isOnline}
                 onPress={() => {
                   setMenuVisible(false)
                   onDelete(folder)
