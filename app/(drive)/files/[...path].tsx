@@ -26,6 +26,8 @@ import { createOfficeFile, OfficeFileClass } from '@/files/createOfficeFile'
 import { softDeleteEntry } from '@/files/deleteFile'
 import { renameEntry } from '@/files/renameEntry'
 import { useFlag } from '@/client/useFlag'
+import { useIsOnline } from '@/network/useIsOnline'
+import { requireOnline } from '@/network/requireOnline'
 import {
   fileByIdQuery,
   fileByIdQueryAs,
@@ -66,6 +68,7 @@ export default function FilesScreen() {
   const selection = useMultiSelect()
   const client = useClient()
   const docsEnabled = !!useFlag('drive.lasuitedocs.enabled')
+  const isOnline = useIsOnline()
 
   const isRoot = !path || path.length === 0
   const currentDirId = isRoot ? ROOT_DIR_ID : path![path!.length - 1]
@@ -97,6 +100,7 @@ export default function FilesScreen() {
   }, [foldersQuery, filesQuery])
 
   const handleCreate = async (name: string) => {
+    if (!requireOnline(isOnline, setSnackbar, t)) return
     if (!client) throw new Error('No client')
     await createFolder(client, name, currentDirId)
     setCreateFolderVisible(false)
@@ -104,6 +108,7 @@ export default function FilesScreen() {
   }
 
   const handleCreateOffice = async (name: string) => {
+    if (!requireOnline(isOnline, setSnackbar, t)) return
     if (!client || !creatingClass) throw new Error('No client or class')
     const cls = creatingClass
     const created = await createOfficeFile(client, cls, name, currentDirId)
@@ -113,6 +118,7 @@ export default function FilesScreen() {
   }
 
   const handleCreateNote = async (): Promise<void> => {
+    if (!requireOnline(isOnline, setSnackbar, t)) return
     if (!client) return
     try {
       const created = await createCozyNote(client, currentDirId)
@@ -136,6 +142,7 @@ export default function FilesScreen() {
   }
 
   const submitRename = async (newName: string): Promise<void> => {
+    if (!requireOnline(isOnline, setSnackbar, t)) return
     if (!client || !pendingRename) return
     await renameEntry(client, pendingRename._id, newName)
     setSnackbar(
@@ -150,6 +157,7 @@ export default function FilesScreen() {
   }
 
   const confirmDelete = async (): Promise<void> => {
+    if (!requireOnline(isOnline, setSnackbar, t)) return
     if (!client || !pendingDelete) return
     setDeleting(true)
     try {
@@ -176,6 +184,7 @@ export default function FilesScreen() {
   }
 
   const confirmBulkDelete = async (): Promise<void> => {
+    if (!requireOnline(isOnline, setSnackbar, t)) return
     if (!client) return
     const items = data.filter(d => selection.isSelected(d._id))
     if (items.length === 0) return
@@ -217,12 +226,14 @@ export default function FilesScreen() {
           onShare={
             selection.isSelecting
               ? undefined
-              : folder =>
+              : folder => {
+                  if (!requireOnline(isOnline, setSnackbar, t)) return
                   shareRef.current?.present({
                     _id: folder._id,
                     name: folder.name,
                     type: 'directory'
                   })
+                }
           }
           onRename={selection.isSelecting ? undefined : () => requestRename(item)}
           onDelete={selection.isSelecting ? undefined : () => requestDelete(item)}
@@ -248,12 +259,14 @@ export default function FilesScreen() {
         onShare={
           selection.isSelecting
             ? undefined
-            : file =>
+            : file => {
+                if (!requireOnline(isOnline, setSnackbar, t)) return
                 shareRef.current?.present({
                   _id: file._id,
                   name: file.name,
                   type: 'file'
                 })
+              }
         }
         onRename={selection.isSelecting ? undefined : () => requestRename(item)}
         onDelete={selection.isSelecting ? undefined : () => requestDelete(item)}
@@ -361,7 +374,10 @@ export default function FilesScreen() {
       )}
       <FileMetadataSheet
         ref={sheetRef}
-        onShareRequested={file => shareRef.current?.present(file)}
+        onShareRequested={file => {
+          if (!requireOnline(isOnline, setSnackbar, t)) return
+          shareRef.current?.present(file)
+        }}
         onRenameRequested={file => {
           const full = data.find(d => d._id === file._id)
           if (full) requestRename(full)
