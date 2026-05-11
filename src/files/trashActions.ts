@@ -30,4 +30,5 @@ export const restoreEntry = async (
 export const emptyTrash = async (client: CozyClient): Promise<void> => {
   const collection = client.collection('io.cozy.files') as unknown as FilesCollection
   await collection.emptyTrash()
+  triggerPouchReplication(client, 'io.cozy.files')
 }

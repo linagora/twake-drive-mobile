@@ -54,6 +54,10 @@ describe('restoreEntry', () => {
 })
 
 describe('emptyTrash', () => {
+  beforeEach(() => {
+    ;(triggerPouchReplication as jest.Mock).mockClear()
+  })
+
   it('calls collection.emptyTrash with no args', async () => {
     const trash = jest.fn().mockResolvedValue({})
     await emptyTrash(buildClient({ emptyTrash: trash }))
@@ -63,5 +67,19 @@ describe('emptyTrash', () => {
   it('propagates errors from emptyTrash', async () => {
     const trash = jest.fn().mockRejectedValue(new Error('boom'))
     await expect(emptyTrash(buildClient({ emptyTrash: trash }))).rejects.toThrow('boom')
+  })
+
+  it('triggers a pouch replication on success', async () => {
+    const trash = jest.fn().mockResolvedValue({})
+    const client = buildClient({ emptyTrash: trash })
+    await emptyTrash(client)
+    expect(triggerPouchReplication).toHaveBeenCalledWith(client, 'io.cozy.files')
+  })
+
+  it('does NOT trigger pouch replication on failure', async () => {
+    const trash = jest.fn().mockRejectedValue(new Error('boom'))
+    const client = buildClient({ emptyTrash: trash })
+    await expect(emptyTrash(client)).rejects.toThrow('boom')
+    expect(triggerPouchReplication).not.toHaveBeenCalled()
   })
 })
