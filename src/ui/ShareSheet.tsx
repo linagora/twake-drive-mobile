@@ -47,6 +47,8 @@ import {
   revokeRecipientAtIndex
 } from '@/files/sharing'
 import { useFileSharing, useRefreshSharings } from '@/sharing/SharingProvider'
+import { useIsOnline } from '@/network/useIsOnline'
+import { requireOnline } from '@/network/requireOnline'
 import { FileThumbnail } from './FileThumbnail'
 
 export interface ShareSheetFile {
@@ -76,6 +78,7 @@ export const ShareSheet = forwardRef<ShareSheetHandle>((_, ref) => {
   const client = useClient()
   const refreshSharings = useRefreshSharings()
   const bottomSheetRef = useRef<BottomSheet>(null)
+  const isOnline = useIsOnline()
 
   // Flags mirrored from twake-drive web's ShareFileView / ShareDisplayedFolderView:
   // - sharing.generate-link-button.enabled gates the public link toggle. The web
@@ -140,6 +143,7 @@ export const ShareSheet = forwardRef<ShareSheetHandle>((_, ref) => {
   }))
 
   const onToggleLink = async (next: boolean): Promise<void> => {
+    if (!requireOnline(isOnline, setSnack, t)) return
     if (!client || !file || linkMutating) return
     setLinkMutating(true)
     setMutating(true)
@@ -165,6 +169,7 @@ export const ShareSheet = forwardRef<ShareSheetHandle>((_, ref) => {
     // Always echo the local state immediately so the segmented control feels
     // responsive even when the link doesn't yet exist.
     setEditingRights(next)
+    if (!requireOnline(isOnline, setSnack, t)) return
     if (!linkPermission || !client || !file) return // local-only change before link exists
     if (linkMutating) return
     // Existing link: swap rights via revoke + recreate. This changes the
@@ -203,6 +208,7 @@ export const ShareSheet = forwardRef<ShareSheetHandle>((_, ref) => {
   }
 
   const onSubmitRecipient = async (): Promise<void> => {
+    if (!requireOnline(isOnline, setSnack, t)) return
     const email = emailInput.trim()
     if (!client || !file || !email || mutating) return
     setMutating(true)
@@ -225,6 +231,7 @@ export const ShareSheet = forwardRef<ShareSheetHandle>((_, ref) => {
   }
 
   const onRemoveRecipient = async (recipientIndex: number): Promise<void> => {
+    if (!requireOnline(isOnline, setSnack, t)) return
     if (!client || !file || !sharing || mutating) return
     const memberIndex = absoluteMemberIndex(sharing, recipientIndex)
     if (memberIndex < 0) return
