@@ -2,6 +2,8 @@ import React, { useState } from 'react'
 import { Appbar, Menu } from 'react-native-paper'
 import { useTranslation } from 'react-i18next'
 
+import { SyncIndicator } from './SyncIndicator'
+
 export interface AppBarSelectionAction {
   icon: string
   onPress: () => void
@@ -62,6 +64,7 @@ export const AppBar = ({ title, onBack, onLogout, selection }: Props) => {
     <Appbar.Header>
       {onBack ? <Appbar.BackAction onPress={onBack} /> : null}
       <Appbar.Content title={title} />
+      <SyncIndicator />
       {onLogout ? (
         <Menu
           visible={menuVisible}
