@@ -1,5 +1,7 @@
 import type CozyClient from 'cozy-client'
 
+import { triggerPouchReplication } from '@/pouchdb/triggerReplication'
+
 export class RenameConflictError extends Error {
   constructor(name: string) {
     super(`A file or folder named "${name}" already exists`)
@@ -32,6 +34,7 @@ export const renameEntry = async (
 
   try {
     const result = await collection.updateAttributes(id, { name: trimmed })
+    triggerPouchReplication(client, 'io.cozy.files')
     return result.data
   } catch (e) {
     const err = e as { status?: number; response?: { status?: number } }
