@@ -1,3 +1,8 @@
+jest.mock('@/pouchdb/triggerReplication', () => ({
+  triggerPouchReplication: jest.fn()
+}))
+
+import { triggerPouchReplication } from '@/pouchdb/triggerReplication'
 import {
   absoluteMemberIndex,
   addRecipient,
@@ -11,6 +16,15 @@ import {
   revokePublicLink,
   revokeRecipientAtIndex
 } from './sharing'
+
+beforeEach(() => {
+  ;(triggerPouchReplication as jest.Mock).mockClear()
+})
+
+const expectSharingTriggers = (client: import('cozy-client').default): void => {
+  expect(triggerPouchReplication).toHaveBeenCalledWith(client, 'io.cozy.sharings')
+  expect(triggerPouchReplication).toHaveBeenCalledWith(client, 'io.cozy.permissions')
+}
 
 type CollectionMap = Record<string, Record<string, jest.Mock>>
 
@@ -278,6 +292,44 @@ describe('addRecipient', () => {
       readOnlyRecipients: [{ _id: 'contact-2', _type: 'io.cozy.contacts' }]
     })
   })
+
+  it('triggers sharings + permissions pouch replications on success', async () => {
+    const contactCreate = jest
+      .fn()
+      .mockResolvedValue({ data: { _id: 'contact-1', _type: 'io.cozy.contacts' } })
+    const addRecipients = jest.fn().mockResolvedValue({ data: {} })
+    const client = makeClient({
+      'io.cozy.contacts': { create: contactCreate },
+      'io.cozy.sharings': { addRecipients }
+    })
+    await addRecipient(
+      client,
+      { _id: 'sharing-1' } as Parameters<typeof addRecipient>[1],
+      'bob@example.com',
+      false
+    )
+    expectSharingTriggers(client)
+  })
+
+  it('does NOT trigger pouch replication when the stack call fails', async () => {
+    const contactCreate = jest
+      .fn()
+      .mockResolvedValue({ data: { _id: 'contact-1', _type: 'io.cozy.contacts' } })
+    const addRecipients = jest.fn().mockRejectedValue(new Error('boom'))
+    const client = makeClient({
+      'io.cozy.contacts': { create: contactCreate },
+      'io.cozy.sharings': { addRecipients }
+    })
+    await expect(
+      addRecipient(
+        client,
+        { _id: 'sharing-1' } as Parameters<typeof addRecipient>[1],
+        'bob@example.com',
+        false
+      )
+    ).rejects.toThrow('boom')
+    expect(triggerPouchReplication).not.toHaveBeenCalled()
+  })
 })
 
 describe('revokeRecipientAtIndex', () => {
@@ -290,6 +342,30 @@ describe('revokeRecipientAtIndex', () => {
       2
     )
     expect(revokeRecipient).toHaveBeenCalledWith({ _id: 'sharing-1' }, 2)
+  })
+
+  it('triggers sharings + permissions pouch replications on success', async () => {
+    const revokeRecipient = jest.fn().mockResolvedValue({})
+    const client = makeClient({ 'io.cozy.sharings': { revokeRecipient } })
+    await revokeRecipientAtIndex(
+      client,
+      { _id: 'sharing-1' } as Parameters<typeof revokeRecipientAtIndex>[1],
+      2
+    )
+    expectSharingTriggers(client)
+  })
+
+  it('does NOT trigger pouch replication when the stack call fails', async () => {
+    const revokeRecipient = jest.fn().mockRejectedValue(new Error('boom'))
+    const client = makeClient({ 'io.cozy.sharings': { revokeRecipient } })
+    await expect(
+      revokeRecipientAtIndex(
+        client,
+        { _id: 'sharing-1' } as Parameters<typeof revokeRecipientAtIndex>[1],
+        2
+      )
+    ).rejects.toThrow('boom')
+    expect(triggerPouchReplication).not.toHaveBeenCalled()
   })
 })
 
@@ -322,6 +398,22 @@ describe('createPublicLink', () => {
       { _id: 'file-1', _type: 'io.cozy.files', type: 'file' },
       { tiny: true, verbs: ['GET'] }
     )
+  })
+
+  it('triggers sharings + permissions pouch replications on success', async () => {
+    const createSharingLink = jest.fn().mockResolvedValue({ data: { _id: 'p1' } })
+    const client = makeClient({ 'io.cozy.permissions': { createSharingLink } })
+    await createPublicLink(client, { _id: 'file-1', type: 'file' })
+    expectSharingTriggers(client)
+  })
+
+  it('does NOT trigger pouch replication when the stack call fails', async () => {
+    const createSharingLink = jest.fn().mockRejectedValue(new Error('boom'))
+    const client = makeClient({ 'io.cozy.permissions': { createSharingLink } })
+    await expect(createPublicLink(client, { _id: 'file-1', type: 'file' })).rejects.toThrow(
+      'boom'
+    )
+    expect(triggerPouchReplication).not.toHaveBeenCalled()
   })
 })
 
@@ -400,6 +492,22 @@ describe('revokePublicLink', () => {
       type: 'directory'
     })
   })
+
+  it('triggers sharings + permissions pouch replications on success', async () => {
+    const revokeSharingLink = jest.fn().mockResolvedValue(undefined)
+    const client = makeClient({ 'io.cozy.permissions': { revokeSharingLink } })
+    await revokePublicLink(client, { _id: 'file-1', type: 'directory' })
+    expectSharingTriggers(client)
+  })
+
+  it('does NOT trigger pouch replication when the stack call fails', async () => {
+    const revokeSharingLink = jest.fn().mockRejectedValue(new Error('boom'))
+    const client = makeClient({ 'io.cozy.permissions': { revokeSharingLink } })
+    await expect(
+      revokePublicLink(client, { _id: 'file-1', type: 'directory' })
+    ).rejects.toThrow('boom')
+    expect(triggerPouchReplication).not.toHaveBeenCalled()
+  })
 })
 
 describe('createSharingForFile', () => {
@@ -429,5 +537,43 @@ describe('createSharingForFile', () => {
       recipients: [{ _id: 'contact-1', _type: 'io.cozy.contacts' }],
       readOnlyRecipients: []
     })
+  })
+
+  it('triggers sharings + permissions pouch replications on success', async () => {
+    const contactCreate = jest
+      .fn()
+      .mockResolvedValue({ data: { _id: 'contact-1', _type: 'io.cozy.contacts' } })
+    const create = jest.fn().mockResolvedValue({ data: { _id: 'sharing-1' } })
+    const client = makeClient({
+      'io.cozy.contacts': { create: contactCreate },
+      'io.cozy.sharings': { create }
+    })
+    await createSharingForFile(
+      client,
+      { _id: 'file-1', name: 'Doc.pdf', type: 'file' },
+      'bob@example.com',
+      false
+    )
+    expectSharingTriggers(client)
+  })
+
+  it('does NOT trigger pouch replication when the stack call fails', async () => {
+    const contactCreate = jest
+      .fn()
+      .mockResolvedValue({ data: { _id: 'contact-1', _type: 'io.cozy.contacts' } })
+    const create = jest.fn().mockRejectedValue(new Error('boom'))
+    const client = makeClient({
+      'io.cozy.contacts': { create: contactCreate },
+      'io.cozy.sharings': { create }
+    })
+    await expect(
+      createSharingForFile(
+        client,
+        { _id: 'file-1', name: 'Doc.pdf', type: 'file' },
+        'bob@example.com',
+        false
+      )
+    ).rejects.toThrow('boom')
+    expect(triggerPouchReplication).not.toHaveBeenCalled()
   })
 })
