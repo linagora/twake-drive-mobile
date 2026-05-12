@@ -242,7 +242,14 @@ export default function PreviewScreen() {
   const source = useMemo<StreamSource | null>(() => {
     if (!fileId) return null
     // Prefer the local blob when available: works offline, no auth, instant.
-    if (OfflineFilesStore.isPinnedAndDownloaded(fileId)) {
+    const pinned = OfflineFilesStore.isPinnedAndDownloaded(fileId)
+    console.log('[preview] source decision', {
+      fileId,
+      pinned,
+      offlineState: offlineEntry?.state,
+      hasClient: !!client
+    })
+    if (pinned) {
       return { uri: FileSystemRepo.localPath(fileId), headers: {} }
     }
     if (!client) return null
