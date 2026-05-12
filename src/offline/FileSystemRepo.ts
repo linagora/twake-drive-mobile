@@ -1,9 +1,14 @@
 import * as FS from 'expo-file-system/legacy'
 
-// TODO(offline-v1.5): set NSURLIsExcludedFromBackupKey on iOS so this
-// directory doesn't grow the iCloud Backup size. Requires a small
-// native module — deferred for v1. Users who care can disable backup
-// for the app in iOS Settings.
+// TODO(offline-v1.5): backup exclusion on both platforms.
+//   iOS:     set NSURLIsExcludedFromBackupKey on this directory so iCloud
+//            Backup doesn't ingest it. Requires a small native module.
+//   Android: extend the secure-store-generated backup rules
+//            (referenced as @xml/secure_store_backup_rules and
+//            @xml/secure_store_data_extraction_rules in AndroidManifest.xml)
+//            to exclude `files/offline/`. Requires a custom expo config
+//            plugin since android/ is prebuild-generated.
+// Both deferred for v1 — users who care can disable app backup in OS settings.
 const dir = (): string => {
   if (!FS.documentDirectory) throw new Error('documentDirectory unavailable')
   return `${FS.documentDirectory}offline/`
