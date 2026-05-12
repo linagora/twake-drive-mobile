@@ -14,6 +14,7 @@ const entry = (state: OfflineFileEntry['state']): OfflineFileEntry => ({
   rev: '1',
   md5sum: 'm',
   size: 1,
+  name: 'f1',
   localPath: '/o/f1',
   pinnedAt: 0,
   isDirectPin: true,

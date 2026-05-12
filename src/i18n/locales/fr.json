@@ -148,6 +148,7 @@
       "failed": "Échec du téléchargement",
       "notAvailableOffline": "Fichier non disponible hors-ligne",
       "folderPartial": "{{count}}/{{total}} fichiers",
+      "folderSummary": "{{count}} fichiers · {{size}}",
       "folderConfirm": "Ce dossier contient {{count}} fichiers (~{{size}}). Continuer ?",
       "bigFolderTitle": "Confirmer le téléchargement",
       "diskFull": "Stockage de l'appareil plein. Supprimez des fichiers pour libérer de l'espace.",
