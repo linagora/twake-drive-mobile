@@ -18,7 +18,8 @@ export default function DriveLayout() {
       <Tabs
         screenOptions={{
           headerShown: false,
-          tabBarActiveTintColor: theme.colors.primary
+          tabBarActiveTintColor: theme.colors.primary,
+          sceneStyle: { backgroundColor: theme.colors.background }
         }}
       >
         <Tabs.Screen
