@@ -5,10 +5,11 @@ import { platformReactNative } from './platformReactNative'
 
 export const REPLICATION_DEBOUNCE = 60 * 1000 // 60s
 export const REPLICATION_DEBOUNCE_MAX_DELAY = 5 * 60 * 1000 // 5min
-// Periodic background sync: 60s. cozy-pouch-link's default is 30s; we double
-// it because drive metadata doesn't move fast enough to justify polling twice
-// a minute.
-export const PERIODIC_SYNC_INTERVAL_MS = 60 * 1000
+// Periodic background sync: 30s — matches cozy-pouch-link's default.
+// Combined with the foreground-trigger (useForegroundSync) and per-mutation
+// triggers, this keeps the local cache fresh enough that remote edits show
+// up within ~30s even without user interaction.
+export const PERIODIC_SYNC_INTERVAL_MS = 30 * 1000
 
 export const offlineDoctypes = [
   'io.cozy.files',

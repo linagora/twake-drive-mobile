@@ -6,10 +6,12 @@ import { useTranslation } from 'react-i18next'
 
 import { SharingProvider } from '@/sharing/SharingProvider'
 import { OfflineBanner } from '@/ui/OfflineBanner'
+import { useForegroundSync } from '@/pouchdb/useForegroundSync'
 
 export default function DriveLayout() {
   const theme = useTheme()
   const { t } = useTranslation()
+  useForegroundSync()
   return (
     <SharingProvider>
       <OfflineBanner />
