@@ -1,0 +1,56 @@
+import CozyClient from 'cozy-client'
+
+import { FileSystemRepo } from './FileSystemRepo'
+import { OfflineFilesStore } from './OfflineFilesStore'
+import { Downloader } from './Downloader'
+import { startPinReactor } from './pinReactor'
+import { getPouchLink } from '@/pouchdb/triggerReplication'
+
+let pinReactorStop: (() => void) | undefined
+let initialized = false
+
+export const initOfflineSubsystem = async (client: CozyClient): Promise<void> => {
+  if (initialized) return
+  initialized = true
+
+  await FileSystemRepo.init()
+
+  Downloader.init({
+    buildUrl: fileId => {
+      const stack = client.getStackClient() as { uri: string }
+      return `${stack.uri}/files/download/${encodeURIComponent(fileId)}`
+    },
+    getAuthHeaders: (): Record<string, string> => {
+      const stack = client.getStackClient() as { getAccessToken: () => string | null | undefined }
+      const tok = stack.getAccessToken()
+      return tok ? { Authorization: `Bearer ${tok}` } : {}
+    }
+  })
+
+  for (const entry of OfflineFilesStore.getAll()) {
+    let next = entry
+    if (entry.state === 'downloading') {
+      next = { ...next, state: 'pending', bytesDownloaded: undefined }
+    }
+    if (entry.state === 'paused-auth') {
+      next = { ...next, state: 'pending' }
+    }
+    if (entry.state === 'downloaded' && !(await FileSystemRepo.exists(entry.fileId))) {
+      next = { ...next, state: 'pending' }
+    }
+    if (next !== entry) OfflineFilesStore.update(entry.fileId, () => next)
+    if (next.state === 'pending') Downloader.enqueue(entry.fileId)
+  }
+
+  const pouchLink = getPouchLink(client)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const pouch = (pouchLink as any)?.getPouch?.('io.cozy.files')
+  if (pouch) pinReactorStop = startPinReactor(pouch)
+}
+
+/** Test / logout teardown. */
+export const teardownOfflineSubsystem = (): void => {
+  pinReactorStop?.()
+  pinReactorStop = undefined
+  initialized = false
+}
