@@ -5,6 +5,7 @@ import { FileSystemRepo } from './FileSystemRepo'
 import { OfflineFilesStore } from './OfflineFilesStore'
 import { Downloader } from './Downloader'
 import { startPinReactor } from './pinReactor'
+import { reconcileFolderPins } from './reconcileFolderPins'
 import { getPouchLink } from '@/pouchdb/triggerReplication'
 
 let pinReactorStop: (() => void) | undefined
@@ -73,6 +74,11 @@ export const initOfflineSubsystem = async (client: CozyClient): Promise<void> =>
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const pouch = (pouchLink as any)?.getPouch?.('io.cozy.files')
   if (pouch) pinReactorStop = startPinReactor(pouch)
+
+  // Reconcile folder pins drift in case MMKV entries went out of sync with
+  // the folder pin list (e.g. previous version of "Delete all" only purged
+  // files but kept folder entries).
+  void reconcileFolderPins(client)
 }
 
 /** Test / logout teardown. */

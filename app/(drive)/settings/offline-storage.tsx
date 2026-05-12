@@ -2,17 +2,20 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { ScrollView, View, StyleSheet } from 'react-native'
 import { Button, Divider, List, Switch, Text, useTheme } from 'react-native-paper'
 import { useTranslation } from 'react-i18next'
+import { useClient } from 'cozy-client'
 
 import { OfflineFilesStore } from '@/offline/OfflineFilesStore'
 import { FileSystemRepo } from '@/offline/FileSystemRepo'
 import { Downloader } from '@/offline/Downloader'
 import { OfflineSettingsAPI } from '@/offline/offlineSettings'
+import { reconcileFolderPins } from '@/offline/reconcileFolderPins'
 import { formatFileSize } from '@/utils/formatters'
 import type { OfflineFileEntry, OfflineFolderEntry } from '@/offline/types'
 
 export default function OfflineStorageScreen() {
   const { t } = useTranslation()
   const theme = useTheme()
+  const client = useClient()
   const [totalBytes, setTotalBytes] = useState<number>(0)
   const [files, setFiles] = useState<OfflineFileEntry[]>([])
   const [folders, setFolders] = useState<OfflineFolderEntry[]>([])
@@ -27,13 +30,16 @@ export default function OfflineStorageScreen() {
 
   useEffect(() => {
     void refresh()
+    // Reconcile any stale folder pins (folder entry survives, child file
+    // entries were dropped) — they auto-repopulate.
+    if (client) void reconcileFolderPins(client)
     const off1 = OfflineFilesStore.subscribeAll(() => void refresh())
     const off2 = OfflineSettingsAPI.subscribe(() => setWifiOnly(OfflineSettingsAPI.get().wifiOnly))
     const off3 = OfflineSettingsAPI.status.subscribe(() =>
       setDiskFull(OfflineSettingsAPI.status.get().diskFull)
     )
     return () => { off1(); off2(); off3() }
-  }, [])
+  }, [client])
 
   // Show every pinned file, regardless of how it was pinned (direct vs via folder).
   // The user expects to see what's actually cached, not just direct pins.
@@ -50,7 +56,15 @@ export default function OfflineStorageScreen() {
         <Button
           mode="outlined"
           onPress={async () => {
-            for (const f of files) await OfflineFilesStore.purge(f.fileId)
+            // Unpin every folder first so the auto-purge of any file pinned
+            // only via that folder happens through unpinFolder's bookkeeping.
+            for (const folder of OfflineFilesStore.getAllFolders()) {
+              await OfflineFilesStore.unpinFolder(folder.dirId)
+            }
+            // Then purge any leftover directly-pinned files.
+            for (const f of OfflineFilesStore.getAll()) {
+              await OfflineFilesStore.purge(f.fileId)
+            }
             await refresh()
           }}
         >
