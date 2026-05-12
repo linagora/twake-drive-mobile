@@ -28,8 +28,7 @@ module.exports = {
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
     '\\.(docx|xlsx|pptx)$': '<rootDir>/jest/binaryStub.js',
-    '^react-native-vector-icons$': '@expo/vector-icons',
-    '^react-native-vector-icons/(.*)': '@expo/vector-icons/$1',
+    '^react-native-vector-icons/.*$': '<rootDir>/jest/vectorIconsStub.js',
   },
   testPathIgnorePatterns: ['/node_modules/', '/.expo/'],
   // Keep setImmediate real so that flush() helpers in tests work correctly with
