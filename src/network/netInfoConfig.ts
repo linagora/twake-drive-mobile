@@ -30,6 +30,9 @@ export const configureNetInfo = (cozyUri: string): void => {
 
   NetInfo.configure({
     reachabilityUrl: probe,
+    // NetInfo defaults to HEAD which cozy-stack's /status doesn't always
+    // accept (returns 405). Force GET — the response body is small.
+    reachabilityMethod: 'GET',
     reachabilityTest: async (response: Response) =>
       Promise.resolve(response.status >= 200 && response.status < 400),
     // Ping every 30 s when online — enough to notice a connection died
