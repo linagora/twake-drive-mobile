@@ -93,16 +93,21 @@ export const recentQuery = (): QueryDefinition =>
     .limitBy(50)
 export const recentQueryAs = 'io.cozy.files/recent'
 
-// indexFields + limitBy is critical when this query falls through to the
-// local Pouch (offline / warmed up): without an index hint, pouch-find
-// scans the whole io.cozy.files table (~10k docs) and the trash screen
-// hangs for several seconds. With the index it's near-instant.
-export const trashQuery = (): QueryDefinition =>
-  Q('io.cozy.files')
-    .where({ dir_id: TRASH_DIR_ID })
-    .indexFields(['dir_id'])
-    .limitBy(200)
-export const trashQueryAs = 'io.cozy.files/trash'
+// Trash: same two-query split as `folderSubfoldersQuery` / `folderFilesQuery`,
+// mirroring twake-drive-web's `buildTrashQuery`. Two queries (dirs + files)
+// share the same `[dir_id, type, name]` index as the regular folder listing,
+// so the trash screen reuses the index pouch-find already built for the
+// files screen — no extra scan, no slowness on a populated trash.
+//
+// Pagination / infinite-scroll is a follow-up; for now the limit matches
+// web's default of 100 per page (web paginates).
+export const trashFoldersQuery = (): QueryDefinition =>
+  buildDriveQuery(TRASH_DIR_ID, 'directory')
+export const trashFoldersQueryAs = 'io.cozy.files/trash/folders'
+
+export const trashFilesQuery = (): QueryDefinition =>
+  buildDriveQuery(TRASH_DIR_ID, 'file')
+export const trashFilesQueryAs = 'io.cozy.files/trash/files'
 
 export const fileByIdQuery = (id: string): QueryDefinition => Q('io.cozy.files').getById(id)
 export const fileByIdQueryAs = (id: string): string => `io.cozy.files/${id}`

@@ -22,7 +22,13 @@ import { FolderRow } from '@/ui/FolderRow'
 import { FileMetadataSheet, FileMetadataSheetHandle } from '@/ui/FileMetadataSheet'
 import { useAuth } from '@/auth/useAuth'
 import { getErrorMessageKey } from '@/utils/errorMessages'
-import { trashQuery, trashQueryAs, FileQueryResult } from '@/client/queries'
+import {
+  trashFoldersQuery,
+  trashFoldersQueryAs,
+  trashFilesQuery,
+  trashFilesQueryAs,
+  FileQueryResult
+} from '@/client/queries'
 import { restoreEntry, emptyTrash } from '@/files/trashActions'
 import { useIsOnline } from '@/network/useIsOnline'
 import { requireOnline } from '@/network/requireOnline'
@@ -33,13 +39,18 @@ export default function TrashScreen() {
   const client = useClient()
   const theme = useTheme()
   const sheetRef = useRef<FileMetadataSheetHandle>(null)
-  const query = useQuery(trashQuery(), { as: trashQueryAs })
+  const foldersQuery = useQuery(trashFoldersQuery(), { as: trashFoldersQueryAs })
+  const filesQuery = useQuery(trashFilesQuery(), { as: trashFilesQueryAs })
   const [snackbar, setSnackbar] = useState<string | null>(null)
   const [emptyDialogVisible, setEmptyDialogVisible] = useState(false)
   const [emptying, setEmptying] = useState(false)
   const isOnline = useIsOnline()
 
-  const data = (query.data as FileQueryResult[] | null | undefined) ?? []
+  const folderDocs = (foldersQuery.data as FileQueryResult[] | null | undefined) ?? []
+  const fileDocs = (filesQuery.data as FileQueryResult[] | null | undefined) ?? []
+  // Folders first, then files — same display order as the regular folder
+  // listing and as twake-drive-web's trash view.
+  const data = [...folderDocs, ...fileDocs]
 
   const handleRestore = async (item: FileQueryResult): Promise<void> => {
     if (!requireOnline(isOnline, setSnackbar, t)) return
@@ -47,7 +58,7 @@ export default function TrashScreen() {
     try {
       await restoreEntry(client, item._id)
       setSnackbar(t('drive.trashActions.restoreSuccess'))
-      await query.fetch()
+      await onRefresh()
     } catch (e) {
       console.error('[TrashScreen] restore failed', e)
       setSnackbar(t('drive.trashActions.restoreError'))
@@ -72,12 +83,13 @@ export default function TrashScreen() {
   }
 
   /**
-   * Pull-to-refresh: re-run the query through the link chain.
+   * Pull-to-refresh: re-run both queries through the link chain.
    * useQuery handles the initial fetch on mount on its own.
    */
   const onRefresh = useCallback((): void => {
-    void query.fetch()
-  }, [query])
+    void foldersQuery.fetch()
+    void filesQuery.fetch()
+  }, [foldersQuery, filesQuery])
 
   const renderItem = ({ item }: { item: FileQueryResult }) => {
     if (item.type === 'directory') {
@@ -107,11 +119,12 @@ export default function TrashScreen() {
   return (
     <View style={styles.container}>
       <AppBar title={t('drive.trash')} onLogout={logout} />
-      {query.fetchStatus === 'loading' && data.length === 0 ? (
+      {(foldersQuery.fetchStatus === 'loading' || filesQuery.fetchStatus === 'loading') &&
+      data.length === 0 ? (
         <LoadingState />
-      ) : query.fetchStatus === 'failed' ? (
+      ) : foldersQuery.fetchStatus === 'failed' || filesQuery.fetchStatus === 'failed' ? (
         <ErrorState
-          message={t(getErrorMessageKey(query.lastError))}
+          message={t(getErrorMessageKey(foldersQuery.lastError ?? filesQuery.lastError))}
           onRetry={onRefresh}
         />
       ) : (
@@ -127,7 +140,10 @@ export default function TrashScreen() {
           contentContainerStyle={data.length === 0 ? styles.emptyContent : undefined}
           refreshControl={
             <RefreshControl
-              refreshing={query.fetchStatus === 'loading'}
+              refreshing={
+                foldersQuery.fetchStatus === 'loading' ||
+                filesQuery.fetchStatus === 'loading'
+              }
               onRefresh={onRefresh}
             />
           }

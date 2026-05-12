@@ -15,11 +15,6 @@ import { AuthProvider, useAuth } from '@/auth/useAuth'
 import { darkTheme, lightTheme } from '@/ui/theme'
 import { attachRevocationListener } from '@/auth/revocationListener'
 import { ErrorBoundary } from '@/ui/ErrorBoundary'
-import { configureNetInfo } from '@/network/netInfoConfig'
-
-// Side effect: enable NetInfo's reachability ping so we detect host-level
-// network drops on iOS simulator (and behind some NATs).
-configureNetInfo()
 
 const InnerLayout = () => {
   const colorScheme = useColorScheme()
