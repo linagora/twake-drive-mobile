@@ -30,10 +30,24 @@ export const useIsOnline = (): boolean => {
       if (!cancelled) setOnline(computeOnline(state))
     })
     const unsubscribe = NetInfo.addEventListener(state => {
+      // eslint-disable-next-line no-console
+      console.log('[useIsOnline] NetInfo event', {
+        isConnected: state.isConnected,
+        isInternetReachable: state.isInternetReachable,
+        type: state.type
+      })
       setOnline(computeOnline(state))
     })
     const refreshTimer = setInterval(() => {
-      void NetInfo.refresh()
+      // eslint-disable-next-line no-console
+      console.log('[useIsOnline] refresh tick')
+      void NetInfo.refresh().then(state => {
+        // eslint-disable-next-line no-console
+        console.log('[useIsOnline] refresh result', {
+          isConnected: state.isConnected,
+          isInternetReachable: state.isInternetReachable
+        })
+      })
     }, REFRESH_INTERVAL_MS)
     return () => {
       cancelled = true
