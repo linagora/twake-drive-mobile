@@ -1,4 +1,5 @@
 import CozyClient from 'cozy-client'
+import * as FS from 'expo-file-system/legacy'
 
 import { FileSystemRepo } from './FileSystemRepo'
 import { OfflineFilesStore } from './OfflineFilesStore'
@@ -14,6 +15,21 @@ export const initOfflineSubsystem = async (client: CozyClient): Promise<void> =>
   initialized = true
 
   await FileSystemRepo.init()
+
+  // Sweep orphan blobs: files on disk that don't correspond to any pinned
+  // MMKV entry (left over from pin/unpin cycles where the delete didn't
+  // happen or the entry was cleared without purging the blob).
+  try {
+    const pinnedIds = new Set(OfflineFilesStore.getAll().map(e => e.fileId))
+    const names = await FS.readDirectoryAsync(FileSystemRepo.dir())
+    for (const name of names) {
+      if (!pinnedIds.has(name)) {
+        await FS.deleteAsync(`${FileSystemRepo.dir()}${name}`, { idempotent: true })
+      }
+    }
+  } catch {
+    // First-boot or empty dir — readDirectoryAsync can throw. Ignore.
+  }
 
   Downloader.init({
     buildUrl: fileId => {

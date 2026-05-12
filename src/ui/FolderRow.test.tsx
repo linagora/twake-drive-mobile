@@ -8,7 +8,16 @@ jest.mock('cozy-client', () => ({
 }))
 
 jest.mock('@/offline/useOfflineState', () => ({
-  useOfflineFolderPinned: jest.fn().mockReturnValue(false)
+  useOfflineFolderPinned: jest.fn().mockReturnValue(false),
+  useOfflineFolderState: jest.fn().mockReturnValue({
+    pinned: false,
+    aggregate: null,
+    total: 0,
+    downloaded: 0,
+    downloading: 0,
+    pending: 0,
+    failed: 0
+  })
 }))
 
 jest.mock('@/network/useIsOnline', () => ({

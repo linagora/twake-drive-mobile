@@ -6,18 +6,17 @@ import { useTranslation } from 'react-i18next'
 import { FileTypeIcon } from '@/ui/icons/FileTypeIcon'
 import { useFileSharingStatus } from '@/sharing/SharingProvider'
 import { useIsOnline } from '@/network/useIsOnline'
-import { useOfflineFolderPinned } from '@/offline/useOfflineState'
+import { useOfflineFolderState } from '@/offline/useOfflineState'
 import { PinnedBadge } from '@/offline/PinnedBadge'
-import type { OfflineFileEntry } from '@/offline/types'
+import type { OfflineFileEntry, OfflineFileState } from '@/offline/types'
 import { SharedBadge } from './SharedBadge'
 
-// Synthetic entry just to drive the PinnedBadge visuals. Folders don't have a
-// per-folder state object in the store; we render the "downloaded" look as
-// long as the folder is pinned. Per-child aggregation (some downloading, some
-// failed) is a v1.1 polish.
-const PINNED_FOLDER_BADGE: OfflineFileEntry = {
+// Synthetic entry just to drive the PinnedBadge visuals. Folders don't have
+// per-folder state in the store; we synthesize one whose `state` reflects the
+// aggregated state of the folder's children.
+const folderBadgeEntry = (state: OfflineFileState): OfflineFileEntry => ({
   fileId: '',
-  state: 'downloaded',
+  state,
   rev: '',
   md5sum: '',
   size: 0,
@@ -26,7 +25,7 @@ const PINNED_FOLDER_BADGE: OfflineFileEntry = {
   pinnedAt: 0,
   isDirectPin: false,
   parentFolderPins: []
-}
+})
 
 export interface FolderItem {
   _id: string
@@ -68,12 +67,21 @@ export const FolderRow = ({
   const isOnline = useIsOnline()
   const [menuVisible, setMenuVisible] = useState(false)
   const sharingStatus = useFileSharingStatus(folder._id)
-  const isPinned = useOfflineFolderPinned(folder._id)
+  const folderOfflineState = useOfflineFolderState(folder._id)
+  const isPinned = folderOfflineState.pinned
   const hasMenu = (!!onShare || !!onRename || !!onRestore || !!onDelete || !!onTogglePin) && !selected
+
+  const description = isPinned && folderOfflineState.downloading > 0
+    ? t('drive.offline.folderPartial', {
+        count: folderOfflineState.downloaded,
+        total: folderOfflineState.total
+      })
+    : undefined
 
   return (
     <List.Item
       title={folder.name}
+      description={description}
       // Honour the `style` Paper passes to `left` so the folder icon aligns
       // with file thumbnails in the same list (matching column widths).
       left={props => (
@@ -88,7 +96,13 @@ export const FolderRow = ({
             <View style={styles.thumbWrap}>
               <FileTypeIcon icon="folder" size={40} />
               <SharedBadge status={sharingStatus} />
-              <PinnedBadge entry={isPinned ? PINNED_FOLDER_BADGE : undefined} />
+              <PinnedBadge
+                entry={
+                  isPinned && folderOfflineState.aggregate
+                    ? folderBadgeEntry(folderOfflineState.aggregate)
+                    : undefined
+                }
+              />
             </View>
           )}
         </View>
