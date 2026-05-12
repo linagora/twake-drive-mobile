@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next'
 import { FileTypeIcon } from '@/ui/icons/FileTypeIcon'
 import { useFileSharingStatus } from '@/sharing/SharingProvider'
 import { useIsOnline } from '@/network/useIsOnline'
+import { useOfflineFolderPinned } from '@/offline/useOfflineState'
 import { SharedBadge } from './SharedBadge'
 
 export interface FolderItem {
@@ -29,6 +30,7 @@ interface Props {
   onRename?: (folder: FolderItem) => void
   onRestore?: (folder: FolderItem) => void
   onDelete?: (folder: FolderItem) => void
+  onTogglePin?: (folder: FolderItem) => void
 }
 
 export const FolderRow = ({
@@ -39,14 +41,16 @@ export const FolderRow = ({
   onShare,
   onRename,
   onRestore,
-  onDelete
+  onDelete,
+  onTogglePin
 }: Props) => {
   const { t } = useTranslation()
   const theme = useTheme()
   const isOnline = useIsOnline()
   const [menuVisible, setMenuVisible] = useState(false)
   const sharingStatus = useFileSharingStatus(folder._id)
-  const hasMenu = (!!onShare || !!onRename || !!onRestore || !!onDelete) && !selected
+  const isPinned = useOfflineFolderPinned(folder._id)
+  const hasMenu = (!!onShare || !!onRename || !!onRestore || !!onDelete || !!onTogglePin) && !selected
 
   return (
     <List.Item
@@ -83,6 +87,17 @@ export const FolderRow = ({
               />
             }
           >
+            {onTogglePin ? (
+              <Menu.Item
+                leadingIcon={isPinned ? 'cloud-off-outline' : 'cloud-download-outline'}
+                title={t(isPinned ? 'drive.offline.unpin' : 'drive.offline.pin')}
+                disabled={!isPinned && !isOnline}
+                onPress={() => {
+                  setMenuVisible(false)
+                  onTogglePin(folder)
+                }}
+              />
+            ) : null}
             {onShare ? (
               <Menu.Item
                 leadingIcon="share-variant"
