@@ -36,8 +36,26 @@ describe('OnlineMonitor', () => {
     expect(mon.getNetType()).toBe('wifi')
   })
 
-  it('flips to offline on NetInfo offline event and notifies subscribers', async () => {
+  it('probe override: NetInfo offline + probe online keeps current() = true', async () => {
+    // The OR-merge is intentional: if the probe says the stack is reachable,
+    // we trust it over NetInfo (which is unreliable on iOS sim).
     const mon = createOnlineMonitor({ probeUri: 'https://stack.example.com' })
+    await flush() // initial probe succeeds (mock returns status 200)
+    const listener = jest.fn()
+    mon.subscribe(listener)
+    ;(NetInfo as unknown as { __emit: (s: Partial<NetInfoState>) => void }).__emit({
+      isConnected: false,
+      isInternetReachable: false,
+      type: 'none'
+    })
+    expect(mon.getCurrent()).toBe(true)
+    expect(listener).not.toHaveBeenCalled()
+  })
+
+  it('current() is false only when both signals say offline; subscribers notified', async () => {
+    // Both NetInfo offline AND probe failure required to flip to offline.
+    fetchMock.mockResolvedValue({ status: 0 } as unknown as Response) // make probe also fail
+    const mon = createOnlineMonitor({ probeUri: 'https://stack.example.com', probeIntervalMs: 1000 })
     await flush()
     const listener = jest.fn()
     mon.subscribe(listener)
@@ -46,23 +64,10 @@ describe('OnlineMonitor', () => {
       isInternetReachable: false,
       type: 'none'
     })
+    // NetInfo offline + initial probe also reports offline (status 0 < 200) → current() = false
+    await flush()
+    expect(mon.getCurrent()).toBe(false)
     expect(listener).toHaveBeenCalledWith(false)
-    expect(mon.getCurrent()).toBe(false)
-  })
-
-  it('falls back to probe when NetInfo says offline', async () => {
-    const mon = createOnlineMonitor({ probeUri: 'https://stack.example.com', probeIntervalMs: 1000 })
-    await flush()
-    ;(NetInfo as unknown as { __emit: (s: Partial<NetInfoState>) => void }).__emit({
-      isConnected: false,
-      isInternetReachable: false,
-      type: 'none'
-    })
-    expect(mon.getCurrent()).toBe(false)
-    jest.advanceTimersByTime(1000)
-    await flush()
-    expect(fetchMock).toHaveBeenCalledWith('https://stack.example.com/status', expect.any(Object))
-    expect(mon.getCurrent()).toBe(true)
   })
 
   it('unsubscribe stops notifications', async () => {

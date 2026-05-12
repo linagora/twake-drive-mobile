@@ -69,6 +69,10 @@ export const createOnlineMonitor = (opts: CreateOptions = {}): OnlineMonitor => 
   })
 
   const probeTimer = setInterval(() => void probe(), probeIntervalMs)
+  // Initial probe — necessary because iOS simulator and some physical devices
+  // can report `isConnected: false, type: 'none'` at app start even when the
+  // network actually works. The probe is the authoritative override.
+  void probe()
 
   return {
     getCurrent: () => current(),
