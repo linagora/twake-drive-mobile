@@ -110,13 +110,7 @@ export const trashFilesQuery = (): QueryDefinition =>
 export const trashFilesQueryAs = 'io.cozy.files/trash/files'
 
 export const fileByIdQuery = (id: string): QueryDefinition => Q('io.cozy.files').getById(id)
-// Namespaced under /by-id/ so it doesn't collide with cozy-pouch-link's
-// internal `queryFileById` (which uses `as: 'io.cozy.files/${id}'`). When
-// the same `as` is used by both, cozy-client's fetchPolicy.olderThan finds
-// our recent query and refuses to refetch — but instead of returning the
-// cached value, client.query() returns `undefined`, which then crashes
-// cozy-pouch-link's path-walk (see linagora/cozy-client#1681).
-export const fileByIdQueryAs = (id: string): string => `io.cozy.files/by-id/${id}`
+export const fileByIdQueryAs = (id: string): string => `io.cozy.files/${id}`
 
 export const filesByIdsQuery = (ids: string[]): QueryDefinition =>
   Q('io.cozy.files').getByIds(ids).sortBy([{ type: 'asc' }, { name: 'asc' }])
