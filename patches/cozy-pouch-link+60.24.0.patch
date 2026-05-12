@@ -1,26 +1,12 @@
 diff --git a/node_modules/cozy-pouch-link/dist/jsonapi.js b/node_modules/cozy-pouch-link/dist/jsonapi.js
-index fe63937..550517a 100644
+index fe63937..b26519b 100644
 --- a/node_modules/cozy-pouch-link/dist/jsonapi.js
 +++ b/node_modules/cozy-pouch-link/dist/jsonapi.js
-@@ -247,7 +247,21 @@ var computeFileFullpath = /*#__PURE__*/function () {
+@@ -247,7 +247,7 @@ var computeFileFullpath = /*#__PURE__*/function () {
  
            case 27:
              _yield$queryFileById = _context.sent;
 -            parentDir = _yield$queryFileById.data;
-+            if (!_yield$queryFileById || !_yield$queryFileById.data) {
-+              // Diagnostic: every io.cozy.files doc SHOULD have a reachable
-+              // parent (its path is reconstructable). When we land here it
-+              // means the parent dir lookup returned nothing — usually a
-+              // sign the parent isn't in pouch yet OR the link chain
-+              // swallowed an error. Log the ids so we can investigate.
-+              console.warn(
-+                '[cozy-pouch-link/computeFileFullpath] parent lookup empty',
-+                'file._id=', file._id,
-+                'name=', file.name,
-+                'dir_id=', file.dir_id,
-+                'result=', _yield$queryFileById
-+              );
-+            }
 +            parentDir = _yield$queryFileById && _yield$queryFileById.data;
  
              if (parentDir !== null && parentDir !== void 0 && parentDir.path) {
