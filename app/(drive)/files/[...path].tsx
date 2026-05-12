@@ -390,7 +390,7 @@ export default function FilesScreen() {
       <ShareSheet ref={shareRef} />
       <FAB.Group
         open={fabOpen}
-        visible={!selection.isSelecting}
+        visible={!selection.isSelecting && isOnline}
         icon={fabOpen ? 'close' : 'plus'}
         actions={fabActions}
         onStateChange={({ open }) => setFabOpen(open)}
