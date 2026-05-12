@@ -75,7 +75,10 @@ describe('openFileNatively', () => {
 
   it('copies the pinned blob to cache (with extension) then opens it', async () => {
     mockIsPinnedAndDownloaded.mockReturnValueOnce(true)
-    ;(FileSystem.getInfoAsync as jest.Mock).mockResolvedValueOnce({ exists: false })
+    ;(FileSystem.getInfoAsync as jest.Mock)
+      .mockResolvedValueOnce({ exists: true, size: 1024 }) // blob check
+      .mockResolvedValueOnce({ exists: false })            // alias check (missing)
+      .mockResolvedValueOnce({ exists: true, size: 1024 }) // alias post-copy
     await openFileNatively(makeClient(), { _id: 'abc', name: 't.pdf' })
     expect(FileSystem.downloadAsync).not.toHaveBeenCalled()
     expect(FileSystem.copyAsync).toHaveBeenCalledWith({
@@ -90,13 +93,24 @@ describe('openFileNatively', () => {
 
   it('skips the copy if the cache alias already exists', async () => {
     mockIsPinnedAndDownloaded.mockReturnValueOnce(true)
-    ;(FileSystem.getInfoAsync as jest.Mock).mockResolvedValueOnce({ exists: true, size: 1 })
+    ;(FileSystem.getInfoAsync as jest.Mock)
+      .mockResolvedValueOnce({ exists: true, size: 1024 }) // blob check
+      .mockResolvedValueOnce({ exists: true, size: 1024 }) // alias check (exists)
+      .mockResolvedValueOnce({ exists: true, size: 1024 }) // alias re-check
     await openFileNatively(makeClient(), { _id: 'abc', name: 't.pdf' })
     expect(FileSystem.copyAsync).not.toHaveBeenCalled()
     expect(FileViewer.open).toHaveBeenCalledWith(
       'file:///cache/twake-drive/abc-t.pdf',
       expect.any(Object)
     )
+  })
+
+  it('throws when the pinned blob is missing on disk', async () => {
+    mockIsPinnedAndDownloaded.mockReturnValueOnce(true)
+    ;(FileSystem.getInfoAsync as jest.Mock).mockResolvedValueOnce({ exists: false })
+    await expect(
+      openFileNatively(makeClient(), { _id: 'abc', name: 't.pdf' })
+    ).rejects.toThrow(/missing on disk/)
   })
 
   it('sanitizes filename slashes', async () => {

@@ -39,17 +39,31 @@ export const openFileNatively = async (
     // and Android both fail to dispatch the viewer and hang. Copy
     // to a cache path that carries the real filename + extension.
     // The cacheDirectory is OS-managed so the copy is short-lived.
+    const blobPath = FileSystemRepo.localPath(file._id)
+    const blobInfo = await FileSystem.getInfoAsync(blobPath)
+    console.log('[openFile] pinned path', {
+      blobPath,
+      blobExists: blobInfo.exists,
+      blobSize: 'size' in blobInfo ? blobInfo.size : undefined,
+      aliasPath
+    })
+    if (!blobInfo.exists) {
+      throw new Error(`Pinned blob missing on disk: ${blobPath}`)
+    }
     const aliasInfo = await FileSystem.getInfoAsync(aliasPath)
     if (!aliasInfo.exists) {
-      await FileSystem.copyAsync({
-        from: FileSystemRepo.localPath(file._id),
-        to: aliasPath
-      })
+      await FileSystem.copyAsync({ from: blobPath, to: aliasPath })
     }
+    const finalInfo = await FileSystem.getInfoAsync(aliasPath)
+    console.log('[openFile] opening alias', {
+      aliasPath,
+      aliasSize: 'size' in finalInfo ? finalInfo.size : undefined
+    })
     await FileViewer.open(aliasPath, {
       showOpenWithDialog: true,
       showAppsSuggestions: true
     })
+    console.log('[openFile] FileViewer.open resolved')
     return
   }
 
