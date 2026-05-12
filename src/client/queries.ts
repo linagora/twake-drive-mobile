@@ -86,15 +86,20 @@ export const sharedWithMeQuery = (): QueryDefinition =>
   Q('io.cozy.sharings').where({ owner: false })
 export const sharedWithMeQueryAs = 'io.cozy.sharings/with-me'
 
-// `trashed: { $ne: true }` because cozy-stack only sets the `trashed`
-// field when a file is in the trash — untrashed files don't have it at
-// all. A strict `trashed: false` would match nothing.
+// Verbatim copy of twake-drive-web's `buildRecentQuery`
+// (src/queries/index.ts).
 export const recentQuery = (): QueryDefinition =>
   Q('io.cozy.files')
-    .where({ type: 'file', trashed: { $ne: true } })
+    .where({ updated_at: { $gt: null } })
+    .partialIndex({
+      type: 'file',
+      trashed: false,
+      dir_id: { $nin: [SHARED_DRIVES_DIR_ID, TRASH_DIR_ID] }
+    })
+    .indexFields(['updated_at'])
     .sortBy([{ updated_at: 'desc' }])
     .limitBy(50)
-export const recentQueryAs = 'io.cozy.files/recent'
+export const recentQueryAs = 'recent-view-query'
 
 // Trash: same two-query split as `folderSubfoldersQuery` / `folderFilesQuery`,
 // mirroring twake-drive-web's `buildTrashQuery`. Two queries (dirs + files)
