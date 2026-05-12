@@ -21,12 +21,32 @@ interface MinimalStackClient {
   getAccessToken: () => string | null | undefined
 }
 
+const cacheAliasPath = (cacheDir: string, file: OpenableFile): string =>
+  `${cacheDir}twake-drive/${file._id}-${sanitizeName(file.name)}`
+
 export const openFileNatively = async (
   client: CozyClient,
   file: OpenableFile
 ): Promise<void> => {
+  const cacheDir = FileSystem.cacheDirectory
+  if (!cacheDir) throw new Error('Cache directory unavailable')
+  const aliasPath = cacheAliasPath(cacheDir, file)
+  await FileSystem.makeDirectoryAsync(`${cacheDir}twake-drive/`, { intermediates: true })
+
   if (OfflineFilesStore.isPinnedAndDownloaded(file._id)) {
-    await FileViewer.open(FileSystemRepo.localPath(file._id), {
+    // The persistent blob is stored as `offline/{fileId}` with no
+    // extension; without one, iOS (UIDocumentInteractionController)
+    // and Android both fail to dispatch the viewer and hang. Copy
+    // to a cache path that carries the real filename + extension.
+    // The cacheDirectory is OS-managed so the copy is short-lived.
+    const aliasInfo = await FileSystem.getInfoAsync(aliasPath)
+    if (!aliasInfo.exists) {
+      await FileSystem.copyAsync({
+        from: FileSystemRepo.localPath(file._id),
+        to: aliasPath
+      })
+    }
+    await FileViewer.open(aliasPath, {
       showOpenWithDialog: true,
       showAppsSuggestions: true
     })
@@ -39,13 +59,8 @@ export const openFileNatively = async (
   if (!token) throw new Error('No access token available')
 
   const downloadUrl = `${stackUri}/files/download/${encodeURIComponent(file._id)}`
-  const cacheDir = FileSystem.cacheDirectory
-  if (!cacheDir) throw new Error('Cache directory unavailable')
-  const localPath = `${cacheDir}twake-drive/${file._id}-${sanitizeName(file.name)}`
 
-  await FileSystem.makeDirectoryAsync(`${cacheDir}twake-drive/`, { intermediates: true })
-
-  const result = await FileSystem.downloadAsync(downloadUrl, localPath, {
+  const result = await FileSystem.downloadAsync(downloadUrl, aliasPath, {
     headers: { Authorization: `Bearer ${token}` }
   })
   if (result.status >= 400) {

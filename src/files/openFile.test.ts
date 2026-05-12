@@ -9,7 +9,9 @@ const mockIsPinnedAndDownloaded = OfflineFilesStore.isPinnedAndDownloaded as jes
 jest.mock('expo-file-system/legacy', () => ({
   cacheDirectory: 'file:///cache/',
   makeDirectoryAsync: jest.fn().mockResolvedValue(undefined),
-  downloadAsync: jest.fn()
+  downloadAsync: jest.fn(),
+  getInfoAsync: jest.fn().mockResolvedValue({ exists: false }),
+  copyAsync: jest.fn().mockResolvedValue(undefined)
 }))
 
 jest.mock('react-native-file-viewer', () => ({
@@ -71,11 +73,30 @@ describe('openFileNatively', () => {
     ).rejects.toThrow(/HTTP 404/)
   })
 
-  it('opens the local blob directly when pinned + downloaded (no download call)', async () => {
+  it('copies the pinned blob to cache (with extension) then opens it', async () => {
     mockIsPinnedAndDownloaded.mockReturnValueOnce(true)
+    ;(FileSystem.getInfoAsync as jest.Mock).mockResolvedValueOnce({ exists: false })
     await openFileNatively(makeClient(), { _id: 'abc', name: 't.pdf' })
     expect(FileSystem.downloadAsync).not.toHaveBeenCalled()
-    expect(FileViewer.open).toHaveBeenCalledWith('file:///offline/abc', expect.any(Object))
+    expect(FileSystem.copyAsync).toHaveBeenCalledWith({
+      from: 'file:///offline/abc',
+      to: 'file:///cache/twake-drive/abc-t.pdf'
+    })
+    expect(FileViewer.open).toHaveBeenCalledWith(
+      'file:///cache/twake-drive/abc-t.pdf',
+      expect.any(Object)
+    )
+  })
+
+  it('skips the copy if the cache alias already exists', async () => {
+    mockIsPinnedAndDownloaded.mockReturnValueOnce(true)
+    ;(FileSystem.getInfoAsync as jest.Mock).mockResolvedValueOnce({ exists: true, size: 1 })
+    await openFileNatively(makeClient(), { _id: 'abc', name: 't.pdf' })
+    expect(FileSystem.copyAsync).not.toHaveBeenCalled()
+    expect(FileViewer.open).toHaveBeenCalledWith(
+      'file:///cache/twake-drive/abc-t.pdf',
+      expect.any(Object)
+    )
   })
 
   it('sanitizes filename slashes', async () => {
