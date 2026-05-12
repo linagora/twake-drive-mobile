@@ -3,6 +3,7 @@ import * as FS from 'expo-file-system/legacy'
 import { getOnlineMonitor } from '@/network/OnlineMonitor'
 import { OfflineFilesStore } from './OfflineFilesStore'
 import { OfflineSettingsAPI } from './offlineSettings'
+import { FileSystemRepo } from './FileSystemRepo'
 
 const MAX_CONCURRENT = 4
 const BACKOFF_DELAYS_MS = [2_000, 8_000, 30_000]
@@ -77,7 +78,25 @@ const startDownload = async (fileId: string): Promise<void> => {
     if (result.status >= 400) {
       throw new Error(`HTTP ${result.status}`)
     }
-    OfflineFilesStore.markDownloaded(fileId)
+    // Record the actual on-disk size so aggregates match reality, not the
+    // (possibly stale or differently-defined) size in stack metadata.
+    let localBytes: number | undefined
+    try {
+      const info = await FS.getInfoAsync(entry.localPath)
+      if (info.exists && 'size' in info && typeof info.size === 'number') {
+        localBytes = info.size
+      }
+    } catch {
+      // best-effort; leave undefined and fall back to metadata size in UI
+    }
+    OfflineFilesStore.update(fileId, e => ({
+      ...e,
+      state: 'downloaded',
+      bytesDownloaded: undefined,
+      retryCount: undefined,
+      lastError: undefined,
+      localBytes: localBytes ?? e.localBytes
+    }))
     inFlight.delete(fileId)
     pump()
   } catch (err) {

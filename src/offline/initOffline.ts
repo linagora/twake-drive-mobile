@@ -54,6 +54,17 @@ export const initOfflineSubsystem = async (client: CozyClient): Promise<void> =>
     if (entry.state === 'downloaded' && !(await FileSystemRepo.exists(entry.fileId))) {
       next = { ...next, state: 'pending' }
     }
+    // Backfill localBytes for entries that pre-date the field.
+    if (next.state === 'downloaded' && next.localBytes === undefined) {
+      try {
+        const info = await FS.getInfoAsync(next.localPath)
+        if (info.exists && 'size' in info && typeof info.size === 'number') {
+          next = { ...next, localBytes: info.size }
+        }
+      } catch {
+        // ignore
+      }
+    }
     if (next !== entry) OfflineFilesStore.update(entry.fileId, () => next)
     if (next.state === 'pending') Downloader.enqueue(entry.fileId)
   }

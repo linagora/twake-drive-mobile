@@ -109,7 +109,7 @@ export default function OfflineStorageScreen() {
           .map(f => {
             const childBytes = files
               .filter(file => file.parentFolderPins.includes(f.dirId))
-              .reduce((a, file) => a + file.size, 0)
+              .reduce((a, file) => a + (file.localBytes ?? file.size), 0)
             return (
               <List.Item
                 key={f.dirId}
@@ -132,7 +132,7 @@ export default function OfflineStorageScreen() {
             <List.Item
               key={f.fileId}
               title={f.name || f.fileId}
-              description={formatFileSize(f.size)}
+              description={formatFileSize(f.localBytes ?? f.size)}
               right={() => (
                 <Button mode="text" onPress={() => void OfflineFilesStore.unpin(f.fileId)}>
                   {t('drive.offline.unpin')}

@@ -10,7 +10,12 @@ export interface OfflineFileEntry {
   state: OfflineFileState
   rev: string
   md5sum: string
+  /** Source-file size from cozy-stack metadata. Used for big-folder warnings
+   *  and as a fallback when the blob hasn't been downloaded yet. */
   size: number
+  /** Actual size of the blob on disk, set after a successful download.
+   *  Settings and folder aggregates prefer this over `size`. */
+  localBytes?: number
   name: string
   bytesDownloaded?: number
   localPath: string
