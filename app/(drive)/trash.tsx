@@ -155,6 +155,7 @@ export default function TrashScreen() {
           icon="delete-sweep"
           label={t('drive.trashActions.emptyButton')}
           style={styles.fab}
+          disabled={!isOnline}
           onPress={() => setEmptyDialogVisible(true)}
         />
       ) : null}
