@@ -108,10 +108,7 @@ export default function OfflineStorageScreen() {
           .sort((a, b) => b.pinnedAt - a.pinnedAt)
           .map(f => {
             const childEntries = files.filter(file => file.parentFolderPins.includes(f.dirId))
-            const childBytes = childEntries.reduce(
-              (a, file) => a + (file.localBytes ?? file.size),
-              0
-            )
+            const childBytes = childEntries.reduce((a, file) => a + file.size, 0)
             return (
               <List.Item
                 key={f.dirId}
@@ -133,18 +130,28 @@ export default function OfflineStorageScreen() {
         {files
           .slice()
           .sort((a, b) => b.pinnedAt - a.pinnedAt)
-          .map(f => (
-            <List.Item
-              key={f.fileId}
-              title={f.name || f.fileId}
-              description={formatFileSize(f.localBytes ?? f.size)}
-              right={() => (
-                <Button mode="text" onPress={() => void OfflineFilesStore.unpin(f.fileId)}>
-                  {t('drive.offline.unpin')}
-                </Button>
-              )}
-            />
-          ))}
+          .map(f => {
+            const isSuspect =
+              f.state === 'downloaded' &&
+              f.localBytes !== undefined &&
+              f.size > 0 &&
+              f.localBytes < f.size * 0.5
+            const description = isSuspect
+              ? `${formatFileSize(f.size)} (local: ${formatFileSize(f.localBytes)}) ⚠️`
+              : formatFileSize(f.size)
+            return (
+              <List.Item
+                key={f.fileId}
+                title={f.name || f.fileId}
+                description={description}
+                right={() => (
+                  <Button mode="text" onPress={() => void OfflineFilesStore.unpin(f.fileId)}>
+                    {t('drive.offline.unpin')}
+                  </Button>
+                )}
+              />
+            )
+          })}
       </List.Section>
     </ScrollView>
   )

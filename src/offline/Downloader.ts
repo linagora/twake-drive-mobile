@@ -78,8 +78,12 @@ const startDownload = async (fileId: string): Promise<void> => {
     if (result.status >= 400) {
       throw new Error(`HTTP ${result.status}`)
     }
-    // Record the actual on-disk size so aggregates match reality, not the
-    // (possibly stale or differently-defined) size in stack metadata.
+    // Record the actual on-disk size so we can later detect short
+    // downloads (network drop, app suspended mid-transfer, server
+    // serving a smaller representation than the size declared in
+    // metadata, etc.). The download is still flagged 'downloaded' so
+    // the user can open the partial blob — short reads usually still
+    // render an image.
     let localBytes: number | undefined
     try {
       const info = await FS.getInfoAsync(entry.localPath)
@@ -87,7 +91,17 @@ const startDownload = async (fileId: string): Promise<void> => {
         localBytes = info.size
       }
     } catch {
-      // best-effort; leave undefined and fall back to metadata size in UI
+      // best-effort; leave undefined
+    }
+    if (
+      localBytes !== undefined &&
+      entry.size > 0 &&
+      localBytes < entry.size * 0.5
+    ) {
+      console.warn(
+        `[offline] short download for ${fileId} (${entry.name || ''}): ` +
+        `${localBytes}B on disk vs ${entry.size}B claimed by stack`
+      )
     }
     OfflineFilesStore.update(fileId, e => ({
       ...e,
