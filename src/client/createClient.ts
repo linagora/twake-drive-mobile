@@ -2,6 +2,7 @@ import CozyClient from 'cozy-client'
 import flag from 'cozy-flags'
 
 import { Session } from '@/auth/types'
+import { configureNetInfo } from '@/network/netInfoConfig'
 import { getLinks } from '@/pouchdb/getLinks'
 import { triggerPouchReplication } from '@/pouchdb/triggerReplication'
 
@@ -36,6 +37,11 @@ export const createClient = async (session: Session): Promise<CozyClient> => {
 
   // Kick off the initial sync after login (non-blocking, immediate — no debounce).
   triggerPouchReplication(client, undefined, { immediate: true })
+
+  // Point NetInfo's reachability ping at the user's own cozy-stack instance
+  // so the offline banner reflects "can I talk to my cozy?" rather than
+  // arbitrary internet connectivity.
+  configureNetInfo(session.uri)
 
   return client
 }
