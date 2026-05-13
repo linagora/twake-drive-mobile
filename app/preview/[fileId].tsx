@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { Dimensions, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { Dimensions, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useClient, useQuery } from 'cozy-client'
 import { useTranslation } from 'react-i18next'
@@ -23,7 +25,10 @@ import { openFileNatively } from '@/files/openFile'
 import { OfflineFilesStore } from '@/offline/OfflineFilesStore'
 import { FileSystemRepo } from '@/offline/FileSystemRepo'
 import { useOfflineState } from '@/offline/useOfflineState'
+import { useOfflineActions } from '@/offline/useOfflineActions'
 import { ZoomableImage } from '@/ui/ZoomableImage'
+import { FileMetadataSheet, FileMetadataSheetHandle } from '@/ui/FileMetadataSheet'
+import { ShareSheet, ShareSheetHandle } from '@/ui/ShareSheet'
 
 const TEXT_MAX_BYTES = 1_000_000
 
@@ -85,10 +90,12 @@ const PdfPreview = ({
 const ImagePreview = ({
   source,
   thumbnailUrl,
+  onSingleTap,
   onDismiss
 }: {
   source: StreamSource
   thumbnailUrl: string | null
+  onSingleTap: () => void
   onDismiss: () => void
 }) => {
   const [loaded, setLoaded] = useState(false)
@@ -99,6 +106,7 @@ const ImagePreview = ({
         uri={source.uri}
         headers={source.headers}
         placeholderUri={thumbnailUrl}
+        onSingleTap={onSingleTap}
         onDismiss={onDismiss}
         onLoad={() => setLoaded(true)}
         onError={err => {
@@ -223,10 +231,15 @@ export default function PreviewScreen() {
   const router = useRouter()
   const { t } = useTranslation()
   const client = useClient()
+  const insets = useSafeAreaInsets()
   const { fileId } = useLocalSearchParams<{ fileId: string }>()
   const [externalLoading, setExternalLoading] = useState(false)
   const [externalError, setExternalError] = useState<string | null>(null)
+  const [uiVisible, setUiVisible] = useState(false)
+  const sheetRef = useRef<FileMetadataSheetHandle>(null)
+  const shareRef = useRef<ShareSheetHandle>(null)
   const fallbackTriggered = useRef(false)
+  const offlineActions = useOfflineActions()
 
   const fileLookup = useQuery(fileByIdQuery(fileId ?? ''), {
     as: fileByIdQueryAs(fileId ?? ''),
@@ -305,6 +318,7 @@ export default function PreviewScreen() {
           <ImagePreview
             source={source}
             thumbnailUrl={thumbnailUrl}
+            onSingleTap={() => setUiVisible(v => !v)}
             onDismiss={() => router.back()}
           />
         )
@@ -332,10 +346,38 @@ export default function PreviewScreen() {
     }
   }
 
-  // Image viewer is fullscreen, no chrome. Swipe down dismisses; iOS
-  // edge-swipe / Android back button also work. Other kinds keep their
-  // header + footer.
+  // Image viewer is fullscreen, no chrome by default; tap reveals a
+  // translucent bottom bar with Share / Pin / Details. Other kinds keep
+  // their header + footer.
   const isImage = kind === 'image'
+  const isPinned = !!offlineEntry?.isDirectPin
+  const showImageBar = isImage && uiVisible && !!file
+
+  const togglePin = (): void => {
+    if (!file) return
+    if (isPinned) void offlineActions.unpin(file._id)
+    else offlineActions.pin({ _id: file._id, name: file.name, size: file.size ?? null })
+  }
+  const openInfo = (): void => {
+    if (!file) return
+    sheetRef.current?.present({
+      _id: file._id,
+      name: file.name,
+      size: file.size ?? null,
+      mime: file.mime,
+      class: file.class,
+      type: file.type,
+      updated_at: file.updated_at,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      path: (file as any).path,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      cozyMetadata: (file as any).cozyMetadata
+    })
+  }
+  const openShare = (): void => {
+    if (!file) return
+    shareRef.current?.present({ _id: file._id, name: file.name, type: 'file' })
+  }
 
   return (
     <View
@@ -360,6 +402,36 @@ export default function PreviewScreen() {
           {externalError ? <Text style={styles.actionError}>{externalError}</Text> : null}
         </View>
       ) : null}
+      {showImageBar ? (
+        <View
+          style={[
+            styles.imageBottomBar,
+            { paddingBottom: Math.max(insets.bottom, 12) }
+          ]}
+          pointerEvents="box-none"
+        >
+          <Pressable style={styles.imageBottomAction} onPress={openShare}>
+            <Icon name="share-variant" size={24} color="#fff" />
+            <Text style={styles.imageBottomLabel}>{t('drive.fileMeta.share')}</Text>
+          </Pressable>
+          <Pressable style={styles.imageBottomAction} onPress={togglePin}>
+            <Icon
+              name={isPinned ? 'cloud-off-outline' : 'cloud-download-outline'}
+              size={24}
+              color="#fff"
+            />
+            <Text style={styles.imageBottomLabel}>
+              {t(isPinned ? 'drive.offline.unpin' : 'drive.offline.pin')}
+            </Text>
+          </Pressable>
+          <Pressable style={styles.imageBottomAction} onPress={openInfo}>
+            <Icon name="information-outline" size={24} color="#fff" />
+            <Text style={styles.imageBottomLabel}>{t('drive.fileMeta.info')}</Text>
+          </Pressable>
+        </View>
+      ) : null}
+      <FileMetadataSheet ref={sheetRef} />
+      <ShareSheet ref={shareRef} />
     </View>
   )
 }
@@ -386,6 +458,18 @@ const styles = StyleSheet.create({
   fallbackPanel: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   actions: { paddingVertical: 8, paddingHorizontal: 16, backgroundColor: '#000' },
   actionError: { color: '#ff6b6b', textAlign: 'center', marginTop: 4, fontSize: 12 },
+  imageBottomBar: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingTop: 12,
+    backgroundColor: 'rgba(0,0,0,0.65)'
+  },
+  imageBottomAction: { alignItems: 'center', gap: 4, paddingHorizontal: 16, paddingVertical: 6 },
+  imageBottomLabel: { color: '#fff', fontSize: 11 },
   overlay: {
     ...StyleSheet.absoluteFillObject,
     alignItems: 'center',
