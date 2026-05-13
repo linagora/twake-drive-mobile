@@ -27,6 +27,7 @@ import { FileSystemRepo } from '@/offline/FileSystemRepo'
 import { useOfflineState } from '@/offline/useOfflineState'
 import { useOfflineActions } from '@/offline/useOfflineActions'
 import { ZoomableImage } from '@/ui/ZoomableImage'
+import { DismissibleViewer } from '@/ui/DismissibleViewer'
 import { FileMetadataSheet, FileMetadataSheetHandle } from '@/ui/FileMetadataSheet'
 import { ShareSheet, ShareSheetHandle } from '@/ui/ShareSheet'
 
@@ -120,7 +121,13 @@ const ImagePreview = ({
   )
 }
 
-const VideoPreview = ({ source }: { source: StreamSource }) => {
+const VideoPreview = ({
+  source,
+  onDismiss
+}: {
+  source: StreamSource
+  onDismiss: () => void
+}) => {
   const player = useVideoPlayer({ uri: source.uri, headers: source.headers }, p => {
     p.loop = false
     p.staysActiveInBackground = true
@@ -134,7 +141,7 @@ const VideoPreview = ({ source }: { source: StreamSource }) => {
     return () => sub.remove()
   }, [player])
   return (
-    <View style={styles.viewerContainer}>
+    <DismissibleViewer onDismiss={onDismiss} style={styles.viewerContainer}>
       <VideoView
         player={player}
         style={styles.video}
@@ -145,7 +152,7 @@ const VideoPreview = ({ source }: { source: StreamSource }) => {
         nativeControls
       />
       {!ready ? <LoadingOverlay /> : null}
-    </View>
+    </DismissibleViewer>
   )
 }
 
@@ -337,7 +344,7 @@ export default function PreviewScreen() {
           />
         )
       case 'video':
-        return <VideoPreview source={source} />
+        return <VideoPreview source={source} onDismiss={() => router.back()} />
       case 'audio':
         return <AudioPreview source={source} name={file?.name ?? ''} />
       case 'text':
