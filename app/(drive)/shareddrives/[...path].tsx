@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next'
 import { Snackbar } from 'react-native-paper'
 
 import { AppBar } from '@/ui/AppBar'
+import { ScreenContainer } from '@/ui/ScreenContainer'
 import { EmptyState } from '@/ui/EmptyState'
 import { ErrorState } from '@/ui/ErrorState'
 import { LoadingState } from '@/ui/LoadingState'
@@ -243,7 +244,7 @@ export default function SharedDrivesScreen() {
   const title = isRoot ? t('drive.sharedDrives') : (folder?.name ?? '')
 
   return (
-    <View style={styles.container}>
+    <ScreenContainer>
       <AppBar
         title={title}
         onBack={isRoot ? undefined : () => router.back()}
@@ -294,7 +295,7 @@ export default function SharedDrivesScreen() {
       >
         {resolveError ?? ''}
       </Snackbar>
-    </View>
+    </ScreenContainer>
   )
 }
 
