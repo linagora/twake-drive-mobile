@@ -6,6 +6,7 @@ import { useClient, useQuery } from 'cozy-client'
 import { useTranslation } from 'react-i18next'
 
 import { AppBar } from '@/ui/AppBar'
+import { ScreenContainer } from '@/ui/ScreenContainer'
 import { EmptyState } from '@/ui/EmptyState'
 import { ErrorState } from '@/ui/ErrorState'
 import { LoadingState } from '@/ui/LoadingState'
@@ -102,7 +103,7 @@ export default function RecentScreen() {
   const data = (query.data as FileQueryResult[] | null | undefined) ?? []
 
   return (
-    <View style={styles.container}>
+    <ScreenContainer>
       <AppBar title={t('drive.recent')} onLogout={logout} />
       {query.fetchStatus === 'loading' && data.length === 0 ? (
         <LoadingState />
@@ -159,7 +160,7 @@ export default function RecentScreen() {
       <Snackbar visible={!!snackbar} onDismiss={() => setSnackbar(null)} duration={3000}>
         {snackbar ?? ''}
       </Snackbar>
-    </View>
+    </ScreenContainer>
   )
 }
 

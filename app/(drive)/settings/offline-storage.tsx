@@ -4,6 +4,7 @@ import { Button, Divider, List, Switch, Text, useTheme } from 'react-native-pape
 import { useTranslation } from 'react-i18next'
 import { useClient } from 'cozy-client'
 
+import { ScreenContainer } from '@/ui/ScreenContainer'
 import { OfflineFilesStore } from '@/offline/OfflineFilesStore'
 import { FileSystemRepo } from '@/offline/FileSystemRepo'
 import { Downloader } from '@/offline/Downloader'
@@ -47,8 +48,9 @@ export default function OfflineStorageScreen() {
   const failed = useMemo(() => files.filter(f => f.state === 'failed'), [files])
 
   return (
-    <ScrollView>
-      <List.Item
+    <ScreenContainer>
+      <ScrollView>
+        <List.Item
         title={t('drive.offline.totalUsed')}
         description={formatFileSize(totalBytes)}
       />
@@ -167,7 +169,8 @@ export default function OfflineStorageScreen() {
             )
           })}
       </List.Section>
-    </ScrollView>
+      </ScrollView>
+    </ScreenContainer>
   )
 }
 

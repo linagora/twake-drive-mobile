@@ -6,6 +6,7 @@ import { useClient } from 'cozy-client'
 import { useTranslation } from 'react-i18next'
 
 import { AppBar } from '@/ui/AppBar'
+import { ScreenContainer } from '@/ui/ScreenContainer'
 import { ErrorState } from '@/ui/ErrorState'
 import { LoadingState } from '@/ui/LoadingState'
 import { buildCozyAppUrl, getSessionCode } from '@/files/cozyAppLink'
@@ -52,7 +53,7 @@ export default function DocsNewScreen() {
   }, [client, folderId, reloadTick])
 
   return (
-    <View style={styles.container}>
+    <ScreenContainer>
       <AppBar title={t('drive.docs.title')} onBack={() => router.back()} />
       {error ? (
         <ErrorState
@@ -82,7 +83,7 @@ export default function DocsNewScreen() {
           }}
         />
       )}
-    </View>
+    </ScreenContainer>
   )
 }
 

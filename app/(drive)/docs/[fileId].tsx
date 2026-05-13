@@ -6,6 +6,7 @@ import { useClient, useQuery } from 'cozy-client'
 import { useTranslation } from 'react-i18next'
 
 import { AppBar } from '@/ui/AppBar'
+import { ScreenContainer } from '@/ui/ScreenContainer'
 import { ErrorState } from '@/ui/ErrorState'
 import { LoadingState } from '@/ui/LoadingState'
 import { fileByIdQuery, fileByIdQueryAs } from '@/client/queries'
@@ -66,7 +67,7 @@ export default function DocsScreen() {
     fileLookup.fetchStatus === 'loaded' && !!lookupDoc && !externalId
 
   return (
-    <View style={styles.container}>
+    <ScreenContainer>
       <AppBar title={fileName ?? t('drive.docs.title')} onBack={() => router.back()} />
       {error ? (
         <ErrorState
@@ -104,7 +105,7 @@ export default function DocsScreen() {
           }}
         />
       )}
-    </View>
+    </ScreenContainer>
   )
 }
 
