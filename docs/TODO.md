@@ -23,6 +23,17 @@ Items to pick up later, captured in conversation. Order is rough, not strict.
 
 - **Move files / folders inside the drive.** Long-press → "Move…" → folder picker → confirm. Requires a `moveEntry` helper (mirror twake-drive-web's `client.collection('io.cozy.files').updateAttributes(id, { dir_id })`) + a folder-picker UI. Multi-select integration too.
 
+## Bugs
+
+- **Trash empty doesn't refresh client-side.** Emptying the trash from the
+  web shows the bin empty there, but the mobile Trash tab keeps showing the
+  same files. Even pull-to-refresh doesn't catch up — suggests the
+  `empty trash` cozy-stack operation isn't reflected in the local pouch
+  replication, or our trash query bypasses the replicated state. Repro:
+  empty the trash on web → open Twake Drive mobile → Trash tab still full.
+  Need to investigate whether the bulk delete emits a doc-level change the
+  pouch sync picks up.
+
 ## Known limitations from prior sessions
 
 - **iOS `NSURLIsExcludedFromBackupKey` on `documentDirectory/offline/`** — currently NOT set, so the offline cache grows the iCloud backup size. Needs a small native module. Documented as `TODO(offline-v1.5)` in `src/offline/FileSystemRepo.ts`.
