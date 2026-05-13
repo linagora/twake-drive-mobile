@@ -338,7 +338,12 @@ export default function PreviewScreen() {
   const isImage = kind === 'image'
 
   return (
-    <View style={styles.container}>
+    <View
+      style={[
+        styles.container,
+        isImage && styles.containerTransparent
+      ]}
+    >
       {!isImage ? <AppBar title={title} onBack={() => router.back()} /> : null}
       {isLoadingFile ? <LoadingState /> : renderViewer()}
       {kind !== 'unsupported' && file && !isImage ? (
@@ -363,6 +368,7 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window')
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#000' },
+  containerTransparent: { backgroundColor: 'transparent' },
   viewerContainer: { flex: 1 },
   pdf: { flex: 1, width: SCREEN_WIDTH, backgroundColor: '#000' },
   transparent: { backgroundColor: 'transparent' },

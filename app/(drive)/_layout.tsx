@@ -105,14 +105,6 @@ export default function DriveLayout() {
             href: null
           }}
         />
-        <Tabs.Screen
-          name="preview/[fileId]"
-          options={{
-            href: null,
-            // Truly fullscreen image viewer — hide the tab bar on this screen.
-            tabBarStyle: { display: 'none' }
-          }}
-        />
       </Tabs>
     </SharingProvider>
   )

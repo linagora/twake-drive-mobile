@@ -138,7 +138,10 @@ export const ZoomableImage = ({
   })
 
   const backdropStyle = useAnimatedStyle(() => ({
-    backgroundColor: `rgba(0,0,0,${1 - 0.7 * dragProgress.value})`
+    // Full black at rest; fades all the way to transparent as the drag
+    // approaches the dismiss threshold so the underlying modal-host
+    // screen shows through.
+    backgroundColor: `rgba(0,0,0,${1 - dragProgress.value})`
   }))
 
   const transformStyle = useAnimatedStyle(() => {
