@@ -66,18 +66,22 @@ export const ZoomableImage = ({
       }
     })
 
-  // Pan only when zoomed in — moves the image around. When at base
-  // scale, leave vertical gestures to the OS pageSheet so it can
-  // coordinate drag-down dismiss.
+  // Pan only when zoomed in — moves the image around. At base scale we
+  // fail the gesture so the parent pageSheet can claim it for its
+  // drag-down dismiss. Manual activation prevents the Pan from holding
+  // the touch on every tap regardless of zoom.
   const pan = Gesture.Pan()
-    .minDistance(8)
+    .manualActivation(true)
+    .onTouchesMove((_e, state) => {
+      'worklet'
+      if (scale.value > 1) state.activate()
+      else state.fail()
+    })
     .onUpdate(e => {
-      if (scale.value <= 1) return
       translateX.value = savedTranslateX.value + e.translationX
       translateY.value = savedTranslateY.value + e.translationY
     })
     .onEnd(() => {
-      if (scale.value <= 1) return
       savedTranslateX.value = translateX.value
       savedTranslateY.value = translateY.value
     })
