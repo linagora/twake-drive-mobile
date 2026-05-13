@@ -69,6 +69,9 @@ const PdfPreview = ({
       <Pdf
         source={{ uri: source.uri, headers: source.headers, cache: true }}
         trustAllCerts={false}
+        enableDoubleTapZoom
+        minScale={1}
+        maxScale={3}
         style={[styles.pdf, !loaded && styles.transparent]}
         onLoadProgress={p => setProgress(p)}
         onLoadComplete={() => setLoaded(true)}
