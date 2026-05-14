@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { Dimensions, ScrollView, StyleSheet, Text, View } from 'react-native'
+import * as FileSystem from 'expo-file-system/legacy'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useClient, useQuery } from 'cozy-client'
 import { useTranslation } from 'react-i18next'
@@ -259,10 +260,62 @@ export default function PreviewScreen() {
   // Re-renders when the offline state of this file changes (so a download
   // completing while the screen is open swaps the source to the local blob).
   const offlineEntry = useOfflineState(fileId ?? undefined)
+
+  const thumbnailUrl = useMemo(
+    () => (client && file?.links ? buildThumbnailUrl(client, file.links, 'large') : null),
+    [client, file?.links]
+  )
+
+  const kind = getPreviewKind(file ?? null)
+
+  // AVPlayer (video) and the audio player rely on the file URL's extension
+  // to choose the right codec. The persistent offline blob is stored as
+  // `offline/{fileId}` with no extension, so for those kinds we eagerly
+  // copy the blob to the OS cache under `{fileId}-{name}` and serve from
+  // there. Image / PDF / text don't need this — they sniff the content.
+  const [pinnedAliasPath, setPinnedAliasPath] = useState<string | null>(null)
+  useEffect(() => {
+    setPinnedAliasPath(null)
+    if (!fileId || !file) return
+    if (kind !== 'video' && kind !== 'audio') return
+    if (!OfflineFilesStore.isPinnedAndDownloaded(fileId)) return
+    const cacheDir = FileSystem.cacheDirectory
+    if (!cacheDir) return
+    let cancelled = false
+    void (async () => {
+      try {
+        const dir = `${cacheDir}twake-drive/`
+        await FileSystem.makeDirectoryAsync(dir, { intermediates: true })
+        const sanitized = file.name.replace(/[/\\?%*:|"<>]/g, '_')
+        const target = `${dir}${fileId}-${sanitized}`
+        const info = await FileSystem.getInfoAsync(target)
+        if (!info.exists) {
+          await FileSystem.copyAsync({
+            from: FileSystemRepo.localPath(fileId),
+            to: target
+          })
+        }
+        if (!cancelled) setPinnedAliasPath(target)
+      } catch (e) {
+        console.error('[PreviewScreen] pinned alias copy failed', e)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [fileId, file, kind])
+
   const source = useMemo<StreamSource | null>(() => {
     if (!fileId) return null
     // Prefer the local blob when available: works offline, no auth, instant.
     if (OfflineFilesStore.isPinnedAndDownloaded(fileId)) {
+      // Video / audio need the extension-bearing alias to start decoding;
+      // wait for the copy to land before returning anything (preview screen
+      // shows LoadingState meanwhile).
+      if (kind === 'video' || kind === 'audio') {
+        if (!pinnedAliasPath) return null
+        return { uri: pinnedAliasPath, headers: {} }
+      }
       return { uri: FileSystemRepo.localPath(fileId), headers: {} }
     }
     if (!client) return null
@@ -271,14 +324,7 @@ export default function PreviewScreen() {
     } catch {
       return null
     }
-  }, [client, fileId, offlineEntry?.state])
-
-  const thumbnailUrl = useMemo(
-    () => (client && file?.links ? buildThumbnailUrl(client, file.links, 'large') : null),
-    [client, file?.links]
-  )
-
-  const kind = getPreviewKind(file ?? null)
+  }, [client, fileId, kind, pinnedAliasPath, offlineEntry?.state])
 
   // Unsupported types: download then native intent, then back.
   useEffect(() => {
