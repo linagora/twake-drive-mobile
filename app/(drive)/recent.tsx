@@ -11,7 +11,6 @@ import { EmptyState } from '@/ui/EmptyState'
 import { ErrorState } from '@/ui/ErrorState'
 import { LoadingState } from '@/ui/LoadingState'
 import { FileRow } from '@/ui/FileRow'
-import { ShareSheet, ShareSheetHandle } from '@/ui/ShareSheet'
 import { ConfirmDeleteDialog } from '@/ui/ConfirmDeleteDialog'
 import { RenameDialog } from '@/ui/RenameDialog'
 import { useAuth } from '@/auth/useAuth'
@@ -30,7 +29,6 @@ export default function RecentScreen() {
   const { t } = useTranslation()
   const { logout } = useAuth()
   const client = useClient()
-  const shareRef = useRef<ShareSheetHandle>(null)
   const query = useQuery(recentQuery(), { as: recentQueryAs })
 
   const queryRef = useRef(query)
@@ -97,7 +95,7 @@ export default function RecentScreen() {
       }}
       onShare={file => {
         if (!requireOnline(isOnline, setSnackbar, t)) return
-        shareRef.current?.present({ _id: file._id, name: file.name, type: 'file' })
+        router.push(`/share/${file._id}`)
       }}
       onRename={() => setPendingRename(item)}
       onDelete={() => setPendingDelete(item)}
@@ -133,7 +131,6 @@ export default function RecentScreen() {
           }
         />
       )}
-      <ShareSheet ref={shareRef} />
       <ConfirmDeleteDialog
         visible={!!pendingDelete}
         target={pendingDelete}

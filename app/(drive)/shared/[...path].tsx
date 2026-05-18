@@ -12,7 +12,6 @@ import { ErrorState } from '@/ui/ErrorState'
 import { LoadingState } from '@/ui/LoadingState'
 import { FileRow } from '@/ui/FileRow'
 import { FolderRow } from '@/ui/FolderRow'
-import { ShareSheet, ShareSheetHandle } from '@/ui/ShareSheet'
 import { useAuth } from '@/auth/useAuth'
 import { getErrorMessageKey } from '@/utils/errorMessages'
 import {
@@ -46,7 +45,6 @@ export default function SharedScreen() {
         : rawPath
           ? [rawPath]
           : undefined
-  const shareRef = useRef<ShareSheetHandle>(null)
   const [refreshing, setRefreshing] = useState(false)
   const [snackbar, setSnackbar] = useState<string | null>(null)
   const client = useClient()
@@ -133,13 +131,7 @@ export default function SharedScreen() {
           onPress={folder =>
             router.push(`/(drive)/shared/${[...(path ?? []), folder._id].join('/')}`)
           }
-          onShare={folder =>
-            shareRef.current?.present({
-              _id: folder._id,
-              name: folder.name,
-              type: 'directory'
-            })
-          }
+          onShare={folder => router.push(`/share/${folder._id}`)}
           onTogglePin={onToggleFolderPin}
         />
       )
@@ -154,9 +146,7 @@ export default function SharedScreen() {
             setSnackbar((e as Error).message ?? t('drive.preview.loadFailed'))
           })
         }}
-        onShare={file =>
-          shareRef.current?.present({ _id: file._id, name: file.name, type: 'file' })
-        }
+        onShare={file => router.push(`/share/${file._id}`)}
         onTogglePin={onToggleFilePin}
         onInfo={file => router.push(`/metadata/${file._id}`)}
       />
@@ -230,7 +220,6 @@ export default function SharedScreen() {
           }
         />
       )}
-      <ShareSheet ref={shareRef} />
       <BigFolderConfirmDialog
         visible={!!offlineActions.pendingConfirmation}
         count={offlineActions.pendingConfirmation?.count ?? 0}

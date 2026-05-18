@@ -12,7 +12,6 @@ import { ErrorState } from '@/ui/ErrorState'
 import { LoadingState } from '@/ui/LoadingState'
 import { FileRow } from '@/ui/FileRow'
 import { FolderRow } from '@/ui/FolderRow'
-import { ShareSheet, ShareSheetHandle } from '@/ui/ShareSheet'
 import { CreateFolderDialog } from '@/ui/CreateFolderDialog'
 import { CreateOfficeFileDialog } from '@/ui/CreateOfficeFileDialog'
 import { ConfirmDeleteDialog } from '@/ui/ConfirmDeleteDialog'
@@ -58,7 +57,6 @@ export default function FilesScreen() {
         : rawPath
           ? [rawPath]
           : undefined
-  const shareRef = useRef<ShareSheetHandle>(null)
   const [refreshing, setRefreshing] = useState(false)
   const [createFolderVisible, setCreateFolderVisible] = useState(false)
   const [creatingClass, setCreatingClass] = useState<OfficeFileClass | null>(null)
@@ -70,15 +68,21 @@ export default function FilesScreen() {
   const [snackbar, setSnackbar] = useState<string | null>(null)
   const selection = useMultiSelect()
   const offlineActions = useOfflineActions()
-  const onToggleFilePin = useCallback((file: { _id: string; name: string; size?: number | null }) => {
-    const entry = OfflineFilesStore.get(file._id)
-    if (entry?.isDirectPin) void offlineActions.unpin(file._id)
-    else offlineActions.pin({ _id: file._id, name: file.name, size: file.size ?? null })
-  }, [offlineActions])
-  const onToggleFolderPin = useCallback((folder: { _id: string; name: string }) => {
-    if (OfflineFilesStore.getFolder(folder._id)) void offlineActions.unpinFolder(folder._id)
-    else void offlineActions.pinFolder({ _id: folder._id, name: folder.name })
-  }, [offlineActions])
+  const onToggleFilePin = useCallback(
+    (file: { _id: string; name: string; size?: number | null }) => {
+      const entry = OfflineFilesStore.get(file._id)
+      if (entry?.isDirectPin) void offlineActions.unpin(file._id)
+      else offlineActions.pin({ _id: file._id, name: file.name, size: file.size ?? null })
+    },
+    [offlineActions]
+  )
+  const onToggleFolderPin = useCallback(
+    (folder: { _id: string; name: string }) => {
+      if (OfflineFilesStore.getFolder(folder._id)) void offlineActions.unpinFolder(folder._id)
+      else void offlineActions.pinFolder({ _id: folder._id, name: folder.name })
+    },
+    [offlineActions]
+  )
   const client = useClient()
   const docsEnabled = !!useFlag('drive.lasuitedocs.enabled')
   const isOnline = useIsOnline()
@@ -254,11 +258,7 @@ export default function FilesScreen() {
               ? undefined
               : folder => {
                   if (!requireOnline(isOnline, setSnackbar, t)) return
-                  shareRef.current?.present({
-                    _id: folder._id,
-                    name: folder.name,
-                    type: 'directory'
-                  })
+                  router.push(`/share/${folder._id}`)
                 }
           }
           onRename={selection.isSelecting ? undefined : () => requestRename(item)}
@@ -288,21 +288,13 @@ export default function FilesScreen() {
             ? undefined
             : file => {
                 if (!requireOnline(isOnline, setSnackbar, t)) return
-                shareRef.current?.present({
-                  _id: file._id,
-                  name: file.name,
-                  type: 'file'
-                })
+                router.push(`/share/${file._id}`)
               }
         }
         onRename={selection.isSelecting ? undefined : () => requestRename(item)}
         onDelete={selection.isSelecting ? undefined : () => requestDelete(item)}
         onTogglePin={selection.isSelecting ? undefined : onToggleFilePin}
-        onInfo={
-          selection.isSelecting
-            ? undefined
-            : file => router.push(`/metadata/${file._id}`)
-        }
+        onInfo={selection.isSelecting ? undefined : file => router.push(`/metadata/${file._id}`)}
       />
     )
   }
@@ -313,9 +305,7 @@ export default function FilesScreen() {
   // Hide the virtual shared-drives-dir + trash-dir from the listing — they
   // appear as children of the root in raw io.cozy.files responses but are
   // surfaced via dedicated screens instead. Same convention as twake-drive web.
-  const data = [...folderDocs, ...fileDocs].filter(
-    item => !HIDDEN_ROOT_DIR_IDS.includes(item._id)
-  )
+  const data = [...folderDocs, ...fileDocs].filter(item => !HIDDEN_ROOT_DIR_IDS.includes(item._id))
 
   const fabActions = [
     {
@@ -382,9 +372,7 @@ export default function FilesScreen() {
         <LoadingState />
       ) : foldersQuery.fetchStatus === 'failed' || filesQuery.fetchStatus === 'failed' ? (
         <ErrorState
-          message={t(
-            getErrorMessageKey(foldersQuery.lastError ?? filesQuery.lastError)
-          )}
+          message={t(getErrorMessageKey(foldersQuery.lastError ?? filesQuery.lastError))}
           onRetry={() => {
             void foldersQuery.fetch()
             void filesQuery.fetch()
@@ -405,7 +393,6 @@ export default function FilesScreen() {
           }}
         />
       )}
-      <ShareSheet ref={shareRef} />
       <BigFolderConfirmDialog
         visible={!!offlineActions.pendingConfirmation}
         count={offlineActions.pendingConfirmation?.count ?? 0}
@@ -452,11 +439,7 @@ export default function FilesScreen() {
         onConfirm={() => void confirmBulkDelete()}
         onDismiss={() => (deleting ? undefined : setBulkConfirmVisible(false))}
       />
-      <Snackbar
-        visible={!!snackbar}
-        onDismiss={() => setSnackbar(null)}
-        duration={3000}
-      >
+      <Snackbar visible={!!snackbar} onDismiss={() => setSnackbar(null)} duration={3000}>
         {snackbar ?? ''}
       </Snackbar>
     </ScreenContainer>
