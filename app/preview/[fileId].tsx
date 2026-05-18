@@ -6,7 +6,6 @@ import { useClient, useQuery } from 'cozy-client'
 import { useTranslation } from 'react-i18next'
 import { Image } from 'expo-image'
 import Pdf from 'react-native-pdf'
-import { VideoView, useVideoPlayer } from 'expo-video'
 import { AudioModule, useAudioPlayer, useAudioPlayerStatus } from 'expo-audio'
 import { ActivityIndicator, IconButton, ProgressBar, useTheme } from 'react-native-paper'
 
@@ -24,6 +23,7 @@ import { openFileNatively } from '@/files/openFile'
 import { OfflineFilesStore } from '@/offline/OfflineFilesStore'
 import { FileSystemRepo } from '@/offline/FileSystemRepo'
 import { useOfflineState } from '@/offline/useOfflineState'
+import { VideoPreview } from '@/preview/VideoPreview'
 import { ZoomableImage } from '@/ui/ZoomableImage'
 
 const TEXT_MAX_BYTES = 1_000_000
@@ -109,35 +109,6 @@ const ImagePreview = ({
         }}
       />
       {error ? <ErrorOverlay message={error} /> : !loaded && !thumbnailUrl ? <LoadingOverlay /> : null}
-    </View>
-  )
-}
-
-const VideoPreview = ({ source }: { source: StreamSource }) => {
-  const player = useVideoPlayer({ uri: source.uri, headers: source.headers }, p => {
-    p.loop = false
-    p.staysActiveInBackground = true
-    p.play()
-  })
-  const [ready, setReady] = useState(false)
-  useEffect(() => {
-    const sub = player.addListener('statusChange', ({ status }) => {
-      if (status === 'readyToPlay') setReady(true)
-    })
-    return () => sub.remove()
-  }, [player])
-  return (
-    <View style={styles.viewerContainer}>
-      <VideoView
-        player={player}
-        style={styles.video}
-        contentFit="contain"
-        fullscreenOptions={{ enable: true }}
-        allowsPictureInPicture
-        startsPictureInPictureAutomatically
-        nativeControls
-      />
-      {!ready ? <LoadingOverlay /> : null}
     </View>
   )
 }
@@ -353,7 +324,7 @@ export default function PreviewScreen() {
       case 'image':
         return <ImagePreview source={source} thumbnailUrl={thumbnailUrl} />
       case 'video':
-        return <VideoPreview source={source} />
+        return <VideoPreview fileId={fileId!} source={source} />
       case 'audio':
         return <AudioPreview source={source} name={file?.name ?? ''} />
       case 'text':
@@ -402,7 +373,6 @@ const styles = StyleSheet.create({
   pdf: { flex: 1, width: SCREEN_WIDTH, backgroundColor: '#000' },
   transparent: { backgroundColor: 'transparent' },
   image: { flex: 1, width: SCREEN_WIDTH, height: SCREEN_HEIGHT, backgroundColor: '#000' },
-  video: { flex: 1, width: SCREEN_WIDTH, backgroundColor: '#000' },
   audioContainer: { alignItems: 'center', justifyContent: 'center' },
   audioCard: { alignItems: 'center', padding: 24, gap: 16 },
   audioTitle: { color: '#fff', fontSize: 16, textAlign: 'center', maxWidth: 280 },

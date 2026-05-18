@@ -13,7 +13,7 @@ export interface PiPSessionContextValue {
   release: () => void
 }
 
-const PiPSessionContext = createContext<PiPSessionContextValue | null>(null)
+export const PiPSessionContext = createContext<PiPSessionContextValue | null>(null)
 
 export const PiPSessionProvider = ({ children }: { children: React.ReactNode }) => {
   const [active, setActive] = useState<PiPSessionState | null>(null)
