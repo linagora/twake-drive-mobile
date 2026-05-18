@@ -15,6 +15,7 @@ import { AuthProvider, useAuth } from '@/auth/useAuth'
 import { darkTheme, lightTheme } from '@/ui/theme'
 import { attachRevocationListener } from '@/auth/revocationListener'
 import { ErrorBoundary } from '@/ui/ErrorBoundary'
+import { PiPSessionProvider } from '@/preview/PiPSession'
 
 const InnerLayout = () => {
   const colorScheme = useColorScheme()
@@ -34,24 +35,26 @@ const InnerLayout = () => {
         <PaperProvider theme={theme}>
           <I18nextProvider i18n={i18n}>
             <BottomSheetModalProvider>
-              <ErrorBoundary>
-                <Stack screenOptions={{ headerShown: false }}>
-                  <Stack.Screen name="(auth)" />
-                  <Stack.Screen name="(drive)" />
-                  <Stack.Screen name="index" />
-                  <Stack.Screen
-                    name="preview/[fileId]"
-                    options={{
-                      // Native iOS pageSheet: rounded-corner modal that
-                      // the OS lets the user drag down to dismiss,
-                      // coordinated with any inner UIScrollView (PDF,
-                      // text). Works for every preview kind for free.
-                      presentation: 'pageSheet',
-                      animation: 'slide_from_bottom'
-                    }}
-                  />
-                </Stack>
-              </ErrorBoundary>
+              <PiPSessionProvider>
+                <ErrorBoundary>
+                  <Stack screenOptions={{ headerShown: false }}>
+                    <Stack.Screen name="(auth)" />
+                    <Stack.Screen name="(drive)" />
+                    <Stack.Screen name="index" />
+                    <Stack.Screen
+                      name="preview/[fileId]"
+                      options={{
+                        // Native iOS pageSheet: rounded-corner modal that
+                        // the OS lets the user drag down to dismiss,
+                        // coordinated with any inner UIScrollView (PDF,
+                        // text). Works for every preview kind for free.
+                        presentation: 'pageSheet',
+                        animation: 'slide_from_bottom'
+                      }}
+                    />
+                  </Stack>
+                </ErrorBoundary>
+              </PiPSessionProvider>
             </BottomSheetModalProvider>
           </I18nextProvider>
         </PaperProvider>
