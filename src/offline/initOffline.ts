@@ -1,5 +1,5 @@
 import CozyClient from 'cozy-client'
-import * as FS from 'expo-file-system/legacy'
+import { Directory, File, Paths } from 'expo-file-system'
 
 import { FileSystemRepo } from './FileSystemRepo'
 import { OfflineFilesStore } from './OfflineFilesStore'
@@ -22,14 +22,16 @@ export const initOfflineSubsystem = async (client: CozyClient): Promise<void> =>
   // happen or the entry was cleared without purging the blob).
   try {
     const pinnedIds = new Set(OfflineFilesStore.getAll().map(e => e.fileId))
-    const names = await FS.readDirectoryAsync(FileSystemRepo.dir())
-    for (const name of names) {
-      if (!pinnedIds.has(name)) {
-        await FS.deleteAsync(`${FileSystemRepo.dir()}${name}`, { idempotent: true })
+    const offlineDir = new Directory(Paths.document, 'offline')
+    if (offlineDir.exists) {
+      for (const entry of offlineDir.list()) {
+        if (entry instanceof File && !pinnedIds.has(entry.name)) {
+          entry.delete()
+        }
       }
     }
   } catch {
-    // First-boot or empty dir — readDirectoryAsync can throw. Ignore.
+    // First-boot or transient fs hiccup — best-effort sweep.
   }
 
   Downloader.init({
@@ -58,10 +60,8 @@ export const initOfflineSubsystem = async (client: CozyClient): Promise<void> =>
     // Backfill localBytes for entries that pre-date the field.
     if (next.state === 'downloaded' && next.localBytes === undefined) {
       try {
-        const info = await FS.getInfoAsync(next.localPath)
-        if (info.exists && 'size' in info && typeof info.size === 'number') {
-          next = { ...next, localBytes: info.size }
-        }
+        const f = new File(next.localPath)
+        if (f.exists) next = { ...next, localBytes: f.size }
       } catch {
         // ignore
       }
