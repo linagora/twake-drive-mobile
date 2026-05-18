@@ -132,7 +132,7 @@ const VideoPreview = ({ source }: { source: StreamSource }) => {
         player={player}
         style={styles.video}
         contentFit="contain"
-        allowsFullscreen
+        fullscreenOptions={{ enable: true }}
         allowsPictureInPicture
         startsPictureInPictureAutomatically
         nativeControls
