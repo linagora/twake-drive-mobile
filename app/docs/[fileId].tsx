@@ -1,11 +1,9 @@
 import React, { useEffect, useState } from 'react'
-import { StyleSheet, View } from 'react-native'
+import { StyleSheet } from 'react-native'
 import { WebView } from 'react-native-webview'
-import { useLocalSearchParams, useRouter } from 'expo-router'
+import { useLocalSearchParams } from 'expo-router'
 import { useClient, useQuery } from 'cozy-client'
-import { useTranslation } from 'react-i18next'
 
-import { AppBar } from '@/ui/AppBar'
 import { ScreenContainer } from '@/ui/ScreenContainer'
 import { ErrorState } from '@/ui/ErrorState'
 import { LoadingState } from '@/ui/LoadingState'
@@ -22,8 +20,6 @@ import { buildCozyAppUrl, getSessionCode } from '@/files/cozyAppLink'
 // cozy-client/dist/models/file.js → isDocs(file)).
 
 export default function DocsScreen() {
-  const router = useRouter()
-  const { t } = useTranslation()
   const { fileId } = useLocalSearchParams<{ fileId: string }>()
   const client = useClient()
   const [editorUrl, setEditorUrl] = useState<string | null>(null)
@@ -39,7 +35,6 @@ export default function DocsScreen() {
   const externalId = (
     lookupDoc as { metadata?: { externalId?: string } } | null | undefined
   )?.metadata?.externalId
-  const fileName = (lookupDoc as { name?: string } | null | undefined)?.name
 
   useEffect(() => {
     let cancelled = false
@@ -68,7 +63,6 @@ export default function DocsScreen() {
 
   return (
     <ScreenContainer>
-      <AppBar title={fileName ?? t('drive.docs.title')} onBack={() => router.back()} />
       {error ? (
         <ErrorState
           message={error}

@@ -1,11 +1,9 @@
 import React, { useEffect, useState } from 'react'
-import { StyleSheet, View } from 'react-native'
+import { StyleSheet } from 'react-native'
 import { WebView } from 'react-native-webview'
-import { useLocalSearchParams, useRouter } from 'expo-router'
+import { useLocalSearchParams } from 'expo-router'
 import { useClient } from 'cozy-client'
-import { useTranslation } from 'react-i18next'
 
-import { AppBar } from '@/ui/AppBar'
 import { ScreenContainer } from '@/ui/ScreenContainer'
 import { ErrorState } from '@/ui/ErrorState'
 import { LoadingState } from '@/ui/LoadingState'
@@ -18,8 +16,6 @@ import { buildCozyAppUrl, getSessionCode } from '@/files/cozyAppLink'
 // exist yet.
 
 export default function DocsNewScreen() {
-  const router = useRouter()
-  const { t } = useTranslation()
   const { folderId } = useLocalSearchParams<{ folderId: string }>()
   const client = useClient()
   const [editorUrl, setEditorUrl] = useState<string | null>(null)
@@ -54,7 +50,6 @@ export default function DocsNewScreen() {
 
   return (
     <ScreenContainer>
-      <AppBar title={t('drive.docs.title')} onBack={() => router.back()} />
       {error ? (
         <ErrorState
           message={error}
