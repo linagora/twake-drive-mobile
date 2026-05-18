@@ -60,6 +60,22 @@ const InnerLayout = () => {
                       name="share/[fileId]"
                       options={{ presentation: 'pageSheet', animation: 'slide_from_bottom' }}
                     />
+                    <Stack.Screen
+                      name="onlyoffice/[fileId]"
+                      options={{ presentation: 'pageSheet', animation: 'slide_from_bottom' }}
+                    />
+                    <Stack.Screen
+                      name="note/[fileId]"
+                      options={{ presentation: 'pageSheet', animation: 'slide_from_bottom' }}
+                    />
+                    <Stack.Screen
+                      name="docs/[fileId]"
+                      options={{ presentation: 'pageSheet', animation: 'slide_from_bottom' }}
+                    />
+                    <Stack.Screen
+                      name="docs/new/[folderId]"
+                      options={{ presentation: 'pageSheet', animation: 'slide_from_bottom' }}
+                    />
                   </Stack>
                 </ErrorBoundary>
               </SharingProvider>

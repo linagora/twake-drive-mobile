@@ -76,30 +76,6 @@ export default function DriveLayout() {
             tabBarIcon: ({ color, size }) => <Icon name="cog-outline" color={color} size={size} />
           }}
         />
-        <Tabs.Screen
-          name="onlyoffice/[fileId]"
-          options={{
-            href: null
-          }}
-        />
-        <Tabs.Screen
-          name="note/[fileId]"
-          options={{
-            href: null
-          }}
-        />
-        <Tabs.Screen
-          name="docs/[fileId]"
-          options={{
-            href: null
-          }}
-        />
-        <Tabs.Screen
-          name="docs/new/[folderId]"
-          options={{
-            href: null
-          }}
-        />
       </Tabs>
     </>
   )

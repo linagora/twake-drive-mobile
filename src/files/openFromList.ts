@@ -30,15 +30,15 @@ export const openFileFromList = async (
   file: FileLike
 ): Promise<void> => {
   if (isCozyNoteFile(file.name)) {
-    router.push(`/(drive)/note/${file._id}`)
+    router.push(`/note/${file._id}`)
     return
   }
   if (isDocsNoteFile(file.name)) {
-    router.push(`/(drive)/docs/${file._id}`)
+    router.push(`/docs/${file._id}`)
     return
   }
   if (isOfficeFile(file.mime)) {
-    router.push(`/(drive)/onlyoffice/${file._id}`)
+    router.push(`/onlyoffice/${file._id}`)
     return
   }
   if (canPreviewInApp(file)) {

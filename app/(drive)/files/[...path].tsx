@@ -144,7 +144,7 @@ export default function FilesScreen() {
     const created = await createOfficeFile(client, cls, name, currentDirId)
     setCreatingClass(null)
     await Promise.all([foldersQuery.fetch(), filesQuery.fetch()])
-    router.push(`/(drive)/onlyoffice/${created._id}`)
+    router.push(`/onlyoffice/${created._id}`)
   }
 
   const handleCreateNote = async (): Promise<void> => {
@@ -153,14 +153,14 @@ export default function FilesScreen() {
     try {
       const created = await createCozyNote(client, currentDirId)
       await Promise.all([foldersQuery.fetch(), filesQuery.fetch()])
-      router.push(`/(drive)/note/${created._id}`)
+      router.push(`/note/${created._id}`)
     } catch (e) {
       console.error('[FilesScreen] note creation failed', e)
     }
   }
 
   const handleCreateDocs = (): void => {
-    router.push(`/(drive)/docs/new/${currentDirId}`)
+    router.push(`/docs/new/${currentDirId}`)
   }
 
   const requestDelete = (entry: FileQueryResult): void => {
