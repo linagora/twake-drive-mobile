@@ -1,7 +1,4 @@
-// Use the legacy import. expo-file-system v19 (SDK 54) deprecates
-// `cacheDirectory`, `makeDirectoryAsync` and `downloadAsync` on the root
-// module — they throw at runtime. The legacy submodule keeps the same API.
-import * as FileSystem from 'expo-file-system/legacy'
+import { Directory, File, Paths } from 'expo-file-system'
 import FileViewer from 'react-native-file-viewer'
 import type CozyClient from 'cozy-client'
 
@@ -21,17 +18,13 @@ interface MinimalStackClient {
   getAccessToken: () => string | null | undefined
 }
 
-const cacheAliasPath = (cacheDir: string, file: OpenableFile): string =>
-  `${cacheDir}twake-drive/${file._id}-${sanitizeName(file.name)}`
-
 export const openFileNatively = async (
   client: CozyClient,
   file: OpenableFile
 ): Promise<void> => {
-  const cacheDir = FileSystem.cacheDirectory
-  if (!cacheDir) throw new Error('Cache directory unavailable')
-  const aliasPath = cacheAliasPath(cacheDir, file)
-  await FileSystem.makeDirectoryAsync(`${cacheDir}twake-drive/`, { intermediates: true })
+  const cacheTwakeDir = new Directory(Paths.cache, 'twake-drive')
+  if (!cacheTwakeDir.exists) cacheTwakeDir.create({ intermediates: true })
+  const aliasFile = new File(cacheTwakeDir, `${file._id}-${sanitizeName(file.name)}`)
 
   if (OfflineFilesStore.isPinnedAndDownloaded(file._id)) {
     // The persistent blob is stored as `offline/{fileId}` with no
@@ -39,16 +32,12 @@ export const openFileNatively = async (
     // and Android both fail to dispatch the viewer and hang. Copy
     // to a cache path that carries the real filename + extension.
     // The cacheDirectory is OS-managed so the copy is short-lived.
-    const blobPath = FileSystemRepo.localPath(file._id)
-    const blobInfo = await FileSystem.getInfoAsync(blobPath)
-    if (!blobInfo.exists) {
-      throw new Error(`Pinned blob missing on disk: ${blobPath}`)
+    const blobFile = new File(FileSystemRepo.localPath(file._id))
+    if (!blobFile.exists) {
+      throw new Error(`Pinned blob missing on disk: ${blobFile.uri}`)
     }
-    const aliasInfo = await FileSystem.getInfoAsync(aliasPath)
-    if (!aliasInfo.exists) {
-      await FileSystem.copyAsync({ from: blobPath, to: aliasPath })
-    }
-    await FileViewer.open(aliasPath, {
+    if (!aliasFile.exists) blobFile.copy(aliasFile)
+    await FileViewer.open(aliasFile.uri, {
       showOpenWithDialog: true,
       showAppsSuggestions: true
     })
@@ -61,15 +50,15 @@ export const openFileNatively = async (
   if (!token) throw new Error('No access token available')
 
   const downloadUrl = `${stackUri}/files/download/${encodeURIComponent(file._id)}`
-
-  const result = await FileSystem.downloadAsync(downloadUrl, aliasPath, {
-    headers: { Authorization: `Bearer ${token}` }
+  // File.downloadFileAsync rejects on non-2xx with `UnableToDownload`
+  // whose message includes the status code, so we don't need a manual
+  // status check. `idempotent: true` overwrites a stale cache alias.
+  const downloaded = await File.downloadFileAsync(downloadUrl, aliasFile, {
+    headers: { Authorization: `Bearer ${token}` },
+    idempotent: true
   })
-  if (result.status >= 400) {
-    throw new Error(`Download failed (HTTP ${result.status})`)
-  }
 
-  await FileViewer.open(result.uri, {
+  await FileViewer.open(downloaded.uri, {
     showOpenWithDialog: true,
     showAppsSuggestions: true
   })

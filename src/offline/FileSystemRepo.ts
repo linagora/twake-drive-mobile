@@ -1,4 +1,4 @@
-import * as FS from 'expo-file-system/legacy'
+import { Directory, File, Paths } from 'expo-file-system'
 
 // TODO(offline-v1.5): backup exclusion on both platforms.
 //   iOS:     set NSURLIsExcludedFromBackupKey on this directory so iCloud
@@ -9,33 +9,29 @@ import * as FS from 'expo-file-system/legacy'
 //            to exclude `files/offline/`. Requires a custom expo config
 //            plugin since android/ is prebuild-generated.
 // Both deferred for v1 — users who care can disable app backup in OS settings.
-const dir = (): string => {
-  if (!FS.documentDirectory) throw new Error('documentDirectory unavailable')
-  return `${FS.documentDirectory}offline/`
-}
+const directory = (): Directory => new Directory(Paths.document, 'offline')
 
 export const FileSystemRepo = {
-  dir,
-  localPath: (fileId: string): string => `${dir()}${fileId}`,
+  // Returns a `file:///` URI string. Other modules (Downloader, video player
+  // source, FileViewer) take a URI string, so we don't expose File instances.
+  localPath: (fileId: string): string => new File(directory(), fileId).uri,
   async init(): Promise<void> {
-    const info = await FS.getInfoAsync(dir())
-    if (!info.exists) {
-      await FS.makeDirectoryAsync(dir(), { intermediates: true })
-    }
+    const d = directory()
+    if (!d.exists) d.create({ intermediates: true })
   },
   async exists(fileId: string): Promise<boolean> {
-    const info = await FS.getInfoAsync(FileSystemRepo.localPath(fileId))
-    return Boolean(info.exists)
+    return new File(directory(), fileId).exists
   },
   async delete(fileId: string): Promise<void> {
-    await FS.deleteAsync(FileSystemRepo.localPath(fileId), { idempotent: true })
+    const f = new File(directory(), fileId)
+    if (f.exists) f.delete()
   },
   async totalBytes(): Promise<number> {
-    const names = await FS.readDirectoryAsync(dir())
+    const d = directory()
+    if (!d.exists) return 0
     let total = 0
-    for (const name of names) {
-      const info = await FS.getInfoAsync(`${dir()}${name}`)
-      if (info.exists && 'size' in info && typeof info.size === 'number') total += info.size
+    for (const entry of d.list()) {
+      if (entry instanceof File) total += entry.size
     }
     return total
   }

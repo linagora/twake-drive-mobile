@@ -1,3 +1,9 @@
+// Stays on the legacy submodule: the class-based API exposes
+// `File.downloadFileAsync()` but no progress callback and no
+// cancel/abort. `createDownloadResumable` is the only public surface
+// that gives us both — required for the bytesDownloaded UI counter
+// and for pauseAll() on network drop / wifi-only toggle / unpin.
+// Revisit once expo-file-system ships a `DownloadTask` equivalent.
 import * as FS from 'expo-file-system/legacy'
 
 import { getOnlineMonitor } from '@/network/OnlineMonitor'

@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { Dimensions, ScrollView, StyleSheet, Text, View } from 'react-native'
-import * as FileSystem from 'expo-file-system/legacy'
+import { Directory, File, Paths } from 'expo-file-system'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useClient, useQuery } from 'cozy-client'
 import { useTranslation } from 'react-i18next'
@@ -279,23 +279,18 @@ export default function PreviewScreen() {
     if (!fileId || !file) return
     if (kind !== 'video' && kind !== 'audio') return
     if (!OfflineFilesStore.isPinnedAndDownloaded(fileId)) return
-    const cacheDir = FileSystem.cacheDirectory
-    if (!cacheDir) return
     let cancelled = false
     void (async () => {
       try {
-        const dir = `${cacheDir}twake-drive/`
-        await FileSystem.makeDirectoryAsync(dir, { intermediates: true })
+        const dir = new Directory(Paths.cache, 'twake-drive')
+        if (!dir.exists) dir.create({ intermediates: true })
         const sanitized = file.name.replace(/[/\\?%*:|"<>]/g, '_')
-        const target = `${dir}${fileId}-${sanitized}`
-        const info = await FileSystem.getInfoAsync(target)
-        if (!info.exists) {
-          await FileSystem.copyAsync({
-            from: FileSystemRepo.localPath(fileId),
-            to: target
-          })
+        const target = new File(dir, `${fileId}-${sanitized}`)
+        if (!target.exists) {
+          const blob = new File(FileSystemRepo.localPath(fileId))
+          blob.copy(target)
         }
-        if (!cancelled) setPinnedAliasPath(target)
+        if (!cancelled) setPinnedAliasPath(target.uri)
       } catch (e) {
         console.error('[PreviewScreen] pinned alias copy failed', e)
       }
