@@ -58,6 +58,10 @@ const InnerLayout = () => {
                         name="metadata/[fileId]"
                         options={{ presentation: 'pageSheet', animation: 'slide_from_bottom' }}
                       />
+                      <Stack.Screen
+                        name="share/[fileId]"
+                        options={{ presentation: 'pageSheet', animation: 'slide_from_bottom' }}
+                      />
                     </Stack>
                   </ErrorBoundary>
                 </SharingProvider>
