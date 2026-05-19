@@ -7,7 +7,8 @@ import { useTranslation } from 'react-i18next'
 import { Image } from 'expo-image'
 import Pdf from 'react-native-pdf'
 import { AudioModule, useAudioPlayer, useAudioPlayerStatus } from 'expo-audio'
-import { ActivityIndicator, IconButton, ProgressBar, useTheme } from 'react-native-paper'
+import { ActivityIndicator, Button, IconButton, ProgressBar, useTheme } from 'react-native-paper'
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons'
 
 import { AppBar } from '@/ui/AppBar'
 import { ErrorState } from '@/ui/ErrorState'
@@ -20,6 +21,7 @@ import {
   StreamSource
 } from '@/files/streamUrl'
 import { openFileNatively } from '@/files/openFile'
+import { isUnsupportedAudio } from '@/files/audioSupport'
 import { OfflineFilesStore } from '@/offline/OfflineFilesStore'
 import { FileSystemRepo } from '@/offline/FileSystemRepo'
 import { useOfflineState } from '@/offline/useOfflineState'
@@ -78,10 +80,14 @@ const PdfPreview = ({
         onLoadComplete={() => setLoaded(true)}
         onError={err => {
           console.error('[PreviewScreen] pdf error', err)
-          setError(typeof err === 'string' ? err : (err as Error)?.message ?? 'PDF error')
+          setError(typeof err === 'string' ? err : ((err as Error)?.message ?? 'PDF error'))
         }}
       />
-      {error ? <ErrorOverlay message={error} /> : !loaded ? <LoadingOverlay progress={progress} /> : null}
+      {error ? (
+        <ErrorOverlay message={error} />
+      ) : !loaded ? (
+        <LoadingOverlay progress={progress} />
+      ) : null}
     </View>
   )
 }
@@ -108,12 +114,87 @@ const ImagePreview = ({
           setError(e?.error ?? 'Image error')
         }}
       />
-      {error ? <ErrorOverlay message={error} /> : !loaded && !thumbnailUrl ? <LoadingOverlay /> : null}
+      {error ? (
+        <ErrorOverlay message={error} />
+      ) : !loaded && !thumbnailUrl ? (
+        <LoadingOverlay />
+      ) : null}
     </View>
   )
 }
 
-const AudioPreview = ({ source, name }: { source: StreamSource; name: string }) => {
+const UnsupportedAudio = ({
+  fileId,
+  name,
+  mime
+}: {
+  fileId: string
+  name: string
+  mime: string | undefined
+}) => {
+  const theme = useTheme()
+  const { t } = useTranslation()
+  const client = useClient()
+  const router = useRouter()
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const onOpenExternal = async (): Promise<void> => {
+    if (!client) return
+    setBusy(true)
+    setError(null)
+    try {
+      await openFileNatively(client, { _id: fileId, name, mime })
+      if (router.canGoBack()) router.back()
+    } catch (e) {
+      console.error('[AudioPreview] open externally failed', e)
+      setError((e as Error).message ?? 'open failed')
+    } finally {
+      setBusy(false)
+    }
+  }
+  return (
+    <View style={[styles.viewerContainer, styles.audioContainer]}>
+      <View style={styles.unsupportedCard}>
+        <Icon name="music-note-off-outline" size={56} color="#fff" />
+        <Text style={styles.audioTitle} numberOfLines={2}>
+          {name}
+        </Text>
+        <Text style={styles.unsupportedMessage}>{t('drive.audio.unsupportedCodec')}</Text>
+        <Button
+          mode="contained"
+          icon="open-in-app"
+          loading={busy}
+          disabled={busy || !client}
+          onPress={() => void onOpenExternal()}
+        >
+          {t('drive.audio.openWith')}
+        </Button>
+        {error ? (
+          <Text style={[styles.unsupportedError, { color: theme.colors.error }]}>{error}</Text>
+        ) : null}
+      </View>
+    </View>
+  )
+}
+
+const AudioPreview = ({
+  fileId,
+  source,
+  name,
+  mime
+}: {
+  fileId: string
+  source: StreamSource
+  name: string
+  mime: string | undefined
+}) => {
+  if (isUnsupportedAudio(mime, name)) {
+    return <UnsupportedAudio fileId={fileId} name={name} mime={mime} />
+  }
+  return <SupportedAudioPlayer source={source} name={name} />
+}
+
+const SupportedAudioPlayer = ({ source, name }: { source: StreamSource; name: string }) => {
   const player = useAudioPlayer({ uri: source.uri, headers: source.headers })
   const status = useAudioPlayerStatus(player)
   // Keep audio playing when the app is backgrounded or the device is silenced.
@@ -326,7 +407,14 @@ export default function PreviewScreen() {
       case 'video':
         return <VideoPreview fileId={fileId!} source={source} />
       case 'audio':
-        return <AudioPreview source={source} name={file?.name ?? ''} />
+        return (
+          <AudioPreview
+            fileId={fileId!}
+            source={source}
+            name={file?.name ?? ''}
+            mime={file?.mime}
+          />
+        )
       case 'text':
         return <TextPreview source={source} />
       case 'unsupported':
@@ -375,6 +463,9 @@ const styles = StyleSheet.create({
   image: { flex: 1, width: SCREEN_WIDTH, height: SCREEN_HEIGHT, backgroundColor: '#000' },
   audioContainer: { alignItems: 'center', justifyContent: 'center' },
   audioCard: { alignItems: 'center', padding: 24, gap: 16 },
+  unsupportedCard: { alignItems: 'center', padding: 24, gap: 16, maxWidth: 320 },
+  unsupportedMessage: { color: '#fff', fontSize: 14, textAlign: 'center', opacity: 0.85 },
+  unsupportedError: { fontSize: 12, textAlign: 'center' },
   audioTitle: { color: '#fff', fontSize: 16, textAlign: 'center', maxWidth: 280 },
   audioProgressRow: { flexDirection: 'row', alignItems: 'center', gap: 8, width: 280 },
   audioBar: { flex: 1 },

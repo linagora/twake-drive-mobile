@@ -131,6 +131,10 @@
       "loadFailed": "Impossible de charger l'aperçu",
       "openExternally": "Ouvrir avec une autre app"
     },
+    "audio": {
+      "unsupportedCodec": "Ce format audio n'est pas lu nativement sur cet appareil.",
+      "openWith": "Ouvrir avec…"
+    },
     "note": {
       "title": "Note"
     },
