@@ -131,6 +131,10 @@
       "loadFailed": "Could not load preview",
       "openExternally": "Open with another app"
     },
+    "audio": {
+      "unsupportedCodec": "This audio format is not played natively on this device.",
+      "openWith": "Open with…"
+    },
     "note": {
       "title": "Note"
     },
