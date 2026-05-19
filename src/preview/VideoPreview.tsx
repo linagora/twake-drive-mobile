@@ -16,19 +16,22 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window')
 
 export const VideoPreview = ({ fileId, source }: VideoPreviewProps): React.ReactElement => {
   const router = useRouter()
-  const { player, claim, release } = usePiPSession()
-  const [ready, setReady] = useState(false)
+  const { player, claim } = usePiPSession()
+  // Read the current player status synchronously so the spinner doesn't
+  // get stuck when we mount after the player is already loaded (e.g. on
+  // PiP restore, where the player has been streaming for a while and the
+  // statusChange event we'd otherwise listen for has long since fired).
+  const [ready, setReady] = useState(() => player.status === 'readyToPlay')
 
   useEffect(() => {
     claim(fileId, source)
     // Important: do NOT release on unmount. When PiP starts we router.back()
     // which unmounts this component, but the player must stay alive at the
-    // session level for the OS PiP layer to keep playing. release() is called
-    // explicitly when the user taps "close" on the PiP window
-    // (onPictureInPictureStop with paused player), not from cleanup here.
+    // session level for the OS PiP layer to keep playing.
   }, [fileId, source, claim])
 
   useEffect(() => {
+    if (player.status === 'readyToPlay') setReady(true)
     const sub = player.addListener('statusChange', ({ status }) => {
       if (status === 'readyToPlay') setReady(true)
     })
@@ -54,15 +57,15 @@ export const VideoPreview = ({ fileId, source }: VideoPreviewProps): React.React
           if (router.canGoBack()) router.back()
         }}
         onPictureInPictureStop={() => {
-          // expo-video does not distinguish PiP "restore" vs "close" in the
-          // same callback. Heuristic: if the player is still playing, the
-          // user tapped restore — re-open the preview route. If paused,
-          // they tapped close — release the session.
-          if (player.playing) {
-            router.push(`/preview/${fileId}`)
-          } else {
-            release()
-          }
+          // Always re-push the preview modal on PiP stop, regardless of
+          // whether the user tapped "restore" or "close": expo-video
+          // gives us no reliable signal to differentiate (iOS pauses the
+          // player on both paths just before this fires, so any
+          // player-state heuristic is unreliable). If the user wanted to
+          // close, they can swipe the reopened modal down — that's
+          // milder UX friction than the previous "restore tap kills the
+          // video" bug.
+          router.push(`/preview/${fileId}`)
         }}
       />
       {!ready ? (

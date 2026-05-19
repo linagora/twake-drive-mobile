@@ -66,17 +66,18 @@ describe('VideoPreview', () => {
     expect(mockBack).toHaveBeenCalledTimes(1)
   })
 
-  it('re-pushes the preview route when PiP stops while still playing', () => {
+  it('re-pushes the preview route when PiP stops (restore or close)', () => {
+    // We always re-push on stop because expo-video does not let us tell
+    // restore vs close apart reliably — see VideoPreview.tsx for the
+    // rationale.
     render(wrap(<VideoPreview fileId="f1" source={{ uri: 'https://x/v.mp4', headers: {} }} />, true))
     captured.onStop!()
     expect(mockPush).toHaveBeenCalledWith('/preview/f1')
-    expect(mockRelease).not.toHaveBeenCalled()
   })
 
-  it('releases the session when PiP stops while paused', () => {
+  it('still re-pushes on PiP stop when the player is paused', () => {
     render(wrap(<VideoPreview fileId="f1" source={{ uri: 'https://x/v.mp4', headers: {} }} />, false))
     captured.onStop!()
-    expect(mockPush).not.toHaveBeenCalled()
-    expect(mockRelease).toHaveBeenCalledTimes(1)
+    expect(mockPush).toHaveBeenCalledWith('/preview/f1')
   })
 })
