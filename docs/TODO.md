@@ -43,13 +43,36 @@ Items to pick up later, captured in conversation. Order is rough, not strict.
   fetched, how each shared drive is entered, how the breadcrumb / back stack
   behaves, and how sharing/permission-only actions are gated.
 
-- **Video PiP stays inside the preview modal.** When PiP is triggered, the
-  picture-in-picture window remains visually pinned inside the page-sheet
-  modal instead of detaching to a system-level floating window. Result: the
-  modal still covers the drive content, so the user can't continue browsing
-  while watching the video. Investigate `expo-video` PiP detach behaviour
-  on iOS and whether dismissing the modal (while keeping playback alive) is
-  the right pattern.
+- **Video PiP "restore" button doesn't reattach (partial fix shipped).**
+  V1 status (after Phase A): tapping the PiP button on a playing video
+  correctly dismisses the preview modal and detaches the PiP window at
+  the iOS system level (works on physical iPhone). The video plays in
+  the floating window, the user can browse the drive. **Restore button
+  on the PiP window does not bring back a playing video** — even though
+  we re-push the preview route, the player ends up stopped/dead. Close
+  button has the same end-state (acceptable, user is back in the drive).
+  Root cause: expo-video does not expose iOS's
+  `AVPictureInPictureControllerDelegate.restoreUserInterfaceForPictureInPictureStop:completionHandler:`
+  callback, which is the documented native API for handling restore
+  specifically. The player-state heuristics we tried (`player.playing`,
+  re-push + `player.play()`, deferred push) all fail because iOS tears
+  down the PiP layer + pauses the AVPlayer just before the
+  `onPictureInPictureStop` event reaches JS — by then it's too late.
+  Possible v2 fixes:
+
+  1. **Patch / fork expo-video** to bridge the restore callback. Cleanest
+     fix; aligns with native iOS conventions. Requires expo-video native
+     code work + upstream PR.
+
+  2. **Small custom native module** that registers an
+     `AVPictureInPictureControllerDelegate` alongside expo-video's and
+     forwards the restore intent to JS. Doesn't touch expo-video source
+     but duplicates some plumbing.
+
+  3. **Live with the limitation, document it.** Today's behaviour: PiP
+     to background works, restore doesn't. Users dismiss PiP via the
+     close (X) button and reopen the file from the list. Worth a UI
+     hint near the player.
 
 - **`.ogg` audio files don't play (v1 fix shipped, real fix pending).**
   iOS AVPlayer refuses to parse the Ogg container, even when the codec
