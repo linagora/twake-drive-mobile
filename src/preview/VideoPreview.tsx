@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { Dimensions, StyleSheet, View } from 'react-native'
 import { useRouter } from 'expo-router'
-import { useVideoPlayer, VideoView } from 'expo-video'
+import { VideoView } from 'expo-video'
 import { ActivityIndicator } from 'react-native-paper'
 
 import type { StreamSource } from '@/files/streamUrl'
@@ -16,18 +16,17 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window')
 
 export const VideoPreview = ({ fileId, source }: VideoPreviewProps): React.ReactElement => {
   const router = useRouter()
-  const { claim, release } = usePiPSession()
-  const player = useVideoPlayer({ uri: source.uri, headers: source.headers }, p => {
-    p.loop = false
-    p.staysActiveInBackground = true
-    p.play()
-  })
+  const { player, claim, release } = usePiPSession()
   const [ready, setReady] = useState(false)
 
   useEffect(() => {
     claim(fileId, source)
-    return () => release()
-  }, [fileId, source, claim, release])
+    // Important: do NOT release on unmount. When PiP starts we router.back()
+    // which unmounts this component, but the player must stay alive at the
+    // session level for the OS PiP layer to keep playing. release() is called
+    // explicitly when the user taps "close" on the PiP window
+    // (onPictureInPictureStop with paused player), not from cleanup here.
+  }, [fileId, source, claim])
 
   useEffect(() => {
     const sub = player.addListener('statusChange', ({ status }) => {
@@ -50,7 +49,8 @@ export const VideoPreview = ({ fileId, source }: VideoPreviewProps): React.React
           // Dismiss the page-sheet modal so iOS can detach PiP at system
           // level. AVPictureInPictureController cannot detach from a
           // presented page-sheet view controller — the parent must be
-          // dismissed first.
+          // dismissed first. The player itself is owned by PiPSession
+          // (root-level), so it survives this unmount.
           if (router.canGoBack()) router.back()
         }}
         onPictureInPictureStop={() => {

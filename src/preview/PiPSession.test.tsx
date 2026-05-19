@@ -1,6 +1,19 @@
 import React from 'react'
 import { renderHook, act } from '@testing-library/react-native'
 
+jest.mock('expo-video', () => ({
+  __esModule: true,
+  useVideoPlayer: jest.fn().mockReturnValue({
+    play: jest.fn(),
+    pause: jest.fn(),
+    replace: jest.fn(),
+    playing: true,
+    loop: false,
+    staysActiveInBackground: false,
+    addListener: jest.fn().mockReturnValue({ remove: jest.fn() })
+  })
+}))
+
 import { PiPSessionProvider, usePiPSession } from './PiPSession'
 
 const wrap = ({ children }: { children: React.ReactNode }) => (
