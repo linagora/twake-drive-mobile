@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { FlatList, StyleSheet, View } from 'react-native'
-import { Appbar, Button, useTheme } from 'react-native-paper'
+import { Appbar, Button, Portal, useTheme } from 'react-native-paper'
 import { useTranslation } from 'react-i18next'
 import { useClient, useQuery } from 'cozy-client'
 
@@ -90,10 +90,6 @@ export const FolderPicker = ({
   }
 
   const navigateBack = (): void => {
-    if (isAtRoot) {
-      onCancel()
-      return
-    }
     setStack(prev => prev.slice(0, -1))
   }
 
@@ -109,67 +105,75 @@ export const FolderPicker = ({
   const confirmDisabled = isBusy || excludeIds.has(current.id)
 
   return (
-    <ScreenContainer>
-      <Appbar.Header>
-        <Appbar.BackAction onPress={navigateBack} accessibilityLabel={t('common.back')} />
-        <Appbar.Content title={title} />
-        <Appbar.Action
-          icon="folder-plus"
-          accessibilityLabel={t('drive.move.newFolder')}
-          onPress={() => setCreatingFolder(true)}
-        />
-      </Appbar.Header>
-      {hasError ? (
-        <ErrorState
-          message={t('drive.preview.loadFailed')}
-          onRetry={() => {
-            void folderLookup.fetch()
-            void subfoldersQuery.fetch()
-            void filesQuery.fetch()
-          }}
-        />
-      ) : isLoading ? (
-        <LoadingState />
-      ) : items.length === 0 ? (
-        <EmptyState message={t('drive.emptyFolder')} />
-      ) : (
-        <FlatList
-          data={items}
-          keyExtractor={i => i._id}
-          renderItem={({ item }) => (
-            <FolderPickerRow
-              item={item}
-              disabled={item.type === 'file' || excludeIds.has(item._id)}
-              onPress={navigateInto}
-            />
+    // Portal.Host scopes Paper's <Portal> (used by CreateFolderDialog) to the
+    // picker's view tree. Without it, the dialog mounts into the app-level
+    // PortalHost (below the iOS native pageSheet), and the user only sees the
+    // dimmed backdrop without the dialog itself.
+    <Portal.Host>
+      <ScreenContainer>
+        <Appbar.Header>
+          {isAtRoot ? null : (
+            <Appbar.BackAction onPress={navigateBack} accessibilityLabel={t('common.back')} />
           )}
-        />
-      )}
-      <View
-        style={[
-          styles.footer,
-          { backgroundColor: theme.colors.surfaceVariant, borderTopColor: theme.colors.outline }
-        ]}
-      >
-        <Button mode="outlined" onPress={onCancel} style={styles.footerButton}>
-          {t('common.cancel')}
-        </Button>
-        <Button
-          mode="contained"
-          disabled={confirmDisabled}
-          loading={isBusy}
-          onPress={() => onConfirm({ _id: current.id, name: title })}
-          style={styles.footerButton}
+          <Appbar.Content title={title} />
+          <Appbar.Action
+            icon="folder-plus"
+            accessibilityLabel={t('drive.move.newFolder')}
+            onPress={() => setCreatingFolder(true)}
+          />
+        </Appbar.Header>
+        {hasError ? (
+          <ErrorState
+            message={t('drive.preview.loadFailed')}
+            onRetry={() => {
+              void folderLookup.fetch()
+              void subfoldersQuery.fetch()
+              void filesQuery.fetch()
+            }}
+          />
+        ) : isLoading ? (
+          <LoadingState />
+        ) : items.length === 0 ? (
+          <EmptyState message={t('drive.emptyFolder')} />
+        ) : (
+          <FlatList
+            data={items}
+            keyExtractor={i => i._id}
+            renderItem={({ item }) => (
+              <FolderPickerRow
+                item={item}
+                disabled={item.type === 'file' || excludeIds.has(item._id)}
+                onPress={navigateInto}
+              />
+            )}
+          />
+        )}
+        <View
+          style={[
+            styles.footer,
+            { backgroundColor: theme.colors.surfaceVariant, borderTopColor: theme.colors.outline }
+          ]}
         >
-          {confirmLabel}
-        </Button>
-      </View>
-      <CreateFolderDialog
-        visible={creatingFolder}
-        onDismiss={() => setCreatingFolder(false)}
-        onSubmit={onCreateFolder}
-      />
-    </ScreenContainer>
+          <Button mode="outlined" onPress={onCancel} style={styles.footerButton}>
+            {t('common.cancel')}
+          </Button>
+          <Button
+            mode="contained"
+            disabled={confirmDisabled}
+            loading={isBusy}
+            onPress={() => onConfirm({ _id: current.id, name: title })}
+            style={styles.footerButton}
+          >
+            {confirmLabel}
+          </Button>
+        </View>
+        <CreateFolderDialog
+          visible={creatingFolder}
+          onDismiss={() => setCreatingFolder(false)}
+          onSubmit={onCreateFolder}
+        />
+      </ScreenContainer>
+    </Portal.Host>
   )
 }
 

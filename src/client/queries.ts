@@ -41,12 +41,14 @@ export interface FileQueryResult {
 // Mirrors twake-drive-web / cozy-drive's `buildDriveQuery`: two separate
 // queries per folder, one for sub-directories and one for files, merged at
 // the screen level. The `name: { $gt: null }` sentinel ensures cozy-stack
-// has a usable index on `name`. The partialIndex excludes the trash-dir doc
-// itself when listing the root.
+// has a usable index on `name`. The partialIndex excludes the virtual
+// system directories (shared-drives-dir, trash-dir) at the server level so
+// every consumer (file list, folder picker, etc.) gets the same hidden set
+// without duplicating client-side filters.
 const buildDriveQuery = (dirId: string, type: 'directory' | 'file'): QueryDefinition =>
   Q('io.cozy.files')
     .where({ dir_id: dirId, type, name: { $gt: null } })
-    .partialIndex({ _id: { $ne: TRASH_DIR_ID } })
+    .partialIndex({ _id: { $nin: HIDDEN_ROOT_DIR_IDS } })
     .indexFields(['dir_id', 'type', 'name'])
     .sortBy([
       { dir_id: 'asc' },
