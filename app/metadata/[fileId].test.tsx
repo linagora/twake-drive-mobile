@@ -85,6 +85,12 @@ describe('MetadataRoute', () => {
     expect(mockReplace).toHaveBeenCalledWith('/share/f1')
   })
 
+  it('calls router.replace with /move/<fileId> when Move is tapped', () => {
+    render(wrap(<MetadataRoute />))
+    fireEvent.press(screen.getByText('drive.fileMeta.move'))
+    expect(mockReplace).toHaveBeenCalledWith('/move/f1')
+  })
+
   it('calls router.back when Close is tapped', () => {
     render(wrap(<MetadataRoute />))
     fireEvent.press(screen.getByText('common.close'))
