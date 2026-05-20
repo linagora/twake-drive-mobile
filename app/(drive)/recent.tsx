@@ -99,6 +99,7 @@ export default function RecentScreen() {
       }}
       onRename={() => setPendingRename(item)}
       onDelete={() => setPendingDelete(item)}
+      onMove={file => router.push(`/move/${file._id}`)}
       onTogglePin={onToggleFilePin}
       onInfo={file => router.push(`/metadata/${file._id}`)}
     />

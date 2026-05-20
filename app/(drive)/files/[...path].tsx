@@ -263,6 +263,7 @@ export default function FilesScreen() {
           }
           onRename={selection.isSelecting ? undefined : () => requestRename(item)}
           onDelete={selection.isSelecting ? undefined : () => requestDelete(item)}
+          onMove={selection.isSelecting ? undefined : folder => router.push(`/move/${folder._id}`)}
           onTogglePin={selection.isSelecting ? undefined : onToggleFolderPin}
         />
       )
@@ -293,6 +294,7 @@ export default function FilesScreen() {
         }
         onRename={selection.isSelecting ? undefined : () => requestRename(item)}
         onDelete={selection.isSelecting ? undefined : () => requestDelete(item)}
+        onMove={selection.isSelecting ? undefined : file => router.push(`/move/${file._id}`)}
         onTogglePin={selection.isSelecting ? undefined : onToggleFilePin}
         onInfo={selection.isSelecting ? undefined : file => router.push(`/metadata/${file._id}`)}
       />
@@ -356,6 +358,17 @@ export default function FilesScreen() {
                 count: selection.count,
                 onCancel: () => selection.clear(),
                 actions: [
+                  {
+                    icon: 'folder-move-outline',
+                    onPress: () => {
+                      const ids = data
+                        .filter(d => selection.isSelected(d._id))
+                        .map(d => d._id)
+                        .join(',')
+                      if (ids) router.push(`/move/${ids}`)
+                    },
+                    accessibilityLabel: t('drive.selection.move')
+                  },
                   {
                     icon: 'trash-can-outline',
                     onPress: () => setBulkConfirmVisible(true),
