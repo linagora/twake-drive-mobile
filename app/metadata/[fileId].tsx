@@ -244,7 +244,7 @@ export default function MetadataRoute() {
           </Button>
           <Button
             mode="outlined"
-            onPress={() => router.replace(`/move/${file._id}`)}
+            onPress={() => router.replace(`/move/${file._id}` as never)}
             icon="folder-move-outline"
             disabled={!isOnline}
           >

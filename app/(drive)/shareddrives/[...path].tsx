@@ -203,7 +203,7 @@ export default function SharedDrivesScreen() {
             router.push(`/(drive)/shareddrives/${[...path, folderItem._id].join('/')}`)
           }
           onShare={folderItem => router.push(`/share/${folderItem._id}`)}
-          onMove={folderItem => router.push(`/move/${folderItem._id}`)}
+          onMove={folderItem => router.push(`/move/${folderItem._id}` as never)}
           onTogglePin={onToggleFolderPin}
         />
       )
@@ -218,7 +218,7 @@ export default function SharedDrivesScreen() {
             setResolveError((e as Error).message ?? t('drive.preview.loadFailed'))
           })
         }}
-        onMove={file => router.push(`/move/${file._id}`)}
+        onMove={file => router.push(`/move/${file._id}` as never)}
         onTogglePin={onToggleFilePin}
         onInfo={file => router.push(`/metadata/${file._id}`)}
       />
