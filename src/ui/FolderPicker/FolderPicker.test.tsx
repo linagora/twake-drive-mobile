@@ -49,10 +49,6 @@ const setupQueries = (folderName: string, children: ReadonlyArray<unknown>): voi
   // 1st call: fileByIdQuery (the folder doc itself)
   // 2nd call: folderSubfoldersQuery
   // 3rd call: folderFilesQuery (we still show them disabled)
-  mockUseQuery.mockImplementation(() => {
-    return { data: undefined, fetchStatus: 'loading', fetch: jest.fn() }
-  })
-  // Configure the sequence; useQuery is called in order during render.
   const sequence = [
     {
       data: { _id: 'src', name: folderName, type: 'directory', path: '/' + folderName },
@@ -60,12 +56,12 @@ const setupQueries = (folderName: string, children: ReadonlyArray<unknown>): voi
       fetch: jest.fn()
     },
     {
-      data: children.filter((c: any) => c.type === 'directory'),
+      data: (children as any[]).filter((c: any) => c.type === 'directory'),
       fetchStatus: 'loaded',
       fetch: jest.fn()
     },
     {
-      data: children.filter((c: any) => c.type === 'file'),
+      data: (children as any[]).filter((c: any) => c.type === 'file'),
       fetchStatus: 'loaded',
       fetch: jest.fn()
     }
@@ -74,23 +70,35 @@ const setupQueries = (folderName: string, children: ReadonlyArray<unknown>): voi
   mockUseQuery.mockImplementation(() => sequence[Math.min(i++, sequence.length - 1)])
 }
 
+const defaultProps = {
+  currentFolderId: 'src',
+  excludeIds: new Set<string>(),
+  confirmLabel: 'Move here',
+  isBusy: false,
+  isAtRoot: true,
+  onDrillIn: jest.fn(),
+  onBack: jest.fn(),
+  onConfirm: jest.fn(),
+  onCancel: jest.fn()
+}
+
 describe('FolderPicker', () => {
   beforeEach(() => {
     mockUseQuery.mockReset()
     ;(createFolder as jest.Mock).mockClear()
+    defaultProps.onDrillIn.mockReset()
+    defaultProps.onBack.mockReset()
+    defaultProps.onConfirm.mockReset()
+    defaultProps.onCancel.mockReset()
   })
 
-  it('renders the initial folder name and its subfolders', () => {
+  it('renders the current folder name and its subfolders', () => {
     setupQueries('Work', [subfolder('a', 'Q1'), subfolder('b', 'Q2')])
     render(
       wrap(
         <FolderPicker
-          initialFolderId="src"
-          excludeIds={new Set()}
-          confirmLabel="Move here"
-          isBusy={false}
-          onConfirm={jest.fn()}
-          onCancel={jest.fn()}
+          {...defaultProps}
+          currentFolderId="src"
         />
       )
     )
@@ -104,16 +112,12 @@ describe('FolderPicker', () => {
     render(
       wrap(
         <FolderPicker
-          initialFolderId="src"
+          {...defaultProps}
+          currentFolderId="src"
           excludeIds={new Set(['src'])}
-          confirmLabel="Move here"
-          isBusy={false}
-          onConfirm={jest.fn()}
-          onCancel={jest.fn()}
         />
       )
     )
-    // Use getByRole so we get the Pressable element that carries accessibilityState.
     const button = screen.getByRole('button', { name: 'Move here' })
     expect(button.props.accessibilityState?.disabled).toBe(true)
   })
@@ -124,12 +128,9 @@ describe('FolderPicker', () => {
     render(
       wrap(
         <FolderPicker
-          initialFolderId="src"
-          excludeIds={new Set()}
-          confirmLabel="Move here"
-          isBusy={false}
+          {...defaultProps}
+          currentFolderId="src"
           onConfirm={onConfirm}
-          onCancel={jest.fn()}
         />
       )
     )
@@ -143,11 +144,7 @@ describe('FolderPicker', () => {
     render(
       wrap(
         <FolderPicker
-          initialFolderId="src"
-          excludeIds={new Set()}
-          confirmLabel="Move here"
-          isBusy={false}
-          onConfirm={jest.fn()}
+          {...defaultProps}
           onCancel={onCancel}
         />
       )
@@ -161,58 +158,57 @@ describe('FolderPicker', () => {
     render(
       wrap(
         <FolderPicker
-          initialFolderId="src"
-          excludeIds={new Set()}
-          confirmLabel="Move here"
-          isBusy={false}
-          onConfirm={jest.fn()}
-          onCancel={jest.fn()}
+          {...defaultProps}
+          currentFolderId="src"
         />
       )
     )
     expect(screen.getByText('budget.xlsx')).toBeOnTheScreen()
   })
 
-  it('drills into a folder when its row is tapped', () => {
+  it('calls onDrillIn when a folder row is tapped', () => {
     setupQueries('Work', [subfolder('a', 'Q1')])
-    const onConfirm = jest.fn()
+    const onDrillIn = jest.fn()
     render(
       wrap(
         <FolderPicker
-          initialFolderId="src"
-          excludeIds={new Set()}
-          confirmLabel="Move here"
-          isBusy={false}
-          onConfirm={onConfirm}
-          onCancel={jest.fn()}
+          {...defaultProps}
+          currentFolderId="src"
+          onDrillIn={onDrillIn}
         />
       )
     )
-    // Tap the Q1 row to drill in, then immediately confirm.
-    // This proves the stack was updated (confirm fires with Q1's id 'a').
     fireEvent.press(screen.getByText('Q1'))
-    fireEvent.press(screen.getByText('Move here'))
-    expect(onConfirm).toHaveBeenCalledWith(expect.objectContaining({ _id: 'a' }))
+    expect(onDrillIn).toHaveBeenCalledWith({ _id: 'a', name: 'Q1', type: 'directory' })
   })
 
-  it('does not render the back arrow at the root level', () => {
-    // At root the only way to dismiss the modal is the Cancel button in the
-    // footer; hiding the back arrow avoids the back-vs-cancel confusion that
-    // led users to think the back was broken.
+  it('does not render the back arrow when isAtRoot=true', () => {
     setupQueries('Work', [])
     render(
       wrap(
         <FolderPicker
-          initialFolderId="src"
-          excludeIds={new Set()}
-          confirmLabel="Move here"
-          isBusy={false}
-          onConfirm={jest.fn()}
-          onCancel={jest.fn()}
+          {...defaultProps}
+          isAtRoot={true}
         />
       )
     )
     expect(screen.queryByLabelText('common.back')).toBeNull()
+  })
+
+  it('calls onBack when the back arrow is tapped (isAtRoot=false)', () => {
+    setupQueries('Work', [])
+    const onBack = jest.fn()
+    render(
+      wrap(
+        <FolderPicker
+          {...defaultProps}
+          isAtRoot={false}
+          onBack={onBack}
+        />
+      )
+    )
+    fireEvent.press(screen.getByLabelText('common.back'))
+    expect(onBack).toHaveBeenCalled()
   })
 
   it('opens the create-folder dialog when the "+ New folder" button is tapped', () => {
@@ -220,12 +216,7 @@ describe('FolderPicker', () => {
     render(
       wrap(
         <FolderPicker
-          initialFolderId="src"
-          excludeIds={new Set()}
-          confirmLabel="Move here"
-          isBusy={false}
-          onConfirm={jest.fn()}
-          onCancel={jest.fn()}
+          {...defaultProps}
         />
       )
     )

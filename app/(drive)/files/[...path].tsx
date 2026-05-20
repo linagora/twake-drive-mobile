@@ -262,7 +262,7 @@ export default function FilesScreen() {
           }
           onRename={selection.isSelecting ? undefined : () => requestRename(item)}
           onDelete={selection.isSelecting ? undefined : () => requestDelete(item)}
-          onMove={selection.isSelecting ? undefined : folder => router.push(`/move/${folder._id}`)}
+          onMove={selection.isSelecting ? undefined : folder => router.push(`/move/${folder._id}` as never)}
           onTogglePin={selection.isSelecting ? undefined : onToggleFolderPin}
         />
       )
@@ -293,7 +293,7 @@ export default function FilesScreen() {
         }
         onRename={selection.isSelecting ? undefined : () => requestRename(item)}
         onDelete={selection.isSelecting ? undefined : () => requestDelete(item)}
-        onMove={selection.isSelecting ? undefined : file => router.push(`/move/${file._id}`)}
+        onMove={selection.isSelecting ? undefined : file => router.push(`/move/${file._id}` as never)}
         onTogglePin={selection.isSelecting ? undefined : onToggleFilePin}
         onInfo={selection.isSelecting ? undefined : file => router.push(`/metadata/${file._id}`)}
       />
@@ -365,7 +365,7 @@ export default function FilesScreen() {
                         .join(',')
                       if (ids) {
                         selection.clear()
-                        router.push(`/move/${ids}`)
+                        router.push(`/move/${ids}` as never)
                       }
                     },
                     accessibilityLabel: t('drive.selection.move')

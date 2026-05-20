@@ -19,6 +19,7 @@ import {
   folderSubfoldersQuery,
   folderSubfoldersQueryAs
 } from '@/client/queries'
+
 import { FolderPickerRow, FolderPickerRowItem } from './FolderPickerRow'
 
 export interface FolderPickerSelection {
@@ -27,46 +28,45 @@ export interface FolderPickerSelection {
 }
 
 export interface FolderPickerProps {
-  initialFolderId: string
+  currentFolderId: string
   excludeIds: Set<string>
   confirmLabel: string
   isBusy: boolean
+  isAtRoot: boolean
+  onDrillIn: (item: FolderPickerRowItem) => void
+  onBack: () => void
   onConfirm: (folder: FolderPickerSelection) => void
   onCancel: () => void
 }
 
-interface StackEntry {
-  id: string
-  name: string
-}
-
 export const FolderPicker = ({
-  initialFolderId,
+  currentFolderId,
   excludeIds,
   confirmLabel,
   isBusy,
+  isAtRoot,
+  onDrillIn,
+  onBack,
   onConfirm,
   onCancel
 }: FolderPickerProps) => {
   const { t } = useTranslation()
   const theme = useTheme()
   const client = useClient()
-  const [stack, setStack] = useState<StackEntry[]>([{ id: initialFolderId, name: '' }])
   const [creatingFolder, setCreatingFolder] = useState(false)
-  const current = stack[stack.length - 1]
 
-  const folderLookup = useQuery(fileByIdQuery(current.id), {
-    as: fileByIdQueryAs(current.id)
+  const folderLookup = useQuery(fileByIdQuery(currentFolderId), {
+    as: fileByIdQueryAs(currentFolderId)
   })
   const folderDoc = (
     Array.isArray(folderLookup.data) ? folderLookup.data[0] : folderLookup.data
   ) as FileQueryResult | null | undefined
 
-  const subfoldersQuery = useQuery(folderSubfoldersQuery(current.id), {
-    as: folderSubfoldersQueryAs(current.id)
+  const subfoldersQuery = useQuery(folderSubfoldersQuery(currentFolderId), {
+    as: folderSubfoldersQueryAs(currentFolderId)
   })
-  const filesQuery = useQuery(folderFilesQuery(current.id), {
-    as: folderFilesQueryAs(current.id)
+  const filesQuery = useQuery(folderFilesQuery(currentFolderId), {
+    as: folderFilesQueryAs(currentFolderId)
   })
 
   const subfolders = (subfoldersQuery.data as FileQueryResult[] | null | undefined) ?? []
@@ -76,33 +76,28 @@ export const FolderPicker = ({
     ...files.map(f => ({ _id: f._id, name: f.name, type: 'file' as const }))
   ]
 
-  const isAtRoot = stack.length === 1
   const isLoading =
     (folderLookup.fetchStatus === 'loading' && !folderDoc) ||
     (subfoldersQuery.fetchStatus === 'loading' && subfolders.length === 0)
   const hasError = folderLookup.fetchStatus === 'failed' || subfoldersQuery.fetchStatus === 'failed'
 
-  const title = folderDoc?.name ?? current.name ?? ''
+  const title = folderDoc?.name ?? ''
 
-  const navigateInto = (item: FolderPickerRowItem): void => {
+  const handleDrillIn = (item: FolderPickerRowItem): void => {
     if (item.type !== 'directory') return
-    setStack(prev => [...prev, { id: item._id, name: item.name }])
+    onDrillIn(item)
   }
 
-  const navigateBack = (): void => {
-    setStack(prev => prev.slice(0, -1))
-  }
-
-  const onCreateFolder = async (name: string): Promise<void> => {
+  const handleCreateFolder = async (name: string): Promise<void> => {
     if (!client) throw new Error('No client')
-    const created = await createFolder(client, name, current.id)
+    const created = await createFolder(client, name, currentFolderId)
     setCreatingFolder(false)
-    // Auto drill into the newly created folder
-    setStack(prev => [...prev, { id: created._id, name: created.name }])
+    // Auto-drill into the new folder via the router
+    onDrillIn({ _id: created._id, name: created.name, type: 'directory' })
     void subfoldersQuery.fetch()
   }
 
-  const confirmDisabled = isBusy || excludeIds.has(current.id)
+  const confirmDisabled = isBusy || excludeIds.has(currentFolderId)
 
   return (
     // Portal.Host scopes Paper's <Portal> (used by CreateFolderDialog) to the
@@ -116,7 +111,7 @@ export const FolderPicker = ({
             doubles up the spacing. */}
         <Appbar.Header statusBarHeight={0}>
           {isAtRoot ? null : (
-            <Appbar.BackAction onPress={navigateBack} accessibilityLabel={t('common.back')} />
+            <Appbar.BackAction onPress={onBack} accessibilityLabel={t('common.back')} />
           )}
           <Appbar.Content title={title} />
           <Appbar.Action
@@ -146,7 +141,7 @@ export const FolderPicker = ({
               <FolderPickerRow
                 item={item}
                 disabled={item.type === 'file' || excludeIds.has(item._id)}
-                onPress={navigateInto}
+                onPress={handleDrillIn}
               />
             )}
           />
@@ -164,7 +159,7 @@ export const FolderPicker = ({
             mode="contained"
             disabled={confirmDisabled}
             loading={isBusy}
-            onPress={() => onConfirm({ _id: current.id, name: title })}
+            onPress={() => onConfirm({ _id: currentFolderId, name: title })}
             style={styles.footerButton}
           >
             {confirmLabel}
@@ -173,7 +168,7 @@ export const FolderPicker = ({
         <CreateFolderDialog
           visible={creatingFolder}
           onDismiss={() => setCreatingFolder(false)}
-          onSubmit={onCreateFolder}
+          onSubmit={handleCreateFolder}
         />
       </ScreenContainer>
     </Portal.Host>
