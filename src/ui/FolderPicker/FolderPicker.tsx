@@ -111,7 +111,10 @@ export const FolderPicker = ({
     // dimmed backdrop without the dialog itself.
     <Portal.Host>
       <ScreenContainer>
-        <Appbar.Header>
+        {/* statusBarHeight={0}: inside a pageSheet the modal already starts
+            below the system status bar, so Paper's default top inset
+            doubles up the spacing. */}
+        <Appbar.Header statusBarHeight={0}>
           {isAtRoot ? null : (
             <Appbar.BackAction onPress={navigateBack} accessibilityLabel={t('common.back')} />
           )}
