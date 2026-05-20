@@ -23,8 +23,6 @@ Items to pick up later, captured in conversation. Order is rough, not strict.
   - In-app: a destination picker (which folder to drop into) + an upload pipeline
   - Probably worth its own design doc.
 
-- **Move files / folders inside the drive.** Long-press → "Move…" → folder picker → confirm. Requires a `moveEntry` helper (mirror twake-drive-web's `client.collection('io.cozy.files').updateAttributes(id, { dir_id })`) + a folder-picker UI. Multi-select integration too.
-
 ## Bugs
 
 - **Trash empty doesn't refresh client-side.** Emptying the trash from the
