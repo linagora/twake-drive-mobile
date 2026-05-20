@@ -365,7 +365,10 @@ export default function FilesScreen() {
                         .filter(d => selection.isSelected(d._id))
                         .map(d => d._id)
                         .join(',')
-                      if (ids) router.push(`/move/${ids}`)
+                      if (ids) {
+                        selection.clear()
+                        router.push(`/move/${ids}`)
+                      }
                     },
                     accessibilityLabel: t('drive.selection.move')
                   },
