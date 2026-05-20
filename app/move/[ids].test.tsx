@@ -44,10 +44,12 @@ const wrap = (ui: React.ReactElement) => <PaperProvider>{ui}</PaperProvider>
 
 const setupQueries = ({
   firstEntry,
-  folderName = 'Work'
+  folderName = 'Work',
+  subfolders = [] as { _id: string; name: string; type: 'directory' }[]
 }: {
   firstEntry?: { _id: string; name: string; type: 'file' | 'directory'; dir_id: string } | null
   folderName?: string
+  subfolders?: { _id: string; name: string; type: 'directory' }[]
 } = {}): void => {
   const sequence = [
     // 1st useQuery: first-entry lookup (fileByIdQuery(a))
@@ -66,7 +68,7 @@ const setupQueries = ({
       fetch: jest.fn()
     },
     // 3rd: subfolders
-    { data: [], fetchStatus: 'loaded', fetch: jest.fn() },
+    { data: subfolders, fetchStatus: 'loaded', fetch: jest.fn() },
     // 4th: files
     { data: [], fetchStatus: 'loaded', fetch: jest.fn() }
   ]
@@ -101,9 +103,13 @@ describe('MoveRoute', () => {
   })
 
   it('calls moveEntry sequentially for each id on confirm', async () => {
-    setupQueries()
+    // Provide a subfolder so the user can navigate away from sourceDirId
+    // (which is excluded) before confirming.
+    setupQueries({ subfolders: [{ _id: 'dest', name: 'Dest', type: 'directory' }] })
     mockMoveEntry.mockResolvedValue({ moved: { _id: 'a', dir_id: 'src' }, deleted: null })
     render(wrap(<MoveRoute />))
+    // Navigate into 'Dest' so the confirm button is no longer at the excluded source folder.
+    fireEvent.press(screen.getByText('Dest'))
     fireEvent.press(screen.getByText('drive.move.action'))
     await waitFor(() => {
       expect(mockMoveEntry).toHaveBeenCalledTimes(2)
@@ -113,10 +119,21 @@ describe('MoveRoute', () => {
     expect([firstCallEntryId, secondCallEntryId]).toEqual(['a', 'b'])
   })
 
-  it('shows error snackbar when moveEntry rejects, keeps modal open', async () => {
+  it('disables "Move here" at the source folder (no-op move guard)', () => {
     setupQueries()
+    render(wrap(<MoveRoute />))
+    // sourceDirId ('src') is included in excludeIds, so the confirm button
+    // must be disabled while the picker is sitting at the initial folder.
+    const button = screen.getByRole('button', { name: 'drive.move.action' })
+    expect(button.props.accessibilityState?.disabled).toBe(true)
+  })
+
+  it('shows error snackbar when moveEntry rejects, keeps modal open', async () => {
+    setupQueries({ subfolders: [{ _id: 'dest', name: 'Dest', type: 'directory' }] })
     mockMoveEntry.mockRejectedValue(new Error('boom'))
     render(wrap(<MoveRoute />))
+    // Navigate into 'Dest' so confirm is enabled before triggering the move.
+    fireEvent.press(screen.getByText('Dest'))
     fireEvent.press(screen.getByText('drive.move.action'))
     await waitFor(() => {
       expect(screen.getByText('drive.move.errorGeneric')).toBeOnTheScreen()
