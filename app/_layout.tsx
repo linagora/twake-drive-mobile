@@ -61,6 +61,10 @@ const InnerLayout = () => {
                       options={{ presentation: 'pageSheet', animation: 'slide_from_bottom' }}
                     />
                     <Stack.Screen
+                      name="move/[ids]"
+                      options={{ presentation: 'pageSheet', animation: 'slide_from_bottom' }}
+                    />
+                    <Stack.Screen
                       name="onlyoffice/[fileId]"
                       options={{ presentation: 'pageSheet', animation: 'slide_from_bottom' }}
                     />
