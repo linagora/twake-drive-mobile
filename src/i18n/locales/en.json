@@ -43,7 +43,8 @@
       "share": "Share",
       "rename": "Rename",
       "delete": "Delete",
-      "info": "Details"
+      "info": "Details",
+      "move": "Move…"
     },
     "delete": {
       "confirmFileTitle": "Delete file?",
@@ -57,9 +58,19 @@
       "successBulk": "{{count}} items moved to trash",
       "errorGeneric": "Could not delete"
     },
+    "move": {
+      "title": "Move",
+      "action": "Move here",
+      "successFile": "File moved",
+      "successFolder": "Folder moved",
+      "successBulk": "{{count}} items moved",
+      "errorGeneric": "Move failed",
+      "newFolder": "New folder"
+    },
     "selection": {
       "count_one": "{{count}} selected",
-      "count_other": "{{count}} selected"
+      "count_other": "{{count}} selected",
+      "move": "Move"
     },
     "share": {
       "title": "Share",

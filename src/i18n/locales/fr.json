@@ -43,7 +43,8 @@
       "share": "Partager",
       "rename": "Renommer",
       "delete": "Supprimer",
-      "info": "Détails"
+      "info": "Détails",
+      "move": "Déplacer…"
     },
     "delete": {
       "confirmFileTitle": "Supprimer le fichier ?",
@@ -57,9 +58,19 @@
       "successBulk": "{{count}} éléments déplacés dans la corbeille",
       "errorGeneric": "Impossible de supprimer"
     },
+    "move": {
+      "title": "Déplacer",
+      "action": "Déplacer ici",
+      "successFile": "Fichier déplacé",
+      "successFolder": "Dossier déplacé",
+      "successBulk": "{{count}} éléments déplacés",
+      "errorGeneric": "Impossible de déplacer",
+      "newFolder": "Nouveau dossier"
+    },
     "selection": {
       "count_one": "{{count}} sélectionné",
-      "count_other": "{{count}} sélectionnés"
+      "count_other": "{{count}} sélectionnés",
+      "move": "Déplacer"
     },
     "share": {
       "title": "Partager",
