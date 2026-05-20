@@ -104,7 +104,7 @@ export default function MoveRoute() {
   }
 
   const sourceDirId = firstDoc.dir_id ?? ''
-  const excludeIds = new Set<string>([...idList])
+  const excludeIds = new Set<string>([...idList, sourceDirId].filter(Boolean))
 
   return (
     <>
