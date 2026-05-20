@@ -195,9 +195,11 @@ describe('FolderPicker', () => {
     expect(onConfirm).toHaveBeenCalledWith(expect.objectContaining({ _id: 'a' }))
   })
 
-  it('calls onCancel when the back arrow is tapped at the root level', () => {
+  it('does not render the back arrow at the root level', () => {
+    // At root the only way to dismiss the modal is the Cancel button in the
+    // footer; hiding the back arrow avoids the back-vs-cancel confusion that
+    // led users to think the back was broken.
     setupQueries('Work', [])
-    const onCancel = jest.fn()
     render(
       wrap(
         <FolderPicker
@@ -206,13 +208,11 @@ describe('FolderPicker', () => {
           confirmLabel="Move here"
           isBusy={false}
           onConfirm={jest.fn()}
-          onCancel={onCancel}
+          onCancel={jest.fn()}
         />
       )
     )
-    // The t() mock returns keys as-is, so accessibilityLabel is 'common.back'.
-    fireEvent.press(screen.getByLabelText('common.back'))
-    expect(onCancel).toHaveBeenCalled()
+    expect(screen.queryByLabelText('common.back')).toBeNull()
   })
 
   it('opens the create-folder dialog when the "+ New folder" button is tapped', () => {
