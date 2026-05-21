@@ -16,8 +16,8 @@
  * permissions tied to features not yet on mobile: io.cozy.photos.albums,
  * io.cozy.konnectors, io.cozy.accounts, io.cozy.jobs, io.cozy.triggers,
  * io.cozy.ai.chat.*, cc.cozycloud.dacc_v2, eu.mycozy.dacc_v2,
- * cc.cozycloud.errors, io.cozy.drive.settings. Add them when the
- * corresponding mobile feature lands.
+ * cc.cozycloud.errors. Add them when the corresponding mobile feature
+ * lands.
  */
 export const APP_SCOPES: readonly string[] = [
   // Core file system: list, read, move, rename, delete, upload — all verbs.
@@ -36,7 +36,10 @@ export const APP_SCOPES: readonly string[] = [
   'io.cozy.settings:GET',
   // OAuth client revocation listener (checks whether our own client is still
   // active; if revoked from web, we sign the user out).
-  'io.cozy.oauth.clients:GET'
+  'io.cozy.oauth.clients:GET',
+  // Drive-specific settings (e.g. offline storage quota, feature flags
+  // scoped to the drive app).
+  'io.cozy.drive.settings'
 ] as const
 
 /**
