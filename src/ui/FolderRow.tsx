@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native'
 import { IconButton, List, Menu, useTheme } from 'react-native-paper'
 import { useTranslation } from 'react-i18next'
 
+import { CozyIcon } from '@/ui/icons/CozyIcon'
 import { FileTypeIcon } from '@/ui/icons/FileTypeIcon'
 import { useFileSharingStatus } from '@/sharing/SharingProvider'
 import { useIsOnline } from '@/network/useIsOnline'
@@ -92,7 +93,7 @@ export const FolderRow = ({
         <View style={[props.style, styles.leftSlot]}>
           {selected ? (
             <View style={[styles.checkmark, { backgroundColor: theme.colors.primary }]}>
-              <List.Icon icon="check" color={theme.colors.onPrimary} />
+              <CozyIcon name="check" size={24} color={theme.colors.onPrimary} />
             </View>
           ) : (
             <View style={styles.thumbWrap}>
@@ -117,7 +118,7 @@ export const FolderRow = ({
             anchor={
               <IconButton
                 {...props}
-                icon="dots-vertical"
+                icon={p => <CozyIcon name="dotsVertical" size={p?.size ?? 24} color={p?.color} />}
                 onPress={() => setMenuVisible(true)}
                 accessibilityLabel="folder actions"
               />
@@ -136,7 +137,7 @@ export const FolderRow = ({
             ) : null}
             {onShare ? (
               <Menu.Item
-                leadingIcon="share-variant"
+                leadingIcon={() => <CozyIcon name="shareExternal" size={24} color={theme.colors.onSurface} />}
                 title={t('drive.fileMeta.share')}
                 disabled={!isOnline}
                 onPress={() => {
@@ -147,7 +148,7 @@ export const FolderRow = ({
             ) : null}
             {onRename ? (
               <Menu.Item
-                leadingIcon="pencil-outline"
+                leadingIcon={() => <CozyIcon name="rename" size={24} color={theme.colors.onSurface} />}
                 title={t('drive.fileMeta.rename')}
                 disabled={!isOnline}
                 onPress={() => {
@@ -158,7 +159,7 @@ export const FolderRow = ({
             ) : null}
             {onRestore ? (
               <Menu.Item
-                leadingIcon="restore"
+                leadingIcon={() => <CozyIcon name="restore" size={24} color={theme.colors.onSurface} />}
                 title={t('drive.trashActions.restore')}
                 disabled={!isOnline}
                 onPress={() => {
@@ -169,7 +170,7 @@ export const FolderRow = ({
             ) : null}
             {onDelete ? (
               <Menu.Item
-                leadingIcon="trash-can-outline"
+                leadingIcon={() => <CozyIcon name="trash" size={24} color={theme.colors.onSurface} />}
                 title={t('drive.fileMeta.delete')}
                 disabled={!isOnline}
                 onPress={() => {
@@ -180,7 +181,7 @@ export const FolderRow = ({
             ) : null}
             {onMove ? (
               <Menu.Item
-                leadingIcon="folder-move-outline"
+                leadingIcon={() => <CozyIcon name="moveto" size={24} color={theme.colors.onSurface} />}
                 title={t('drive.fileMeta.move')}
                 disabled={!isOnline}
                 onPress={() => {
@@ -191,7 +192,7 @@ export const FolderRow = ({
             ) : null}
           </Menu>
         ) : (
-          <List.Icon {...props} icon="chevron-right" />
+          <List.Icon {...props} icon={p => <CozyIcon name="chevronRight" size={p?.size ?? 24} color={p?.color} />} />
         )
       }
       onPress={() => onPress(folder)}

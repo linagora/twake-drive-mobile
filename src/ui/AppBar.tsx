@@ -52,7 +52,7 @@ export const AppBar = ({ title, onBack, onLogout, showSearch, selection }: Props
     return (
       <Appbar.Header>
         <Appbar.Action
-          icon="close"
+          icon={p => <CozyIcon name="cross" size={p?.size ?? 24} color={p?.color} />}
           onPress={selection.onCancel}
           accessibilityLabel={t('common.cancel')}
         />
