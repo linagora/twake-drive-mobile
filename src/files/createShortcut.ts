@@ -39,9 +39,7 @@ export const createShortcut = async (
   if (!trimmedName) throw new Error('Shortcut name cannot be empty')
   if (!trimmedUrl) throw new Error('Shortcut URL cannot be empty')
 
-  const collection = client.collection(
-    'io.cozy.files.shortcuts'
-  ) as unknown as ShortcutsCollection
+  const collection = client.collection('io.cozy.files.shortcuts') as unknown as ShortcutsCollection
 
   const result = await collection.create({
     name: trimmedName,

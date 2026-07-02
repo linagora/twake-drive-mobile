@@ -115,9 +115,7 @@ export const AppBar = ({ title, onBack, onLogout, showSearch, selection }: Props
               router.push('/(drive)/settings')
             }}
             title={t('settings.title')}
-            leadingIcon={() => (
-              <CozyIcon name="cog" size={24} color={theme.colors.onSurface} />
-            )}
+            leadingIcon={() => <CozyIcon name="cog" size={24} color={theme.colors.onSurface} />}
           />
           <Menu.Item
             onPress={() => {
@@ -135,9 +133,7 @@ export const AppBar = ({ title, onBack, onLogout, showSearch, selection }: Props
               onLogout()
             }}
             title={t('common.logout')}
-            leadingIcon={() => (
-              <CozyIcon name="logout" size={24} color={theme.colors.onSurface} />
-            )}
+            leadingIcon={() => <CozyIcon name="logout" size={24} color={theme.colors.onSurface} />}
           />
         </Menu>
       ) : null}
@@ -149,12 +145,12 @@ const styles = StyleSheet.create({
   logo: {
     marginLeft: 4,
     marginRight: 4,
-    justifyContent: 'center',
+    justifyContent: 'center'
   },
   searchButton: {
     marginHorizontal: 4,
     padding: 6,
     justifyContent: 'center',
-    alignItems: 'center',
-  },
+    alignItems: 'center'
+  }
 })

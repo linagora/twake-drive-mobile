@@ -82,10 +82,12 @@ const wrap = (ui: React.ReactElement) => (
 )
 
 // Helper: build a minimal query result
-const makeQueryResult = (
-  data: unknown[],
-  fetchStatus: string = 'loaded'
-) => ({ data, fetchStatus, lastError: null, fetch: jest.fn() })
+const makeQueryResult = (data: unknown[], fetchStatus: string = 'loaded') => ({
+  data,
+  fetchStatus,
+  lastError: null,
+  fetch: jest.fn()
+})
 
 describe('FavoritesScreen', () => {
   beforeEach(() => {

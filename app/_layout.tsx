@@ -9,7 +9,13 @@ import { Stack } from 'expo-router'
 import { CozyProvider } from 'cozy-client'
 import { I18nextProvider } from 'react-i18next'
 
-import { useFonts, Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter'
+import {
+  useFonts,
+  Inter_400Regular,
+  Inter_500Medium,
+  Inter_600SemiBold,
+  Inter_700Bold
+} from '@expo-google-fonts/inter'
 
 import i18n from '@/i18n'
 import { AuthProvider, useAuth } from '@/auth/useAuth'
@@ -24,7 +30,12 @@ const InnerLayout = () => {
   const colorScheme = useColorScheme()
   const theme = colorScheme === 'dark' ? darkTheme : lightTheme
   const { client, logout } = useAuth()
-  const [fontsLoaded] = useFonts({ Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold })
+  const [fontsLoaded] = useFonts({
+    Inter_400Regular,
+    Inter_500Medium,
+    Inter_600SemiBold,
+    Inter_700Bold
+  })
 
   useEffect(() => {
     if (!client) return

@@ -351,12 +351,10 @@ export default function FilesScreen() {
             router.push(`/(drive)/files/${[...(path ?? []), file._id].join('/')}`)
           } else {
             if (!client) return
-            void openFileFromList(client, router, file).catch(
-              e => {
-                console.error('[FilesScreen] openFileFromList failed', e)
-                setSnackbar((e as Error).message ?? t('drive.preview.loadFailed'))
-              }
-            )
+            void openFileFromList(client, router, file).catch(e => {
+              console.error('[FilesScreen] openFileFromList failed', e)
+              setSnackbar((e as Error).message ?? t('drive.preview.loadFailed'))
+            })
           }
         }}
         onLongPress={file => selection.select(file._id)}
@@ -373,7 +371,9 @@ export default function FilesScreen() {
   const data = useMemo(() => {
     const dir = sort.dir === 'asc' ? 1 : -1
     const sorted = (arr: FileQueryResult[]) =>
-      [...arr].sort((a, b) => dir * a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }))
+      [...arr].sort(
+        (a, b) => dir * a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
+      )
     return [...sorted(folderDocs), ...sorted(fileDocs)]
   }, [folderDocs, fileDocs, sort.dir])
 

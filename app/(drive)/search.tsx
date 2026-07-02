@@ -115,11 +115,7 @@ export default function SearchScreen() {
       ) : showEmpty ? (
         <EmptyState icon="magnifier" message={t('drive.searchEmpty')} />
       ) : (
-        <FlatList
-          data={results}
-          keyExtractor={item => item._id}
-          renderItem={renderItem}
-        />
+        <FlatList data={results} keyExtractor={item => item._id} renderItem={renderItem} />
       )}
     </ScreenContainer>
   )
@@ -128,6 +124,6 @@ export default function SearchScreen() {
 const styles = StyleSheet.create({
   searchbar: {
     margin: 8,
-    borderRadius: 8,
-  },
+    borderRadius: 8
+  }
 })

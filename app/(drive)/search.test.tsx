@@ -5,7 +5,7 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-
 // ── expo-router ──────────────────────────────────────────────────────────────
 jest.mock('expo-router', () => ({
   __esModule: true,
-  useRouter: () => ({ back: jest.fn(), push: jest.fn() }),
+  useRouter: () => ({ back: jest.fn(), push: jest.fn() })
 }))
 
 // ── cozy-client ──────────────────────────────────────────────────────────────
@@ -30,13 +30,13 @@ jest.mock('cozy-client', () => {
     // Return the same stable reference on every render to avoid infinite loops
     // caused by the fetch useEffect depending on `client`.
     useClient: () => mockClient,
-    Q: jest.fn(makeQDef),
+    Q: jest.fn(makeQDef)
   }
 })
 
 // ── SyncIndicator internals ───────────────────────────────────────────────────
 jest.mock('@/pouchdb/triggerReplication', () => ({
-  getPouchLink: () => null,
+  getPouchLink: () => null
 }))
 
 // ── offline / network helpers used by FileRow / FolderRow ────────────────────
@@ -50,16 +50,16 @@ jest.mock('@/offline/useOfflineState', () => ({
     downloaded: 0,
     downloading: 0,
     pending: 0,
-    failed: 0,
-  }),
+    failed: 0
+  })
 }))
 
 jest.mock('@/network/useIsOnline', () => ({
-  useIsOnline: () => true,
+  useIsOnline: () => true
 }))
 
 jest.mock('@/files/openFromList', () => ({
-  openFileFromList: jest.fn().mockResolvedValue(undefined),
+  openFileFromList: jest.fn().mockResolvedValue(undefined)
 }))
 
 // ── Subject ───────────────────────────────────────────────────────────────────
@@ -100,9 +100,9 @@ describe('SearchScreen', () => {
           type: 'file',
           size: 1024,
           mime: 'application/pdf',
-          updated_at: '2026-01-01T00:00:00.000Z',
-        },
-      ],
+          updated_at: '2026-01-01T00:00:00.000Z'
+        }
+      ]
     })
 
     render(wrap(<SearchScreen />))
@@ -127,9 +127,9 @@ describe('SearchScreen', () => {
           type: 'file',
           size: 512,
           mime: 'application/pdf',
-          updated_at: '2026-01-01T00:00:00.000Z',
-        },
-      ],
+          updated_at: '2026-01-01T00:00:00.000Z'
+        }
+      ]
     })
 
     render(wrap(<SearchScreen />))

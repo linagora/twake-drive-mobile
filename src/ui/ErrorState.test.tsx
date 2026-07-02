@@ -5,7 +5,9 @@ import { ErrorState } from './ErrorState'
 
 test('ErrorState rend son message sans vector-icons', () => {
   const { getByText } = render(
-    <PaperProvider><ErrorState message="Boom" /></PaperProvider>
+    <PaperProvider>
+      <ErrorState message="Boom" />
+    </PaperProvider>
   )
   expect(getByText('Boom')).toBeTruthy()
 })

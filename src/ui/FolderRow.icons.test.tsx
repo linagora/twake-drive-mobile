@@ -76,9 +76,7 @@ describe('FolderRow icons (CozyIcon re-skin)', () => {
    */
   it('renders a CozyIcon Svg for the chevron-right (non-selected, no menu)', () => {
     const Svg = require('react-native-svg').default
-    const { UNSAFE_getAllByType } = render(
-      wrap(<FolderRow folder={folder} onPress={() => {}} />)
-    )
+    const { UNSAFE_getAllByType } = render(wrap(<FolderRow folder={folder} onPress={() => {}} />))
     // After Task 10: ≥ 2 Svgs (FileTypeIcon + chevron CozyIcon)
     expect(UNSAFE_getAllByType(Svg).length).toBeGreaterThan(1)
   })

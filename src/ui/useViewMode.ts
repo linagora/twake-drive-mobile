@@ -17,7 +17,7 @@ try {
 }
 
 let currentMode: ViewMode =
-  ((storage?.getString(STORAGE_KEY) as ViewMode | undefined) ?? DEFAULT_MODE)
+  (storage?.getString(STORAGE_KEY) as ViewMode | undefined) ?? DEFAULT_MODE
 
 const listeners = new Set<() => void>()
 

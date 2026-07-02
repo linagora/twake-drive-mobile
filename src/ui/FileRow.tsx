@@ -138,7 +138,9 @@ export const FileRow = ({
             ) : null}
             {onShare ? (
               <Menu.Item
-                leadingIcon={() => <CozyIcon name="shareExternal" size={24} color={theme.colors.onSurface} />}
+                leadingIcon={() => (
+                  <CozyIcon name="shareExternal" size={24} color={theme.colors.onSurface} />
+                )}
                 title={t('drive.fileMeta.share')}
                 disabled={!isOnline}
                 onPress={() => {
@@ -149,7 +151,9 @@ export const FileRow = ({
             ) : null}
             {onRename ? (
               <Menu.Item
-                leadingIcon={() => <CozyIcon name="rename" size={24} color={theme.colors.onSurface} />}
+                leadingIcon={() => (
+                  <CozyIcon name="rename" size={24} color={theme.colors.onSurface} />
+                )}
                 title={t('drive.fileMeta.rename')}
                 disabled={!isOnline}
                 onPress={() => {
@@ -160,7 +164,9 @@ export const FileRow = ({
             ) : null}
             {onRestore ? (
               <Menu.Item
-                leadingIcon={() => <CozyIcon name="restore" size={24} color={theme.colors.onSurface} />}
+                leadingIcon={() => (
+                  <CozyIcon name="restore" size={24} color={theme.colors.onSurface} />
+                )}
                 title={t('drive.trashActions.restore')}
                 disabled={!isOnline}
                 onPress={() => {
@@ -171,7 +177,9 @@ export const FileRow = ({
             ) : null}
             {onDelete ? (
               <Menu.Item
-                leadingIcon={() => <CozyIcon name="trash" size={24} color={theme.colors.onSurface} />}
+                leadingIcon={() => (
+                  <CozyIcon name="trash" size={24} color={theme.colors.onSurface} />
+                )}
                 title={t('drive.fileMeta.delete')}
                 disabled={!isOnline}
                 onPress={() => {
@@ -182,7 +190,9 @@ export const FileRow = ({
             ) : null}
             {onMove ? (
               <Menu.Item
-                leadingIcon={() => <CozyIcon name="moveto" size={24} color={theme.colors.onSurface} />}
+                leadingIcon={() => (
+                  <CozyIcon name="moveto" size={24} color={theme.colors.onSurface} />
+                )}
                 title={t('drive.fileMeta.move')}
                 disabled={!isOnline}
                 onPress={() => {
@@ -193,7 +203,9 @@ export const FileRow = ({
             ) : null}
             {onInfo ? (
               <Menu.Item
-                leadingIcon={() => <CozyIcon name="info" size={24} color={theme.colors.onSurface} />}
+                leadingIcon={() => (
+                  <CozyIcon name="info" size={24} color={theme.colors.onSurface} />
+                )}
                 title={t('drive.fileMeta.info')}
                 onPress={() => {
                   setMenuVisible(false)
@@ -204,7 +216,9 @@ export const FileRow = ({
             <Menu.Item
               leadingIcon={() => (
                 <CozyIcon
-                  name={isFavorite(file as Parameters<typeof isFavorite>[0]) ? 'star' : 'starOutline'}
+                  name={
+                    isFavorite(file as Parameters<typeof isFavorite>[0]) ? 'star' : 'starOutline'
+                  }
                   size={24}
                   color={theme.colors.onSurface}
                 />
@@ -228,7 +242,9 @@ export const FileRow = ({
               }}
             />
             <Menu.Item
-              leadingIcon={() => <CozyIcon name="download" size={24} color={theme.colors.onSurface} />}
+              leadingIcon={() => (
+                <CozyIcon name="download" size={24} color={theme.colors.onSurface} />
+              )}
               title={t('drive.fileMeta.download')}
               onPress={() => {
                 setMenuVisible(false)

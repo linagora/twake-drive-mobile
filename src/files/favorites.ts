@@ -6,8 +6,7 @@ import type { FileQueryResult } from '@/client/queries'
  * Returns true when the file/folder is marked as a favourite.
  * Mirrors twake-drive-web: the flag lives at `cozyMetadata.favorite`.
  */
-export const isFavorite = (file: FileQueryResult): boolean =>
-  file.cozyMetadata?.favorite === true
+export const isFavorite = (file: FileQueryResult): boolean => file.cozyMetadata?.favorite === true
 
 /**
  * Toggle the favourite flag on a file or folder by persisting it via

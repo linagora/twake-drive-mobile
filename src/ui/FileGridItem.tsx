@@ -44,10 +44,7 @@ export function FileGridItem({ file, onPress, onLongPress, selected }: Props) {
       <View testID="file-grid-icon" style={styles.iconWrapper}>
         <FileThumbnail file={file} size={THUMBNAIL_SIZE} />
       </View>
-      <Text
-        style={[styles.name, { color: colors.onSurface }]}
-        numberOfLines={2}
-      >
+      <Text style={[styles.name, { color: colors.onSurface }]} numberOfLines={2}>
         {file.name}
       </Text>
     </Pressable>

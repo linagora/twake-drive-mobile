@@ -46,7 +46,9 @@ export default function DriveLayout() {
           name="recent"
           options={{
             title: t('drive.recent'),
-            tabBarIcon: ({ color, size }) => <CozyIcon name="clockOutline" color={color} size={size} />
+            tabBarIcon: ({ color, size }) => (
+              <CozyIcon name="clockOutline" color={color} size={size} />
+            )
           }}
         />
         <Tabs.Screen

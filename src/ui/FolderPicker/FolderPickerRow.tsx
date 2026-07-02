@@ -30,7 +30,12 @@ export const FolderPickerRow = ({ item, disabled, onPress }: Props) => {
         </View>
       )}
       right={props =>
-        isFolder && !disabled ? <List.Icon {...props} icon={p => <CozyIcon name="chevronRight" size={p?.size ?? 24} color={p?.color} />} /> : null
+        isFolder && !disabled ? (
+          <List.Icon
+            {...props}
+            icon={p => <CozyIcon name="chevronRight" size={p?.size ?? 24} color={p?.color} />}
+          />
+        ) : null
       }
       onPress={disabled ? undefined : () => onPress(item)}
       style={styles.row}

@@ -13,11 +13,16 @@ interface Props {
 
 const iconForState = (state: OfflineFileEntry['state']): string => {
   switch (state) {
-    case 'downloaded': return 'download'
-    case 'downloading': return 'download'
-    case 'pending': return 'cloud2'
-    case 'failed': return 'info'
-    case 'paused-auth': return 'clockOutline'
+    case 'downloaded':
+      return 'download'
+    case 'downloading':
+      return 'download'
+    case 'pending':
+      return 'cloud2'
+    case 'failed':
+      return 'info'
+    case 'paused-auth':
+      return 'clockOutline'
   }
 }
 

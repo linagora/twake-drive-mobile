@@ -14,7 +14,14 @@ export function TwakeLogo({ size = 32 }: { size?: number }) {
         <Path d="M19.791 24.216a7.425 7.425 0 100-14.85 7.425 7.425 0 000 14.85z" />
       </G>
       <Defs>
-        <LinearGradient id="twakeLogoGrad" x1={4.126} y1={29.682} x2={39.046} y2={-5.32} gradientUnits="userSpaceOnUse">
+        <LinearGradient
+          id="twakeLogoGrad"
+          x1={4.126}
+          y1={29.682}
+          x2={39.046}
+          y2={-5.32}
+          gradientUnits="userSpaceOnUse"
+        >
           <Stop offset={0.248} stopColor="#FF4759" />
           <Stop offset={1} stopColor="#FFD600" />
         </LinearGradient>

@@ -2,11 +2,37 @@
 import { ICONS } from './registry'
 
 const REQUIRED = [
-  'star','starOutline','cloud2','clockOutline','shareExternal','trash','magnifier',
-  'dots','plus','previous','download','pen','rename','moveto','palette','info',
-  'history','restore','listMin','mosaicMin','upload','deviceBrowser',
-  'fileTypeFolder','fileTypeNote','fileTypeText','fileTypeSheet','fileTypeSlide',
-  'docs','excalidraw','grist','nextcloud'
+  'star',
+  'starOutline',
+  'cloud2',
+  'clockOutline',
+  'shareExternal',
+  'trash',
+  'magnifier',
+  'dots',
+  'plus',
+  'previous',
+  'download',
+  'pen',
+  'rename',
+  'moveto',
+  'palette',
+  'info',
+  'history',
+  'restore',
+  'listMin',
+  'mosaicMin',
+  'upload',
+  'deviceBrowser',
+  'fileTypeFolder',
+  'fileTypeNote',
+  'fileTypeText',
+  'fileTypeSheet',
+  'fileTypeSlide',
+  'docs',
+  'excalidraw',
+  'grist',
+  'nextcloud'
 ]
 
 test('toutes les icônes requises sont enregistrées et valides', () => {

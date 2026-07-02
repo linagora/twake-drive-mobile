@@ -31,7 +31,12 @@ describe('createShortcut', () => {
     const create = jest.fn().mockResolvedValue({
       data: { _id: 'sc-42', attributes: { name: 'Link.url' } }
     })
-    const result = await createShortcut(makeClient(create), 'dir-123', 'Link', 'https://example.com')
+    const result = await createShortcut(
+      makeClient(create),
+      'dir-123',
+      'Link',
+      'https://example.com'
+    )
     expect(result._id).toBe('sc-42')
     expect(result.name).toBe('Link.url')
   })
@@ -66,9 +71,9 @@ describe('createShortcut', () => {
 
   it('throws when url is empty', async () => {
     const create = jest.fn()
-    await expect(
-      createShortcut(makeClient(create), 'dir-123', 'My link', '   ')
-    ).rejects.toThrow(/URL/)
+    await expect(createShortcut(makeClient(create), 'dir-123', 'My link', '   ')).rejects.toThrow(
+      /URL/
+    )
     expect(create).not.toHaveBeenCalled()
   })
 
@@ -91,9 +96,9 @@ describe('createShortcut', () => {
   it('does NOT trigger replication on failure', async () => {
     const create = jest.fn().mockRejectedValue(new Error('boom'))
     const client = makeClient(create)
-    await expect(
-      createShortcut(client, 'dir-123', 'Foo', 'https://example.com')
-    ).rejects.toThrow('boom')
+    await expect(createShortcut(client, 'dir-123', 'Foo', 'https://example.com')).rejects.toThrow(
+      'boom'
+    )
     expect(triggerPouchReplication).not.toHaveBeenCalled()
   })
 })
