@@ -85,4 +85,24 @@ class TwakeDocumentsProvider : DocumentsProvider() {
 
     private fun openForWrite(id: String, mode: String): ParcelFileDescriptor =
         throw UnsupportedOperationException("Task 9")
+
+    override fun createDocument(
+        parentDocumentId: String?,
+        mimeType: String?,
+        displayName: String?
+    ): String {
+        val parent = parentDocumentId ?: throw java.io.FileNotFoundException("null parent")
+        val name = displayName ?: "untitled"
+        val created = if (mimeType == android.provider.DocumentsContract.Document.MIME_TYPE_DIR)
+            api.createDirectory(parent, name)
+        else api.createFile(parent, name, mimeType ?: "application/octet-stream")
+        notifyChange(parent)
+        return created.id
+    }
+
+    private fun notifyChange(parentDocumentId: String) {
+        val uri = android.provider.DocumentsContract.buildChildDocumentsUri(
+            DocumentMapper.AUTHORITY, parentDocumentId)
+        context?.contentResolver?.notifyChange(uri, null)
+    }
 }

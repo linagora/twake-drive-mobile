@@ -107,4 +107,27 @@ class CozyStackApiTest {
         assertFalse(ok)
         assertFalse("dest must not be left behind as a truncated/corrupt file", dest.exists())
     }
+
+    @Test fun `createDirectory posts Type=directory`() {
+        server.enqueue(MockResponse().setBody("""{"data":{"id":"newdir","type":"io.cozy.files","attributes":{"type":"directory","name":"New","dir_id":"p"}}}"""))
+        api = CozyStackApi(sessionFor(server.url("/").toString()))
+        val d = api.createDirectory("p", "New")
+        assertEquals("newdir", d.id); assertTrue(d.isDir)
+        val req = server.takeRequest()
+        assertEquals("POST", req.method)
+        assertTrue(req.path!!.startsWith("/files/p?"))
+        assertTrue(req.path!!.contains("Type=directory"))
+        assertTrue(req.path!!.contains("Name=New"))
+    }
+
+    @Test fun `createFile posts Type=file with an empty body`() {
+        server.enqueue(MockResponse().setBody("""{"data":{"id":"nf","type":"io.cozy.files","attributes":{"type":"file","name":"a.txt","size":"0","mime":"text/plain","dir_id":"p"}}}"""))
+        api = CozyStackApi(sessionFor(server.url("/").toString()))
+        val f = api.createFile("p", "a.txt", "text/plain")
+        assertEquals("nf", f.id); assertEquals(false, f.isDir)
+        val req = server.takeRequest()
+        assertEquals("POST", req.method)
+        assertTrue(req.path!!.contains("Type=file"))
+        assertEquals(0, req.bodySize)
+    }
 }

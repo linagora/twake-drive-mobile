@@ -1,9 +1,12 @@
 package com.linagora.twakedrive.fileprovider
 
 import okhttp3.Authenticator
+import okhttp3.HttpUrl
 import okhttp3.Interceptor
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
 import okhttp3.Route
 import org.json.JSONObject
@@ -121,6 +124,24 @@ class CozyStackApi(private val session: SessionStore) {
         }
     }
 
-    // Write methods (createDirectory/createFile/upload/rename/move/trash)
-    // and statByPath land in Tasks 9–11.
+    private fun postForFile(pathAndQuery: String, body: okhttp3.RequestBody): CozyFile {
+        val req = Request.Builder().url("${base()}$pathAndQuery")
+            .header("Accept", "application/vnd.api+json").post(body).build()
+        exec(req).use {
+            val data = JSONObject(it.body!!.string()).getJSONObject("data")
+            return CozyFile.fromAttributes(data.getString("id"), data.getJSONObject("attributes"))
+        }
+    }
+
+    private fun enc(s: String) = java.net.URLEncoder.encode(s, "UTF-8")
+
+    fun createDirectory(parentId: String, name: String): CozyFile =
+        postForFile("/files/$parentId?Type=directory&Name=${enc(name)}",
+            ByteArray(0).toRequestBody(null))
+
+    fun createFile(parentId: String, name: String, mime: String): CozyFile =
+        postForFile("/files/$parentId?Type=file&Name=${enc(name)}",
+            ByteArray(0).toRequestBody(mime.toMediaTypeOrNull()))
+
+    // Upload/rename/move/trash and statByPath land in Tasks 9–11.
 }
