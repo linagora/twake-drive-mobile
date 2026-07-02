@@ -3,9 +3,6 @@ name: Build iOS (Simulator)
 # Not on every PR — macOS runner minutes cost ~10x. Runs on main pushes,
 # manual dispatch, and release tags. Enable pull_request later if desired.
 on:
-  # TEMPORARY (remove after validating the dep overrides on PR #1): runs the iOS
-  # build once on the PR so the CVE overrides + formatting are exercised on iOS.
-  pull_request:
   push:
     branches: [main]
     tags:
