@@ -77,7 +77,7 @@ le navigateur de fichiers** (`useQuery` + états `loading`/`failed`/`empty` + `f
 `PouchLink` la sert depuis PouchDB local → global + hors-ligne, sans code réseau.
 
 ```
-┌─ Écran de recherche (app/(drive)/search.tsx) ─────────────┐
+┌─ Écran de recherche (app/search.tsx, route 1er niveau) ───┐
 │  TextInput (autofocus)                                     │
 │     │  onChangeText                                        │
 │     ▼                                                      │
@@ -112,7 +112,7 @@ débouncé se mesure en dizaines de ms — acceptable.
 | `src/client/queries.ts` → `searchFilesQuery(term)` / `searchFilesQueryAs(term)` | **Miroir de `buildDriveQuery`** : `Q('io.cozy.files').where({ name: { $regex }, trashed: { $ne: true } }).partialIndex({ _id: { $nin: HIDDEN_ROOT_DIR_IDS } }).indexFields(['name']).sortBy([{ name: 'asc' }]).limitBy(50)`. Clé cache `as` = `` `io.cozy.files/search/${term}` `` (convention `…QueryAs`). |
 | `src/search/buildSearchRegex.ts` | **Interface d'isolation** du matching. Échappe les métacaractères regex de la saisie utilisateur + insensible à la casse (flag `i` ou `(?i)`). Testable seule (comme `contactSuggestions.ts`). |
 | `src/search/useDebouncedValue.ts` | Petit hook générique de debounce (~300 ms). Testable seul. |
-| `app/(drive)/search.tsx` | Écran : `TextInput` (autofocus) + `useQuery` (`enabled: term.length >= 2`) + `FlatList` réutilisant `LoadingState`/`EmptyState`/`ErrorState` + `FileRow`/`FolderRow`. Enregistré dans `app/(drive)/_layout.tsx`. |
+| `app/search.tsx` | Écran **de 1er niveau** (⚠️ **pas** `app/(drive)/search.tsx` : `(drive)` est un `Tabs`, ça créerait un onglet) : `Searchbar` (paper, autofocus) + `useQuery` (`enabled: term.length >= 2`) + `FlatList` réutilisant `LoadingState`/`EmptyState`/`ErrorState` + `FileRow`/`FolderRow`. Enregistré dans `app/_layout.tsx` (comme `move`/`share`/`preview`). |
 | `src/ui/AppBar.tsx` → prop optionnelle `onSearch` | Ajoute une **loupe** (icône `magnify`) dans l'en-tête hors mode sélection → `router.push('/(drive)/search')`. Changement minimal, rétro-compatible. |
 | `src/pouchdb/getLinks.ts` → warmup index `name` | Ajoute une entrée à `filesIndexWarmupQueries` (`indexFields(['name'])`, `sortBy name`) pour pré-bâtir l'index que la recherche utilise — **même motif que les warmups existants**. |
 | i18n `search.*` (`src/i18n/locales/fr.json` + `en.json`) | `placeholder`, `title`, `empty`, `hint` (« Tapez au moins 2 caractères »), `error`. |
@@ -133,7 +133,7 @@ débouncé se mesure en dizaines de ms — acceptable.
 
 ## 6. Data flow détaillé
 
-1. Sur le navigateur de fichiers, tap **loupe** (en-tête) → `router.push('/(drive)/search')`.
+1. Sur le navigateur de fichiers, tap **loupe** (en-tête) → `router.push('/search')`.
 2. `search.tsx` monte, `TextInput` autofocus. L'utilisateur tape → `term` (state).
 3. `useDebouncedValue(term, 300)` → `debouncedTerm`.
 4. `useQuery(searchFilesQuery(debouncedTerm), { as: searchFilesQueryAs(debouncedTerm), enabled: debouncedTerm.length >= 2 })`.
