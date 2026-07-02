@@ -16,7 +16,7 @@ describe('useDebouncedValue', () => {
     expect(screen.getByTestId('out')).toHaveTextContent('apple')
   })
 
-  it('ne met à jour qu\'après le délai', () => {
+  it("ne met à jour qu'après le délai", () => {
     const { rerender } = render(<Probe value="apple" />)
     rerender(<Probe value="banana" />)
     expect(screen.getByTestId('out')).toHaveTextContent('apple')

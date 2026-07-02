@@ -35,7 +35,9 @@ export default function SearchScreen() {
 
   const renderItem = ({ item }: { item: FileQueryResult }) => {
     if (item.type === 'directory') {
-      return <FolderRow folder={item} onPress={folder => router.push(`/(drive)/files/${folder._id}`)} />
+      return (
+        <FolderRow folder={item} onPress={folder => router.push(`/(drive)/files/${folder._id}`)} />
+      )
     }
     return (
       <FileRow
@@ -63,7 +65,10 @@ export default function SearchScreen() {
       ) : query.fetchStatus === 'loading' && data.length === 0 ? (
         <LoadingState />
       ) : query.fetchStatus === 'failed' ? (
-        <ErrorState message={t(getErrorMessageKey(query.lastError))} onRetry={() => void query.fetch()} />
+        <ErrorState
+          message={t(getErrorMessageKey(query.lastError))}
+          onRetry={() => void query.fetch()}
+        />
       ) : data.length === 0 ? (
         <EmptyState message={t('drive.search.empty')} />
       ) : (

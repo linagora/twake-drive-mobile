@@ -47,7 +47,10 @@ jest.mock('@/ui/FolderRow', () => {
   const React = require('react')
   const { Text } = require('react-native')
   return {
-    FolderRow: (props: { folder: { name: string; _id: string }; onPress: (f: { _id: string }) => void }) =>
+    FolderRow: (props: {
+      folder: { name: string; _id: string }
+      onPress: (f: { _id: string }) => void
+    }) =>
       React.createElement(Text, { onPress: () => props.onPress(props.folder) }, props.folder.name)
   }
 })
@@ -70,7 +73,7 @@ describe('SearchScreen', () => {
     setQuery()
   })
 
-  it('affiche l\'invite tant que < 2 caractères', () => {
+  it("affiche l'invite tant que < 2 caractères", () => {
     render(<SearchScreen />)
     expect(screen.getByText('drive.search.hint')).toBeTruthy()
     // requête désactivée
