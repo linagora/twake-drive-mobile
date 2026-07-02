@@ -55,7 +55,10 @@
       "rename": "Rename",
       "delete": "Delete",
       "info": "Details",
-      "move": "Move…"
+      "move": "Move…",
+      "favorite": "Add to favorites",
+      "unfavorite": "Remove from favorites",
+      "download": "Download"
     },
     "delete": {
       "confirmFileTitle": "Delete file?",

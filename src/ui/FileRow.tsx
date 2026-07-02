@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native'
 import { IconButton, List, Menu, useTheme } from 'react-native-paper'
 import { formatDistanceToNow } from 'date-fns'
 import { useTranslation } from 'react-i18next'
+import { useClient } from 'cozy-client'
 
 import { CozyIcon } from '@/ui/icons/CozyIcon'
 import { formatFileSize } from '@/utils/formatters'
@@ -10,6 +11,9 @@ import { useFileSharingStatus } from '@/sharing/SharingProvider'
 import { useIsOnline } from '@/network/useIsOnline'
 import { PinnedBadge } from '@/offline/PinnedBadge'
 import { useOfflineState } from '@/offline/useOfflineState'
+import { isFavorite, toggleFavorite } from '@/files/favorites'
+import { download } from '@/files/download'
+import { triggerPouchReplication } from '@/pouchdb/triggerReplication'
 import { FileThumbnail } from './FileThumbnail'
 import { SharedBadge } from './SharedBadge'
 
@@ -22,6 +26,7 @@ export interface FileItem {
   class?: string
   updated_at?: string
   links?: { tiny?: string; small?: string; medium?: string; large?: string }
+  cozyMetadata?: { favorite?: boolean }
 }
 
 interface Props {
@@ -60,6 +65,7 @@ export const FileRow = ({
 }: Props) => {
   const { t } = useTranslation()
   const theme = useTheme()
+  const client = useClient()
   const isOnline = useIsOnline()
   const [menuVisible, setMenuVisible] = useState(false)
   const offlineEntry = useOfflineState(file._id)
@@ -195,6 +201,41 @@ export const FileRow = ({
                 }}
               />
             ) : null}
+            <Menu.Item
+              leadingIcon={() => (
+                <CozyIcon
+                  name={isFavorite(file as Parameters<typeof isFavorite>[0]) ? 'star' : 'starOutline'}
+                  size={24}
+                  color={theme.colors.onSurface}
+                />
+              )}
+              title={t(
+                isFavorite(file as Parameters<typeof isFavorite>[0])
+                  ? 'drive.fileMeta.unfavorite'
+                  : 'drive.fileMeta.favorite'
+              )}
+              onPress={() => {
+                setMenuVisible(false)
+                if (!client) return
+                const next = !isFavorite(file as Parameters<typeof isFavorite>[0])
+                void toggleFavorite(
+                  client,
+                  file as Parameters<typeof toggleFavorite>[1],
+                  next
+                ).then(() => {
+                  triggerPouchReplication(client)
+                })
+              }}
+            />
+            <Menu.Item
+              leadingIcon={() => <CozyIcon name="download" size={24} color={theme.colors.onSurface} />}
+              title={t('drive.fileMeta.download')}
+              onPress={() => {
+                setMenuVisible(false)
+                if (!client) return
+                void download(client, file)
+              }}
+            />
           </Menu>
         ) : null
       }

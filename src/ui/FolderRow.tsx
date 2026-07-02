@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { StyleSheet, View } from 'react-native'
 import { IconButton, List, Menu, useTheme } from 'react-native-paper'
 import { useTranslation } from 'react-i18next'
+import { useClient } from 'cozy-client'
 
 import { CozyIcon } from '@/ui/icons/CozyIcon'
 import { FileTypeIcon } from '@/ui/icons/FileTypeIcon'
@@ -10,6 +11,8 @@ import { useIsOnline } from '@/network/useIsOnline'
 import { useOfflineFolderState } from '@/offline/useOfflineState'
 import { PinnedBadge } from '@/offline/PinnedBadge'
 import type { OfflineFileEntry, OfflineFileState } from '@/offline/types'
+import { isFavorite, toggleFavorite } from '@/files/favorites'
+import { triggerPouchReplication } from '@/pouchdb/triggerReplication'
 import { SharedBadge } from './SharedBadge'
 
 // Synthetic entry just to drive the PinnedBadge visuals. Folders don't have
@@ -31,6 +34,7 @@ const folderBadgeEntry = (state: OfflineFileState): OfflineFileEntry => ({
 export interface FolderItem {
   _id: string
   name: string
+  cozyMetadata?: { favorite?: boolean }
 }
 
 interface Props {
@@ -67,6 +71,7 @@ export const FolderRow = ({
 }: Props) => {
   const { t } = useTranslation()
   const theme = useTheme()
+  const client = useClient()
   const isOnline = useIsOnline()
   const [menuVisible, setMenuVisible] = useState(false)
   const sharingStatus = useFileSharingStatus(folder._id)
@@ -190,6 +195,32 @@ export const FolderRow = ({
                 }}
               />
             ) : null}
+            <Menu.Item
+              leadingIcon={() => (
+                <CozyIcon
+                  name={isFavorite(folder as Parameters<typeof isFavorite>[0]) ? 'star' : 'starOutline'}
+                  size={24}
+                  color={theme.colors.onSurface}
+                />
+              )}
+              title={t(
+                isFavorite(folder as Parameters<typeof isFavorite>[0])
+                  ? 'drive.fileMeta.unfavorite'
+                  : 'drive.fileMeta.favorite'
+              )}
+              onPress={() => {
+                setMenuVisible(false)
+                if (!client) return
+                const next = !isFavorite(folder as Parameters<typeof isFavorite>[0])
+                void toggleFavorite(
+                  client,
+                  folder as Parameters<typeof toggleFavorite>[1],
+                  next
+                ).then(() => {
+                  triggerPouchReplication(client)
+                })
+              }}
+            />
           </Menu>
         ) : (
           <List.Icon {...props} icon={p => <CozyIcon name="chevronRight" size={p?.size ?? 24} color={p?.color} />} />

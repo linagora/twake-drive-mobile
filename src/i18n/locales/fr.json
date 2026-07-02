@@ -55,7 +55,10 @@
       "rename": "Renommer",
       "delete": "Supprimer",
       "info": "Détails",
-      "move": "Déplacer…"
+      "move": "Déplacer…",
+      "favorite": "Ajouter aux favoris",
+      "unfavorite": "Retirer des favoris",
+      "download": "Télécharger"
     },
     "delete": {
       "confirmFileTitle": "Supprimer le fichier ?",
