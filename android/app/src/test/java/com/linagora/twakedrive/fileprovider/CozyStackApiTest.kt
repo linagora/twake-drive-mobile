@@ -3,11 +3,15 @@ package com.linagora.twakedrive.fileprovider
 import okhttp3.OkHttpClient
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
+import okhttp3.mockwebserver.SocketPolicy
 import org.junit.After
+import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import java.io.File
 
 class CozyStackApiTest {
     private lateinit var server: MockWebServer
@@ -69,5 +73,38 @@ class CozyStackApiTest {
         server.enqueue(MockResponse().setResponseCode(400).setBody("""{"error":"invalid_grant"}"""))
         api = CozyStackApi(sessionFor(server.url("/").toString(), accessToken = "STALE"))
         api.get("f1")
+    }
+
+    private fun cozyFile(id: String) = CozyFile(
+        id = id, name = "a.jpg", isDir = false, dirId = null,
+        size = 0L, mime = "image/jpeg", klass = "image", updatedAt = 0L, path = null
+    )
+
+    @Test fun `thumbnail downloads the response body to dest on success`() {
+        val body = "fake-thumbnail-bytes"
+        server.enqueue(MockResponse().setBody(body))
+        api = CozyStackApi(sessionFor(server.url("/").toString()))
+        val dest = File.createTempFile("thumb", ".dest").apply { delete() }
+
+        val ok = api.thumbnail(cozyFile("f1"), dest)
+
+        assertTrue(ok)
+        assertTrue(dest.exists())
+        assertArrayEquals(body.toByteArray(), dest.readBytes())
+        assertEquals("/files/f1/thumbnails/medium", server.takeRequest().path)
+    }
+
+    @Test fun `a mid-stream failure does not leave a truncated file at dest`() {
+        val body = "x".repeat(5000)
+        server.enqueue(
+            MockResponse().setBody(body).setSocketPolicy(SocketPolicy.DISCONNECT_DURING_RESPONSE_BODY)
+        )
+        api = CozyStackApi(sessionFor(server.url("/").toString()))
+        val dest = File.createTempFile("thumb", ".dest").apply { delete() }
+
+        val ok = api.thumbnail(cozyFile("f2"), dest)
+
+        assertFalse(ok)
+        assertFalse("dest must not be left behind as a truncated/corrupt file", dest.exists())
     }
 }

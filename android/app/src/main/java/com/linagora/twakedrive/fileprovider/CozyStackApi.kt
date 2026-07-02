@@ -103,13 +103,22 @@ class CozyStackApi(private val session: SessionStore) {
         // cozy-stack exposes thumbnails via the file's medium link; fetch it directly.
         val url = "${base()}/files/${file.id}/thumbnails/medium"
         val req = Request.Builder().url(url).build()
+        // Stage to a temp file and only rename into place on full success, so a
+        // mid-stream failure (dropped connection, etc.) never leaves a truncated
+        // file at `dest` — mirrors DocumentCache.ensureLocal's download pattern.
+        val tmp = File(dest.parentFile, dest.name + ".dl")
         return try {
             exec(req).use { resp ->
                 dest.parentFile?.mkdirs()
-                dest.outputStream().use { out -> resp.body!!.byteStream().copyTo(out) }
+                tmp.outputStream().use { out -> resp.body!!.byteStream().copyTo(out) }
             }
+            if (!tmp.renameTo(dest)) { tmp.copyTo(dest, overwrite = true); tmp.delete() }
             true
-        } catch (e: IOException) { false }
+        } catch (e: IOException) {
+            tmp.delete()
+            dest.delete()
+            false
+        }
     }
 
     // Write methods (createDirectory/createFile/upload/rename/move/trash)
