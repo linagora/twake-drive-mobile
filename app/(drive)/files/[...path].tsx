@@ -350,6 +350,7 @@ export default function FilesScreen() {
         title={currentDirName}
         onBack={isRoot ? undefined : () => router.back()}
         onLogout={isRoot ? logout : undefined}
+        showSearch
         selection={
           selection.isSelecting
             ? {

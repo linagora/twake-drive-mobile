@@ -12,6 +12,7 @@ import { LoadingState } from '@/ui/LoadingState'
 import { FileRow } from '@/ui/FileRow'
 import { FolderRow } from '@/ui/FolderRow'
 import { FileQueryResult } from '@/client/queries'
+import { openFileFromList } from '@/files/openFromList'
 
 const DEBOUNCE_MS = 300
 
@@ -81,11 +82,16 @@ export default function SearchScreen() {
       return (
         <FileRow
           file={{ ...item, size: item.size ?? null }}
-          onPress={() => router.push(`/(drive)/folder/${item.dir_id ?? ''}` as never)}
+          onPress={() => {
+            if (!client) return
+            void openFileFromList(client, router, item).catch(e => {
+              console.error('[SearchScreen] openFileFromList failed', e)
+            })
+          }}
         />
       )
     },
-    [router]
+    [router, client]
   )
 
   const showHint = !debouncedTerm && !term

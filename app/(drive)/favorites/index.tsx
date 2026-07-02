@@ -12,7 +12,7 @@ export default function FavoritesScreen() {
 
   return (
     <ScreenContainer>
-      <AppBar title={t('drive.favorites')} onLogout={logout} />
+      <AppBar title={t('drive.favorites')} onLogout={logout} showSearch />
       <EmptyState icon="star" message={t('drive.emptyFavorites')} />
     </ScreenContainer>
   )

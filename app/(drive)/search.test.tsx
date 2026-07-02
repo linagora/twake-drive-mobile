@@ -58,6 +58,10 @@ jest.mock('@/network/useIsOnline', () => ({
   useIsOnline: () => true,
 }))
 
+jest.mock('@/files/openFromList', () => ({
+  openFileFromList: jest.fn().mockResolvedValue(undefined),
+}))
+
 // ── Subject ───────────────────────────────────────────────────────────────────
 import SearchScreen from './search'
 
