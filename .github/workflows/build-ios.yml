@@ -3,9 +3,6 @@ name: Build iOS (Simulator)
 # Not on every PR — macOS runner minutes cost ~10x. Runs on main pushes,
 # manual dispatch, and release tags. Enable pull_request later if desired.
 on:
-  # TEMPORARY (remove after PR #1 validation): runs the iOS build once on the
-  # PR, since workflow_dispatch is unavailable until this file lands on main.
-  pull_request:
   push:
     branches: [main]
     tags:
