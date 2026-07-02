@@ -1,9 +1,9 @@
 import React from 'react'
-import { View } from 'react-native'
 import { useTranslation } from 'react-i18next'
 
 import { AppBar } from '@/ui/AppBar'
 import { ScreenContainer } from '@/ui/ScreenContainer'
+import { EmptyState } from '@/ui/EmptyState'
 import { useAuth } from '@/auth/useAuth'
 
 export default function FavoritesScreen() {
@@ -13,7 +13,7 @@ export default function FavoritesScreen() {
   return (
     <ScreenContainer>
       <AppBar title={t('drive.favorites')} onLogout={logout} />
-      <View />
+      <EmptyState icon="star" message={t('drive.emptyFavorites')} />
     </ScreenContainer>
   )
 }
