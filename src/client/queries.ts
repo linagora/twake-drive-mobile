@@ -29,6 +29,7 @@ export interface FileQueryResult {
   path?: string
   cozyMetadata?: {
     createdBy?: { account?: string }
+    favorite?: boolean
   }
   links?: {
     tiny?: string
@@ -102,6 +103,19 @@ export const recentQuery = (): QueryDefinition =>
     .sortBy([{ updated_at: 'desc' }])
     .limitBy(50)
 export const recentQueryAs = 'recent-view-query'
+
+// Mirrors twake-drive-web's `buildFavoritesQuery`: all non-trashed files and
+// folders marked as favourite via the `cozyMetadata.favorite` flag, sorted by
+// name. A single query (no dir split) because the tab shows a flat list of all
+// starred items regardless of type, matching the web behaviour.
+export const favoritesQuery = (): QueryDefinition =>
+  Q('io.cozy.files')
+    .where({ name: { $gt: null } })
+    .partialIndex({ 'cozyMetadata.favorite': true, trashed: false })
+    .indexFields(['name'])
+    .sortBy([{ name: 'asc' }])
+    .limitBy(100)
+export const favoritesQueryAs = 'favorites-view-query'
 
 // Trash: same two-query split as `folderSubfoldersQuery` / `folderFilesQuery`,
 // mirroring twake-drive-web's `buildTrashQuery`. Two queries (dirs + files)
