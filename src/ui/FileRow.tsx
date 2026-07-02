@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { StyleSheet, View } from 'react-native'
 import { IconButton, List, Menu, useTheme } from 'react-native-paper'
 import { formatDistanceToNow } from 'date-fns'
+import { enUS, fr } from 'date-fns/locale'
 import { useTranslation } from 'react-i18next'
 import { useClient } from 'cozy-client'
 
@@ -63,7 +64,7 @@ export const FileRow = ({
   onMove,
   onInfo
 }: Props) => {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const theme = useTheme()
   const client = useClient()
   const isOnline = useIsOnline()
@@ -71,8 +72,9 @@ export const FileRow = ({
   const offlineEntry = useOfflineState(file._id)
   const isPinned = !!offlineEntry
   const size = formatFileSize(file.size)
+  const dateLocale = i18n.language?.startsWith('fr') ? fr : enUS
   const date = file.updated_at
-    ? formatDistanceToNow(new Date(file.updated_at), { addSuffix: true })
+    ? formatDistanceToNow(new Date(file.updated_at), { addSuffix: true, locale: dateLocale })
     : ''
   const offlineDescription =
     offlineEntry?.state === 'downloading' && offlineEntry.bytesDownloaded !== undefined
