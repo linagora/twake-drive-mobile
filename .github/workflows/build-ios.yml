@@ -40,7 +40,6 @@ jobs:
       # needs no code signing; the three flags neutralize any pod signing phase.
       - name: Build for iOS Simulator (unsigned)
         run: |
-          set -o pipefail
           xcodebuild \
             -workspace ios/TwakeDrive.xcworkspace \
             -scheme TwakeDrive \

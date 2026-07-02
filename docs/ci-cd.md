@@ -37,7 +37,7 @@ Open the workflow run in the **Actions** tab → **Artifacts** → download.
 
 - **Android** (`twake-drive-android-apk-<run>`): installs on any device.
   ```bash
-  adb install twake-drive-app-release.apk
+  adb install app-release.apk
   ```
   Or copy to the device and allow "install from unknown sources". The APK is
   signed with the debug key — fine for testing, not for the Play Store.

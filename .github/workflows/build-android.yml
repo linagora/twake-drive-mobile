@@ -67,8 +67,12 @@ jobs:
 
       - name: Comment build link on PR
         if: github.event_name == 'pull_request'
+        continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          RUN_NUMBER: ${{ github.run_number }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
-          gh pr comment "${{ github.event.pull_request.number }}" --body \
-          "📱 **Android test APK** built in [run #${{ github.run_number }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}). Download it from the run's **Artifacts** → \`twake-drive-android-apk-${{ github.run_number }}\`. Install with \`adb install <file>.apk\` or enable 'install from unknown sources' on the device."
+          gh pr comment "$PR_NUMBER" --body \
+          "📱 **Android test APK** built in [run #${RUN_NUMBER}](${RUN_URL}). Download it from the run's **Artifacts** → \`twake-drive-android-apk-${RUN_NUMBER}\`. Install with \`adb install <file>.apk\` or enable 'install from unknown sources' on the device."
