@@ -36,6 +36,9 @@
     "emptyShared": "No files shared with you",
     "emptySharedDrives": "No shared drives yet",
     "emptyRecent": "No recent files",
+    "search": "Search",
+    "searchHint": "Search files",
+    "searchEmpty": "No results",
     "emptyTrash": "Trash is empty",
     "fileMeta": {
       "type": "Type",

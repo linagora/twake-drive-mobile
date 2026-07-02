@@ -29,6 +29,11 @@ interface Props {
   onBack?: () => void
   onLogout?: () => void
   /**
+   * When true, a magnifier icon button is rendered to the left of the avatar
+   * menu. Tapping it navigates to the file-name search screen.
+   */
+  showSearch?: boolean
+  /**
    * When set, the AppBar swaps to selection mode: the title shows the
    * count, the back/menu controls are replaced with a close action, and
    * the provided actions are rendered on the right.
@@ -36,7 +41,7 @@ interface Props {
   selection?: AppBarSelection
 }
 
-export const AppBar = ({ title, onBack, onLogout, selection }: Props) => {
+export const AppBar = ({ title, onBack, onLogout, showSearch, selection }: Props) => {
   const { t } = useTranslation()
   const [menuVisible, setMenuVisible] = useState(false)
   const theme = useTheme()
@@ -75,6 +80,15 @@ export const AppBar = ({ title, onBack, onLogout, selection }: Props) => {
       </View>
       <Appbar.Content title={title} />
       <SyncIndicator />
+      {showSearch ? (
+        <Pressable
+          onPress={() => router.push('/(drive)/search')}
+          accessibilityLabel={t('drive.search')}
+          style={styles.searchButton}
+        >
+          <CozyIcon name="magnifier" size={24} color={theme.colors.onSurface} />
+        </Pressable>
+      ) : null}
       {onLogout ? (
         <Menu
           visible={menuVisible}
@@ -126,5 +140,11 @@ const styles = StyleSheet.create({
     marginLeft: 4,
     marginRight: 4,
     justifyContent: 'center',
+  },
+  searchButton: {
+    marginHorizontal: 4,
+    padding: 6,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 })
