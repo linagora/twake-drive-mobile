@@ -63,12 +63,12 @@ describe('favoritesQuery', () => {
     expect(captured.doctype).toBe('io.cozy.files')
   })
 
-  it('has a partialIndex that marks cozyMetadata.favorite as true', () => {
-    expect(captured.partialIndexArg).toMatchObject({ 'cozyMetadata.favorite': true })
+  it('filters on cozyMetadata.favorite via the where selector', () => {
+    expect(captured.whereArg).toMatchObject({ 'cozyMetadata.favorite': true })
   })
 
-  it('excludes trashed documents via the partialIndex', () => {
-    expect(captured.partialIndexArg).toMatchObject({ trashed: false })
+  it('indexes the nested favorite field so PouchDB matches it locally', () => {
+    expect(captured.indexFieldsArg).toContain('cozyMetadata.favorite')
   })
 
   it('indexes on name so the stack can use a Mango index', () => {
