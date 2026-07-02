@@ -37,3 +37,12 @@ test('tapping the avatar opens the menu and the 3 items are present', () => {
   expect(screen.getByText('drive.sharedDrives')).toBeOnTheScreen()
   expect(screen.getByText('common.logout')).toBeOnTheScreen()
 })
+
+test('help button is present when showSearch is true', () => {
+  const onLogout = jest.fn()
+  render(wrap(<AppBar title="Mes fichiers" onLogout={onLogout} showSearch={true} />))
+
+  // Help button should be present (testID for the help button)
+  const helpButton = screen.getByTestId('appbar-help-button')
+  expect(helpButton).toBeOnTheScreen()
+})

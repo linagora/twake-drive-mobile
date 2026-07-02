@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Pressable, StyleSheet, View } from 'react-native'
+import { Linking, Pressable, StyleSheet, View } from 'react-native'
 import { Appbar, Avatar, Menu, useTheme } from 'react-native-paper'
 import { useTranslation } from 'react-i18next'
 import { useRouter } from 'expo-router'
@@ -87,6 +87,16 @@ export const AppBar = ({ title, onBack, onLogout, showSearch, selection }: Props
           style={styles.searchButton}
         >
           <CozyIcon name="magnifier" size={24} color={theme.colors.onSurface} />
+        </Pressable>
+      ) : null}
+      {showSearch ? (
+        <Pressable
+          onPress={() => Linking.openURL('https://twake.app')}
+          accessibilityLabel={t('common.help')}
+          style={styles.searchButton}
+          testID="appbar-help-button"
+        >
+          <CozyIcon name="info" size={24} color={theme.colors.onSurface} />
         </Pressable>
       ) : null}
       {onLogout ? (
