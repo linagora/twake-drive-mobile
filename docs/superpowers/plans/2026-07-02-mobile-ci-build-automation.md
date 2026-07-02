@@ -50,16 +50,11 @@ docs/ci-cd.md                       # runbook + phase-2 (signing/stores) activat
 
 **Interfaces:**
 - Consumes: existing npm scripts `lint` (`eslint . --ext .ts,.tsx`), `typecheck` (`tsc --noEmit`), `test` (`jest`).
-- Produces: three required checks named `lint`, `typecheck`, `test` on PRs and `main` pushes.
+- Produces: three **non-blocking** checks named `lint`, `typecheck`, `test` on PRs and `main` pushes (informational until the codebase is clean).
 
-- [ ] **Step 1: Confirm the wrapped scripts pass locally (this is the test)**
+- [ ] **Step 1: Note current check status — jobs are non-blocking by decision**
 
-Run (from repo root):
-```bash
-npm ci
-npm run lint && npm run typecheck && npm test
-```
-Expected: all three exit 0. If any fails, that's a pre-existing repo issue — stop and report it before wiring CI around it.
+`npm run lint` (293 errors), `npm run typecheck` (~4), and `npm test` (9/356) all currently fail on pre-existing app source (largely the parallel dev session's in-flight work). By decision, the three jobs are **non-blocking** (`continue-on-error: true`) so they surface status without gating PRs red. Do NOT modify app source and do NOT run a local green-gate — just create and lint the workflow file.
 
 - [ ] **Step 2: Create the workflow file**
 
@@ -80,9 +75,13 @@ concurrency:
 permissions:
   contents: read
 
+# lint/typecheck/test currently report pre-existing failures across app source.
+# Jobs are non-blocking (continue-on-error) so they surface status without
+# gating PRs. Drop continue-on-error per job once each is green. See docs/ci-cd.md.
 jobs:
   lint:
     runs-on: ubuntu-latest
+    continue-on-error: true
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
@@ -94,6 +93,7 @@ jobs:
 
   typecheck:
     runs-on: ubuntu-latest
+    continue-on-error: true
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
@@ -105,6 +105,7 @@ jobs:
 
   test:
     runs-on: ubuntu-latest
+    continue-on-error: true
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
@@ -408,6 +409,22 @@ Create `docs/ci-cd.md`:
 
 GitHub Actions build **unsigned dev/test artifacts** with no secrets. Signing
 and store distribution are documented below as a phase-2 activation guide.
+
+## Current status (introduced 2026-07-02)
+
+The `ci.yml` checks are **non-blocking** (`continue-on-error`) because the app
+source is not yet clean. Snapshot at introduction:
+
+- **lint** — 293 errors: ~275 auto-fixable `prettier/prettier`, plus 18
+  `@typescript-eslint/no-explicit-any` "rule not found". Root cause:
+  `.eslintrc.js` never registers the `@typescript-eslint` plugin (it *is*
+  installed under `node_modules/`). Fix: add the plugin to the ESLint config,
+  then `npm run lint -- --fix` for the formatting.
+- **typecheck** — expo typed-routes reject `"/(drive)/files"`; and `scope` is
+  not in cozy-client's `ClientOptions` type (surfaced by the scoped-OAuth work).
+- **test** — 9 of 356 failing (4 suites, incl. `src/auth/useAuth.test.tsx`).
+
+Flip each job to blocking (remove its `continue-on-error`) once it is green.
 
 ## Workflows (phase 1)
 
