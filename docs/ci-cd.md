@@ -5,9 +5,14 @@ and store distribution are documented below as a phase-2 activation guide.
 
 ## Current status (introduced 2026-07-02)
 
-The `ci.yml` checks are **non-blocking** (`continue-on-error`) because the app
-source is not yet clean. Snapshot at introduction:
+All checks are **non-blocking** (`continue-on-error`) because the app source and
+its dependencies aren't yet clean. Snapshot at introduction:
 
+- **Dependencies (fixed):** the committed `package-lock.json` was corrupt
+  (`lockfileVersion 2`, unparseable by npm's arborist), so every clean `npm ci`
+  failed — in CI, Docker, and fresh clones. Regenerated as a valid
+  `lockfileVersion 3` lock, and added `.npmrc` (`legacy-peer-deps=true`) for
+  this stack's React-19 peer conflicts. `npm ci` now works.
 - **lint** — 293 errors: ~275 auto-fixable `prettier/prettier`, plus 18
   `@typescript-eslint/no-explicit-any` "rule not found". Root cause:
   `.eslintrc.js` never registers the `@typescript-eslint` plugin (it *is*
@@ -16,6 +21,11 @@ source is not yet clean. Snapshot at introduction:
 - **typecheck** — expo typed-routes reject `"/(drive)/files"`; and `scope` is
   not in cozy-client's `ClientOptions` type (surfaced by the scoped-OAuth work).
 - **test** — 9 of 356 failing (4 suites, incl. `src/auth/useAuth.test.tsx`).
+- **security (Trivy)** — non-blocking; found `shell-quote` 1.8.3
+  (CVE-2026-9277, **CRITICAL** RCE → fixed in 1.8.4), `undici` 6.25.0
+  (CVE-2026-12151, HIGH → 6.27.0+), and `ws` (CVE-2026-48779, HIGH). All
+  transitive — resolve via an npm `overrides` block in `package.json`, then
+  remove `continue-on-error` from `security.yml`.
 
 Flip each job to blocking (remove its `continue-on-error`) once it is green.
 

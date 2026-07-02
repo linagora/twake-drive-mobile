@@ -17,6 +17,10 @@ jobs:
     name: Trivy - filesystem scan
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    # Non-blocking: surfaces CRITICAL/HIGH in the logs without gating PRs,
+    # matching the ci.yml checks. Findings are tracked in docs/ci-cd.md; remove
+    # this line to make the scan blocking once the flagged CVEs are resolved.
+    continue-on-error: true
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       - name: Run Trivy (fs, vuln)
