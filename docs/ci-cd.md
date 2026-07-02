@@ -3,31 +3,34 @@
 GitHub Actions build **unsigned dev/test artifacts** with no secrets. Signing
 and store distribution are documented below as a phase-2 activation guide.
 
-## Current status (introduced 2026-07-02)
+## Current status (updated 2026-07-02)
 
-All checks are **non-blocking** (`continue-on-error`) because the app source and
-its dependencies aren't yet clean. Snapshot at introduction:
+Dependencies, lint, and the flagged CVEs are now clean; **lint is blocking**.
+`typecheck`, `test`, and the Trivy scan remain **non-blocking**
+(`continue-on-error`) until they're resolved:
 
 - **Dependencies (fixed):** the committed `package-lock.json` was corrupt
   (`lockfileVersion 2`, unparseable by npm's arborist), so every clean `npm ci`
   failed — in CI, Docker, and fresh clones. Regenerated as a valid
   `lockfileVersion 3` lock, and added `.npmrc` (`legacy-peer-deps=true`) for
-  this stack's React-19 peer conflicts. `npm ci` now works.
-- **lint** — 293 errors: ~275 auto-fixable `prettier/prettier`, plus 18
-  `@typescript-eslint/no-explicit-any` "rule not found". Root cause:
-  `.eslintrc.js` never registers the `@typescript-eslint` plugin (it *is*
-  installed under `node_modules/`). Fix: add the plugin to the ESLint config,
-  then `npm run lint -- --fix` for the formatting.
-- **typecheck** — expo typed-routes reject `"/(drive)/files"`; and `scope` is
-  not in cozy-client's `ClientOptions` type (surfaced by the scoped-OAuth work).
-- **test** — 9 of 356 failing (4 suites, incl. `src/auth/useAuth.test.tsx`).
-- **security (Trivy)** — non-blocking; found `shell-quote` 1.8.3
-  (CVE-2026-9277, **CRITICAL** RCE → fixed in 1.8.4), `undici` 6.25.0
-  (CVE-2026-12151, HIGH → 6.27.0+), and `ws` (CVE-2026-48779, HIGH). All
-  transitive — resolve via an npm `overrides` block in `package.json`, then
-  remove `continue-on-error` from `security.yml`.
+  this stack's React-19 peer conflicts.
+- **lint (fixed → blocking):** was 293 errors. Registered the
+  `@typescript-eslint` and `import` plugins in `.eslintrc.js` (both were
+  referenced by disable-comments but never loaded) and ran
+  `npm run lint -- --fix` for the ~275 formatting issues. Now clean and gating.
+- **Security CVEs (fixed):** `package.json` `overrides` patch `shell-quote`
+  (→1.9.0, was CVE-2026-9277 **CRITICAL** RCE), `undici` (→6.27.0,
+  CVE-2026-12151 HIGH), and `ws` (per-major →6.2.4/7.5.11/8.21.0,
+  CVE-2026-48779 HIGH). Trivy stays non-blocking only until a CI run confirms
+  zero findings, then drop its `continue-on-error`.
+- **typecheck (non-blocking):** expo typed-routes reject `"/(drive)/files"`;
+  and `scope` is not in cozy-client's `ClientOptions` type (from the
+  scoped-OAuth work).
+- **test (non-blocking):** 8 of 356 failing (4 suites, incl.
+  `src/auth/useAuth.test.tsx`).
 
-Flip each job to blocking (remove its `continue-on-error`) once it is green.
+Flip each remaining non-blocking job (typecheck, test, security) to blocking
+once it is green.
 
 ## Workflows (phase 1)
 
