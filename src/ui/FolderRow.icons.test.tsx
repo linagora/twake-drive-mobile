@@ -32,6 +32,13 @@ jest.mock('@/network/useIsOnline', () => ({
   useIsOnline: () => true
 }))
 
+// FolderRow now calls useClient() (favorite toggle, added in Lot C Task R);
+// mock cozy-client so this render test doesn't load its native deps.
+jest.mock('cozy-client', () => ({
+  __esModule: true,
+  useClient: () => ({})
+}))
+
 import { FolderRow, FolderItem } from './FolderRow'
 
 const folder: FolderItem = { _id: 'd1', name: 'TestFolder' }

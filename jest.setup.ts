@@ -66,6 +66,14 @@ jest.mock('@react-native-community/netinfo', () => ({
   fetch: jest.fn().mockResolvedValue({ isConnected: true, isInternetReachable: true })
 }))
 
+// react-native-file-viewer builds a NativeEventEmitter at require() time, which
+// crashes in node. Any component transitively importing it (FileRow → download →
+// openFile) needs this. Local mocks in openFile.test/FileRow.test still override.
+jest.mock('react-native-file-viewer', () => ({
+  __esModule: true,
+  default: { open: jest.fn().mockResolvedValue(undefined) }
+}))
+
 class MockPouchLink {
   options: unknown
   constructor(options: unknown) {

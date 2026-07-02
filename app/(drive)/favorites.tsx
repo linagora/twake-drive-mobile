@@ -36,8 +36,10 @@ export default function FavoritesScreen() {
     if (item.type === 'directory') {
       return (
         <FolderRow
-          folder={{ _id: item._id, name: item.name }}
+          folder={{ _id: item._id, name: item.name, cozyMetadata: item.cozyMetadata }}
           onPress={() => router.push(`/(drive)/files/${item._id}`)}
+          onShare={folder => router.push(`/share/${folder._id}`)}
+          onMove={folder => router.push(`/move/${folder._id}`)}
         />
       )
     }
