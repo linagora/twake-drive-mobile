@@ -83,8 +83,38 @@ class TwakeDocumentsProvider : DocumentsProvider() {
         return AssetFileDescriptor(pfd, 0, AssetFileDescriptor.UNKNOWN_LENGTH)
     }
 
-    private fun openForWrite(id: String, mode: String): ParcelFileDescriptor =
-        throw UnsupportedOperationException("Task 9")
+    private fun openForWrite(id: String, mode: String): ParcelFileDescriptor {
+        val tmp = cache.tempFor(id)
+        // Seed the temp file with current content for read-modify-write modes.
+        if (mode.contains('r') || mode.contains('a')) {
+            try { cache.ensureLocal(id, api).copyTo(tmp, overwrite = true) }
+            catch (e: Exception) { tmp.writeBytes(ByteArray(0)) }
+        } else if (!tmp.exists()) {
+            tmp.writeBytes(ByteArray(0))
+        }
+        val handler = android.os.Handler(handlerThread.looper)
+        val mimeType = try { api.get(id).mime } catch (e: Exception) { null }
+            ?: "application/octet-stream"
+        return ParcelFileDescriptor.open(
+            tmp,
+            ParcelFileDescriptor.parseMode(mode),
+            handler
+        ) { err ->
+            try {
+                if (err == null) { api.upload(id, tmp, mimeType); notifyChange(parentOf(id)) }
+                else android.util.Log.w("TwakeDP", "write FD closed with error for $id", err)
+            } catch (e: Exception) {
+                android.util.Log.e("TwakeDP", "upload on close failed for $id", e)
+            } finally { tmp.delete() }
+        }
+    }
+
+    private val handlerThread by lazy {
+        android.os.HandlerThread("twake-dp-write").apply { start() }
+    }
+
+    private fun parentOf(id: String): String =
+        try { api.get(id).dirId ?: DocumentMapper.ROOT_DOC_ID } catch (e: Exception) { DocumentMapper.ROOT_DOC_ID }
 
     override fun createDocument(
         parentDocumentId: String?,

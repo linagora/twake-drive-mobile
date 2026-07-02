@@ -130,4 +130,16 @@ class CozyStackApiTest {
         assertTrue(req.path!!.contains("Type=file"))
         assertEquals(0, req.bodySize)
     }
+
+    @Test fun `upload PUTs new content to the file`() {
+        server.enqueue(MockResponse().setBody("""{"data":{"id":"f1","type":"io.cozy.files","attributes":{"type":"file","name":"a.txt","size":"5","mime":"text/plain"}}}"""))
+        api = CozyStackApi(sessionFor(server.url("/").toString()))
+        val tmp = File.createTempFile("upload", null).apply { writeText("hello") }
+        val f = api.upload("f1", tmp, "text/plain")
+        assertEquals("f1", f.id)
+        val req = server.takeRequest()
+        assertEquals("PUT", req.method)
+        assertEquals("/files/f1", req.path)
+        assertEquals("hello", req.body.readUtf8())
+    }
 }

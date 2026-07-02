@@ -1,11 +1,11 @@
 package com.linagora.twakedrive.fileprovider
 
 import okhttp3.Authenticator
-import okhttp3.HttpUrl
 import okhttp3.Interceptor
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
 import okhttp3.Route
@@ -143,5 +143,15 @@ class CozyStackApi(private val session: SessionStore) {
         postForFile("/files/$parentId?Type=file&Name=${enc(name)}",
             ByteArray(0).toRequestBody(mime.toMediaTypeOrNull()))
 
-    // Upload/rename/move/trash and statByPath land in Tasks 9–11.
+    fun upload(id: String, src: File, mime: String): CozyFile {
+        val body = src.asRequestBody(mime.toMediaTypeOrNull())
+        val req = Request.Builder().url("${base()}/files/$id")
+            .header("Accept", "application/vnd.api+json").put(body).build()
+        exec(req).use {
+            val data = JSONObject(it.body!!.string()).getJSONObject("data")
+            return CozyFile.fromAttributes(data.getString("id"), data.getJSONObject("attributes"))
+        }
+    }
+
+    // Rename/move/trash and statByPath land in Task 10–11.
 }
