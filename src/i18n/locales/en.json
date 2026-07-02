@@ -6,7 +6,8 @@
     "logout": "Log out",
     "cancel": "Cancel",
     "confirm": "Confirm",
-    "back": "Back"
+    "back": "Back",
+    "help": "Help"
   },
   "settings": {
     "title": "Settings"

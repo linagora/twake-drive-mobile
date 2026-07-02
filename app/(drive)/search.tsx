@@ -75,7 +75,7 @@ export default function SearchScreen() {
         return (
           <FolderRow
             folder={{ _id: item._id, name: item.name }}
-            onPress={() => router.push(`/(drive)/folder/${item._id}`)}
+            onPress={() => router.push(`/(drive)/files/${item._id}`)}
           />
         )
       }

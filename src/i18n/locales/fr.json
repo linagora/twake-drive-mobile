@@ -6,7 +6,8 @@
     "logout": "Se déconnecter",
     "cancel": "Annuler",
     "confirm": "Confirmer",
-    "back": "Retour"
+    "back": "Retour",
+    "help": "Aide"
   },
   "settings": {
     "title": "Paramètres"

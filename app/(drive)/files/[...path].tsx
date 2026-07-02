@@ -123,7 +123,7 @@ export default function FilesScreen() {
   const lookupData = currentDirLookup.data
   const lookupDoc = Array.isArray(lookupData) ? lookupData[0] : lookupData
   const currentDirName = isRoot
-    ? t('drive.myFiles')
+    ? t('drive.myDrive')
     : ((lookupDoc as { name?: string } | null | undefined)?.name ?? '')
 
   const onRefresh = useCallback(async () => {
