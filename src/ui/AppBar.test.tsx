@@ -9,6 +9,10 @@ jest.mock('react-i18next', () => ({
 jest.mock('./SyncIndicator', () => ({
   SyncIndicator: () => null
 }))
+const mockPush = jest.fn()
+jest.mock('expo-router', () => ({
+  useRouter: () => ({ push: mockPush, back: jest.fn() })
+}))
 
 import { AppBar } from './AppBar'
 
@@ -18,31 +22,20 @@ const wrap = (ui: React.ReactElement) => (
   </PaperProvider>
 )
 
-describe('AppBar onSearch', () => {
-  it('rend une action loupe qui déclenche onSearch', () => {
-    const onSearch = jest.fn()
-    render(wrap(<AppBar title="Mes fichiers" onSearch={onSearch} />))
-    fireEvent.press(screen.getByLabelText('drive.search.action'))
-    expect(onSearch).toHaveBeenCalledTimes(1)
+describe('AppBar showSearch', () => {
+  beforeEach(() => {
+    mockPush.mockClear()
   })
 
-  it('ne rend pas la loupe sans onSearch', () => {
+  it('rend la loupe showSearch qui navigue vers /search', () => {
+    render(wrap(<AppBar title="Mes fichiers" showSearch />))
+    fireEvent.press(screen.getByLabelText('drive.search'))
+    expect(mockPush).toHaveBeenCalledWith('/search')
+  })
+
+  it('ne rend pas la loupe showSearch sans la prop', () => {
     render(wrap(<AppBar title="Mes fichiers" />))
-    expect(screen.queryByLabelText('drive.search.action')).toBeNull()
-  })
-
-  it('masque la loupe en mode sélection', () => {
-    const onSearch = jest.fn()
-    render(
-      wrap(
-        <AppBar
-          title="Mes fichiers"
-          onSearch={onSearch}
-          selection={{ count: 1, onCancel: jest.fn(), actions: [] }}
-        />
-      )
-    )
-    expect(screen.queryByLabelText('drive.search.action')).toBeNull()
+    expect(screen.queryByLabelText('drive.search')).toBeNull()
   })
 })
 
