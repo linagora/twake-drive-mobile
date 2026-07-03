@@ -81,6 +81,18 @@
       "errorGeneric": "Impossible de déplacer",
       "newFolder": "Nouveau dossier"
     },
+    "import": {
+      "title": "Importer dans…",
+      "confirm": "Importer ici",
+      "uploading": "Import en cours… {{done}}/{{total}}",
+      "successFile": "Fichier importé",
+      "successBulk": "{{count}} fichiers importés",
+      "partial": "{{succeeded}}/{{total}} importés, {{failed}} en échec",
+      "errorGeneric": "L'import a échoué",
+      "errorOffline": "Connexion requise pour importer",
+      "errorQuota": "Stockage insuffisant",
+      "loginRequired": "Connectez-vous pour importer"
+    },
     "selection": {
       "count_one": "{{count}} sélectionné",
       "count_other": "{{count}} sélectionnés",

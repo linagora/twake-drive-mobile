@@ -81,6 +81,18 @@
       "errorGeneric": "Move failed",
       "newFolder": "New folder"
     },
+    "import": {
+      "title": "Import to…",
+      "confirm": "Import here",
+      "uploading": "Importing… {{done}}/{{total}}",
+      "successFile": "File imported",
+      "successBulk": "{{count}} files imported",
+      "partial": "{{succeeded}}/{{total}} imported, {{failed}} failed",
+      "errorGeneric": "Import failed",
+      "errorOffline": "Connection required to import",
+      "errorQuota": "Not enough storage",
+      "loginRequired": "Sign in to import"
+    },
     "selection": {
       "count_one": "{{count}} selected",
       "count_other": "{{count}} selected",

@@ -22,7 +22,9 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.linagora.twakedrive",
       "infoPlist": {
-        "UIBackgroundModes": ["audio"]
+        "UIBackgroundModes": [
+          "audio"
+        ]
       }
     },
     "android": {
@@ -54,7 +56,8 @@
           }
         }
       ],
-      "./plugins/withTwakeDocumentsProvider"
+      "./plugins/withTwakeDocumentsProvider",
+      "./plugins/withTwakeShareIntent"
     ],
     "experiments": {
       "typedRoutes": true
