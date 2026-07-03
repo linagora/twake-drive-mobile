@@ -62,10 +62,38 @@ class CozyStackApi(private val session: SessionStore) {
         }
     }
 
+    // A DocumentsProvider runs on binder threads; a strict caller can propagate its
+    // StrictMode network policy across binder, turning our (legitimate, off-UI)
+    // synchronous HTTP into a NetworkOnMainThreadException. Run network under a lax
+    // policy so a propagated policy can't false-positive.
+    //
+    // android.os.StrictMode isn't mocked under CozyStackApiTest's plain-JUnit harness
+    // (no Robolectric shadow; returnDefaultValues=false), so getThreadPolicy/
+    // setThreadPolicy throw "not mocked" there. Guard the policy swap: on a real
+    // device it always succeeds and the catch is unreachable; under that test it
+    // falls back to running block() with no policy change (the pre-fix behavior),
+    // keeping the wrapper transparent to the existing regression suite.
+    private fun <T> onNetwork(block: () -> T): T {
+        val previous = try {
+            val policy = android.os.StrictMode.getThreadPolicy()
+            android.os.StrictMode.setThreadPolicy(android.os.StrictMode.ThreadPolicy.LAX)
+            policy
+        } catch (e: RuntimeException) {
+            null
+        }
+        return try {
+            block()
+        } finally {
+            if (previous != null) android.os.StrictMode.setThreadPolicy(previous)
+        }
+    }
+
     private fun jsonGet(path: String): JSONObject {
-        val req = Request.Builder().url("${base()}$path")
-            .header("Accept", "application/vnd.api+json").build()
-        exec(req).use { return JSONObject(it.body!!.string()) }
+        return onNetwork {
+            val req = Request.Builder().url("${base()}$path")
+                .header("Accept", "application/vnd.api+json").build()
+            exec(req).use { return@onNetwork JSONObject(it.body!!.string()) }
+        }
     }
 
     fun get(id: String): CozyFile {
@@ -95,41 +123,47 @@ class CozyStackApi(private val session: SessionStore) {
     }
 
     fun download(id: String, dest: File) {
-        val req = Request.Builder().url("${base()}/files/download/$id").build()
-        exec(req).use { resp ->
-            dest.parentFile?.mkdirs()
-            dest.outputStream().use { out -> resp.body!!.byteStream().copyTo(out) }
+        onNetwork {
+            val req = Request.Builder().url("${base()}/files/download/$id").build()
+            exec(req).use { resp ->
+                dest.parentFile?.mkdirs()
+                dest.outputStream().use { out -> resp.body!!.byteStream().copyTo(out) }
+            }
         }
     }
 
     fun thumbnail(file: CozyFile, dest: File): Boolean {
-        // cozy-stack exposes thumbnails via the file's medium link; fetch it directly.
-        val url = "${base()}/files/${file.id}/thumbnails/medium"
-        val req = Request.Builder().url(url).build()
-        // Stage to a temp file and only rename into place on full success, so a
-        // mid-stream failure (dropped connection, etc.) never leaves a truncated
-        // file at `dest` — mirrors DocumentCache.ensureLocal's download pattern.
-        val tmp = File(dest.parentFile, dest.name + ".dl")
-        return try {
-            exec(req).use { resp ->
-                dest.parentFile?.mkdirs()
-                tmp.outputStream().use { out -> resp.body!!.byteStream().copyTo(out) }
+        return onNetwork {
+            // cozy-stack exposes thumbnails via the file's medium link; fetch it directly.
+            val url = "${base()}/files/${file.id}/thumbnails/medium"
+            val req = Request.Builder().url(url).build()
+            // Stage to a temp file and only rename into place on full success, so a
+            // mid-stream failure (dropped connection, etc.) never leaves a truncated
+            // file at `dest` — mirrors DocumentCache.ensureLocal's download pattern.
+            val tmp = File(dest.parentFile, dest.name + ".dl")
+            try {
+                exec(req).use { resp ->
+                    dest.parentFile?.mkdirs()
+                    tmp.outputStream().use { out -> resp.body!!.byteStream().copyTo(out) }
+                }
+                if (!tmp.renameTo(dest)) { tmp.copyTo(dest, overwrite = true); tmp.delete() }
+                true
+            } catch (e: IOException) {
+                tmp.delete()
+                dest.delete()
+                false
             }
-            if (!tmp.renameTo(dest)) { tmp.copyTo(dest, overwrite = true); tmp.delete() }
-            true
-        } catch (e: IOException) {
-            tmp.delete()
-            dest.delete()
-            false
         }
     }
 
     private fun postForFile(pathAndQuery: String, body: okhttp3.RequestBody): CozyFile {
-        val req = Request.Builder().url("${base()}$pathAndQuery")
-            .header("Accept", "application/vnd.api+json").post(body).build()
-        exec(req).use {
-            val data = JSONObject(it.body!!.string()).getJSONObject("data")
-            return CozyFile.fromAttributes(data.getString("id"), data.getJSONObject("attributes"))
+        return onNetwork {
+            val req = Request.Builder().url("${base()}$pathAndQuery")
+                .header("Accept", "application/vnd.api+json").post(body).build()
+            exec(req).use {
+                val data = JSONObject(it.body!!.string()).getJSONObject("data")
+                return@onNetwork CozyFile.fromAttributes(data.getString("id"), data.getJSONObject("attributes"))
+            }
         }
     }
 
@@ -144,23 +178,27 @@ class CozyStackApi(private val session: SessionStore) {
             ByteArray(0).toRequestBody(mime.toMediaTypeOrNull()))
 
     fun upload(id: String, src: File, mime: String): CozyFile {
-        val body = src.asRequestBody(mime.toMediaTypeOrNull())
-        val req = Request.Builder().url("${base()}/files/$id")
-            .header("Accept", "application/vnd.api+json").put(body).build()
-        exec(req).use {
-            val data = JSONObject(it.body!!.string()).getJSONObject("data")
-            return CozyFile.fromAttributes(data.getString("id"), data.getJSONObject("attributes"))
+        return onNetwork {
+            val body = src.asRequestBody(mime.toMediaTypeOrNull())
+            val req = Request.Builder().url("${base()}/files/$id")
+                .header("Accept", "application/vnd.api+json").put(body).build()
+            exec(req).use {
+                val data = JSONObject(it.body!!.string()).getJSONObject("data")
+                return@onNetwork CozyFile.fromAttributes(data.getString("id"), data.getJSONObject("attributes"))
+            }
         }
     }
 
     private fun patchAttributes(id: String, attrsJson: String): CozyFile {
-        val payload = """{"data":{"type":"io.cozy.files","id":"$id","attributes":$attrsJson}}"""
-        val body = payload.toRequestBody("application/vnd.api+json".toMediaTypeOrNull())
-        val req = Request.Builder().url("${base()}/files/$id")
-            .header("Accept", "application/vnd.api+json").patch(body).build()
-        exec(req).use {
-            val data = JSONObject(it.body!!.string()).getJSONObject("data")
-            return CozyFile.fromAttributes(data.getString("id"), data.getJSONObject("attributes"))
+        return onNetwork {
+            val payload = """{"data":{"type":"io.cozy.files","id":"$id","attributes":$attrsJson}}"""
+            val body = payload.toRequestBody("application/vnd.api+json".toMediaTypeOrNull())
+            val req = Request.Builder().url("${base()}/files/$id")
+                .header("Accept", "application/vnd.api+json").patch(body).build()
+            exec(req).use {
+                val data = JSONObject(it.body!!.string()).getJSONObject("data")
+                return@onNetwork CozyFile.fromAttributes(data.getString("id"), data.getJSONObject("attributes"))
+            }
         }
     }
 
@@ -168,9 +206,11 @@ class CozyStackApi(private val session: SessionStore) {
         patchAttributes(id, JSONObject().put("name", newName).toString())
 
     fun trash(id: String) {
-        val req = Request.Builder().url("${base()}/files/$id")
-            .header("Accept", "application/vnd.api+json").delete().build()
-        exec(req).close()
+        onNetwork {
+            val req = Request.Builder().url("${base()}/files/$id")
+                .header("Accept", "application/vnd.api+json").delete().build()
+            exec(req).close()
+        }
     }
 
     fun statByPath(path: String): CozyFile? = try {

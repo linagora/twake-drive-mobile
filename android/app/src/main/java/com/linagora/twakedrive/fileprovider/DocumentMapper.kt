@@ -71,7 +71,7 @@ object DocumentMapper {
                 Root.COLUMN_TITLE to "Twake Drive",
                 Root.COLUMN_SUMMARY to domain,
                 Root.COLUMN_FLAGS to (Root.FLAG_SUPPORTS_CREATE or Root.FLAG_SUPPORTS_IS_CHILD),
-                Root.COLUMN_ICON to com.linagora.twakedrive.R.mipmap.ic_launcher
+                Root.COLUMN_ICON to com.linagora.twakedrive.R.mipmap.ic_launcher_foreground
             )
         )
     }
