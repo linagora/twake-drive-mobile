@@ -171,8 +171,9 @@ class TwakeDocumentsProvider : DocumentsProvider() {
 
     override fun removeDocument(documentId: String?, parentDocumentId: String?) {
         val id = documentId ?: throw java.io.FileNotFoundException("null id")
+        val parent = parentDocumentId ?: parentOf(id)
         api.trash(id)
-        notifyChange(parentDocumentId ?: parentOf(id))
+        notifyChange(parent)
     }
 
     override fun isChildDocument(parentDocumentId: String?, documentId: String?): Boolean {

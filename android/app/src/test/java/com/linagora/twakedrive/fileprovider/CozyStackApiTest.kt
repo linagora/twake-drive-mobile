@@ -8,10 +8,12 @@ import org.junit.After
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import java.io.File
+import java.io.IOException
 
 class CozyStackApiTest {
     private lateinit var server: MockWebServer
@@ -158,7 +160,53 @@ class CozyStackApiTest {
         api = CozyStackApi(sessionFor(server.url("/").toString()))
         val f = api.move("f1", "dest")
         assertEquals("dest", f.dirId)
-        assertTrue(server.takeRequest().body.readUtf8().contains("\"dir_id\":\"dest\""))
+        val req = server.takeRequest()
+        assertEquals("PATCH", req.method)
+        assertEquals("/files/f1", req.path)
+        assertTrue(req.body.readUtf8().contains("\"dir_id\":\"dest\""))
+    }
+
+    @Test fun `move resolves a 409 conflict by trashing the destination entry and retrying`() {
+        server.enqueue(MockResponse().setResponseCode(409)) // first PATCH /files/f1
+        server.enqueue(MockResponse().setBody("""{"data":{"id":"f1","type":"io.cozy.files","attributes":{"type":"file","name":"a.txt"}}}""")) // moving file
+        server.enqueue(MockResponse().setBody("""{"data":{"id":"dest","type":"io.cozy.files","attributes":{"type":"directory","name":"Dest","path":"/Dest"}}}""")) // dest dir
+        server.enqueue(MockResponse().setBody("""{"data":{"id":"conflict1","type":"io.cozy.files","attributes":{"type":"file","name":"a.txt"}}}""")) // conflict (statByPath)
+        server.enqueue(MockResponse().setResponseCode(200).setBody("""{"data":{"id":"conflict1","type":"io.cozy.files","attributes":{"type":"file","name":"a.txt"}}}""")) // trash
+        server.enqueue(MockResponse().setBody("""{"data":{"id":"f1","type":"io.cozy.files","attributes":{"type":"file","name":"a.txt","dir_id":"dest"}}}""")) // retry PATCH success
+        api = CozyStackApi(sessionFor(server.url("/").toString()))
+
+        val f = api.move("f1", "dest")
+
+        assertEquals("dest", f.dirId)
+        val r1 = server.takeRequest() // first PATCH -> 409
+        assertEquals("PATCH", r1.method); assertEquals("/files/f1", r1.path)
+        val r2 = server.takeRequest() // GET moving file
+        assertEquals("GET", r2.method); assertEquals("/files/f1", r2.path)
+        val r3 = server.takeRequest() // GET dest dir
+        assertEquals("GET", r3.method); assertEquals("/files/dest", r3.path)
+        val r4 = server.takeRequest() // statByPath the conflict
+        assertEquals("GET", r4.method); assertTrue(r4.path!!.startsWith("/files/metadata?"))
+        val r5 = server.takeRequest() // DELETE (trash) the conflict
+        assertEquals("DELETE", r5.method); assertEquals("/files/conflict1", r5.path)
+        val r6 = server.takeRequest() // retry PATCH
+        assertEquals("PATCH", r6.method); assertEquals("/files/f1", r6.path)
+    }
+
+    @Test fun `move rethrows a non-409 error without attempting conflict resolution`() {
+        server.enqueue(MockResponse().setResponseCode(500))
+        api = CozyStackApi(sessionFor(server.url("/").toString()))
+
+        assertThrows(IOException::class.java) { api.move("f1", "dest") }
+
+        assertEquals(1, server.requestCount)
+    }
+
+    @Test(expected = AuthRequiredException::class)
+    fun `an auth failure during move is rethrown as AuthRequiredException not routed to 409 handling`() {
+        server.enqueue(MockResponse().setResponseCode(401)) // the PATCH
+        server.enqueue(MockResponse().setResponseCode(400).setBody("""{"error":"invalid_grant"}""")) // refresh fails
+        api = CozyStackApi(sessionFor(server.url("/").toString()))
+        api.move("f1", "dest")
     }
 
     @Test fun `trash DELETEs the file`() {
