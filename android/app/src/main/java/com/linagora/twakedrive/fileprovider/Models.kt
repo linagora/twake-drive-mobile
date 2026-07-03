@@ -19,12 +19,15 @@ data class CozyFile(
     fun hasThumbnail(): Boolean = klass == "image"
 
     companion object {
-        private val iso = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US)
-            .apply { timeZone = TimeZone.getTimeZone("UTC") }
+        // SimpleDateFormat is not thread-safe; parseDate runs on concurrent binder
+        // threads (list/get), so each thread gets its own formatter instance.
+        private val iso = ThreadLocal.withInitial {
+            SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US).apply { timeZone = TimeZone.getTimeZone("UTC") }
+        }
 
         private fun parseDate(s: String?): Long {
             if (s.isNullOrBlank()) return 0L
-            return try { iso.parse(s.substring(0, 19))?.time ?: 0L } catch (e: Exception) { 0L }
+            return try { iso.get()!!.parse(s.substring(0, 19))?.time ?: 0L } catch (e: Exception) { 0L }
         }
 
         fun fromAttributes(id: String, a: JSONObject): CozyFile {

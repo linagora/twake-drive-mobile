@@ -105,7 +105,7 @@ class TwakeDocumentsProvider : DocumentsProvider() {
             try {
                 if (err == null) {
                     api.upload(id, tmp, mimeType)
-                    cache.invalidate(id) // drop stale read/thumbnail cache so the next read re-fetches
+                    cache.stageWritten(id, tmp) // stage the written bytes so a pinned read isn't stale
                     notifyChange(parentOf(id))
                 } else android.util.Log.w("TwakeDP", "write FD closed with error for $id", err)
             } catch (e: Exception) {

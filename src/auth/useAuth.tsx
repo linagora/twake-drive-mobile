@@ -2,6 +2,7 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useS
 import CozyClient from 'cozy-client'
 
 import { createClient } from '@/client/createClient'
+import { mirrorSessionToNative } from '@/native/twakeAuthBridge'
 import { clearSession, getSession, saveSession } from './tokenStorage'
 import { startOidcFlow } from './oidcFlow'
 import { registerSession } from './registerSession'
@@ -31,6 +32,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
       try {
         const client = await createClient(session)
+        // A user already logged in when they update to a build with the Android
+        // DocumentsProvider never runs the interactive login path again, so mirror
+        // the stored session here too — otherwise the provider's root never appears.
+        await mirrorSessionToNative(session)
         setState({ status: 'authenticated', client })
       } catch (err) {
         console.warn('[useAuth] createClient failed on bootstrap', err)

@@ -13,23 +13,31 @@ class DocumentCache(private val context: Context) {
     fun offlineBlob(id: String): File? =
         File(context.filesDir, "offline/$id").takeIf { it.exists() }
 
-    /** A local, readable copy: pinned blob if present, else download to cache. */
+    /**
+     * A local, readable copy: pinned blob if present, else download to cache.
+     *
+     * A SAF write-back stages fresh bytes into the content cache (see [stageWritten])
+     * without touching the RN-owned pinned blob, so a newer content-cache entry wins
+     * over the blob — otherwise a pinned file's edits would never be visible here.
+     */
     fun ensureLocal(id: String, api: CozyStackApi): File {
-        offlineBlob(id)?.let { return it }
-        val dest = cachedFile(id)
-        if (!dest.exists() || dest.length() == 0L) {
-            val tmp = File(dir(), "$id.dl")
-            api.download(id, tmp)
-            if (!tmp.renameTo(dest)) { tmp.copyTo(dest, overwrite = true); tmp.delete() }
+        val cached = cachedFile(id)
+        offlineBlob(id)?.let { blob ->
+            if (cached.exists() && cached.length() > 0 && cached.lastModified() >= blob.lastModified()) return cached
+            return blob
         }
-        return dest
+        if (cached.exists() && cached.length() > 0) return cached
+        val tmp = File(dir(), "$id.dl")
+        api.download(id, tmp)
+        if (!tmp.renameTo(cached)) { tmp.copyTo(cached, overwrite = true); tmp.delete() }
+        return cached
     }
 
-    fun tempFor(id: String): File = File(dir(), "$id.tmp")
+    fun tempFor(id: String): File = File(dir(), "$id.${java.util.UUID.randomUUID()}.tmp")
 
-    /** Drop any cached content + thumbnail for this id, forcing the next read to re-fetch. */
-    fun invalidate(id: String) {
-        cachedFile(id).delete()
+    /** Stage just-written bytes into the content cache (fresh mtime) and drop the stale thumbnail. */
+    fun stageWritten(id: String, src: File) {
+        src.copyTo(cachedFile(id), overwrite = true)
         cachedFile("$id.thumb").delete()
     }
 }
