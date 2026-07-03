@@ -81,7 +81,11 @@ const CertifyProbe = ({ onResult }: { onResult: (c: import('cozy-client').defaul
   return (
     <Pressable
       testID="certify"
-      onPress={() => certifyFlagship().then(onResult).catch(() => {})}
+      onPress={() =>
+        certifyFlagship()
+          .then(onResult)
+          .catch(() => {})
+      }
     />
   )
 }
