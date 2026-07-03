@@ -2,15 +2,13 @@ import React, { useEffect, useState } from 'react'
 import { StyleSheet } from 'react-native'
 import { WebView } from 'react-native-webview'
 import { useLocalSearchParams, useRouter } from 'expo-router'
-import { useClient, useQuery } from 'cozy-client'
+import { useClient } from 'cozy-client'
 
 import { ScreenContainer } from '@/ui/ScreenContainer'
 import { EditorHeader } from '@/ui/EditorHeader'
 import { ErrorState } from '@/ui/ErrorState'
 import { LoadingState } from '@/ui/LoadingState'
-import { fileByIdQuery, fileByIdQueryAs } from '@/client/queries'
 import { useSessionCode } from '@/auth/useSessionCode'
-import { HIDE_COZY_BAR } from '@/files/webviewInject'
 
 // TODO(backend): cozy-stack returns 403 Forbidden on `GET /office/{id}/open`
 // for OAuth clients of kind=mobile. The endpoint is currently restricted to the
@@ -43,13 +41,6 @@ export default function OnlyOfficeScreen() {
   const [error, setError] = useState<string | null>(null)
   const [reloadTick, setReloadTick] = useState(0)
 
-  const fileLookup = useQuery(fileByIdQuery(fileId ?? ''), {
-    as: fileByIdQueryAs(fileId ?? ''),
-    enabled: !!fileId
-  })
-  const doc = Array.isArray(fileLookup.data) ? fileLookup.data[0] : fileLookup.data
-  const documentTitle = (doc as { name?: string })?.name ?? ''
-
   useEffect(() => {
     let cancelled = false
     const run = async () => {
@@ -73,11 +64,7 @@ export default function OnlyOfficeScreen() {
 
   return (
     <ScreenContainer>
-      <EditorHeader
-        title={documentTitle}
-        onBack={() => router.back()}
-        onShare={() => router.push(`/share/${fileId}`)}
-      />
+      <EditorHeader onBack={() => router.back()} />
       {error ? (
         <ErrorState
           message={error}
@@ -98,8 +85,6 @@ export default function OnlyOfficeScreen() {
           sharedCookiesEnabled
           source={{ uri: editorUrl }}
           style={styles.webview}
-          injectedJavaScriptBeforeContentLoaded={HIDE_COZY_BAR}
-          injectedJavaScript={HIDE_COZY_BAR}
           onMessage={event => {
             console.log('[OnlyOfficeScreen] webview message', event.nativeEvent.data)
           }}

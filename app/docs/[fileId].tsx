@@ -11,7 +11,6 @@ import { LoadingState } from '@/ui/LoadingState'
 import { fileByIdQuery, fileByIdQueryAs } from '@/client/queries'
 import { buildCozyAppUrl } from '@/files/cozyAppLink'
 import { useSessionCode } from '@/auth/useSessionCode'
-import { HIDE_COZY_BAR } from '@/files/webviewInject'
 
 // Mirrors twake-drive web's "docs" file-type routing: open the cozy `docs`
 // web app inside a WebView with a session_code so the docs editor renders
@@ -39,7 +38,6 @@ export default function DocsScreen() {
   const lookupDoc = Array.isArray(lookupData) ? lookupData[0] : lookupData
   const externalId = (lookupDoc as { metadata?: { externalId?: string } } | null | undefined)
     ?.metadata?.externalId
-  const documentTitle = (lookupDoc as { name?: string } | null | undefined)?.name ?? ''
 
   useEffect(() => {
     let cancelled = false
@@ -67,11 +65,7 @@ export default function DocsScreen() {
 
   return (
     <ScreenContainer>
-      <EditorHeader
-        title={documentTitle}
-        onBack={() => router.back()}
-        onShare={() => router.push(`/share/${fileId}`)}
-      />
+      <EditorHeader onBack={() => router.back()} />
       {error ? (
         <ErrorState
           message={error}
@@ -100,8 +94,6 @@ export default function DocsScreen() {
           sharedCookiesEnabled
           source={{ uri: editorUrl }}
           style={styles.webview}
-          injectedJavaScriptBeforeContentLoaded={HIDE_COZY_BAR}
-          injectedJavaScript={HIDE_COZY_BAR}
           onMessage={event => {
             console.log('[DocsScreen] webview message', event.nativeEvent.data)
           }}
