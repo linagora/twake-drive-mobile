@@ -7,7 +7,6 @@ import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { Stack } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
-import { CozyProvider } from 'cozy-client'
 import { I18nextProvider } from 'react-i18next'
 
 import {
@@ -26,7 +25,7 @@ import { attachRevocationListener } from '@/auth/revocationListener'
 import { ErrorBoundary } from '@/ui/ErrorBoundary'
 import { PiPSessionProvider } from '@/preview/PiPSession'
 import { SharingProvider } from '@/sharing/SharingProvider'
-import { PendingShareProvider } from '@/share/PendingShareProvider'
+import { AppProviderTree } from './_AppProviderTree'
 
 const InnerLayout = () => {
   const colorScheme = useColorScheme()
@@ -119,19 +118,11 @@ const InnerLayout = () => {
     </SafeAreaProvider>
   )
 
-  // PendingShareProvider wraps the ENTIRE client conditional (rather than
-  // living inside `content`) so its position in the tree never changes when
-  // `client` flips null -> object. That transition happens on every login
-  // and even on cold start with a saved session (see useAuth's bootstrap
-  // effect) — if PendingShareProvider sat inside `content`, the element type
-  // at this return position would change (SafeAreaProvider <-> CozyProvider),
-  // forcing React to unmount/remount the whole subtree and wipe the staged
-  // share before it could be resumed after login.
-  return (
-    <PendingShareProvider>
-      {client ? <CozyProvider client={client}>{content}</CozyProvider> : content}
-    </PendingShareProvider>
-  )
+  // AppProviderTree wraps `content` with PendingShareProvider positioned
+  // OUTSIDE the `client` auth conditional — see app/_AppProviderTree.tsx for
+  // why that placement matters (and app/_AppProviderTree.test.tsx for the
+  // regression test that guards it).
+  return <AppProviderTree>{content}</AppProviderTree>
 }
 
 export default function RootLayout() {
