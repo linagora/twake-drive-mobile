@@ -65,10 +65,15 @@ jest.mock('react-native-mmkv', () => ({
   }))
 }))
 
-jest.mock('@react-native-community/netinfo', () => ({
-  addEventListener: jest.fn(() => () => undefined),
-  fetch: jest.fn().mockResolvedValue({ isConnected: true, isInternetReachable: true })
-}))
+jest.mock('@react-native-community/netinfo', () => {
+  const netInfo = {
+    configure: jest.fn(),
+    addEventListener: jest.fn(() => () => undefined),
+    fetch: jest.fn().mockResolvedValue({ isConnected: true, isInternetReachable: true })
+  }
+  // Expose both the default import (NetInfo.configure) and named exports.
+  return { __esModule: true, default: netInfo, ...netInfo }
+})
 
 class MockPouchLink {
   options: unknown

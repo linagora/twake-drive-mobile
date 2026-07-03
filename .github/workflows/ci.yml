@@ -13,9 +13,9 @@ concurrency:
 permissions:
   contents: read
 
-# lint/typecheck/test currently report pre-existing failures across app source.
-# Jobs are non-blocking (continue-on-error) so they surface status without
-# gating PRs. Drop continue-on-error per job once each is green. See docs/ci-cd.md.
+# lint, typecheck, and test are all blocking (green as of 2026-07-03). Note:
+# typecheck runs without generated expo-router types (`.expo/types` is
+# gitignored), so route strings type loosely in CI — see docs/ci-cd.md.
 jobs:
   lint:
     runs-on: ubuntu-latest
@@ -31,7 +31,6 @@ jobs:
 
   typecheck:
     runs-on: ubuntu-latest
-    continue-on-error: true
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
@@ -44,7 +43,6 @@ jobs:
 
   test:
     runs-on: ubuntu-latest
-    continue-on-error: true
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6

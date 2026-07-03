@@ -26,6 +26,14 @@ jobs:
     env:
       CMAKE_C_COMPILER_LAUNCHER: ccache
       CMAKE_CXX_COMPILER_LAUNCHER: ccache
+      # ccache tuning so cached objects survive across ephemeral runners.
+      # Without this, cross-run hit rate is 0%: the NDK clang is re-provisioned
+      # each run with a fresh mtime, and ccache's default compiler_check=mtime
+      # treats that as a different compiler and discards the whole cache.
+      CCACHE_COMPILERCHECK: content
+      CCACHE_BASEDIR: ${{ github.workspace }}
+      CCACHE_NOHASHDIR: 'true'
+      CCACHE_SLOPPINESS: time_macros,include_file_mtime,include_file_ctime,pch_defines
     # New Arch compiles native code. Cold cache ~15-20 min; warm (ccache +
     # gradle build cache) considerably less. Cap high so a cold first build
     # doesn't trip a spurious timeout; the cap only guards genuine hangs.

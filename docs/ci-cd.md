@@ -3,34 +3,37 @@
 GitHub Actions build **unsigned dev/test artifacts** with no secrets. Signing
 and store distribution are documented below as a phase-2 activation guide.
 
-## Current status (updated 2026-07-02)
+## Current status (updated 2026-07-03)
 
-Dependencies, lint, and the flagged CVEs are now clean; **lint is blocking**.
-`typecheck`, `test`, and the Trivy scan remain **non-blocking**
-(`continue-on-error`) until they're resolved:
+**All checks pass and are blocking** — lint, typecheck, test, and the Trivy
+scan. What was fixed to get there:
 
 - **Dependencies (fixed):** the committed `package-lock.json` was corrupt
   (`lockfileVersion 2`, unparseable by npm's arborist), so every clean `npm ci`
   failed — in CI, Docker, and fresh clones. Regenerated as a valid
   `lockfileVersion 3` lock, and added `.npmrc` (`legacy-peer-deps=true`) for
   this stack's React-19 peer conflicts.
-- **lint (fixed → blocking):** was 293 errors. Registered the
-  `@typescript-eslint` and `import` plugins in `.eslintrc.js` (both were
-  referenced by disable-comments but never loaded) and ran
-  `npm run lint -- --fix` for the ~275 formatting issues. Now clean and gating.
-- **Security CVEs (fixed):** `package.json` `overrides` patch `shell-quote`
-  (→1.9.0, was CVE-2026-9277 **CRITICAL** RCE), `undici` (→6.27.0,
-  CVE-2026-12151 HIGH), and `ws` (per-major →6.2.4/7.5.11/8.21.0,
-  CVE-2026-48779 HIGH). A CI run confirmed zero CRITICAL/HIGH findings, so
-  Trivy is now **blocking**.
-- **typecheck (non-blocking):** expo typed-routes reject `"/(drive)/files"`;
-  and `scope` is not in cozy-client's `ClientOptions` type (from the
-  scoped-OAuth work).
-- **test (non-blocking):** 8 of 356 failing (4 suites, incl.
-  `src/auth/useAuth.test.tsx`).
+- **lint (blocking):** was 293 errors. Registered the `@typescript-eslint` and
+  `import` plugins in `.eslintrc.js` (both referenced by disable-comments but
+  never loaded) and ran `npm run lint -- --fix` for the ~275 formatting issues.
+- **Security CVEs (Trivy blocking):** `package.json` `overrides` patch
+  `shell-quote` (→1.9.0, was CVE-2026-9277 **CRITICAL** RCE), `undici`
+  (→6.27.0, CVE-2026-12151 HIGH), and `ws` (per-major →6.2.4/7.5.11/8.21.0,
+  CVE-2026-48779 HIGH). A CI run confirmed zero CRITICAL/HIGH findings.
+- **typecheck (blocking):** `scope` is absent from cozy-client's `ClientOptions`
+  type — cast at the two call sites. (A `"/(drive)/files"` route error appears
+  only locally with a stale generated `.expo/types`; `.expo` is gitignored so
+  CI has no generated router types and route strings type loosely — see the
+  follow-up below.)
+- **test (blocking):** 363/363 pass. Fixes were test-infra only: Jest stubs for
+  cozy-client's uninstalled native deps (inappbrowser, devicecheck,
+  play-integrity), a `NetInfo.configure` mock, `links: []` in the useAuth
+  cozy-client mock, a `jest.mock` hoist fix, and aligning stale `getLinks`
+  expectations (30 s interval, 2 offline doctypes) with the implementation.
 
-Flip each remaining non-blocking job (typecheck, test) to blocking once it is
-green.
+**Optional follow-up:** CI typecheck runs without generated expo-router types,
+so route strings aren't strictly checked in CI. To gate on them, add an
+expo-router type-generation step before `tsc` in the typecheck job.
 
 ## Workflows (phase 1)
 
