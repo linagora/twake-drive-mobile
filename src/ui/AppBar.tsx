@@ -28,6 +28,8 @@ interface Props {
   title: string
   onBack?: () => void
   onLogout?: () => void
+  /** When set, a magnify action is shown (outside selection mode) → opens search. */
+  onSearch?: () => void
   /**
    * When true, a magnifier icon button is rendered to the left of the avatar
    * menu. Tapping it navigates to the file-name search screen.
@@ -41,7 +43,11 @@ interface Props {
   selection?: AppBarSelection
 }
 
-export const AppBar = ({ title, onBack, onLogout, showSearch, selection }: Props) => {
+// Two search entry points coexist after the android↔web track merge: the
+// android/web-search track's `onSearch` (Appbar.Action magnify) and main's
+// `showSearch` (Pressable → /(drive)/search) + help button. Both props are kept
+// so every existing caller keeps working; unifying them is a follow-up cleanup.
+export const AppBar = ({ title, onBack, onLogout, onSearch, showSearch, selection }: Props) => {
   const { t } = useTranslation()
   const [menuVisible, setMenuVisible] = useState(false)
   const theme = useTheme()
@@ -79,6 +85,13 @@ export const AppBar = ({ title, onBack, onLogout, showSearch, selection }: Props
         <TwakeLogo size={28} />
       </View>
       <Appbar.Content title={title} />
+      {onSearch ? (
+        <Appbar.Action
+          icon="magnify"
+          onPress={onSearch}
+          accessibilityLabel={t('drive.search.action')}
+        />
+      ) : null}
       <SyncIndicator />
       {showSearch ? (
         <Pressable

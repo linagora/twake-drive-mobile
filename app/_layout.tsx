@@ -7,7 +7,6 @@ import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { Stack } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
-import { CozyProvider } from 'cozy-client'
 import { I18nextProvider } from 'react-i18next'
 
 import {
@@ -27,6 +26,7 @@ import { ErrorBoundary } from '@/ui/ErrorBoundary'
 import { PiPSessionProvider } from '@/preview/PiPSession'
 import { SharingProvider } from '@/sharing/SharingProvider'
 import { FlagshipAuthModal } from '@/auth/FlagshipAuthModal'
+import { AppProviderTree } from './_AppProviderTree'
 
 const InnerLayout = () => {
   const colorScheme = useColorScheme()
@@ -92,6 +92,10 @@ const InnerLayout = () => {
                       options={{ presentation: 'pageSheet', animation: 'slide_from_bottom' }}
                     />
                     <Stack.Screen
+                      name="import"
+                      options={{ presentation: 'pageSheet', animation: 'slide_from_bottom' }}
+                    />
+                    <Stack.Screen
                       name="onlyoffice/[fileId]"
                       options={{ presentation: 'pageSheet', animation: 'slide_from_bottom' }}
                     />
@@ -107,6 +111,7 @@ const InnerLayout = () => {
                       name="docs/new/[folderId]"
                       options={{ presentation: 'pageSheet', animation: 'slide_from_bottom' }}
                     />
+                    <Stack.Screen name="search" options={{ animation: 'slide_from_bottom' }} />
                   </Stack>
                 </ErrorBoundary>
               </SharingProvider>
@@ -117,7 +122,11 @@ const InnerLayout = () => {
     </SafeAreaProvider>
   )
 
-  return client ? <CozyProvider client={client}>{content}</CozyProvider> : content
+  // AppProviderTree wraps `content` with PendingShareProvider positioned
+  // OUTSIDE the `client` auth conditional — see app/_AppProviderTree.tsx for
+  // why that placement matters (and app/_AppProviderTree.test.tsx for the
+  // regression test that guards it).
+  return <AppProviderTree>{content}</AppProviderTree>
 }
 
 export default function RootLayout() {

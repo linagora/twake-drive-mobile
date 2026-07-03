@@ -163,3 +163,8 @@ export interface ContactQueryResult {
   email?: { address: string; primary?: boolean; type?: string }[]
   cozy?: { url: string; primary?: boolean }[]
 }
+
+// Filename search is server-side now (src/search/useFileSearch.ts →
+// cozy-stack `_find`), not a local PouchDB query: scanning the multi-hundred-MB
+// offline replica with a $regex OOM-kills the app. HIDDEN_ROOT_DIR_IDS is still
+// used there to drop the virtual root dirs from results.
