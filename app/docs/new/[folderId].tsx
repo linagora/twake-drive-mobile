@@ -10,6 +10,7 @@ import { ErrorState } from '@/ui/ErrorState'
 import { LoadingState } from '@/ui/LoadingState'
 import { buildCozyAppUrl } from '@/files/cozyAppLink'
 import { useSessionCode } from '@/auth/useSessionCode'
+import { HIDE_COZY_BAR } from '@/files/webviewInject'
 
 // Mirrors twake-drive web's CreateDocsItem flow: redirect the user to the
 // cozy `docs` web app with the route `/bridge/docs/new/<folderId>`. The
@@ -70,6 +71,8 @@ export default function DocsNewScreen() {
           sharedCookiesEnabled
           source={{ uri: editorUrl }}
           style={styles.webview}
+          injectedJavaScriptBeforeContentLoaded={HIDE_COZY_BAR}
+          injectedJavaScript={HIDE_COZY_BAR}
           onMessage={event => {
             console.log('[DocsNewScreen] webview message', event.nativeEvent.data)
           }}

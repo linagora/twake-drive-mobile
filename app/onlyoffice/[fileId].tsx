@@ -10,6 +10,7 @@ import { ErrorState } from '@/ui/ErrorState'
 import { LoadingState } from '@/ui/LoadingState'
 import { fileByIdQuery, fileByIdQueryAs } from '@/client/queries'
 import { useSessionCode } from '@/auth/useSessionCode'
+import { HIDE_COZY_BAR } from '@/files/webviewInject'
 
 // TODO(backend): cozy-stack returns 403 Forbidden on `GET /office/{id}/open`
 // for OAuth clients of kind=mobile. The endpoint is currently restricted to the
@@ -72,7 +73,11 @@ export default function OnlyOfficeScreen() {
 
   return (
     <ScreenContainer>
-      <EditorHeader title={documentTitle} onBack={() => router.back()} />
+      <EditorHeader
+        title={documentTitle}
+        onBack={() => router.back()}
+        onShare={() => router.push(`/share/${fileId}`)}
+      />
       {error ? (
         <ErrorState
           message={error}
@@ -93,6 +98,8 @@ export default function OnlyOfficeScreen() {
           sharedCookiesEnabled
           source={{ uri: editorUrl }}
           style={styles.webview}
+          injectedJavaScriptBeforeContentLoaded={HIDE_COZY_BAR}
+          injectedJavaScript={HIDE_COZY_BAR}
           onMessage={event => {
             console.log('[OnlyOfficeScreen] webview message', event.nativeEvent.data)
           }}
