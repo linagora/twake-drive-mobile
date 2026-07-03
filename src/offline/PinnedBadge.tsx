@@ -1,7 +1,7 @@
 import React from 'react'
 import { StyleSheet, View } from 'react-native'
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons'
 import { useTheme } from 'react-native-paper'
+import { CozyIcon } from '@/ui/icons/CozyIcon'
 
 import { OfflineFileEntry } from './types'
 
@@ -14,15 +14,15 @@ interface Props {
 const iconForState = (state: OfflineFileEntry['state']): string => {
   switch (state) {
     case 'downloaded':
-      return 'cloud-check'
+      return 'download'
     case 'downloading':
-      return 'cloud-download'
+      return 'download'
     case 'pending':
-      return 'cloud-outline'
+      return 'cloud2'
     case 'failed':
-      return 'cloud-alert'
+      return 'info'
     case 'paused-auth':
-      return 'cloud-clock'
+      return 'clockOutline'
   }
 }
 
@@ -40,7 +40,7 @@ export const PinnedBadge = ({ entry, size = 12, testID }: Props): React.ReactEle
       testID={testID}
       style={[styles.wrap, { backgroundColor: theme.colors.surface, borderColor: color }]}
     >
-      <Icon name={iconForState(entry.state)} size={size} color={color} />
+      <CozyIcon name={iconForState(entry.state)} size={size} color={color} />
     </View>
   )
 }

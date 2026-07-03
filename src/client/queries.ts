@@ -30,6 +30,7 @@ export interface FileQueryResult {
   path?: string
   cozyMetadata?: {
     createdBy?: { account?: string }
+    favorite?: boolean
   }
   links?: {
     tiny?: string
@@ -97,6 +98,25 @@ export const recentQuery = (): QueryDefinition =>
     .sortBy([{ updated_at: 'desc' }])
     .limitBy(50)
 export const recentQueryAs = 'recent-view-query'
+
+// All files and folders marked favourite (`cozyMetadata.favorite === true`),
+// sorted by name — mirrors twake-drive-web's buildFavoritesQuery.
+//
+// Offline/local gotcha: cozy-pouch-link/PouchDB only matches the NESTED
+// `cozyMetadata.favorite` field when that exact path is an INDEX field. A
+// partialIndex on it, or a bare `where` selector without indexing it, returns 0
+// even when favourites exist (verified on-device: 4/18 root folders were
+// favourite, those queries returned 0). So the flag goes in `indexFields` (and,
+// to satisfy the index prefix, first in `sortBy`). The first run builds the index
+// over the local DB (one-off, ~tens of seconds on a large drive); it is then
+// persisted, so later loads are fast.
+export const favoritesQuery = (): QueryDefinition =>
+  Q('io.cozy.files')
+    .where({ 'cozyMetadata.favorite': true })
+    .indexFields(['cozyMetadata.favorite', 'name'])
+    .sortBy([{ 'cozyMetadata.favorite': 'asc' }, { name: 'asc' }])
+    .limitBy(100)
+export const favoritesQueryAs = 'favorites-view-query'
 
 // Trash: same two-query split as `folderSubfoldersQuery` / `folderFilesQuery`,
 // mirroring twake-drive-web's `buildTrashQuery`. Two queries (dirs + files)

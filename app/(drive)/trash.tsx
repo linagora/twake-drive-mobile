@@ -118,7 +118,7 @@ export default function TrashScreen() {
 
   return (
     <ScreenContainer>
-      <AppBar title={t('drive.trash')} onLogout={logout} />
+      <AppBar title={t('drive.trash')} onLogout={logout} showSearch />
       {(foldersQuery.fetchStatus === 'loading' || filesQuery.fetchStatus === 'loading') &&
       data.length === 0 ? (
         <LoadingState />
