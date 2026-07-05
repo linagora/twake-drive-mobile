@@ -684,7 +684,7 @@
 			buildSettings = {
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = TwakeDriveFileProviderExt/TwakeDriveFileProviderExt.entitlements;
-				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGN_STYLE = Manual;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = KUT463DS29;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -707,6 +707,8 @@
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
+				CODE_SIGN_IDENTITY = "Apple Distribution";
+				PROVISIONING_PROFILE_SPECIFIER = "match AppStore com.linagora.twakedrive.FileProvider";
 			};
 			name = Debug;
 		};
@@ -715,7 +717,7 @@
 			buildSettings = {
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = TwakeDriveFileProviderExt/TwakeDriveFileProviderExt.entitlements;
-				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGN_STYLE = Manual;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = KUT463DS29;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -734,6 +736,8 @@
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
+				CODE_SIGN_IDENTITY = "Apple Distribution";
+				PROVISIONING_PROFILE_SPECIFIER = "match AppStore com.linagora.twakedrive.FileProvider";
 			};
 			name = Release;
 		};

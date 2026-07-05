@@ -1,8 +1,9 @@
 #!/usr/bin/env node
-// Set per-target MANUAL signing (match profiles) on the app + the Share Extension.
-// gym archives multiple targets; a single global PROVISIONING_PROFILE_SPECIFIER in
-// the Fastfile xcargs would force the app's profile onto the extension and break the
-// archive. Instead each target carries its own match profile here. Run once (idempotent).
+// Set per-target MANUAL signing (match profiles) on the app + the Share Extension
+// + the File Provider extension. gym archives multiple targets; a single global
+// PROVISIONING_PROFILE_SPECIFIER in the Fastfile xcargs would force the app's profile
+// onto the extensions and break the archive. Instead each target carries its own match
+// profile here. Run once (idempotent).
 const fs = require('fs')
 const xcode = require('xcode')
 
@@ -12,7 +13,8 @@ proj.parseSync()
 
 const TARGETS = {
   TwakeDrive: 'match AppStore com.linagora.twakedrive',
-  TwakeDriveShareExt: 'match AppStore com.linagora.twakedrive.ShareExt'
+  TwakeDriveShareExt: 'match AppStore com.linagora.twakedrive.ShareExt',
+  TwakeDriveFileProviderExt: 'match AppStore com.linagora.twakedrive.FileProvider'
 }
 
 for (const [name, profile] of Object.entries(TARGETS)) {

@@ -21,9 +21,9 @@ platform :ios do
 
     match(
       type: "appstore",
-      # Fetch BOTH profiles (app + Share Extension) so the archive can sign each
-      # target with its own match profile.
-      app_identifier: [APP_IDENTIFIER, "#{APP_IDENTIFIER}.ShareExt"],
+      # Fetch ALL profiles (app + Share Extension + File Provider Extension) so the
+      # archive can sign each target with its own match profile.
+      app_identifier: [APP_IDENTIFIER, "#{APP_IDENTIFIER}.ShareExt", "#{APP_IDENTIFIER}.FileProvider"],
       git_url: ENV["MATCH_GIT_URL"],
       api_key: api_key,
       readonly: true
@@ -64,7 +64,8 @@ platform :ios do
         signingStyle: "manual",
         provisioningProfiles: {
           APP_IDENTIFIER => "match AppStore #{APP_IDENTIFIER}",
-          "#{APP_IDENTIFIER}.ShareExt" => "match AppStore #{APP_IDENTIFIER}.ShareExt"
+          "#{APP_IDENTIFIER}.ShareExt" => "match AppStore #{APP_IDENTIFIER}.ShareExt",
+          "#{APP_IDENTIFIER}.FileProvider" => "match AppStore #{APP_IDENTIFIER}.FileProvider"
         }
       }
     )
