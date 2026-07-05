@@ -114,7 +114,7 @@ export const FolderRow = ({
                 {...props}
                 icon={p => <CozyIcon name="dotsVertical" size={p?.size ?? 24} color={p?.color} />}
                 onPress={() => setMenuVisible(true)}
-                accessibilityLabel="folder actions"
+                accessibilityLabel={t('a11y.folderActions')}
                 // Per-folder testID so E2E can open a SPECIFIC row's menu without
                 // a `rightOf` selector (which resolves to the wrong row — it caused
                 // wrong-folder deletions during bring-up).
