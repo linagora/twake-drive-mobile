@@ -32,7 +32,9 @@ describe('openAuthorizeUrl', () => {
         return { remove }
       }
     )
-    wb.dismissBrowser.mockResolvedValue(undefined)
+    // Android's dismissBrowser returns void (not a Promise). Mimic that here so a
+    // regression that calls `.catch` on it (which crashed the real login) fails.
+    wb.dismissBrowser.mockReturnValue(undefined)
   })
 
   // The certification page emails a 6-digit code, so the user leaves to their mail

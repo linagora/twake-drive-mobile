@@ -51,7 +51,15 @@ export const openAuthorizeUrl = async (url: string): Promise<string> => {
       if (settled) return
       settled = true
       linkSub?.remove()
-      void WebBrowser.dismissBrowser().catch(() => undefined)
+      // Best-effort close of the Custom Tab. dismissBrowser() resolves a Promise
+      // on iOS but returns void on Android, so `.catch` on the result throws
+      // "Cannot read property 'catch' of undefined" there — which previously ate
+      // the resolve() below and hung the login. Wrap it so it can never throw.
+      try {
+        void Promise.resolve(WebBrowser.dismissBrowser()).catch(() => undefined)
+      } catch {
+        // ignore — dismissing the browser is optional
+      }
       finish()
     }
 
