@@ -3,7 +3,7 @@
 > The [Twake Drive](https://twake.app) client for **Android** and **iOS** — browse, search, share, edit and take your files offline.
 
 ![Platform: Android | iOS](https://img.shields.io/badge/platform-Android%20%7C%20iOS-2e7d32)
-![Release: v0.2.0](https://img.shields.io/badge/release-v0.2.0-1976d2)
+![Release: v0.2.2](https://img.shields.io/badge/release-v0.2.2-1976d2)
 ![Built with Expo](https://img.shields.io/badge/Expo-React%20Native-000020)
 
 Twake Drive Mobile is a [React Native](https://reactnative.dev/) /
@@ -83,7 +83,7 @@ pipeline: **iOS → TestFlight** (match) and **Android → Firebase App Distribu
 **[docs/ci-cd-signed-release.md](docs/ci-cd-signed-release.md)**.
 
 ```bash
-scripts/release.sh 0.2.0   # bump package.json/app.json, commit, tag, push → release
+scripts/release.sh 0.2.2   # bump package.json/app.json, commit, tag, push → release
 ```
 
 ## Project structure

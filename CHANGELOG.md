@@ -15,7 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   cross-platform quirk (`WebBrowser.dismissBrowser()` returns void on Android but a
   Promise on iOS) threw a TypeError that swallowed the auth completion, looping the
   user back to the email screen (and re-showing the consent page). Guarded so the
-  login now completes.
+  login now completes — finishing the mobile-only login fix started in 0.2.1
+  (device-verified end to end: certify → consent → signed in).
 
 ## [0.2.1] - 2026-07-05
 
