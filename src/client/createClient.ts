@@ -59,6 +59,14 @@ export const createClient = async (session: Session): Promise<CozyClient> => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await client.login({ uri: session.uri, token: session.token } as any)
   } catch (err) {
+    const msg = (err as Error)?.message ?? ''
+    if (
+      /invalid.?token|invalid_grant|invalid_client|must be registered|unauthorized|\b401\b/i.test(
+        msg
+      )
+    ) {
+      throw err
+    }
     // Offline, login may fail (OAuth token refresh / handshake). PouchManager
     // is initialized as a side effect of onLogin; if that failed too, queries
     // for replicated doctypes will fall back to StackLink — also broken offline
