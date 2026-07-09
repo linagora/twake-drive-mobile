@@ -15,7 +15,8 @@ export function deriveInitials(name?: string, email?: string): string {
 interface InstanceSettings {
   public_name?: string
   email?: string
-  attributes?: { public_name?: string; email?: string }
+  locale?: string
+  attributes?: { public_name?: string; email?: string; locale?: string }
 }
 
 // The cozy instance settings live in the `io.cozy.settings` doctype (the
@@ -27,6 +28,7 @@ const instanceQuery = Q('io.cozy.settings').getById('io.cozy.settings.instance')
 export function useCurrentUser(): {
   name?: string
   email?: string
+  locale?: string
   initials: string
   loading: boolean
 } {
@@ -34,9 +36,11 @@ export function useCurrentUser(): {
   const doc = (Array.isArray(data) ? data[0] : data) as InstanceSettings | null | undefined
   const name = doc?.public_name ?? doc?.attributes?.public_name
   const email = doc?.email ?? doc?.attributes?.email
+  const locale = doc?.locale ?? doc?.attributes?.locale
   return {
     name,
     email,
+    locale,
     initials: deriveInitials(name, email),
     loading: fetchStatus === 'loading'
   }
