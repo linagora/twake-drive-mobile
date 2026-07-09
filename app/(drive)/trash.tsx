@@ -149,6 +149,11 @@ export default function TrashScreen() {
           renderItem={renderItem}
           ListEmptyComponent={<EmptyState message={t('drive.emptyTrash')} />}
           contentContainerStyle={data.length === 0 ? styles.emptyContent : undefined}
+          onEndReachedThreshold={0.5}
+          onEndReached={() => {
+            void foldersQuery.fetchMore?.()
+            void filesQuery.fetchMore?.()
+          }}
           refreshControl={
             <RefreshControl
               refreshing={
