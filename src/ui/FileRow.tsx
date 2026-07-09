@@ -2,11 +2,11 @@ import React, { useState } from 'react'
 import { StyleSheet, View } from 'react-native'
 import { IconButton, List, Menu, useTheme } from 'react-native-paper'
 import { formatDistanceToNow } from 'date-fns'
-import { enUS, fr } from 'date-fns/locale'
 import { useTranslation } from 'react-i18next'
 import { useClient } from 'cozy-client'
 
 import { CozyIcon } from '@/ui/icons/CozyIcon'
+import { dateLocaleForLanguage } from '@/i18n/dateLocale'
 import { formatFileSize } from '@/utils/formatters'
 import { useFileSharingStatus } from '@/sharing/SharingProvider'
 import { useIsOnline } from '@/network/useIsOnline'
@@ -84,7 +84,7 @@ export const FileRow = ({
   // through and RE-PIN the file instead of removing it (opposite of the label).
   const isDirectPin = !!offlineEntry?.isDirectPin
   const size = formatFileSize(file.size)
-  const dateLocale = i18n.language?.startsWith('fr') ? fr : enUS
+  const dateLocale = dateLocaleForLanguage(i18n.language)
   const date = file.updated_at
     ? formatDistanceToNow(new Date(file.updated_at), { addSuffix: true, locale: dateLocale })
     : ''
