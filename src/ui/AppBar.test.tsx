@@ -28,25 +28,15 @@ const wrap = (ui: React.ReactElement) => (
   </PaperProvider>
 )
 
-describe('AppBar showSearch', () => {
-  beforeEach(() => {
-    mockPush.mockClear()
-  })
-
-  it('rend la loupe showSearch qui navigue vers /search', () => {
+describe('AppBar search (disabled)', () => {
+  it('does not render the search button even with showSearch', () => {
     render(wrap(<AppBar title="Mes fichiers" showSearch />))
-    fireEvent.press(screen.getByLabelText('drive.search.action'))
-    expect(mockPush).toHaveBeenCalledWith('/search')
-  })
-
-  it('ne rend pas la loupe showSearch sans la prop', () => {
-    render(wrap(<AppBar title="Mes fichiers" />))
     expect(screen.queryByLabelText('drive.search.action')).toBeNull()
+    expect(screen.queryByTestId('appbar-search-button')).toBeNull()
   })
 
-  it('expose les testIDs de navigation Maestro', () => {
+  it('still exposes the back-button testID for Maestro', () => {
     render(wrap(<AppBar title="Mes fichiers" showSearch onBack={() => {}} />))
-    expect(screen.getByTestId('appbar-search-button')).toBeOnTheScreen()
     expect(screen.getByTestId('appbar-back-button')).toBeOnTheScreen()
   })
 })

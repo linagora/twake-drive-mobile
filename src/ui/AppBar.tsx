@@ -99,16 +99,6 @@ export const AppBar = ({ title, onBack, onLogout, showSearch, selection }: Props
       <SyncIndicator />
       {showSearch ? (
         <Pressable
-          onPress={() => router.push('/search')}
-          accessibilityLabel={t('drive.search.action')}
-          style={styles.searchButton}
-          testID="appbar-search-button"
-        >
-          <CozyIcon name="magnifier" size={24} color={theme.colors.onSurface} />
-        </Pressable>
-      ) : null}
-      {showSearch ? (
-        <Pressable
           onPress={() => Linking.openURL('https://twake.app')}
           accessibilityLabel={t('common.help')}
           style={styles.searchButton}
