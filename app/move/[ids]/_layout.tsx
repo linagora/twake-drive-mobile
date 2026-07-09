@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { useClient, useQuery } from 'cozy-client'
 
 import { moveEntry, MoveEntryTarget } from '@/files/moveEntry'
-import { fileByIdQuery, fileByIdQueryAs, FileQueryResult } from '@/client/queries'
+import { filesByIdsQuery, filesByIdsQueryAs, FileQueryResult } from '@/client/queries'
 
 const SNACKBAR_DISMISS_DELAY_MS = 600
 
@@ -36,18 +36,24 @@ export default function MoveLayout() {
   const idList = useMemo(() => (ids ? ids.split(',').filter(Boolean) : []), [ids])
   const firstId = idList[0] ?? ''
 
-  const firstLookup = useQuery(fileByIdQuery(firstId), {
-    as: fileByIdQueryAs(firstId),
-    enabled: !!firstId
+  const allLookup = useQuery(filesByIdsQuery(idList), {
+    as: filesByIdsQueryAs(idList),
+    enabled: idList.length > 0
   })
-  // Preserve the first doc across re-renders triggered by setIsBusy /
-  // setSnackbar — cozy-client caches in production but our test mocks
-  // would otherwise drop it. See app/move/[ids].tsx (previous impl) for
-  // the same pattern.
-  const firstDocRef = useRef<FileQueryResult | null>(null)
-  const raw = Array.isArray(firstLookup.data) ? firstLookup.data[0] : firstLookup.data
-  if (raw) firstDocRef.current = raw as FileQueryResult
-  const firstDoc = firstDocRef.current
+  const docsRef = useRef<FileQueryResult[]>([])
+  const rawDocs = Array.isArray(allLookup.data)
+    ? allLookup.data
+    : allLookup.data
+      ? [allLookup.data]
+      : []
+  if (rawDocs.length) docsRef.current = rawDocs as FileQueryResult[]
+  const docs = docsRef.current
+  const docById = useMemo(() => {
+    const m = new Map<string, FileQueryResult>()
+    for (const d of docs) m.set(d._id, d)
+    return m
+  }, [docs])
+  const firstDoc = docById.get(firstId) ?? null
 
   const [isBusy, setIsBusy] = useState(false)
   const [snackbar, setSnackbar] = useState<string | null>(null)
@@ -71,11 +77,12 @@ export default function MoveLayout() {
       setSnackbar(null)
       try {
         for (const id of idList) {
+          const doc = docById.get(id)
           const target: MoveEntryTarget = {
             _id: id,
-            name: id === firstDoc._id ? firstDoc.name : '',
-            type: id === firstDoc._id ? (firstDoc.type ?? 'file') : 'file',
-            dir_id: firstDoc.dir_id ?? ''
+            name: doc?.name ?? '',
+            type: (doc?.type as 'file' | 'directory') ?? 'file',
+            dir_id: doc?.dir_id ?? firstDoc.dir_id ?? ''
           }
           await moveEntry(client, target, dest._id, { force: true })
         }
@@ -94,21 +101,21 @@ export default function MoveLayout() {
         setIsBusy(false)
       }
     },
-    [client, firstDoc, idList, t, close]
+    [client, firstDoc, docById, idList, t, close]
   )
 
   const value = useMemo<MoveContextValue>(
     () => ({
       idList,
       firstDoc,
-      isLoading: firstLookup.fetchStatus === 'loading' && !firstDoc,
-      hasError: !firstDoc && firstLookup.fetchStatus !== 'loading',
+      isLoading: allLookup.fetchStatus === 'loading' && !firstDoc,
+      hasError: !firstDoc && allLookup.fetchStatus !== 'loading',
       isBusy,
       onConfirm,
       onCancel: close,
-      retry: () => firstLookup.fetch()
+      retry: () => allLookup.fetch()
     }),
-    [idList, firstDoc, firstLookup.fetchStatus, isBusy, onConfirm, close, firstLookup]
+    [idList, firstDoc, allLookup.fetchStatus, isBusy, onConfirm, close, allLookup]
   )
 
   return (
