@@ -69,6 +69,7 @@ final class FileProviderExtension: NSObject, NSFileProviderReplicatedExtension {
                      version requestedVersion: NSFileProviderItemVersion?,
                      request: NSFileProviderRequest,
                      completionHandler: @escaping (URL?, NSFileProviderItem?, Error?) -> Void) -> Progress {
+    let progress = Progress(totalUnitCount: 100)
     Task {
       do {
         let api = try makeApi()
@@ -77,13 +78,14 @@ final class FileProviderExtension: NSObject, NSFileProviderReplicatedExtension {
         let dest = FileManager.default.temporaryDirectory
           .appendingPathComponent(UUID().uuidString, isDirectory: true)
           .appendingPathComponent(name)
-        try await api.download(id: itemIdentifier.rawValue, to: dest)
+        try await api.download(id: itemIdentifier.rawValue, to: dest, progress: progress)
         completionHandler(dest, ItemMapper.item(from: file), nil)
       } catch {
+        progress.cancel()
         completionHandler(nil, nil, Self.nsError(error))
       }
     }
-    return Progress()
+    return progress
   }
 
   // MARK: create
