@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { useClient } from 'cozy-client'
 
 import { uploadBatch } from '@/share/uploadBatch'
+import { optimisticFiles } from '@/files/optimisticFiles'
 import { usePendingShare } from '@/share/PendingShareProvider'
 import type { SharedItem } from '@/files/uploadSharedFile'
 
@@ -56,6 +57,19 @@ export default function ImportLayout({ children }: { children?: React.ReactNode 
       setSnackbar(null)
       try {
         const res = await uploadBatch(client, items, dest._id)
+        optimisticFiles(
+          client,
+          res.results
+            .map(r => r.file)
+            .filter((f): f is { _id: string; name: string } => !!f)
+            .map(f => ({
+              _id: f._id,
+              name: f.name,
+              type: 'file' as const,
+              dir_id: dest._id,
+              _type: 'io.cozy.files'
+            }))
+        )
         if (res.failed > 0 && res.succeeded > 0) {
           setSnackbar(
             t('drive.import.partial', {

@@ -1,7 +1,7 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useMemo, useState } from 'react'
 import { FlatList, Linking, RefreshControl, StyleSheet, View } from 'react-native'
 import { FAB, Snackbar } from 'react-native-paper'
-import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router'
+import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useClient, useQuery } from 'cozy-client'
 import { useTranslation } from 'react-i18next'
 
@@ -18,6 +18,7 @@ import { useViewMode } from '@/ui/useViewMode'
 import { SortControl } from '@/ui/SortControl'
 import { useFolderSort } from '@/ui/useFolderSort'
 import { CreateFolderDialog } from '@/ui/CreateFolderDialog'
+import { SyncBanner } from '@/ui/SyncBanner'
 import { CreateOfficeFileDialog } from '@/ui/CreateOfficeFileDialog'
 import { CreateShortcutDialog } from '@/ui/CreateShortcutDialog'
 import { CozyIcon } from '@/ui/icons/CozyIcon'
@@ -33,6 +34,7 @@ import { createShortcut } from '@/files/createShortcut'
 import { buildCozyAppUrl } from '@/files/cozyAppLink'
 import { useSessionCode } from '@/auth/useSessionCode'
 import { softDeleteEntry } from '@/files/deleteFile'
+import { optimisticFiles } from '@/files/optimisticFiles'
 import { renameEntry } from '@/files/renameEntry'
 import { openFileFromList } from '@/files/openFromList'
 import { surfaceOpenError } from '@/files/errors'
@@ -50,6 +52,7 @@ import {
   folderSubfoldersQuery,
   folderSubfoldersQueryAs,
   ROOT_DIR_ID,
+  TRASH_DIR_ID,
   FileQueryResult
 } from '@/client/queries'
 
@@ -115,18 +118,6 @@ export default function FilesScreen() {
     as: fileByIdQueryAs(currentDirId),
     enabled: !isRoot
   })
-
-  const foldersQueryRef = useRef(foldersQuery)
-  const filesQueryRef = useRef(filesQuery)
-  foldersQueryRef.current = foldersQuery
-  filesQueryRef.current = filesQuery
-
-  useFocusEffect(
-    useCallback(() => {
-      void foldersQueryRef.current.fetch()
-      void filesQueryRef.current.fetch()
-    }, [currentDirId])
-  )
 
   const lookupData = currentDirLookup.data
   const lookupDoc = Array.isArray(lookupData) ? lookupData[0] : lookupData
@@ -212,42 +203,40 @@ export default function FilesScreen() {
   const submitRename = async (newName: string): Promise<void> => {
     if (!requireOnline(isOnline, setSnackbar, t)) return
     if (!client || !pendingRename) return
-    await renameEntry(client, pendingRename._id, newName)
-    setSnackbar(
-      t(
-        pendingRename.type === 'directory'
-          ? 'drive.rename.successFolder'
-          : 'drive.rename.successFile'
-      )
-    )
+    const doc = pendingRename
+    const revert = optimisticFiles(client, [{ ...doc, name: newName }])
     setPendingRename(null)
-    await Promise.all([foldersQuery.fetch(), filesQuery.fetch()])
+    try {
+      await renameEntry(client, doc._id, newName)
+      setSnackbar(
+        t(doc.type === 'directory' ? 'drive.rename.successFolder' : 'drive.rename.successFile')
+      )
+    } catch (e) {
+      revert()
+      throw e
+    }
   }
 
   const confirmDelete = async (): Promise<void> => {
     if (!requireOnline(isOnline, setSnackbar, t)) return
     if (!client || !pendingDelete) return
+    const doc = pendingDelete
+    const revert = optimisticFiles(client, [{ ...doc, dir_id: TRASH_DIR_ID }])
+    setPendingDelete(null)
     setDeleting(true)
     try {
       await softDeleteEntry(client, {
-        _id: pendingDelete._id,
-        _rev: (pendingDelete as unknown as { _rev?: string })._rev,
-        name: pendingDelete.name,
-        type: pendingDelete.type
+        _id: doc._id,
+        _rev: (doc as unknown as { _rev?: string })._rev,
+        name: doc.name,
+        type: doc.type
       })
       setSnackbar(
-        t(
-          pendingDelete.type === 'directory'
-            ? 'drive.delete.successFolder'
-            : 'drive.delete.successFile'
-        )
+        t(doc.type === 'directory' ? 'drive.delete.successFolder' : 'drive.delete.successFile')
       )
-      setPendingDelete(null)
-      // Refetch so the removed row disappears immediately (client.destroy already
-      // wrote the deletion to local Pouch). Mirrors the create/rename handlers.
-      await Promise.all([foldersQuery.fetch(), filesQuery.fetch()])
     } catch (e) {
       console.error('[FilesScreen] delete failed', e)
+      revert()
       setSnackbar(t('drive.delete.errorGeneric'))
     } finally {
       setDeleting(false)
@@ -259,6 +248,12 @@ export default function FilesScreen() {
     if (!client) return
     const items = data.filter(d => selection.isSelected(d._id))
     if (items.length === 0) return
+    const revert = optimisticFiles(
+      client,
+      items.map(item => ({ ...item, dir_id: TRASH_DIR_ID }))
+    )
+    selection.clear()
+    setBulkConfirmVisible(false)
     setDeleting(true)
     try {
       // Sequential rather than parallel: cozy-stack can race on concurrent
@@ -272,11 +267,9 @@ export default function FilesScreen() {
         })
       }
       setSnackbar(t('drive.delete.successBulk', { count: items.length }))
-      selection.clear()
-      setBulkConfirmVisible(false)
-      await Promise.all([foldersQuery.fetch(), filesQuery.fetch()])
     } catch (e) {
       console.error('[FilesScreen] bulk delete failed', e)
+      revert()
       setSnackbar(t('drive.delete.errorGeneric'))
     } finally {
       setDeleting(false)
@@ -476,34 +469,37 @@ export default function FilesScreen() {
         <SortControl />
         <ViewSwitcher />
       </View>
-      {(foldersQuery.fetchStatus === 'loading' || filesQuery.fetchStatus === 'loading') &&
-      data.length === 0 ? (
-        <LoadingState />
-      ) : foldersQuery.fetchStatus === 'failed' || filesQuery.fetchStatus === 'failed' ? (
-        <ErrorState
-          message={t(getErrorMessageKey(foldersQuery.lastError ?? filesQuery.lastError))}
-          onRetry={() => {
-            void foldersQuery.fetch()
-            void filesQuery.fetch()
-          }}
-        />
-      ) : data.length === 0 ? (
-        <EmptyState message={t('drive.emptyFolder')} />
-      ) : (
-        <FlatList
-          key={mode}
-          data={data}
-          keyExtractor={item => item._id}
-          numColumns={mode === 'grid' ? 3 : undefined}
-          renderItem={mode === 'grid' ? renderGridItem : renderItem}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-          onEndReachedThreshold={0.5}
-          onEndReached={() => {
-            void foldersQuery.fetchMore?.()
-            void filesQuery.fetchMore?.()
-          }}
-        />
-      )}
+      <View style={styles.content}>
+        <SyncBanner />
+        {(foldersQuery.fetchStatus === 'loading' || filesQuery.fetchStatus === 'loading') &&
+        data.length === 0 ? (
+          <LoadingState />
+        ) : foldersQuery.fetchStatus === 'failed' || filesQuery.fetchStatus === 'failed' ? (
+          <ErrorState
+            message={t(getErrorMessageKey(foldersQuery.lastError ?? filesQuery.lastError))}
+            onRetry={() => {
+              void foldersQuery.fetch()
+              void filesQuery.fetch()
+            }}
+          />
+        ) : data.length === 0 ? (
+          <EmptyState message={t('drive.emptyFolder')} />
+        ) : (
+          <FlatList
+            key={mode}
+            data={data}
+            keyExtractor={item => item._id}
+            numColumns={mode === 'grid' ? 3 : undefined}
+            renderItem={mode === 'grid' ? renderGridItem : renderItem}
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+            onEndReachedThreshold={0.5}
+            onEndReached={() => {
+              void foldersQuery.fetchMore?.()
+              void filesQuery.fetchMore?.()
+            }}
+          />
+        )}
+      </View>
       <BigFolderConfirmDialog
         visible={!!offlineActions.pendingConfirmation}
         count={offlineActions.pendingConfirmation?.count ?? 0}
@@ -565,6 +561,7 @@ export default function FilesScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  content: { flex: 1 },
   toolbar: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
