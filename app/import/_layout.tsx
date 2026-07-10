@@ -8,7 +8,7 @@ import { uploadBatch } from '@/share/uploadBatch'
 import { usePendingShare } from '@/share/PendingShareProvider'
 import type { SharedItem } from '@/files/uploadSharedFile'
 
-const SNACKBAR_DISMISS_DELAY_MS = 600
+const SNACKBAR_DISMISS_DELAY_MS = 200
 
 interface ImportContextValue {
   items: SharedItem[]
@@ -35,7 +35,7 @@ export default function ImportLayout({ children }: { children?: React.ReactNode 
   const close = useCallback((): void => {
     type MaybeDismiss = { dismiss?: () => void; canDismiss?: () => boolean }
     const r = router as unknown as MaybeDismiss
-    if (typeof r.dismiss === 'function' && r.canDismiss?.() !== false) {
+    if (typeof r.dismiss === 'function' && r.canDismiss?.() === true) {
       r.dismiss()
       return
     }
