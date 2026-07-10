@@ -95,10 +95,15 @@ struct CozyFilesApi {
     return (files, next)
   }
 
-  func download(id: String, to dest: URL) async throws {
-    let data = try await send("/files/download/\(id)", method: .get, accept: false)
-    try FileManager.default.createDirectory(at: dest.deletingLastPathComponent(), withIntermediateDirectories: true)
-    try data.write(to: dest, options: .atomic)
+  func download(id: String, to dest: URL, progress: Progress = Progress()) async throws {
+    let path = "/files/download/\(id)"
+    var token = try await tokens.validAccessToken()
+    var resp = try await client.download(try request(path, method: .get, token: token, accept: false), to: dest, progress: progress)
+    if resp.statusCode == 401 {
+      token = try await tokens.forceRefresh(previous: token)
+      resp = try await client.download(try request(path, method: .get, token: token, accept: false), to: dest, progress: progress)
+    }
+    try Self.mapStatus(resp.statusCode)
   }
 
   func thumbnail(id: String, to dest: URL) async throws {
@@ -123,9 +128,15 @@ extension CozyFilesApi {
     return try parseData(data)
   }
 
-  func upload(id: String, from src: URL, mime: String) async throws -> CozyFile {
-    let bytes = try Data(contentsOf: src)
-    let data = try await send("/files/\(id)", method: .put, accept: true, contentType: mime, body: bytes)
+  func upload(id: String, from src: URL, mime: String, progress: Progress = Progress()) async throws -> CozyFile {
+    let path = "/files/\(id)"
+    var token = try await tokens.validAccessToken()
+    var (data, resp) = try await client.upload(try request(path, method: .put, token: token, accept: true, contentType: mime), fromFile: src, progress: progress)
+    if resp.statusCode == 401 {
+      token = try await tokens.forceRefresh(previous: token)
+      (data, resp) = try await client.upload(try request(path, method: .put, token: token, accept: true, contentType: mime), fromFile: src, progress: progress)
+    }
+    try Self.mapStatus(resp.statusCode)
     return try parseData(data)
   }
 

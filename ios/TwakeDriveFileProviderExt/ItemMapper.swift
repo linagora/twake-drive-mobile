@@ -71,7 +71,7 @@ enum ItemMapper {
     return FileProviderItem(
       itemIdentifier: identifier(for: f.id),
       parentItemIdentifier: parent,
-      filename: f.name,
+      filename: f.name.isEmpty ? "Twake Drive" : f.name,
       contentType: type,
       capabilities: caps,
       documentSize: f.isDir ? nil : NSNumber(value: f.size),
