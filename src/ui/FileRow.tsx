@@ -105,180 +105,174 @@ export const FileRow = ({
     !selected
 
   return (
-    <List.Item
-      testID={testID}
-      title={file.name}
-      description={description}
-      // Honour the `style` Paper passes to `left` (margins, etc.) so the
-      // thumbnail aligns with `<List.Icon>` columns elsewhere in the app.
-      left={props => (
-        <View style={[props.style, styles.leftSlot]}>
-          {selected ? (
-            <View style={[styles.checkmark, { backgroundColor: theme.colors.primary }]}>
-              <CozyIcon name="check" size={24} color={theme.colors.onPrimary} />
-            </View>
-          ) : (
-            <View style={styles.thumbWrap}>
-              <FileThumbnail file={file} size={40} />
-              <SharedBadge status={sharingStatus} />
-              <PinnedBadge entry={offlineEntry} testID="pinned-badge" />
-            </View>
-          )}
-        </View>
-      )}
-      right={props =>
-        hasMenu ? (
-          <Menu
-            visible={menuVisible}
-            onDismiss={() => setMenuVisible(false)}
-            anchor={
-              <IconButton
-                {...props}
-                icon={p => <CozyIcon name="dotsVertical" size={p?.size ?? 24} color={p?.color} />}
-                onPress={() => setMenuVisible(true)}
-                accessibilityLabel={t('a11y.fileActions')}
-                testID="file-actions"
-              />
-            }
-          >
-            {onTogglePin ? (
-              <Menu.Item
-                leadingIcon={isDirectPin ? 'cloud-off-outline' : 'cloud-download-outline'}
-                title={t(isDirectPin ? 'drive.offline.unpin' : 'drive.offline.pin')}
-                disabled={!isDirectPin && !isOnline}
-                onPress={() => {
-                  setMenuVisible(false)
-                  onTogglePin(file)
-                }}
-              />
-            ) : null}
-            {onShare ? (
-              <Menu.Item
-                leadingIcon={() => (
-                  <CozyIcon name="shareExternal" size={24} color={theme.colors.onSurface} />
-                )}
-                title={t('drive.fileMeta.share')}
-                disabled={!isOnline}
-                onPress={() => {
-                  setMenuVisible(false)
-                  onShare(file)
-                }}
-              />
-            ) : null}
-            {onRename ? (
-              <Menu.Item
-                leadingIcon={() => (
-                  <CozyIcon name="rename" size={24} color={theme.colors.onSurface} />
-                )}
-                title={t('drive.fileMeta.rename')}
-                disabled={!isOnline}
-                onPress={() => {
-                  setMenuVisible(false)
-                  onRename(file)
-                }}
-              />
-            ) : null}
-            {onRestore ? (
-              <Menu.Item
-                leadingIcon={() => (
-                  <CozyIcon name="restore" size={24} color={theme.colors.onSurface} />
-                )}
-                title={t('drive.trashActions.restore')}
-                disabled={!isOnline}
-                onPress={() => {
-                  setMenuVisible(false)
-                  onRestore(file)
-                }}
-              />
-            ) : null}
-            {onDelete ? (
-              <Menu.Item
-                leadingIcon={() => (
-                  <CozyIcon name="trash" size={24} color={theme.colors.onSurface} />
-                )}
-                title={t('drive.fileMeta.delete')}
-                disabled={!isOnline}
-                onPress={() => {
-                  setMenuVisible(false)
-                  onDelete(file)
-                }}
-              />
-            ) : null}
-            {onMove ? (
-              <Menu.Item
-                leadingIcon={() => (
-                  <CozyIcon name="moveto" size={24} color={theme.colors.onSurface} />
-                )}
-                title={t('drive.fileMeta.move')}
-                disabled={!isOnline}
-                onPress={() => {
-                  setMenuVisible(false)
-                  onMove(file)
-                }}
-              />
-            ) : null}
-            {onInfo ? (
-              <Menu.Item
-                leadingIcon={() => (
-                  <CozyIcon name="info" size={24} color={theme.colors.onSurface} />
-                )}
-                title={t('drive.fileMeta.info')}
-                onPress={() => {
-                  setMenuVisible(false)
-                  onInfo(file)
-                }}
-              />
-            ) : null}
+    <View
+      style={[styles.rowContainer, selected && { backgroundColor: theme.colors.primaryContainer }]}
+    >
+      <List.Item
+        style={styles.item}
+        testID={testID}
+        title={file.name}
+        description={description}
+        left={props => (
+          <View style={[props.style, styles.leftSlot]}>
+            {selected ? (
+              <View style={[styles.checkmark, { backgroundColor: theme.colors.primary }]}>
+                <CozyIcon name="check" size={24} color={theme.colors.onPrimary} />
+              </View>
+            ) : (
+              <View style={styles.thumbWrap}>
+                <FileThumbnail file={file} size={40} />
+                <SharedBadge status={sharingStatus} />
+                <PinnedBadge entry={offlineEntry} testID="pinned-badge" />
+              </View>
+            )}
+          </View>
+        )}
+        onPress={() => onPress(file)}
+        onLongPress={onLongPress ? () => onLongPress(file) : undefined}
+      />
+      {hasMenu ? (
+        <Menu
+          visible={menuVisible}
+          onDismiss={() => setMenuVisible(false)}
+          anchor={
+            <IconButton
+              icon={p => <CozyIcon name="dotsVertical" size={p?.size ?? 24} color={p?.color} />}
+              onPress={() => setMenuVisible(true)}
+              accessibilityLabel={t('a11y.fileActions')}
+              testID="file-actions"
+            />
+          }
+        >
+          {onTogglePin ? (
             <Menu.Item
-              leadingIcon={() => (
-                <CozyIcon
-                  name={
-                    isFavorite(file as Parameters<typeof isFavorite>[0]) ? 'star' : 'starOutline'
-                  }
-                  size={24}
-                  color={theme.colors.onSurface}
-                />
-              )}
-              title={t(
-                isFavorite(file as Parameters<typeof isFavorite>[0])
-                  ? 'drive.fileMeta.unfavorite'
-                  : 'drive.fileMeta.favorite'
-              )}
+              leadingIcon={isDirectPin ? 'cloud-off-outline' : 'cloud-download-outline'}
+              title={t(isDirectPin ? 'drive.offline.unpin' : 'drive.offline.pin')}
+              disabled={!isDirectPin && !isOnline}
               onPress={() => {
                 setMenuVisible(false)
-                if (!client) return
-                const next = !isFavorite(file as Parameters<typeof isFavorite>[0])
-                void toggleFavorite(client, file as Parameters<typeof toggleFavorite>[1], next)
-                  .then(() => {
-                    triggerPouchReplication(client)
-                    onFavoriteChange?.()
-                  })
-                  .catch(e => console.error('[FileRow] toggleFavorite failed', e))
+                onTogglePin(file)
               }}
             />
+          ) : null}
+          {onShare ? (
             <Menu.Item
               leadingIcon={() => (
-                <CozyIcon name="download" size={24} color={theme.colors.onSurface} />
+                <CozyIcon name="shareExternal" size={24} color={theme.colors.onSurface} />
               )}
-              title={t('drive.fileMeta.download')}
+              title={t('drive.fileMeta.share')}
+              disabled={!isOnline}
               onPress={() => {
                 setMenuVisible(false)
-                if (!client) return
-                void download(client, file)
+                onShare(file)
               }}
             />
-          </Menu>
-        ) : null
-      }
-      onPress={() => onPress(file)}
-      onLongPress={onLongPress ? () => onLongPress(file) : undefined}
-      style={[styles.row, selected && { backgroundColor: theme.colors.primaryContainer }]}
-    />
+          ) : null}
+          {onRename ? (
+            <Menu.Item
+              leadingIcon={() => (
+                <CozyIcon name="rename" size={24} color={theme.colors.onSurface} />
+              )}
+              title={t('drive.fileMeta.rename')}
+              disabled={!isOnline}
+              onPress={() => {
+                setMenuVisible(false)
+                onRename(file)
+              }}
+            />
+          ) : null}
+          {onRestore ? (
+            <Menu.Item
+              leadingIcon={() => (
+                <CozyIcon name="restore" size={24} color={theme.colors.onSurface} />
+              )}
+              title={t('drive.trashActions.restore')}
+              disabled={!isOnline}
+              onPress={() => {
+                setMenuVisible(false)
+                onRestore(file)
+              }}
+            />
+          ) : null}
+          {onDelete ? (
+            <Menu.Item
+              leadingIcon={() => <CozyIcon name="trash" size={24} color={theme.colors.onSurface} />}
+              title={t('drive.fileMeta.delete')}
+              disabled={!isOnline}
+              onPress={() => {
+                setMenuVisible(false)
+                onDelete(file)
+              }}
+            />
+          ) : null}
+          {onMove ? (
+            <Menu.Item
+              leadingIcon={() => (
+                <CozyIcon name="moveto" size={24} color={theme.colors.onSurface} />
+              )}
+              title={t('drive.fileMeta.move')}
+              disabled={!isOnline}
+              onPress={() => {
+                setMenuVisible(false)
+                onMove(file)
+              }}
+            />
+          ) : null}
+          {onInfo ? (
+            <Menu.Item
+              leadingIcon={() => <CozyIcon name="info" size={24} color={theme.colors.onSurface} />}
+              title={t('drive.fileMeta.info')}
+              onPress={() => {
+                setMenuVisible(false)
+                onInfo(file)
+              }}
+            />
+          ) : null}
+          <Menu.Item
+            leadingIcon={() => (
+              <CozyIcon
+                name={isFavorite(file as Parameters<typeof isFavorite>[0]) ? 'star' : 'starOutline'}
+                size={24}
+                color={theme.colors.onSurface}
+              />
+            )}
+            title={t(
+              isFavorite(file as Parameters<typeof isFavorite>[0])
+                ? 'drive.fileMeta.unfavorite'
+                : 'drive.fileMeta.favorite'
+            )}
+            onPress={() => {
+              setMenuVisible(false)
+              if (!client) return
+              const next = !isFavorite(file as Parameters<typeof isFavorite>[0])
+              void toggleFavorite(client, file as Parameters<typeof toggleFavorite>[1], next)
+                .then(() => {
+                  triggerPouchReplication(client)
+                  onFavoriteChange?.()
+                })
+                .catch(e => console.error('[FileRow] toggleFavorite failed', e))
+            }}
+          />
+          <Menu.Item
+            leadingIcon={() => (
+              <CozyIcon name="download" size={24} color={theme.colors.onSurface} />
+            )}
+            title={t('drive.fileMeta.download')}
+            onPress={() => {
+              setMenuVisible(false)
+              if (!client) return
+              void download(client, file)
+            }}
+          />
+        </Menu>
+      ) : null}
+    </View>
   )
 }
 
 const styles = StyleSheet.create({
-  row: { paddingVertical: 4 },
+  rowContainer: { flexDirection: 'row', alignItems: 'center' },
+  item: { flex: 1, paddingVertical: 4 },
   leftSlot: { justifyContent: 'center', alignItems: 'center', width: 40, height: 40 },
   thumbWrap: { position: 'relative', width: 40, height: 40 },
   checkmark: {
