@@ -1,7 +1,7 @@
-import React, { useCallback, useRef, useState } from 'react'
+import React, { useState } from 'react'
 import { FlatList, RefreshControl, StyleSheet, View } from 'react-native'
 import { Snackbar } from 'react-native-paper'
-import { useFocusEffect, useRouter } from 'expo-router'
+import { useRouter } from 'expo-router'
 import { useClient, useQuery } from 'cozy-client'
 import { useTranslation } from 'react-i18next'
 
@@ -15,9 +15,16 @@ import { ConfirmDeleteDialog } from '@/ui/ConfirmDeleteDialog'
 import { RenameDialog } from '@/ui/RenameDialog'
 import { useAuth } from '@/auth/useAuth'
 import { getErrorMessageKey } from '@/utils/errorMessages'
-import { recentQuery, recentQueryAs, FileQueryResult, HIDDEN_ROOT_DIR_IDS } from '@/client/queries'
+import {
+  recentQuery,
+  recentQueryAs,
+  FileQueryResult,
+  HIDDEN_ROOT_DIR_IDS,
+  TRASH_DIR_ID
+} from '@/client/queries'
 import { softDeleteEntry } from '@/files/deleteFile'
 import { renameEntry } from '@/files/renameEntry'
+import { optimisticFiles } from '@/files/optimisticFiles'
 import { openFileFromList } from '@/files/openFromList'
 import { surfaceOpenError } from '@/files/errors'
 import { useIsOnline } from '@/network/useIsOnline'
@@ -31,15 +38,6 @@ export default function RecentScreen() {
   const { logout } = useAuth()
   const client = useClient()
   const query = useQuery(recentQuery(), { as: recentQueryAs })
-
-  const queryRef = useRef(query)
-  queryRef.current = query
-
-  useFocusEffect(
-    useCallback(() => {
-      void queryRef.current.fetch()
-    }, [])
-  )
 
   const [pendingDelete, setPendingDelete] = useState<FileQueryResult | null>(null)
   const [pendingRename, setPendingRename] = useState<FileQueryResult | null>(null)
@@ -56,19 +54,21 @@ export default function RecentScreen() {
   const confirmDelete = async (): Promise<void> => {
     if (!requireOnline(isOnline, setSnackbar, t)) return
     if (!client || !pendingDelete) return
+    const doc = pendingDelete
+    const revert = optimisticFiles(client, [{ ...doc, dir_id: TRASH_DIR_ID, trashed: true }])
+    setPendingDelete(null)
     setDeleting(true)
     try {
       await softDeleteEntry(client, {
-        _id: pendingDelete._id,
-        _rev: (pendingDelete as unknown as { _rev?: string })._rev,
-        name: pendingDelete.name,
-        type: pendingDelete.type
+        _id: doc._id,
+        _rev: (doc as unknown as { _rev?: string })._rev,
+        name: doc.name,
+        type: doc.type
       })
       setSnackbar(t('drive.delete.successFile'))
-      setPendingDelete(null)
-      await query.fetch()
     } catch (e) {
       console.error('[RecentScreen] delete failed', e)
+      revert()
       setSnackbar(t('drive.delete.errorGeneric'))
     } finally {
       setDeleting(false)
@@ -78,10 +78,16 @@ export default function RecentScreen() {
   const submitRename = async (newName: string): Promise<void> => {
     if (!requireOnline(isOnline, setSnackbar, t)) return
     if (!client || !pendingRename) return
-    await renameEntry(client, pendingRename._id, newName)
-    setSnackbar(t('drive.rename.successFile'))
+    const doc = pendingRename
+    const revert = optimisticFiles(client, [{ ...doc, name: newName }])
     setPendingRename(null)
-    await query.fetch()
+    try {
+      await renameEntry(client, doc._id, newName)
+      setSnackbar(t('drive.rename.successFile'))
+    } catch (e) {
+      revert()
+      throw e
+    }
   }
 
   const renderItem = ({ item }: { item: FileQueryResult }) => (

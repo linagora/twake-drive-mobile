@@ -5,9 +5,10 @@ import { useTranslation } from 'react-i18next'
 import { useClient, useQuery } from 'cozy-client'
 
 import { moveEntry, MoveEntryTarget } from '@/files/moveEntry'
+import { optimisticFiles } from '@/files/optimisticFiles'
 import { filesByIdsQuery, filesByIdsQueryAs, FileQueryResult } from '@/client/queries'
 
-const SNACKBAR_DISMISS_DELAY_MS = 600
+const SNACKBAR_DISMISS_DELAY_MS = 200
 
 interface MoveContextValue {
   idList: string[]
@@ -73,6 +74,13 @@ export default function MoveLayout() {
   const onConfirm = useCallback(
     async (dest: { _id: string; name: string }): Promise<void> => {
       if (!client || !firstDoc) return
+      const revert = optimisticFiles(
+        client,
+        idList
+          .map(id => docById.get(id))
+          .filter((d): d is FileQueryResult => !!d)
+          .map(doc => ({ ...doc, dir_id: dest._id }))
+      )
       setIsBusy(true)
       setSnackbar(null)
       try {
@@ -96,6 +104,7 @@ export default function MoveLayout() {
         setTimeout(close, SNACKBAR_DISMISS_DELAY_MS)
       } catch (e) {
         console.error('[MoveLayout] move failed', e)
+        revert()
         setSnackbar(t('drive.move.errorGeneric'))
       } finally {
         setIsBusy(false)
