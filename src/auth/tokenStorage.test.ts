@@ -25,7 +25,7 @@ const session = {
 // Native extensions read the SAME keychain item, so every call must target the
 // shared access group with AFTER_FIRST_UNLOCK accessibility.
 const SHARED = {
-  accessGroup: 'com.linagora.twakedrive.shared',
+  accessGroup: 'KUT463DS29.com.linagora.twakedrive.shared',
   keychainAccessible: 'AFTER_FIRST_UNLOCK'
 }
 
