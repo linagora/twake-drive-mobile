@@ -31,7 +31,9 @@ jest.mock('expo-router', () => {
 
 jest.mock('cozy-client', () => ({
   __esModule: true,
-  useClient: () => null
+  Q: () => ({ getById: () => ({}) }),
+  useClient: () => null,
+  useQuery: () => ({ data: null, fetchStatus: 'loaded' })
 }))
 
 jest.mock('@/ui/OfflineBanner', () => ({
@@ -47,6 +49,7 @@ jest.mock('@/offline/initOffline', () => ({
 }))
 
 import DriveLayout from './_layout'
+import i18n from '@/i18n'
 
 const wrap = (ui: React.ReactElement) => <PaperProvider>{ui}</PaperProvider>
 
@@ -62,11 +65,11 @@ describe('DriveLayout — bottom tabs', () => {
     const tabs = screen.getAllByTestId('tab-label')
     const labels = tabs.map(t => t.props.children as string)
     expect(labels).toEqual([
-      'drive.myDrive',
-      'drive.favorites',
-      'drive.recent',
-      'drive.shares',
-      'drive.trash'
+      i18n.t('drive.myDrive'),
+      i18n.t('drive.favorites'),
+      i18n.t('drive.recent'),
+      i18n.t('drive.shares'),
+      i18n.t('drive.trash')
     ])
   })
 })
