@@ -41,10 +41,6 @@ jest.mock('cozy-client', () => {
   }
 })
 
-jest.mock('@/ui/SyncIndicator', () => ({
-  SyncIndicator: () => null
-}))
-
 // FavoritesScreen renders AppBar, which now reads the account identity via
 // useCurrentUser (Task 4/8). The local cozy-client Q() mock above only stubs
 // the chainable methods favoritesQuery() needs (where/sortBy/limitBy/...) —

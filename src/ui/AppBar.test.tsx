@@ -6,9 +6,6 @@ import { Provider as PaperProvider } from 'react-native-paper'
 jest.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (k: string) => k })
 }))
-jest.mock('./SyncIndicator', () => ({
-  SyncIndicator: () => null
-}))
 // AppBar now reads the account identity via useCurrentUser (Task 4), which calls
 // cozy-client's useQuery under the hood — this suite has no CozyClient in the
 // render tree, so mock it locally (see task-8-brief.md).

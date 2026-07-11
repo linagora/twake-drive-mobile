@@ -2,13 +2,9 @@ import React from 'react'
 import { fireEvent, render, screen } from '@testing-library/react-native'
 import { Provider as PaperProvider } from 'react-native-paper'
 
-// SyncIndicator uses cozy-client / pouchdb — stub them out
 jest.mock('cozy-client', () => ({
   __esModule: true,
   useClient: () => null
-}))
-jest.mock('@/pouchdb/triggerReplication', () => ({
-  getPouchLink: () => null
 }))
 
 // AppBar renders the real account identity via useCurrentUser (Task 4), which
