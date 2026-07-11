@@ -4,7 +4,6 @@ import { Appbar, Avatar, Menu, useTheme } from 'react-native-paper'
 import { useTranslation } from 'react-i18next'
 import { useRouter } from 'expo-router'
 
-import { SyncIndicator } from './SyncIndicator'
 import { TwakeLogo } from '@/ui/icons/TwakeLogo'
 import { CozyIcon } from '@/ui/icons/CozyIcon'
 import { useCurrentUser } from '@/account/useCurrentUser'
@@ -96,7 +95,6 @@ export const AppBar = ({ title, onBack, onLogout, showSearch, selection }: Props
         <TwakeLogo size={28} />
       </View>
       <Appbar.Content title={title} />
-      <SyncIndicator />
       {showSearch ? (
         <Pressable
           onPress={() => Linking.openURL('https://twake.app')}
