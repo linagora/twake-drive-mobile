@@ -70,7 +70,6 @@ export default function TrashScreen() {
       await restoreEntry(client, item._id)
       setRemovedIds(prev => new Set(prev).add(item._id))
       setSnackbar(t('drive.trashActions.restoreSuccess'))
-      await onRefresh()
     } catch (e) {
       console.error('[TrashScreen] restore failed', e)
       setSnackbar(t('drive.trashActions.restoreError'))
@@ -90,7 +89,6 @@ export default function TrashScreen() {
       })
       setSnackbar(t('drive.trashActions.emptySuccess'))
       setEmptyDialogVisible(false)
-      await onRefresh()
     } catch (e) {
       console.error('[TrashScreen] empty failed', e)
       setSnackbar(t('drive.trashActions.emptyError'))
