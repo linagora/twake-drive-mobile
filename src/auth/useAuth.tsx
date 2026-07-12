@@ -77,9 +77,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const loginWithTwakeWorkplace = useCallback(
     async (mode: 'signin' | 'signup'): Promise<void> => {
-      const loginUri = await getTwakeWorkplaceLoginUri(mode)
-      if (!loginUri) throw new Error('DOMAIN_UNSUPPORTED')
-      await completeOidc(loginUri)
+      await completeOidc(getTwakeWorkplaceLoginUri(mode))
     },
     [completeOidc]
   )
