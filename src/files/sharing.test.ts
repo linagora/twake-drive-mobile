@@ -576,3 +576,54 @@ describe('createSharingForFile', () => {
     expect(triggerPouchReplication).not.toHaveBeenCalled()
   })
 })
+
+describe('recipient contact reuse (existing contact instead of a throwaway)', () => {
+  it('addRecipient reuses an existing contact id and does NOT create a new contact', async () => {
+    const contactCreate = jest
+      .fn()
+      .mockResolvedValue({ data: { _id: 'SHOULD-NOT-BE-USED', _type: 'io.cozy.contacts' } })
+    const addRecipients = jest.fn().mockResolvedValue({ data: {} })
+    const client = makeClient({
+      'io.cozy.contacts': { create: contactCreate },
+      'io.cozy.sharings': { addRecipients }
+    })
+    await addRecipient(
+      client,
+      { _id: 'sharing-1' } as Parameters<typeof addRecipient>[1],
+      'bob@example.com',
+      false,
+      'existing-contact-9'
+    )
+    expect(contactCreate).not.toHaveBeenCalled()
+    expect(addRecipients).toHaveBeenCalledWith({
+      document: { _id: 'sharing-1' },
+      recipients: [{ _id: 'existing-contact-9', _type: 'io.cozy.contacts' }],
+      readOnlyRecipients: []
+    })
+  })
+
+  it('createSharingForFile reuses an existing contact id and does NOT create a new contact', async () => {
+    const contactCreate = jest
+      .fn()
+      .mockResolvedValue({ data: { _id: 'SHOULD-NOT-BE-USED', _type: 'io.cozy.contacts' } })
+    const create = jest.fn().mockResolvedValue({ data: { _id: 'sharing-1' } })
+    const client = makeClient({
+      'io.cozy.contacts': { create: contactCreate },
+      'io.cozy.sharings': { create }
+    })
+    await createSharingForFile(
+      client,
+      { _id: 'file-1', name: 'Doc.pdf', type: 'file' },
+      'bob@example.com',
+      false,
+      'existing-contact-9'
+    )
+    expect(contactCreate).not.toHaveBeenCalled()
+    expect(create).toHaveBeenCalledWith({
+      document: { _id: 'file-1', _type: 'io.cozy.files', name: 'Doc.pdf', type: 'file' },
+      description: 'Doc.pdf',
+      recipients: [{ _id: 'existing-contact-9', _type: 'io.cozy.contacts' }],
+      readOnlyRecipients: []
+    })
+  })
+})

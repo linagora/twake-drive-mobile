@@ -4,6 +4,7 @@ import {
   contactDisplayName,
   contactPrimaryEmail,
   filterContactSuggestions,
+  findContactIdByEmail,
   toSuggestion
 } from './contactSuggestions'
 
@@ -190,5 +191,44 @@ describe('filterContactSuggestions', () => {
     )
     const out = filterContactSuggestions(many, 'match')
     expect(out).toHaveLength(8)
+  })
+})
+
+describe('findContactIdByEmail', () => {
+  const contacts: ContactQueryResult[] = [
+    c({
+      _id: '1',
+      fullname: 'Alice Doe',
+      email: [{ address: 'alice@example.com', primary: true }]
+    }),
+    c({
+      _id: '4',
+      fullname: 'Carol Multi',
+      email: [
+        { address: 'carol@example.com', primary: true },
+        { address: 'carol.work@example.com' }
+      ]
+    }),
+    c({ _id: '3', fullname: 'No Email Person' })
+  ]
+
+  it('returns the contact id for an exact primary-email match (case-insensitive)', () => {
+    expect(findContactIdByEmail(contacts, 'ALICE@example.com')).toBe('1')
+  })
+
+  it('returns the contact id for a secondary-email match', () => {
+    expect(findContactIdByEmail(contacts, 'carol.work@example.com')).toBe('4')
+  })
+
+  it('returns undefined when no contact matches', () => {
+    expect(findContactIdByEmail(contacts, 'nobody@example.com')).toBeUndefined()
+  })
+
+  it('returns undefined for an empty / whitespace email', () => {
+    expect(findContactIdByEmail(contacts, '   ')).toBeUndefined()
+  })
+
+  it('requires a full-address match, not a substring', () => {
+    expect(findContactIdByEmail(contacts, 'alice@exa')).toBeUndefined()
   })
 })

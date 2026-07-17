@@ -302,15 +302,32 @@ const createContactForEmail = async (
 }
 
 /**
+ * Resolve the recipient contact reference for a sharing. When the caller
+ * already knows an existing contact — one picked from the autocomplete or
+ * matched by email in the address book — reuse its id: the stack can resolve
+ * it immediately. Only when no known contact is supplied do we mint a minimal
+ * one from the raw email (see createContactForEmail and its caveats).
+ */
+const recipientForEmail = async (
+  client: CozyClient,
+  email: string,
+  existingContactId?: string
+): Promise<{ _id: string; _type: string }> =>
+  existingContactId
+    ? { _id: existingContactId, _type: CONTACTS_DOCTYPE }
+    : createContactForEmail(client, email)
+
+/**
  * Add a recipient (by email) to an existing sharing.
  */
 export const addRecipient = async (
   client: CozyClient,
   sharing: SharingDoc,
   email: string,
-  readOnly: boolean
+  readOnly: boolean,
+  existingContactId?: string
 ): Promise<void> => {
-  const recipient = await createContactForEmail(client, email)
+  const recipient = await recipientForEmail(client, email, existingContactId)
   const args: Parameters<SharingsCollectionApi['addRecipients']>[0] = {
     document: { _id: sharing._id },
     recipients: readOnly ? [] : [recipient],
@@ -361,9 +378,10 @@ export const createSharingForFile = async (
   client: CozyClient,
   file: { _id: string; type?: 'file' | 'directory'; name?: string },
   email: string,
-  readOnly: boolean
+  readOnly: boolean,
+  existingContactId?: string
 ): Promise<SharingDoc> => {
-  const recipient = await createContactForEmail(client, email)
+  const recipient = await recipientForEmail(client, email, existingContactId)
   const document = {
     _id: file._id,
     _type: FILES_DOCTYPE,

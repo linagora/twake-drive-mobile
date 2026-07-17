@@ -66,3 +66,28 @@ export const filterContactSuggestions = (
   })
   return matches.slice(0, MAX_SUGGESTIONS)
 }
+
+/**
+ * Resolve a typed or selected email to an existing reachable contact's id.
+ *
+ * A sharing must reference a real io.cozy.contacts document; when the recipient
+ * already exists in the address book (the common case for internal org users),
+ * reuse its id instead of minting a throwaway contact — a fresh contact is
+ * written to the local (offline) Pouch first and the stack cannot resolve it as
+ * a recipient until it has replicated to the server. Full-address match only
+ * (primary or any secondary email), case-insensitive.
+ */
+export const findContactIdByEmail = (
+  contacts: readonly ContactQueryResult[],
+  email: string
+): string | undefined => {
+  const target = normalize(email)
+  if (target.length === 0) return undefined
+  for (const contact of contacts) {
+    const suggestion = toSuggestion(contact)
+    if (!suggestion) continue
+    if (suggestion.email.toLowerCase() === target) return suggestion._id
+    if (suggestion.secondaryEmails.some(e => e.toLowerCase() === target)) return suggestion._id
+  }
+  return undefined
+}

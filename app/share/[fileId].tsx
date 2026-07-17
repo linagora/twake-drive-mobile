@@ -26,7 +26,7 @@ import {
   fileByIdQueryAs,
   FileQueryResult
 } from '@/client/queries'
-import { filterContactSuggestions } from '@/files/contactSuggestions'
+import { filterContactSuggestions, findContactIdByEmail } from '@/files/contactSuggestions'
 import {
   LinkEditingRights,
   SharingMember,
@@ -217,10 +217,15 @@ export default function ShareRoute() {
     setMutating(true)
     setError(null)
     try {
+      // Reuse the recipient's existing address-book contact when we have it
+      // (picked from the autocomplete, or matching a reachable contact by
+      // email) instead of minting a throwaway contact the stack can't yet
+      // resolve — see findContactIdByEmail.
+      const existingContactId = findContactIdByEmail(contacts, email)
       if (sharing) {
-        await addRecipient(client, sharing, email, readOnlyInput)
+        await addRecipient(client, sharing, email, readOnlyInput, existingContactId)
       } else {
-        await createSharingForFile(client, file, email, readOnlyInput)
+        await createSharingForFile(client, file, email, readOnlyInput, existingContactId)
       }
       setEmailInput('')
       setShowAddForm(false)
