@@ -18,15 +18,9 @@ import { useClient, useQuery } from 'cozy-client'
 import * as Clipboard from 'expo-clipboard'
 
 import { useFlag } from '@/client/useFlag'
-import {
-  ContactQueryResult,
-  reachableContactsQuery,
-  reachableContactsQueryAs,
-  fileByIdQuery,
-  fileByIdQueryAs,
-  FileQueryResult
-} from '@/client/queries'
+import { fileByIdQuery, fileByIdQueryAs, FileQueryResult } from '@/client/queries'
 import { filterContactSuggestions, findContactIdByEmail } from '@/files/contactSuggestions'
+import { useReachableContacts } from '@/files/useReachableContacts'
 import {
   LinkEditingRights,
   SharingMember,
@@ -261,14 +255,9 @@ export default function ShareRoute() {
   // Contact autocomplete: only fetch when the add form is visible. Mirrors
   // cozy-sharing's web ShareAutosuggest — client-side filtering of the
   // reachable contacts collection.
-  const contactsQuery = useQuery(reachableContactsQuery(), {
-    as: reachableContactsQueryAs,
-    enabled: showAddForm
-  })
-  const contacts = useMemo(
-    () => (contactsQuery.data as ContactQueryResult[] | null | undefined) ?? [],
-    [contactsQuery.data]
-  )
+  // Fetch the recipient autocomplete list from the stack (not local Pouch) —
+  // see useReachableContacts for why.
+  const { contacts, loading: contactsLoading } = useReachableContacts(showAddForm)
   const excludeEmails = useMemo(
     () => recipients.map(r => r.email).filter((e): e is string => !!e),
     [recipients]
@@ -430,7 +419,7 @@ export default function ShareRoute() {
                 keyboardType="email-address"
                 style={styles.emailInput}
               />
-              {contactsQuery.fetchStatus === 'loading' && contacts.length === 0 ? (
+              {contactsLoading && contacts.length === 0 ? (
                 <Text variant="bodySmall" style={styles.suggestionsHint}>
                   {t('drive.share.suggestionsLoading')}
                 </Text>
