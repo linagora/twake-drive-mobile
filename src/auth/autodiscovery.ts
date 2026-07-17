@@ -27,19 +27,34 @@ export const fetchTwakeConfiguration = async (
 
 const REDIRECT_SCHEME = 'cozy://'
 
+// Twake Workplace sign-up / sign-in (the consumer flow) goes straight to this
+// fixed URL — no .well-known/twake-configuration lookup (that's only for an
+// organization's own server, discovered from the email domain).
+export const TWAKE_WORKPLACE_LOGIN_URL = 'https://signup.twake.app'
+
+const buildLoginUri = (flagshipUri: string, extra?: Record<string, string>): URL | null => {
+  try {
+    const uri = new URL(flagshipUri)
+    uri.searchParams.append('redirect_after_oidc', REDIRECT_SCHEME)
+    for (const [key, value] of Object.entries(extra ?? {})) uri.searchParams.append(key, value)
+    return uri
+  } catch {
+    return null
+  }
+}
+
 export const getLoginUri = async (email: string): Promise<URL | null> => {
   const domain = extractDomain(email)
   if (!domain) return null
 
   const config = await fetchTwakeConfiguration(domain)
   const flagshipUri = config?.['twake-flagship-login-uri']
-  if (!flagshipUri) return null
+  return flagshipUri ? buildLoginUri(flagshipUri) : null
+}
 
-  try {
-    const uri = new URL(flagshipUri)
-    uri.searchParams.append('redirect_after_oidc', REDIRECT_SCHEME)
-    return uri
-  } catch {
-    return null
-  }
+export const getTwakeWorkplaceLoginUri = (mode: 'signin' | 'signup'): URL => {
+  const uri = new URL(TWAKE_WORKPLACE_LOGIN_URL)
+  uri.searchParams.append('redirect_after_oidc', REDIRECT_SCHEME)
+  if (mode === 'signup') uri.searchParams.append('signup', 'true')
+  return uri
 }
