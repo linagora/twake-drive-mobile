@@ -6,6 +6,15 @@ export interface OnlineMonitor {
   getCurrent(): boolean
   getNetType(): string | undefined
   subscribe(listener: OnlineListener): () => void
+  /**
+   * Set/replace the stack URI used by the reachability probe, starting a probe
+   * immediately. The singleton may be created by a caller that does not yet know
+   * the URI (the offline Downloader calls getOnlineMonitor() with none), which
+   * would otherwise leave the probe disabled forever — and with it the only
+   * override for a NetInfo false-negative on networks that block its reachability
+   * check. useIsOnline supplies the URI once the client is ready.
+   */
+  setProbeUri(uri: string): void
   /** For tests. */
   dispose(): void
 }
@@ -23,6 +32,8 @@ export const createOnlineMonitor = (opts: CreateOptions = {}): OnlineMonitor => 
   const probeIntervalMs = opts.probeIntervalMs ?? 15 * 1000
   const probeTimeoutMs = opts.probeTimeoutMs ?? 8 * 1000
 
+  // Mutable so the stack URI can be supplied after construction — see setProbeUri.
+  let probeUri = opts.probeUri
   let netInfoOnline = true
   let probeOnline: boolean | null = null
   let netType: string | undefined
@@ -39,11 +50,11 @@ export const createOnlineMonitor = (opts: CreateOptions = {}): OnlineMonitor => 
   }
 
   const probe = async (): Promise<void> => {
-    if (!opts.probeUri) return
+    if (!probeUri) return
     const controller = new AbortController()
     const timeout = setTimeout(() => controller.abort(), probeTimeoutMs)
     try {
-      const r = await fetch(`${opts.probeUri}/status`, {
+      const r = await fetch(`${probeUri}/status`, {
         method: 'GET',
         cache: 'no-cache',
         signal: controller.signal
@@ -78,6 +89,11 @@ export const createOnlineMonitor = (opts: CreateOptions = {}): OnlineMonitor => 
   return {
     getCurrent: () => current(),
     getNetType: () => netType,
+    setProbeUri: (uri: string) => {
+      if (!uri || uri === probeUri) return
+      probeUri = uri
+      void probe()
+    },
     subscribe: listener => {
       listeners.add(listener)
       return () => listeners.delete(listener)
@@ -93,7 +109,13 @@ export const createOnlineMonitor = (opts: CreateOptions = {}): OnlineMonitor => 
 let singleton: OnlineMonitor | null = null
 
 export const getOnlineMonitor = (probeUri?: string): OnlineMonitor => {
-  if (!singleton) singleton = createOnlineMonitor({ probeUri })
+  if (!singleton) {
+    singleton = createOnlineMonitor({ probeUri })
+  } else if (probeUri) {
+    // A prior caller (e.g. the offline Downloader) may have created the singleton
+    // without a URI, disabling the probe. Supply it now so probing starts.
+    singleton.setProbeUri(probeUri)
+  }
   return singleton
 }
 

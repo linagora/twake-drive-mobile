@@ -90,4 +90,27 @@ describe('OnlineMonitor', () => {
     })
     expect(listener).not.toHaveBeenCalled()
   })
+
+  it('setProbeUri lets a monitor created without a URI start probing and override a NetInfo false-negative', async () => {
+    fetchMock.mockResolvedValue({ status: 200 } as unknown as Response)
+    // Simulates the singleton being created first by a caller with no stack URI
+    // (e.g. the offline Downloader) — the probe is disabled, so online tracks NetInfo.
+    const mon = createOnlineMonitor({ probeUri: undefined, probeIntervalMs: 1000 })
+    await flush()
+    ;(NetInfo as unknown as { __emit: (s: Partial<NetInfoState>) => void }).__emit({
+      isConnected: false,
+      isInternetReachable: false,
+      type: 'none' as never
+    })
+    await flush()
+    expect(mon.getCurrent()).toBe(false) // stuck offline: no probe to override NetInfo
+    expect(fetchMock).not.toHaveBeenCalled()
+
+    // Once the real stack URI is provided (as useIsOnline does when the client is
+    // ready), the probe runs and its success overrides the NetInfo false-negative.
+    mon.setProbeUri('https://stack.example.com')
+    await flush()
+    expect(fetchMock).toHaveBeenCalled()
+    expect(mon.getCurrent()).toBe(true)
+  })
 })
