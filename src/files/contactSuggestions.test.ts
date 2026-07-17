@@ -77,6 +77,12 @@ describe('toSuggestion', () => {
     expect(toSuggestion(c({ _id: '1', fullname: 'No Mail' }))).toBeNull()
   })
 
+  it('returns null when the email is not a real address (no @) — junk throwaway contact', () => {
+    expect(
+      toSuggestion(c({ _id: '1', fullname: 'valmori', email: [{ address: 'valmori' }] }))
+    ).toBeNull()
+  })
+
   it('falls back displayName to primary email when no name available', () => {
     expect(toSuggestion(c({ _id: '1', email: [{ address: 'only@x.tld' }] }))).toEqual({
       _id: '1',
@@ -151,6 +157,21 @@ describe('filterContactSuggestions', () => {
   it('skips contacts with no email at all', () => {
     const out = filterContactSuggestions(contacts, '')
     expect(out.find(s => s._id === '3')).toBeUndefined()
+  })
+
+  it('skips contacts whose only email is not a real address (no @)', () => {
+    const out = filterContactSuggestions(
+      [
+        c({ _id: 'junk', fullname: 'valmori', email: [{ address: 'valmori' }] }),
+        c({
+          _id: '1',
+          fullname: 'Alice Doe',
+          email: [{ address: 'alice@example.com', primary: true }]
+        })
+      ],
+      ''
+    )
+    expect(out.map(s => s._id)).toEqual(['1'])
   })
 
   it('matches displayName case-insensitively', () => {

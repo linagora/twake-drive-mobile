@@ -39,9 +39,14 @@ export const contactPrimaryEmail = (contact: ContactQueryResult): string | undef
 
 export const toSuggestion = (contact: ContactQueryResult): ContactSuggestion | null => {
   const email = contactPrimaryEmail(contact)
-  if (!email) return null
+  // A real recipient needs an actual email address. Throwaway "contacts" created
+  // by earlier shares can carry a non-email string (e.g. "valmori"); skip them so
+  // they never appear in the recipient autocomplete.
+  if (!email || !email.includes('@')) return null
   const display = contactDisplayName(contact) ?? email
-  const secondary = (contact.email ?? []).map(e => e.address).filter(a => !!a && a !== email)
+  const secondary = (contact.email ?? [])
+    .map(e => e.address)
+    .filter(a => !!a && a.includes('@') && a !== email)
   return { _id: contact._id, displayName: display, email, secondaryEmails: secondary }
 }
 

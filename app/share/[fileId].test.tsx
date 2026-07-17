@@ -36,6 +36,9 @@ jest.mock('react-i18next', () => ({
 
 jest.mock('@/client/useFlag', () => ({ useFlag: () => true }))
 jest.mock('@/network/useIsOnline', () => ({ useIsOnline: () => true }))
+jest.mock('@/files/useReachableContacts', () => ({
+  useReachableContacts: () => ({ contacts: [], loading: false })
+}))
 jest.mock('@/sharing/SharingProvider', () => ({
   useFileSharing: () => ({ loaded: true, entry: undefined }),
   useRefreshSharings: () => jest.fn()
