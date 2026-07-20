@@ -1,0 +1,10 @@
+---
+description: Twake Drive Mobile — project agent rules
+alwaysApply: true
+---
+
+Follow the rules in the repository root `AGENTS.md`. It is the single source of truth
+for this repo's architecture decisions and points to the shared Twake / Cozy
+conventions in [linagora/twake-guidelines](https://github.com/linagora/twake-guidelines).
+
+@AGENTS.md
