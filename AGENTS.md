@@ -26,13 +26,10 @@ duplicate it here.
 
 The app must work **offline**. That is why it is built on `cozy-client` +
 `cozy-pouch-link` (and friends): they own the local persistence and replication, so
-queries keep working with no network. Consequences:
-
-- **Never bypass the query layer.** All reads go through `client.query()` /
-  `useQuery()` with `Q(...)`. Hitting `client.collection(...)` directly bypasses the
-  PouchDB pipeline and silently breaks offline (see the central cozy-client rules).
-- Anything that must survive offline has to flow through this stack — don't reach for
-  ad-hoc fetch/storage.
+queries keep working with no network. The repo-specific point is: anything that must
+survive offline has to flow through this stack, not ad-hoc fetch/storage. For _how_ to
+read/write (query layer, `Q()`, no direct collection access), follow the central
+cozy-client rules in twake-guidelines — not repeated here.
 
 ### Sync is periodic, not real-time — so we do optimistic updates
 
@@ -99,14 +96,15 @@ Wiring Maestro into CI on pull requests is a planned task, not yet done.
 
 ## Quick checklist before you open a PR
 
-- Reads/writes go through `useQuery` / `client.query` with `Q()` — no direct
-  collection access.
-- Mutations update the cache optimistically.
-- New UI borrows tokens from cozy-ui / twake-mui (reference only) and builds on
+- Mutations update the cache optimistically (periodic sync, no websocket).
+- New UI borrows tokens from cozy-ui / twake-mui (reference only), built on
   react-native-paper — no importing the web MUI libs into RN.
 - Every user-facing string has an i18n key filled in all 7 locale files.
 - No password entry in a webview.
 - Native change on one platform only → tracking issue opened for the other.
 - Checked twake-drive (web) for prior art on any stack interaction.
 - `npm test`, `npm run typecheck`, `npm run lint` are green.
-- Commits follow Conventional Commits (enforced locally by lefthook + in CI).
+
+Generic Cozy / React / JS and git-commit conventions are **not** repeated here — they
+live in [twake-guidelines](https://github.com/linagora/twake-guidelines), which this
+repo imports.
