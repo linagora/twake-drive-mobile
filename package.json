@@ -13,7 +13,17 @@
     "typecheck": "tsc --noEmit",
     "e2e:android": "./e2e/scripts/run-android.sh",
     "e2e:ios": "./e2e/scripts/run-ios.sh",
-    "e2e:login": "maestro test e2e/maestro/flows/00-login.yaml"
+    "e2e:login": "maestro test e2e/maestro/flows/00-login.yaml",
+    "prepare": "lefthook install"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{js,jsx,json,md,yml,yaml}": [
+      "prettier --write"
+    ]
   },
   "dependencies": {
     "@craftzdog/pouchdb-collate-react-native": "^7.3.0",
@@ -79,6 +89,8 @@
     "readable-stream": "^4.7.0"
   },
   "devDependencies": {
+    "@commitlint/cli": "^19.6.1",
+    "@commitlint/config-conventional": "^19.6.0",
     "@testing-library/react-native": "^12.9.0",
     "@types/react": "~19.1.0",
     "@types/react-native-vector-icons": "^6.4.18",
@@ -93,6 +105,8 @@
     "expo-build-properties": "^55.0.13",
     "jest": "^29.7.0",
     "jest-expo": "^55.0.16",
+    "lefthook": "^1.10.10",
+    "lint-staged": "^15.4.3",
     "nock": "^13.5.6",
     "node-fetch": "^2.7.0",
     "pouchdb-adapter-memory": "^8.0.1",

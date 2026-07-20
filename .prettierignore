@@ -1,0 +1,9 @@
+package-lock.json
+node_modules/
+build/
+.expo/
+coverage/
+ios/Pods/
+ios/build/
+android/build/
+android/.gradle/
