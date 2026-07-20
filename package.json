@@ -112,7 +112,7 @@
     "pouchdb-adapter-memory": "^8.0.1",
     "prettier": "^3.8.3",
     "react-native-worklets": "^0.8.1",
-    "typescript": "~5.9.2"
+    "typescript": "~7.0.2"
   },
   "private": true,
   "overrides": {
