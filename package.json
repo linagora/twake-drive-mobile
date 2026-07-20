@@ -30,7 +30,7 @@
     "@craftzdog/react-native-buffer": "^6.1.2",
     "@expo-google-fonts/inter": "^0.4.2",
     "@op-engineering/op-sqlite": "15.0.7",
-    "@react-native-community/netinfo": "^11.5.2",
+    "@react-native-community/netinfo": "^12.0.1",
     "cozy-client": "^60.24.0",
     "cozy-device-helper": "^3.8.0",
     "cozy-flags": "^4.9.1",
