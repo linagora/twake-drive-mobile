@@ -31,6 +31,9 @@ export const normalizeRedirectUrl = (raw: string): string => {
   return url
 }
 
+const CANCEL_GRACE_MS = 400
+const REDIRECT_RACE_GRACE_MS = 4000
+
 // Open `url` in the system browser (an external Custom Tab — an RFC 8252
 // user-agent with no access to the page's cookies or credentials) and resolve
 // with the cozy:// redirect captured as an OS deep link.
@@ -66,8 +69,11 @@ const openViaSystemBrowser = (url: string): Promise<string> =>
       }
     })
     WebBrowser.openBrowserAsync(url, { showInRecents: true }).then(
-      () => {
-        timer = setTimeout(() => finish(() => reject(new UserCancelledError())), 4000)
+      result => {
+        if (settled) return
+        const userClosed = result?.type === WebBrowser.WebBrowserResultType.CANCEL
+        const grace = userClosed ? CANCEL_GRACE_MS : REDIRECT_RACE_GRACE_MS
+        timer = setTimeout(() => finish(() => reject(new UserCancelledError())), grace)
       },
       (err: unknown) => finish(() => reject(err as Error))
     )
