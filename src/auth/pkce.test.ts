@@ -7,7 +7,8 @@ import { UserCancelledError } from './types'
 jest.mock('expo-web-browser', () => ({
   openBrowserAsync: jest.fn(),
   openAuthSessionAsync: jest.fn(),
-  dismissBrowser: jest.fn(() => Promise.resolve())
+  dismissBrowser: jest.fn(() => Promise.resolve()),
+  WebBrowserResultType: { CANCEL: 'cancel', DISMISS: 'dismiss', OPENED: 'opened', LOCKED: 'locked' }
 }))
 jest.mock('expo-linking', () => ({ addEventListener: jest.fn() }))
 jest.mock('expo-crypto', () => ({}))
@@ -57,6 +58,36 @@ describe('openLoginUrl (shared-jar Custom Tab)', () => {
     const p = openLoginUrl('https://x/oauth')
     urlHandler({ url: 'cozy://?code=win' })
     await expect(p).resolves.toBe('cozy://?code=win')
+  })
+
+  it('rejects fast (short grace) when the user closes the browser (cancel)', async () => {
+    jest.useFakeTimers()
+    wb.openBrowserAsync.mockResolvedValue({ type: 'cancel' })
+    const p = openLoginUrl('https://x/oauth')
+    const assertion = expect(p).rejects.toBeInstanceOf(UserCancelledError)
+    await Promise.resolve()
+    await Promise.resolve()
+    jest.advanceTimersByTime(500)
+    await assertion
+    jest.useRealTimers()
+  })
+
+  it('keeps the long grace on a non-cancel close (dismiss refocus race)', async () => {
+    jest.useFakeTimers()
+    wb.openBrowserAsync.mockResolvedValue({ type: 'dismiss' })
+    const p = openLoginUrl('https://x/oauth')
+    let settled = false
+    void p.catch(() => {
+      settled = true
+    })
+    await Promise.resolve()
+    await Promise.resolve()
+    jest.advanceTimersByTime(500)
+    await Promise.resolve()
+    expect(settled).toBe(false)
+    jest.advanceTimersByTime(4000)
+    await expect(p).rejects.toBeInstanceOf(UserCancelledError)
+    jest.useRealTimers()
   })
 })
 
