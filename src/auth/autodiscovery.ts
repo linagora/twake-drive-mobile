@@ -27,10 +27,12 @@ export const fetchTwakeConfiguration = async (
 
 const REDIRECT_SCHEME = 'cozy://'
 
-// Twake Workplace sign-up / sign-in (the consumer flow) goes straight to this
-// fixed URL — no .well-known/twake-configuration lookup (that's only for an
-// organization's own server, discovered from the email domain).
-export const TWAKE_WORKPLACE_LOGIN_URL = 'https://sign-up.twake.app'
+// The Twake consumer sign-in / sign-up goes through the Cozy cloudery (manager),
+// which orchestrates the sign-up.twake.app login (including the already-signed-in
+// case) and mints the fqdn+code the app needs — the same manager the org flow
+// reaches via twake-flagship-login-uri. Mirrors cozy-flagship-app's Twake cloudery
+// URL. Opening sign-up.twake.app directly does not yield an OIDC code for Drive.
+export const TWAKE_CLOUDERY_LOGIN_URL = 'https://manager.cozycloud.cc/linagora/twake_prod'
 
 const buildLoginUri = (flagshipUri: string, extra?: Record<string, string>): URL | null => {
   try {
@@ -52,15 +54,12 @@ export const getLoginUri = async (email: string): Promise<URL | null> => {
   return flagshipUri ? buildLoginUri(flagshipUri) : null
 }
 
-// Twake Workplace (sign-up.twake.app) picks its entry screen from its own intent
-// params: `login` → login screen, `register` → register screen; neither → the
-// landing/home page. It ignores `redirect_after_oidc`, so without an intent param
-// sign-in lands on the home page instead of the login form. The token still comes
-// back through our own `redirect_after_oidc=cozy://` deep-link, untouched here.
 export const getTwakeWorkplaceLoginUri = (mode: 'signin' | 'signup'): URL => {
-  const uri = new URL(TWAKE_WORKPLACE_LOGIN_URL)
+  const uri = new URL(TWAKE_CLOUDERY_LOGIN_URL)
   uri.searchParams.append('redirect_after_oidc', REDIRECT_SCHEME)
-  uri.searchParams.append(mode === 'signup' ? 'register' : 'login', 'true')
-  uri.searchParams.append('app', 'twake-drive')
+  // The cloudery selects the register flow with `register=true`; sign-in is the
+  // default. The redirect comes back as cozy://?fqdn=…&code=…, consumed by the
+  // same parseCallbackUrl + registerSession path as the org login.
+  if (mode === 'signup') uri.searchParams.append('register', 'true')
   return uri
 }
