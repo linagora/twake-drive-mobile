@@ -25,7 +25,7 @@ export const fetchTwakeConfiguration = async (
   }
 }
 
-const REDIRECT_SCHEME = 'cozy://'
+const REDIRECT_SCHEME = 'twakedrive://'
 
 // The Twake consumer sign-in / sign-up goes through the Cozy cloudery (manager),
 // which orchestrates the sign-up.twake.app login (including the already-signed-in
@@ -58,7 +58,7 @@ export const getTwakeWorkplaceLoginUri = (mode: 'signin' | 'signup'): URL => {
   const uri = new URL(TWAKE_CLOUDERY_LOGIN_URL)
   uri.searchParams.append('redirect_after_oidc', REDIRECT_SCHEME)
   // The cloudery selects the register flow with `register=true`; sign-in is the
-  // default. The redirect comes back as cozy://?fqdn=…&code=…, consumed by the
+  // default. The redirect comes back as twakedrive://?fqdn=…&code=…, consumed by the
   // same parseCallbackUrl + registerSession path as the org login.
   if (mode === 'signup') uri.searchParams.append('register', 'true')
   return uri

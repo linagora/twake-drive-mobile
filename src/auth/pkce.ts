@@ -4,7 +4,7 @@ import * as Linking from 'expo-linking'
 
 import { UserCancelledError } from './types'
 
-export const REDIRECT_URL = 'cozy://'
+export const REDIRECT_URL = 'twakedrive://'
 
 const base64UrlEncode = (bytes: Uint8Array): string => {
   let binary = ''
@@ -26,7 +26,7 @@ export const generatePkce = async (): Promise<{ codeVerifier: string; codeChalle
 
 export const normalizeRedirectUrl = (raw: string): string => {
   let url = raw
-  if (url.startsWith('cozy:?')) url = url.replace('cozy:?', 'cozy://?')
+  if (url.startsWith('twakedrive:?')) url = url.replace('twakedrive:?', 'twakedrive://?')
   url = url.replace(/%23$/i, '').replace(/#$/, '')
   return url
 }
@@ -36,7 +36,7 @@ const REDIRECT_RACE_GRACE_MS = 4000
 
 // Open `url` in the system browser (an external Custom Tab — an RFC 8252
 // user-agent with no access to the page's cookies or credentials) and resolve
-// with the cozy:// redirect captured as an OS deep link.
+// with the twakedrive:// redirect captured as an OS deep link.
 //
 // We deliberately do NOT use WebBrowser.openAuthSessionAsync here: the auth
 // session cancels as soon as the app is backgrounded, and the flagship
@@ -44,7 +44,7 @@ const REDIRECT_RACE_GRACE_MS = 4000
 // to read the 6-digit code from their mail and come back. On OIDC/LemonLDAP that
 // backgrounding aborted the authorize flow and bounced the user back to the
 // welcome screen. A plain Custom Tab stays open across the excursion, and the
-// deep-link listener catches the final cozy:// redirect at the OS level.
+// deep-link listener catches the final twakedrive:// redirect at the OS level.
 const openViaSystemBrowser = (url: string): Promise<string> =>
   new Promise<string>((resolve, reject) => {
     let settled = false
@@ -63,8 +63,8 @@ const openViaSystemBrowser = (url: string): Promise<string> =>
       run()
     }
     sub = Linking.addEventListener('url', ({ url: incoming }) => {
-      if (incoming?.startsWith('cozy:')) {
-        console.log('[auth] captured cozy:// redirect via deep link')
+      if (incoming?.startsWith('twakedrive:')) {
+        console.log('[auth] captured twakedrive:// redirect via deep link')
         finish(() => resolve(normalizeRedirectUrl(incoming)))
       }
     })
@@ -81,7 +81,7 @@ const openViaSystemBrowser = (url: string): Promise<string> =>
 
 export const openAuthorizeUrl = async (url: string): Promise<string> => {
   console.log('[auth] opening authorize URL', url.split('?')[0])
-  // The stack's /auth/authorize step usually redirects to cozy:// instantly with
+  // The stack's /auth/authorize step usually redirects to twakedrive:// instantly with
   // no UI. openAuthSessionAsync captures that native redirect reliably; the
   // openBrowserAsync + deep-link path misses the instant custom-scheme redirect.
   // This does not affect the Docs cookie jar — the Lemon SSO cookie is set during

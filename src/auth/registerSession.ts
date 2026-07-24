@@ -12,7 +12,7 @@ interface OidcResponse {
   scope?: string
 }
 
-const REDIRECT_URL = 'cozy://'
+const REDIRECT_URL = 'twakedrive://'
 
 const buildOauthOptions = (): Omit<OAuthOptions, 'clientID' | 'clientSecret'> => ({
   clientName: 'Twake Drive Mobile',

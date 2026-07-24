@@ -8,7 +8,7 @@ jest.mock('./pkce', () => ({
 
 describe('parseCallbackUrl', () => {
   it('extracts fqdn, code, and defaultRedirection from a callback URL', () => {
-    const url = 'cozy://?fqdn=alice.example.com&code=abc123&default_redirection=files/'
+    const url = 'twakedrive://?fqdn=alice.example.com&code=abc123&default_redirection=files/'
     expect(parseCallbackUrl(url)).toEqual({
       fqdn: 'alice.example.com',
       code: 'abc123',
@@ -17,7 +17,7 @@ describe('parseCallbackUrl', () => {
   })
 
   it('returns defaultRedirection as null when missing', () => {
-    expect(parseCallbackUrl('cozy://?fqdn=alice.example.com&code=abc')).toEqual({
+    expect(parseCallbackUrl('twakedrive://?fqdn=alice.example.com&code=abc')).toEqual({
       fqdn: 'alice.example.com',
       code: 'abc',
       defaultRedirection: null
@@ -25,11 +25,11 @@ describe('parseCallbackUrl', () => {
   })
 
   it('throws when fqdn is missing', () => {
-    expect(() => parseCallbackUrl('cozy://?code=abc')).toThrow(/fqdn/)
+    expect(() => parseCallbackUrl('twakedrive://?code=abc')).toThrow(/fqdn/)
   })
 
   it('throws when code is missing', () => {
-    expect(() => parseCallbackUrl('cozy://?fqdn=alice.example.com')).toThrow(/code/)
+    expect(() => parseCallbackUrl('twakedrive://?fqdn=alice.example.com')).toThrow(/code/)
   })
 
   it('throws on a malformed URL', () => {
@@ -40,8 +40,10 @@ describe('parseCallbackUrl', () => {
 describe('startOidcFlow', () => {
   beforeEach(() => jest.clearAllMocks())
 
-  it('returns the parsed callback when the system browser captures a cozy:// redirect', async () => {
-    ;(openLoginUrl as jest.Mock).mockResolvedValueOnce('cozy://?fqdn=alice.example.com&code=tok')
+  it('returns the parsed callback when the system browser captures a twakedrive:// redirect', async () => {
+    ;(openLoginUrl as jest.Mock).mockResolvedValueOnce(
+      'twakedrive://?fqdn=alice.example.com&code=tok'
+    )
     const result = await startOidcFlow(new URL('https://login.example.com/oauth'))
     expect(result).toEqual({ fqdn: 'alice.example.com', code: 'tok', defaultRedirection: null })
     expect(openLoginUrl).toHaveBeenCalledWith('https://login.example.com/oauth')

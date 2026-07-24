@@ -69,7 +69,7 @@ describe('getLoginUri', () => {
     const result = await getLoginUri('user@example.com')
     expect(result).not.toBeNull()
     expect(result?.origin).toBe('https://login.example.com')
-    expect(result?.searchParams.get('redirect_after_oidc')).toBe('cozy://')
+    expect(result?.searchParams.get('redirect_after_oidc')).toBe('twakedrive://')
   })
 
   it('returns null for an invalid email', async () => {
@@ -89,26 +89,26 @@ describe('getLoginUri', () => {
     })
     const result = await getLoginUri('user@example.com')
     expect(result?.searchParams.get('client_id')).toBe('foo')
-    expect(result?.searchParams.get('redirect_after_oidc')).toBe('cozy://')
+    expect(result?.searchParams.get('redirect_after_oidc')).toBe('twakedrive://')
   })
 })
 
 describe('getTwakeWorkplaceLoginUri', () => {
   // The Twake consumer flow goes through the Cozy cloudery (manager), not
   // sign-up.twake.app directly — the cloudery mints the fqdn+code the app needs.
-  it('opens the cloudery login in sign-in mode with the cozy redirect', () => {
+  it('opens the cloudery login in sign-in mode with the twakedrive redirect', () => {
     const uri = getTwakeWorkplaceLoginUri('signin')
     expect(uri.host).toBe('manager.cozycloud.cc')
     expect(uri.pathname).toBe('/linagora/twake_prod')
-    expect(uri.searchParams.get('redirect_after_oidc')).toBe('cozy://')
+    expect(uri.searchParams.get('redirect_after_oidc')).toBe('twakedrive://')
     expect(uri.searchParams.get('register')).toBeNull()
   })
 
-  it('opens the cloudery register flow in sign-up mode with the cozy redirect', () => {
+  it('opens the cloudery register flow in sign-up mode with the twakedrive redirect', () => {
     const uri = getTwakeWorkplaceLoginUri('signup')
     expect(uri.host).toBe('manager.cozycloud.cc')
     expect(uri.pathname).toBe('/linagora/twake_prod')
-    expect(uri.searchParams.get('redirect_after_oidc')).toBe('cozy://')
+    expect(uri.searchParams.get('redirect_after_oidc')).toBe('twakedrive://')
     expect(uri.searchParams.get('register')).toBe('true')
   })
 })

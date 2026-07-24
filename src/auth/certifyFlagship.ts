@@ -14,7 +14,7 @@
  *      c. On correct code entry: POSTs /auth/clients/:id/flagship (WebView form),
  *         sets flagship:true in CouchDB, redirects back to the authorize page.
  *      d. Renders the "Accept" permissions page; on click, redirects to the app's
- *         redirect_uri (cozy://) with an auth code.
+ *         redirect_uri (twakedrive://) with an auth code.
  * 3. client.authorize() captures the redirect, exchanges the code for a token
  *    with scope:* (using PKCE), and returns it.
  * 4. We return a new Session with the scope:* token; callers persist it and

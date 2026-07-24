@@ -9,7 +9,7 @@ const session = {
     clientSecret: 'csecret',
     clientName: 'Twake Drive Mobile',
     softwareID: 'twake-drive-mobile',
-    redirectURI: 'cozy://',
+    redirectURI: 'twakedrive://',
     clientKind: 'mobile',
     clientURI: 'https://twake.app',
     scopes: ['io.cozy.files']

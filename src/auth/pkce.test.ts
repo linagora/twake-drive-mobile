@@ -45,19 +45,19 @@ describe('openLoginUrl (shared-jar Custom Tab)', () => {
     expect(wb.openAuthSessionAsync).not.toHaveBeenCalled()
   })
 
-  it('resolves with the cozy:// redirect captured via the deep-link listener', async () => {
+  it('resolves with the twakedrive:// redirect captured via the deep-link listener', async () => {
     wb.openBrowserAsync.mockReturnValue(new Promise(() => undefined))
     const p = openLoginUrl('https://x/oauth')
-    urlHandler({ url: 'cozy://?code=abc123' })
-    await expect(p).resolves.toBe('cozy://?code=abc123')
+    urlHandler({ url: 'twakedrive://?code=abc123' })
+    await expect(p).resolves.toBe('twakedrive://?code=abc123')
     expect(remove).toHaveBeenCalled()
   })
 
   it('lets a redirect win over a racing tab-close', async () => {
     wb.openBrowserAsync.mockResolvedValue({ type: 'cancel' })
     const p = openLoginUrl('https://x/oauth')
-    urlHandler({ url: 'cozy://?code=win' })
-    await expect(p).resolves.toBe('cozy://?code=win')
+    urlHandler({ url: 'twakedrive://?code=win' })
+    await expect(p).resolves.toBe('twakedrive://?code=win')
   })
 
   it('rejects fast (short grace) when the user closes the browser (cancel)', async () => {
@@ -107,15 +107,21 @@ describe('openAuthorizeUrl (fast native redirect + email-code fallback)', () => 
     wb.dismissBrowser.mockReturnValue(undefined)
   })
 
-  // The stack's /auth/authorize redirects to cozy:// instantly with no UI.
+  // The stack's /auth/authorize redirects to twakedrive:// instantly with no UI.
   // openAuthSessionAsync captures that native redirect reliably; the
   // openBrowserAsync + deep-link path misses the instant custom-scheme redirect.
   it('captures the instant redirect via openAuthSessionAsync (fast path)', async () => {
-    wb.openAuthSessionAsync.mockResolvedValue({ type: 'success', url: 'cozy://?code=fast' })
-    await expect(openAuthorizeUrl('https://x/auth/authorize')).resolves.toBe('cozy://?code=fast')
-    expect(wb.openAuthSessionAsync).toHaveBeenCalledWith('https://x/auth/authorize', 'cozy://', {
-      showInRecents: false
-    })
+    wb.openAuthSessionAsync.mockResolvedValue({ type: 'success', url: 'twakedrive://?code=fast' })
+    await expect(openAuthorizeUrl('https://x/auth/authorize')).resolves.toBe(
+      'twakedrive://?code=fast'
+    )
+    expect(wb.openAuthSessionAsync).toHaveBeenCalledWith(
+      'https://x/auth/authorize',
+      'twakedrive://',
+      {
+        showInRecents: false
+      }
+    )
     expect(wb.openBrowserAsync).not.toHaveBeenCalled()
   })
 
@@ -129,8 +135,8 @@ describe('openAuthorizeUrl (fast native redirect + email-code fallback)', () => 
     const p = openAuthorizeUrl('https://x/auth/authorize')
     await Promise.resolve()
     await Promise.resolve()
-    urlHandler({ url: 'cozy://?code=viacustomtab' })
-    await expect(p).resolves.toBe('cozy://?code=viacustomtab')
+    urlHandler({ url: 'twakedrive://?code=viacustomtab' })
+    await expect(p).resolves.toBe('twakedrive://?code=viacustomtab')
     expect(wb.openBrowserAsync).toHaveBeenCalledWith('https://x/auth/authorize', {
       showInRecents: true
     })

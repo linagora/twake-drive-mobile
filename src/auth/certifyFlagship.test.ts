@@ -18,7 +18,7 @@ jest.mock('@/auth/pkce', () => ({
     codeChallenge: 'test-challenge'
   }),
   normalizeRedirectUrl: jest.fn((url: string) => url),
-  openAuthorizeUrl: jest.fn().mockResolvedValue('cozy://oauth?code=AUTHCODE&state=STATE')
+  openAuthorizeUrl: jest.fn().mockResolvedValue('twakedrive://oauth?code=AUTHCODE&state=STATE')
 }))
 
 const mockSetUri = jest.fn()
@@ -36,7 +36,7 @@ const mockStackClient = {
     clientSecret: 'existing-secret',
     clientName: 'Twake Drive Mobile',
     softwareID: 'twake-drive-mobile',
-    redirectURI: 'cozy://',
+    redirectURI: 'twakedrive://',
     clientKind: 'mobile',
     clientURI: 'https://twake.app',
     scopes: ['io.cozy.files']
@@ -73,7 +73,7 @@ const mockSession: Session = {
     clientSecret: 'existing-secret',
     clientName: 'Twake Drive Mobile',
     softwareID: 'twake-drive-mobile',
-    redirectURI: 'cozy://',
+    redirectURI: 'twakedrive://',
     clientKind: 'mobile',
     clientURI: 'https://twake.app',
     scopes: ['io.cozy.files']
