@@ -73,7 +73,8 @@ export const FileThumbnail = ({ file, size = 40 }: Props) => {
     let cancelled = false
     void (async () => {
       try {
-        const stack = client.getStackClient() as unknown as StackFileClient
+        const stack = client.getStackClient() as unknown as StackFileClient | null
+        if (!stack) return
         const resp = await stack.collection('io.cozy.files').get(file._id)
         const links = resp?.data?.links ?? null
         thumbnailLinkCache.set(file._id, { links, at: Date.now() })
