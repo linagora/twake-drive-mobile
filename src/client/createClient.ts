@@ -4,6 +4,7 @@ import flag from 'cozy-flags'
 import { APP_SCOPES } from '@/auth/scopes'
 import { Session } from '@/auth/types'
 import { configureNetInfo } from '@/network/netInfoConfig'
+import { installChunkedSetData } from '@/pouchdb/chunkedSetData'
 import { getLinks } from '@/pouchdb/getLinks'
 import { triggerPouchReplication } from '@/pouchdb/triggerReplication'
 
@@ -42,6 +43,8 @@ export const createClient = async (session: Session): Promise<CozyClient> => {
     },
     links: getLinks()
   } as ConstructorParameters<typeof CozyClient>[0] & { scope: string[] })
+
+  installChunkedSetData(client as unknown as Parameters<typeof installChunkedSetData>[0])
 
   try {
     await client.registerPlugin(flag.plugin, null)
