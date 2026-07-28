@@ -56,3 +56,9 @@ gcp-service-account*.json
 # TODOs are kept local; only the public end-to-end testing guide is tracked.
 /docs/*
 !/docs/e2e-testing.md
+
+# Visual-regression runs: only the baseline is tracked, the per-run captures and
+# the generated diffs are not.
+/e2e/maestro/screenshots/current/
+/e2e/maestro/screenshots/diff/
+/e2e/maestro/screenshots/.maestro-run/
