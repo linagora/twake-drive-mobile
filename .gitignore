@@ -60,3 +60,9 @@ gcp-service-account*.json
 # The release runbook names secrets and describes the procedure; it holds no
 # value, and releasing from this repository means it belongs with it.
 !/docs/ci-cd-signed-release.md
+
+# Visual-regression runs: only the baseline is tracked, the per-run captures and
+# the generated diffs are not.
+/e2e/maestro/screenshots/current/
+/e2e/maestro/screenshots/diff/
+/e2e/maestro/screenshots/.maestro-run/
