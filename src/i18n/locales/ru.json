@@ -36,7 +36,8 @@
     "continue": "Продолжить",
     "errorDomainUnsupported": "Этот домен не поддерживает Twake Drive.",
     "errorNetwork": "Нет подключения. Проверьте сеть.",
-    "errorGeneric": "Не удалось войти. Повторите попытку."
+    "errorGeneric": "Не удалось войти. Повторите попытку.",
+    "errorSessionExpired": "Сессия истекла. Войдите снова."
   },
   "drive": {
     "myFiles": "Мои файлы",

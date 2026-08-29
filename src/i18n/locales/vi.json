@@ -36,7 +36,8 @@
     "continue": "Tiếp tục",
     "errorDomainUnsupported": "Miền này không hỗ trợ Twake Drive.",
     "errorNetwork": "Không có kết nối. Kiểm tra mạng của bạn.",
-    "errorGeneric": "Không thể đăng nhập. Hãy thử lại."
+    "errorGeneric": "Không thể đăng nhập. Hãy thử lại.",
+    "errorSessionExpired": "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại."
   },
   "drive": {
     "myFiles": "Tệp của tôi",

@@ -26,6 +26,13 @@ interface AuthState {
 
 interface AuthContextValue extends AuthState {
   authenticating: boolean
+  /**
+   * True when a stored session existed at cold start but could no longer be
+   * used (revoked or expired token). Lets the welcome screen explain the
+   * bounce instead of silently reappearing as if the user had never logged in.
+   */
+  sessionExpired: boolean
+  dismissSessionExpired: () => void
   login: (email: string) => Promise<void>
   loginWithTwakeWorkplace: (mode: 'signin' | 'signup') => Promise<void>
   logout: () => Promise<void>
@@ -40,6 +47,7 @@ let devResyncInFlight = false
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [state, setState] = useState<AuthState>({ status: 'loading', client: null })
   const [authenticating, setAuthenticating] = useState(false)
+  const [sessionExpired, setSessionExpired] = useState(false)
   const clientRef = useRef<CozyClient | null>(null)
 
   useEffect(() => {
@@ -48,12 +56,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     const bootstrap = async () => {
+      let hadStoredSession = false
       try {
         const session = await getSession()
         if (!session) {
           setState({ status: 'unauthenticated', client: null })
           return
         }
+        hadStoredSession = true
         const client = await createClient(session)
         // A user already logged in when they update to a build with the Android
         // DocumentsProvider never runs the interactive login path again, so mirror
@@ -67,6 +77,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         // index.tsx renders LoadingState while status==='loading'; a swallowed
         // getSession() rejection kept it there forever.
         console.warn('[useAuth] bootstrap failed', err)
+        // Only a session that existed and then failed is worth reporting; a
+        // first launch with no stored session is not an error.
+        if (hadStoredSession) setSessionExpired(true)
         setState({ status: 'unauthenticated', client: null })
       }
     }
@@ -152,10 +165,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }, [])
 
+  const dismissSessionExpired = useCallback((): void => setSessionExpired(false), [])
+
   const value = useMemo<AuthContextValue>(
     () => ({
       ...state,
       authenticating,
+      sessionExpired,
+      dismissSessionExpired,
       login,
       loginWithTwakeWorkplace,
       logout,
@@ -165,6 +182,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     [
       state,
       authenticating,
+      sessionExpired,
+      dismissSessionExpired,
       login,
       loginWithTwakeWorkplace,
       logout,

@@ -12,7 +12,7 @@ import { UserCancelledError } from '@/auth/types'
 export default function WelcomeScreen() {
   const { t } = useTranslation()
   const theme = useTheme()
-  const { loginWithTwakeWorkplace } = useAuth()
+  const { loginWithTwakeWorkplace, sessionExpired, dismissSessionExpired } = useAuth()
   const [loading, setLoading] = useState<'signin' | 'signup' | null>(null)
   const [error, setError] = useState<string | null>(null)
   const inFlight = useRef(false)
@@ -28,6 +28,7 @@ export default function WelcomeScreen() {
     if (inFlight.current) return
     inFlight.current = true
     setError(null)
+    dismissSessionExpired()
     setLoading(mode)
     try {
       await loginWithTwakeWorkplace(mode)
@@ -80,8 +81,13 @@ export default function WelcomeScreen() {
         </View>
 
         <View style={styles.actions}>
-          <HelperText type="error" visible={!!error} style={styles.error}>
-            {error ?? ''}
+          <HelperText
+            type="error"
+            visible={!!error || sessionExpired}
+            style={styles.error}
+            testID="welcome-error"
+          >
+            {error ?? (sessionExpired ? t('auth.errorSessionExpired') : '')}
           </HelperText>
           <Button
             testID="welcome-signup"
