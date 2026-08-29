@@ -5,6 +5,7 @@ import { useColorScheme } from 'react-native'
 import { Provider as PaperProvider } from 'react-native-paper'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
+import { ThemeProvider } from '@react-navigation/native'
 import { Stack } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
 import { I18nextProvider } from 'react-i18next'
@@ -20,6 +21,7 @@ import {
 import i18n from '@/i18n'
 import { AuthProvider, useAuth } from '@/auth/useAuth'
 import { darkTheme, lightTheme } from '@/ui/theme'
+import { darkNavigationTheme, lightNavigationTheme } from '@/ui/navigationTheme'
 import { withInterFonts } from '@/ui/fonts'
 import { attachRevocationListener } from '@/auth/revocationListener'
 import { ErrorBoundary } from '@/ui/ErrorBoundary'
@@ -34,6 +36,7 @@ const InnerLayout = () => {
   const { pref: themePref } = useThemePreference()
   const activeScheme = themePref === 'system' ? colorScheme : themePref
   const theme = activeScheme === 'dark' ? darkTheme : lightTheme
+  const navigationTheme = activeScheme === 'dark' ? darkNavigationTheme : lightNavigationTheme
   const { client, logout, authenticating } = useAuth()
   const [fontsLoaded] = useFonts({
     Inter_400Regular,
@@ -60,68 +63,70 @@ const InnerLayout = () => {
       <StatusBar style="auto" />
       <GestureHandlerRootView style={{ flex: 1 }}>
         <PaperProvider theme={withInterFonts(theme)}>
-          <I18nextProvider i18n={i18n}>
-            <PiPSessionProvider>
-              <SharingProvider>
-                <ErrorBoundary>
-                  <Stack screenOptions={{ headerShown: false }}>
-                    <Stack.Screen name="(auth)" />
-                    <Stack.Screen name="(drive)" />
-                    <Stack.Screen name="index" />
-                    <Stack.Screen
-                      name="preview/[fileId]"
-                      options={{
-                        // Native iOS pageSheet: rounded-corner modal that
-                        // the OS lets the user drag down to dismiss,
-                        // coordinated with any inner UIScrollView (PDF,
-                        // text). Works for every preview kind for free.
-                        presentation: 'pageSheet',
-                        animation: 'slide_from_bottom'
-                      }}
-                    />
-                    <Stack.Screen
-                      name="metadata/[fileId]"
-                      options={{ presentation: 'pageSheet', animation: 'slide_from_bottom' }}
-                    />
-                    <Stack.Screen
-                      name="share/[fileId]"
-                      options={{ presentation: 'pageSheet', animation: 'slide_from_bottom' }}
-                    />
-                    <Stack.Screen
-                      name="move/[ids]"
-                      options={{ presentation: 'pageSheet', animation: 'slide_from_bottom' }}
-                    />
-                    <Stack.Screen
-                      name="import"
-                      options={{ presentation: 'pageSheet', animation: 'slide_from_bottom' }}
-                    />
-                    <Stack.Screen
-                      name="onlyoffice/[fileId]"
-                      options={{ presentation: 'pageSheet', animation: 'slide_from_bottom' }}
-                    />
-                    <Stack.Screen
-                      name="note/[fileId]"
-                      options={{ presentation: 'pageSheet', animation: 'slide_from_bottom' }}
-                    />
-                    <Stack.Screen
-                      name="docs/[fileId]"
-                      options={{ presentation: 'pageSheet', animation: 'slide_from_bottom' }}
-                    />
-                    <Stack.Screen
-                      name="docs/new/[folderId]"
-                      options={{ presentation: 'pageSheet', animation: 'slide_from_bottom' }}
-                    />
-                    <Stack.Screen
-                      name="settings"
-                      options={{ presentation: 'pageSheet', animation: 'slide_from_bottom' }}
-                    />
-                    <Stack.Screen name="search" options={{ animation: 'slide_from_bottom' }} />
-                  </Stack>
-                  {authenticating && <AuthTransitionOverlay />}
-                </ErrorBoundary>
-              </SharingProvider>
-            </PiPSessionProvider>
-          </I18nextProvider>
+          <ThemeProvider value={navigationTheme}>
+            <I18nextProvider i18n={i18n}>
+              <PiPSessionProvider>
+                <SharingProvider>
+                  <ErrorBoundary>
+                    <Stack screenOptions={{ headerShown: false }}>
+                      <Stack.Screen name="(auth)" />
+                      <Stack.Screen name="(drive)" />
+                      <Stack.Screen name="index" />
+                      <Stack.Screen
+                        name="preview/[fileId]"
+                        options={{
+                          // Native iOS pageSheet: rounded-corner modal that
+                          // the OS lets the user drag down to dismiss,
+                          // coordinated with any inner UIScrollView (PDF,
+                          // text). Works for every preview kind for free.
+                          presentation: 'pageSheet',
+                          animation: 'slide_from_bottom'
+                        }}
+                      />
+                      <Stack.Screen
+                        name="metadata/[fileId]"
+                        options={{ presentation: 'pageSheet', animation: 'slide_from_bottom' }}
+                      />
+                      <Stack.Screen
+                        name="share/[fileId]"
+                        options={{ presentation: 'pageSheet', animation: 'slide_from_bottom' }}
+                      />
+                      <Stack.Screen
+                        name="move/[ids]"
+                        options={{ presentation: 'pageSheet', animation: 'slide_from_bottom' }}
+                      />
+                      <Stack.Screen
+                        name="import"
+                        options={{ presentation: 'pageSheet', animation: 'slide_from_bottom' }}
+                      />
+                      <Stack.Screen
+                        name="onlyoffice/[fileId]"
+                        options={{ presentation: 'pageSheet', animation: 'slide_from_bottom' }}
+                      />
+                      <Stack.Screen
+                        name="note/[fileId]"
+                        options={{ presentation: 'pageSheet', animation: 'slide_from_bottom' }}
+                      />
+                      <Stack.Screen
+                        name="docs/[fileId]"
+                        options={{ presentation: 'pageSheet', animation: 'slide_from_bottom' }}
+                      />
+                      <Stack.Screen
+                        name="docs/new/[folderId]"
+                        options={{ presentation: 'pageSheet', animation: 'slide_from_bottom' }}
+                      />
+                      <Stack.Screen
+                        name="settings"
+                        options={{ presentation: 'pageSheet', animation: 'slide_from_bottom' }}
+                      />
+                      <Stack.Screen name="search" options={{ animation: 'slide_from_bottom' }} />
+                    </Stack>
+                    {authenticating && <AuthTransitionOverlay />}
+                  </ErrorBoundary>
+                </SharingProvider>
+              </PiPSessionProvider>
+            </I18nextProvider>
+          </ThemeProvider>
         </PaperProvider>
       </GestureHandlerRootView>
     </SafeAreaProvider>
