@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import * as WebBrowser from 'expo-web-browser'
 import { useLocalSearchParams, useRouter } from 'expo-router'
+import { useTranslation } from 'react-i18next'
 import { useClient, useQuery } from 'cozy-client'
 
 import { ScreenContainer } from '@/ui/ScreenContainer'
@@ -12,6 +13,7 @@ import { buildCozyAppUrl } from '@/files/cozyAppLink'
 import { useSessionCode } from '@/auth/useSessionCode'
 
 export default function DocsScreen() {
+  const { t } = useTranslation()
   const { fileId } = useLocalSearchParams<{ fileId: string }>()
   const client = useClient()
   const router = useRouter()
@@ -67,7 +69,7 @@ export default function DocsScreen() {
       {error ? (
         <ErrorState message={error} onRetry={retry} />
       ) : missingExternalId ? (
-        <ErrorState message="Could not resolve docs externalId" onRetry={retry} />
+        <ErrorState message={t('drive.docs.openFailed')} onRetry={retry} />
       ) : (
         <LoadingState />
       )}

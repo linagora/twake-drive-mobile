@@ -198,7 +198,8 @@
       "title": "Ghi chú"
     },
     "docs": {
-      "title": "Tài liệu"
+      "title": "Tài liệu",
+      "openFailed": "Không thể mở tài liệu này."
     },
     "offline": {
       "requiresOnline": "Có sẵn khi bạn trực tuyến trở lại",
