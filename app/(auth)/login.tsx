@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useRef, useState } from 'react'
 import { StyleSheet, View } from 'react-native'
 import { Button, HelperText, IconButton, Text, TextInput, useTheme } from 'react-native-paper'
 import { router } from 'expo-router'
@@ -7,7 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { TwakeLogo } from '@/ui/icons/TwakeLogo'
 import { useAuth } from '@/auth/useAuth'
-import { UserCancelledError } from '@/auth/types'
+import { NetworkError, UserCancelledError } from '@/auth/types'
 
 const isValidEmail = (s: string): boolean => /\S+@\S+\.\S+/.test(s)
 
@@ -18,6 +18,7 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const inFlight = useRef(false)
 
   const goBack = () => {
     if (router.canGoBack()) router.back()
@@ -25,6 +26,10 @@ export default function LoginScreen() {
   }
 
   const onSubmit = async () => {
+    // `disabled` only takes effect on the next render, so a double tap in the
+    // same tick would start two flows. The ref closes that window.
+    if (inFlight.current) return
+    inFlight.current = true
     setError(null)
     setLoading(true)
     try {
@@ -34,14 +39,15 @@ export default function LoginScreen() {
       const e = err as Error
       if (err instanceof UserCancelledError) {
         // silent — user closed the browser
+      } else if (err instanceof NetworkError || e.message?.toLowerCase().includes('network')) {
+        setError(t('auth.errorNetwork'))
       } else if (e.message === 'DOMAIN_UNSUPPORTED') {
         setError(t('auth.errorDomainUnsupported'))
-      } else if (e.message?.toLowerCase().includes('network')) {
-        setError(t('auth.errorNetwork'))
       } else {
-        setError(`${e.name}: ${e.message}`)
+        setError(t('auth.errorGeneric'))
       }
     } finally {
+      inFlight.current = false
       setLoading(false)
     }
   }
