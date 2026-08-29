@@ -1,4 +1,4 @@
-import { TwakeConfiguration } from './types'
+import { NetworkError, TwakeConfiguration } from './types'
 
 export const extractDomain = (email: string): string | null => {
   if (!email) return null
@@ -9,18 +9,35 @@ export const extractDomain = (email: string): string | null => {
   return domain.length > 0 ? domain : null
 }
 
+/**
+ * Resolves the domain's Twake configuration.
+ *
+ * Returns null only when the domain answered but has no usable configuration —
+ * that is a genuine "this domain does not support Twake Drive". A transport
+ * failure or a 5xx throws NetworkError instead, so the login screen can say
+ * "check your connection" rather than blaming the user's domain.
+ */
 export const fetchTwakeConfiguration = async (
   domain: string
 ): Promise<TwakeConfiguration | null> => {
   const url = `https://${domain}/.well-known/twake-configuration`
+  let response: Response
   try {
-    const response = await fetch(url, {
+    response = await fetch(url, {
       method: 'GET',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' }
     })
-    if (!response.ok) return null
+  } catch (err) {
+    throw new NetworkError((err as Error)?.message ?? 'discovery request failed')
+  }
+  if (response.status >= 500) {
+    throw new NetworkError(`discovery responded ${response.status}`)
+  }
+  if (!response.ok) return null
+  try {
     return (await response.json()) as TwakeConfiguration
   } catch {
+    // Reachable but the payload is not the configuration we expect.
     return null
   }
 }
