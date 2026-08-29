@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useCallback, useRef, useState } from 'react'
 import { Pressable, StyleSheet, View } from 'react-native'
 import { Button, HelperText, Text, useTheme } from 'react-native-paper'
 import { router } from 'expo-router'
@@ -15,8 +15,18 @@ export default function WelcomeScreen() {
   const { loginWithTwakeWorkplace } = useAuth()
   const [loading, setLoading] = useState<'signin' | 'signup' | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const inFlight = useRef(false)
+  const navigating = useRef(false)
 
+  /**
+   * `disabled` only applies after the state update renders, so two taps landing
+   * in the same tick both reach the handler. Without this guard the second flow
+   * aborts the first inside pkce, while the first's `finally` clears `loading`
+   * and makes the screen look idle with a browser still open.
+   */
   const start = async (mode: 'signin' | 'signup'): Promise<void> => {
+    if (inFlight.current) return
+    inFlight.current = true
     setError(null)
     setLoading(mode)
     try {
@@ -34,9 +44,21 @@ export default function WelcomeScreen() {
         setError(t('auth.errorGeneric'))
       }
     } finally {
+      inFlight.current = false
       setLoading(null)
     }
   }
+
+  // router.push does not de-dupe, so a fast double tap stacks two /(auth)/login
+  // screens and the first back press lands on another copy of the same screen.
+  const goToOrgServerLogin = useCallback((): void => {
+    if (navigating.current) return
+    navigating.current = true
+    router.push('/(auth)/login')
+    setTimeout(() => {
+      navigating.current = false
+    }, 600)
+  }, [])
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: theme.colors.background }]}>
@@ -85,7 +107,7 @@ export default function WelcomeScreen() {
           </Button>
           <Pressable
             testID="welcome-org-server-link"
-            onPress={() => router.push('/(auth)/login')}
+            onPress={goToOrgServerLogin}
             disabled={loading !== null}
             style={styles.link}
           >
