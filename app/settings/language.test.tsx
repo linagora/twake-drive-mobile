@@ -11,6 +11,13 @@ jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 })
 }))
 
+// The screen now renders the shared AppBar, which resolves the account identity
+// through useCurrentUser → cozy-client's useQuery. No CozyClient in this tree,
+// so mock it locally — same pattern as src/ui/AppBar.test.tsx.
+jest.mock('@/account/useCurrentUser', () => ({
+  useCurrentUser: () => ({ initials: 'MM', loading: false })
+}))
+
 describe('LanguageScreen', () => {
   beforeEach(() => jest.useFakeTimers())
   afterEach(() => jest.useRealTimers())

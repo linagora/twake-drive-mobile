@@ -19,7 +19,8 @@
     "themeLight": "Светлая",
     "themeDark": "Тёмная",
     "about": "О приложении",
-    "version": "Версия"
+    "version": "Версия",
+    "general": "Общие"
   },
   "auth": {
     "welcomeTitle": "Добро пожаловать в Twake Drive",
@@ -249,7 +250,10 @@
       "foldersSection": "Папки",
       "filesSection": "Файлы",
       "errorsSection": "Ошибки",
-      "retry": "Повторить"
+      "retry": "Повторить",
+      "noFolders": "Нет папок, сохранённых для офлайн-доступа.",
+      "noFiles": "Нет файлов, сохранённых для офлайн-доступа.",
+      "truncated": "{{size}} — загрузка не завершена ({{localSize}})"
     },
     "search": {
       "placeholder": "Поиск в Drive",

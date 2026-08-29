@@ -19,7 +19,8 @@
     "themeLight": "Claro",
     "themeDark": "Oscuro",
     "about": "Acerca de",
-    "version": "Versión"
+    "version": "Versión",
+    "general": "General"
   },
   "auth": {
     "welcomeTitle": "Bienvenido a Twake Drive",
@@ -240,7 +241,10 @@
       "foldersSection": "Carpetas",
       "filesSection": "Archivos",
       "errorsSection": "Errores",
-      "retry": "Reintentar"
+      "retry": "Reintentar",
+      "noFolders": "Ninguna carpeta guardada sin conexión.",
+      "noFiles": "Ningún archivo guardado sin conexión.",
+      "truncated": "{{size}} — descarga incompleta ({{localSize}})"
     },
     "search": {
       "placeholder": "Buscar en Drive",

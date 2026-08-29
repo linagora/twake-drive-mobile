@@ -19,7 +19,8 @@
     "themeLight": "Clair",
     "themeDark": "Sombre",
     "about": "À propos",
-    "version": "Version"
+    "version": "Version",
+    "general": "Général"
   },
   "auth": {
     "welcomeTitle": "Bienvenue sur Twake Drive",
@@ -240,7 +241,10 @@
       "foldersSection": "Dossiers",
       "filesSection": "Fichiers",
       "errorsSection": "Erreurs",
-      "retry": "Réessayer"
+      "retry": "Réessayer",
+      "noFolders": "Aucun dossier enregistré hors-ligne.",
+      "noFiles": "Aucun fichier enregistré hors-ligne.",
+      "truncated": "{{size}} — téléchargement incomplet ({{localSize}})"
     },
     "search": {
       "placeholder": "Rechercher dans le Drive",

@@ -1,11 +1,14 @@
 import React from 'react'
 import { ScrollView } from 'react-native'
-import { Avatar, List } from 'react-native-paper'
 import { useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import Constants from 'expo-constants'
 
+import { AccountHeader } from '@/ui/AccountHeader'
+import { AppBar } from '@/ui/AppBar'
 import { ScreenContainer } from '@/ui/ScreenContainer'
+import { SettingsRow } from '@/ui/SettingsRow'
+import { SettingsSection } from '@/ui/SettingsSection'
 import { useCurrentUser } from '@/account/useCurrentUser'
 import { getLocalePreference, LOCALE_SYSTEM } from '@/preferences/localePreference'
 import { localeDisplayName } from '@/i18n/localeNames'
@@ -29,41 +32,54 @@ export default function SettingsIndex(): React.ReactElement {
   const version = Constants.expoConfig?.version ?? ''
   return (
     <ScreenContainer>
+      <AppBar title={t('settings.title')} onClose={() => router.back()} />
       <ScrollView>
-        <List.Item
-          title={name ?? email ?? t('settings.account')}
-          description={name ? email : undefined}
-          left={() => <Avatar.Text size={40} label={initials} />}
+        <AccountHeader
+          name={name}
+          email={email}
+          initials={initials}
+          fallbackLabel={t('settings.account')}
         />
-        <List.Item
-          title={t('settings.language')}
-          description={languageValue}
-          left={p => <List.Icon {...p} icon="translate" />}
-          right={p => <List.Icon {...p} icon="chevron-right" />}
-          onPress={() => router.push('/settings/language')}
-        />
-        <List.Item
-          title={t('drive.offline.storageTitle')}
-          left={p => <List.Icon {...p} icon="cloud-download-outline" />}
-          right={p => <List.Icon {...p} icon="chevron-right" />}
-          onPress={() => router.push('/settings/offline-storage')}
-        />
-        <List.Subheader>{t('settings.theme')}</List.Subheader>
-        {themeOptions.map(o => (
-          <List.Item
-            key={o.key}
-            title={o.label}
-            onPress={() => setThemePref(o.key)}
-            right={p => (themePref === o.key ? <List.Icon {...p} icon="check" /> : null)}
+
+        <SettingsSection title={t('settings.general')} first>
+          <SettingsRow
+            testID="settings-language"
+            title={t('settings.language')}
+            description={languageValue}
+            icon="translate"
+            trailing="chevron"
+            onPress={() => router.push('/settings/language')}
           />
-        ))}
-        <List.Subheader>{t('settings.about')}</List.Subheader>
-        <List.Item title={t('settings.version')} description={version} />
-        <List.Item
-          title={t('common.logout')}
-          left={p => <List.Icon {...p} icon="logout" />}
-          onPress={() => void logout()}
-        />
+          <SettingsRow
+            testID="settings-offline-storage"
+            title={t('drive.offline.storageTitle')}
+            icon="download"
+            trailing="chevron"
+            onPress={() => router.push('/settings/offline-storage')}
+          />
+        </SettingsSection>
+
+        <SettingsSection title={t('settings.theme')}>
+          {themeOptions.map(o => (
+            <SettingsRow
+              key={o.key}
+              testID={`settings-theme-${o.key}`}
+              title={o.label}
+              trailing={themePref === o.key ? 'check' : 'none'}
+              onPress={() => setThemePref(o.key)}
+            />
+          ))}
+        </SettingsSection>
+
+        <SettingsSection title={t('settings.about')}>
+          <SettingsRow title={t('settings.version')} description={version} />
+          <SettingsRow
+            testID="settings-logout"
+            title={t('common.logout')}
+            icon="logout"
+            onPress={() => void logout()}
+          />
+        </SettingsSection>
       </ScrollView>
     </ScreenContainer>
   )
