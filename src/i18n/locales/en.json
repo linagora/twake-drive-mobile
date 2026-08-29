@@ -204,7 +204,8 @@
       "title": "Note"
     },
     "docs": {
-      "title": "Document"
+      "title": "Document",
+      "openFailed": "Could not open this document."
     },
     "offline": {
       "requiresOnline": "Available when you're back online",

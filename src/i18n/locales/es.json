@@ -210,7 +210,8 @@
       "title": "Nota"
     },
     "docs": {
-      "title": "Documento"
+      "title": "Documento",
+      "openFailed": "No se ha podido abrir este documento."
     },
     "offline": {
       "requiresOnline": "Disponible cuando vuelvas a estar en línea",
