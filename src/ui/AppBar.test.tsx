@@ -38,6 +38,22 @@ describe('AppBar search (disabled)', () => {
   })
 })
 
+describe('AppBar close action', () => {
+  it('renders a close action and calls onClose', () => {
+    const onClose = jest.fn()
+    render(wrap(<AppBar title="settings.title" onClose={onClose} />))
+    const button = screen.getByTestId('appbar-close-button')
+    expect(button).toBeOnTheScreen()
+    fireEvent.press(button)
+    expect(onClose).toHaveBeenCalledTimes(1)
+  })
+
+  it('renders no close action by default', () => {
+    render(wrap(<AppBar title="Mes fichiers" />))
+    expect(screen.queryByTestId('appbar-close-button')).toBeNull()
+  })
+})
+
 test('AppBar affiche le TwakeLogo à côté du titre', () => {
   const { getByText, UNSAFE_getByType } = render(wrap(<AppBar title="Mes fichiers" />))
   expect(getByText('Mes fichiers')).toBeTruthy()

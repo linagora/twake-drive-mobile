@@ -7,6 +7,7 @@ import { useRouter } from 'expo-router'
 import { TwakeLogo } from '@/ui/icons/TwakeLogo'
 import { CozyIcon } from '@/ui/icons/CozyIcon'
 import { useCurrentUser } from '@/account/useCurrentUser'
+import { cozyTokens } from '@/ui/theme'
 
 export interface AppBarSelectionAction {
   icon: string
@@ -30,10 +31,18 @@ interface AppBarSelection {
 interface Props {
   title: string
   onBack?: () => void
+  /**
+   * Renders a leading close (✕) action instead of the back arrow. Used by the
+   * modal routes (settings) whose root screen dismisses rather than pops.
+   */
+  onClose?: () => void
   onLogout?: () => void
   /**
-   * When true, a magnifier icon button is rendered to the left of the avatar
-   * menu. Tapping it navigates to the file-name search screen.
+   * When true, a help icon button is rendered to the left of the avatar menu.
+   * Tapping it opens twake.app in the system browser.
+   *
+   * Despite the name this does NOT surface the file-name search screen: search
+   * lives at /search and is currently only reachable by deep link.
    */
   showSearch?: boolean
   /**
@@ -44,8 +53,7 @@ interface Props {
   selection?: AppBarSelection
 }
 
-// Search is unified on /search (the OOM-safe file-search hook) via showSearch + a help button.
-export const AppBar = ({ title, onBack, onLogout, showSearch, selection }: Props) => {
+export const AppBar = ({ title, onBack, onClose, onLogout, showSearch, selection }: Props) => {
   const { t } = useTranslation()
   const [menuVisible, setMenuVisible] = useState(false)
   const theme = useTheme()
@@ -56,7 +64,9 @@ export const AppBar = ({ title, onBack, onLogout, showSearch, selection }: Props
     return (
       <Appbar.Header>
         <Appbar.Action
-          icon={p => <CozyIcon name="cross" size={p?.size ?? 24} color={p?.color} />}
+          icon={p => (
+            <CozyIcon name="cross" size={p?.size ?? cozyTokens.iconSize.md} color={p?.color} />
+          )}
           onPress={selection.onCancel}
           accessibilityLabel={t('common.cancel')}
         />
@@ -69,7 +79,7 @@ export const AppBar = ({ title, onBack, onLogout, showSearch, selection }: Props
               icon={a.icon}
               onPress={a.onPress}
               accessibilityLabel={a.accessibilityLabel}
-              color={a.destructive ? '#c0392b' : undefined}
+              color={a.destructive ? theme.colors.error : undefined}
               testID={a.testID}
             />
           ))}
@@ -84,15 +94,35 @@ export const AppBar = ({ title, onBack, onLogout, showSearch, selection }: Props
           isLeading
           animated={false}
           icon={p => (
-            <CozyIcon name="previous" size={p?.size ?? 24} color={theme.colors.onSurface} />
+            <CozyIcon
+              name="previous"
+              size={p?.size ?? cozyTokens.iconSize.md}
+              color={theme.colors.onSurface}
+            />
           )}
           onPress={onBack}
           accessibilityLabel={t('common.back')}
           testID="appbar-back-button"
         />
       ) : null}
+      {onClose ? (
+        <Appbar.Action
+          isLeading
+          animated={false}
+          icon={p => (
+            <CozyIcon
+              name="cross"
+              size={p?.size ?? cozyTokens.iconSize.md}
+              color={theme.colors.onSurface}
+            />
+          )}
+          onPress={onClose}
+          accessibilityLabel={t('common.close')}
+          testID="appbar-close-button"
+        />
+      ) : null}
       <View style={styles.logo}>
-        <TwakeLogo size={28} />
+        <TwakeLogo size={cozyTokens.logoSize.appBar} />
       </View>
       <Appbar.Content title={title} />
       {showSearch ? (
@@ -102,7 +132,7 @@ export const AppBar = ({ title, onBack, onLogout, showSearch, selection }: Props
           style={styles.searchButton}
           testID="appbar-help-button"
         >
-          <CozyIcon name="info" size={24} color={theme.colors.onSurface} />
+          <CozyIcon name="info" size={cozyTokens.iconSize.md} color={theme.colors.onSurface} />
         </Pressable>
       ) : null}
       {onLogout ? (
@@ -111,7 +141,7 @@ export const AppBar = ({ title, onBack, onLogout, showSearch, selection }: Props
           onDismiss={() => setMenuVisible(false)}
           anchor={
             <Pressable onPress={() => setMenuVisible(true)}>
-              <Avatar.Text size={32} label={initials} />
+              <Avatar.Text size={cozyTokens.avatarSize.sm} label={initials} />
             </Pressable>
           }
         >
@@ -121,7 +151,9 @@ export const AppBar = ({ title, onBack, onLogout, showSearch, selection }: Props
               router.push('/settings')
             }}
             title={t('settings.title')}
-            leadingIcon={() => <CozyIcon name="cog" size={24} color={theme.colors.onSurface} />}
+            leadingIcon={() => (
+              <CozyIcon name="cog" size={cozyTokens.iconSize.md} color={theme.colors.onSurface} />
+            )}
           />
           <Menu.Item
             onPress={() => {
@@ -130,7 +162,11 @@ export const AppBar = ({ title, onBack, onLogout, showSearch, selection }: Props
             }}
             title={t('drive.sharedDrives')}
             leadingIcon={() => (
-              <CozyIcon name="folderMultiple" size={24} color={theme.colors.onSurface} />
+              <CozyIcon
+                name="folderMultiple"
+                size={cozyTokens.iconSize.md}
+                color={theme.colors.onSurface}
+              />
             )}
           />
           <Menu.Item
@@ -139,7 +175,13 @@ export const AppBar = ({ title, onBack, onLogout, showSearch, selection }: Props
               onLogout()
             }}
             title={t('common.logout')}
-            leadingIcon={() => <CozyIcon name="logout" size={24} color={theme.colors.onSurface} />}
+            leadingIcon={() => (
+              <CozyIcon
+                name="logout"
+                size={cozyTokens.iconSize.md}
+                color={theme.colors.onSurface}
+              />
+            )}
           />
         </Menu>
       ) : null}
@@ -149,13 +191,13 @@ export const AppBar = ({ title, onBack, onLogout, showSearch, selection }: Props
 
 const styles = StyleSheet.create({
   logo: {
-    marginLeft: 4,
-    marginRight: 4,
+    marginLeft: cozyTokens.spacing.xs,
+    marginRight: cozyTokens.spacing.xs,
     justifyContent: 'center'
   },
   searchButton: {
-    marginHorizontal: 4,
-    padding: 6,
+    marginHorizontal: cozyTokens.spacing.xs,
+    padding: cozyTokens.spacing.xs + cozyTokens.spacing.xxs,
     justifyContent: 'center',
     alignItems: 'center'
   }
