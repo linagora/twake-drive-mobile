@@ -21,6 +21,11 @@ const pdfFile = {
 // Drives which preview kind the screen renders. Flipped per test.
 let mockKind = 'pdf'
 
+// Drives what the file lookup resolves to. Flipped per test so the loading /
+// loaded / failed branches can each be exercised.
+let mockLookup: { data: unknown; fetchStatus: string } = { data: null, fetchStatus: 'loaded' }
+const mockFetch = jest.fn()
+
 jest.mock('@/files/streamUrl', () => ({
   __esModule: true,
   getPreviewKind: () => mockKind,
@@ -31,7 +36,7 @@ jest.mock('@/files/streamUrl', () => ({
 jest.mock('cozy-client', () => ({
   __esModule: true,
   useClient: () => ({}),
-  useQuery: () => ({ data: pdfFile, fetchStatus: 'loaded' })
+  useQuery: () => ({ ...mockLookup, fetch: mockFetch })
 }))
 
 jest.mock('@/client/queries', () => ({
@@ -106,7 +111,9 @@ const wrap = (ui: React.ReactElement) => <PaperProvider>{ui}</PaperProvider>
 describe('PreviewScreen', () => {
   beforeEach(() => {
     mockBack.mockReset()
+    mockFetch.mockReset()
     mockKind = 'pdf'
+    mockLookup = { data: pdfFile, fetchStatus: 'loaded' }
   })
 
   it('renders a close button on a chromeless PDF preview and goes back when tapped', () => {
@@ -120,5 +127,29 @@ describe('PreviewScreen', () => {
     mockKind = 'image'
     render(wrap(<PreviewScreen />))
     expect(screen.getByTestId('preview-close-button')).toBeOnTheScreen()
+  })
+
+  // Regression: a lookup that ends without a document used to leave the screen
+  // on the spinner forever, because only `loading` was treated as "not ready".
+  describe('when the file lookup does not yield a document', () => {
+    it('shows a retrying error state on a failed fetch', () => {
+      mockLookup = { data: null, fetchStatus: 'failed' }
+      render(wrap(<PreviewScreen />))
+      expect(screen.getByText('drive.preview.loadFailed')).toBeOnTheScreen()
+      fireEvent.press(screen.getByText('common.retry'))
+      expect(mockFetch).toHaveBeenCalledTimes(1)
+    })
+
+    it('shows the error state when the fetch loaded nothing (file deleted)', () => {
+      mockLookup = { data: null, fetchStatus: 'loaded' }
+      render(wrap(<PreviewScreen />))
+      expect(screen.getByText('drive.preview.loadFailed')).toBeOnTheScreen()
+    })
+
+    it('still shows the spinner while the fetch is in flight', () => {
+      mockLookup = { data: null, fetchStatus: 'loading' }
+      render(wrap(<PreviewScreen />))
+      expect(screen.queryByText('drive.preview.loadFailed')).toBeNull()
+    })
   })
 })

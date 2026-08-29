@@ -404,7 +404,13 @@ export default function PreviewScreen() {
     })()
   }, [client, file, kind, router, t])
 
-  const isLoadingFile = fileLookup.fetchStatus === 'loading' || (!file && !fileLookup.data)
+  // A lookup that ends without a document — a failed fetch, or a file deleted
+  // server-side — must surface an error. Testing only `loading` + "no data yet"
+  // left those two cases indistinguishable from a pending fetch, so the screen
+  // span on the spinner forever. Mirrors metadata/[fileId].tsx.
+  const lookupFailed =
+    fileLookup.fetchStatus === 'failed' || (fileLookup.fetchStatus === 'loaded' && !file)
+  const isLoadingFile = !lookupFailed && (fileLookup.fetchStatus === 'loading' || !file)
   const title = file?.name ?? t('drive.preview.title')
 
   const renderViewer = (): React.ReactElement => {
@@ -453,7 +459,16 @@ export default function PreviewScreen() {
   return (
     <View style={styles.container}>
       {!isChromeless ? <AppBar title={title} onBack={() => router.back()} /> : null}
-      {isLoadingFile ? <LoadingState /> : renderViewer()}
+      {isLoadingFile ? (
+        <LoadingState />
+      ) : lookupFailed ? (
+        <ErrorState
+          message={t('drive.preview.loadFailed')}
+          onRetry={() => void fileLookup.fetch()}
+        />
+      ) : (
+        renderViewer()
+      )}
       {/* Chromeless kinds (pdf/image/video) drop the AppBar for immersion, but a
           full-screen scrollable/zoomable viewer (notably react-native-pdf)
           captures the pageSheet swipe-to-dismiss gesture — leaving no way back.
