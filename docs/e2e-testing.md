@@ -47,18 +47,18 @@ happened.
 Each in-app flow opens the drive via the `openDrive` subflow (which asserts the
 logged-in state) and then exercises one area:
 
-| Flow | What it checks |
-|------|----------------|
-| `01-launch-browse`  | The app launches and the drive lists folders |
-| `02-tabs`           | The bottom tabs (Drive / Favoris / Récents / Partages / Corbeille) switch |
-| `03-search`         | The search screen opens, accepts input and shows a result |
-| `04-folder-crud`    | A real create + delete round-trip, strictly scoped to a throwaway folder |
-| `05-preview`        | File preview (⚠️ environment-dependent — not validated on every build) |
-| `06-editor`         | A document editor opens |
-| `07-offline-pin`    | Pin a folder for offline and verify the menu state |
-| `08-share-internal` | The share sheet opens for a folder (non-mutating) |
-| `09-favorite-toggle`| Favourite → present in Favoris → un-favourite → absent from Favoris |
-| `12-offline-toggle` | Pin → the menu shows "Remove from offline" → unpin |
+| Flow                 | What it checks                                                             |
+| -------------------- | -------------------------------------------------------------------------- |
+| `01-launch-browse`   | The app launches and the drive lists folders                               |
+| `02-tabs`            | The bottom tabs (Drive / Favoris / Récents / Partages / Corbeille) switch  |
+| `03-search`          | Disabled (tag `skip`): /search has no UI entry point — see the flow header |
+| `04-folder-crud`     | A real create + delete round-trip, strictly scoped to a throwaway folder   |
+| `05-preview`         | File preview (⚠️ environment-dependent — not validated on every build)     |
+| `06-editor`          | A document editor opens                                                    |
+| `07-offline-pin`     | Pin a folder for offline and verify the menu state                         |
+| `08-share-internal`  | The share sheet opens for a folder (non-mutating)                          |
+| `09-favorite-toggle` | Favourite → present in Favoris → un-favourite → absent from Favoris        |
+| `12-offline-toggle`  | Pin → the menu shows "Remove from offline" → unpin                         |
 
 Shared **subflows** live in `flows/subflows/`: `openDrive` (launch + assert logged
 in), `assertLoggedIn`, and `cleanup`.
