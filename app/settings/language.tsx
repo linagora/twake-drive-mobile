@@ -1,11 +1,12 @@
 import React from 'react'
 import { ScrollView } from 'react-native'
-import { List } from 'react-native-paper'
 import { useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import i18n from '@/i18n'
 
+import { AppBar } from '@/ui/AppBar'
 import { ScreenContainer } from '@/ui/ScreenContainer'
+import { SettingsRow } from '@/ui/SettingsRow'
 import { localeDisplayName } from '@/i18n/localeNames'
 import {
   LOCALE_SYSTEM,
@@ -40,18 +41,20 @@ export default function LanguageScreen(): React.ReactElement {
 
   return (
     <ScreenContainer>
+      <AppBar title={t('settings.language')} onBack={() => router.back()} />
       <ScrollView>
-        <List.Item
+        <SettingsRow
           title={t('settings.systemLanguage')}
+          trailing={current === LOCALE_SYSTEM ? 'check' : 'none'}
           onPress={() => choose(LOCALE_SYSTEM)}
-          right={p => (current === LOCALE_SYSTEM ? <List.Icon {...p} icon="check" /> : null)}
         />
         {available.map(code => (
-          <List.Item
+          <SettingsRow
             key={code}
+            testID={`settings-language-${code}`}
             title={localeDisplayName(code)}
+            trailing={current === code ? 'check' : 'none'}
             onPress={() => choose(code)}
-            right={p => (current === code ? <List.Icon {...p} icon="check" /> : null)}
           />
         ))}
       </ScrollView>

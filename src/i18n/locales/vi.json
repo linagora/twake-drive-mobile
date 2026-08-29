@@ -19,7 +19,8 @@
     "themeLight": "Sáng",
     "themeDark": "Tối",
     "about": "Giới thiệu",
-    "version": "Phiên bản"
+    "version": "Phiên bản",
+    "general": "Chung"
   },
   "auth": {
     "welcomeTitle": "Chào mừng đến với Twake Drive",
@@ -222,7 +223,10 @@
       "foldersSection": "Thư mục",
       "filesSection": "Tệp",
       "errorsSection": "Lỗi",
-      "retry": "Thử lại"
+      "retry": "Thử lại",
+      "noFolders": "Chưa có thư mục nào được lưu ngoại tuyến.",
+      "noFiles": "Chưa có tệp nào được lưu ngoại tuyến.",
+      "truncated": "{{size}} — tải xuống chưa hoàn tất ({{localSize}})"
     },
     "search": {
       "placeholder": "Tìm kiếm trong Drive",

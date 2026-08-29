@@ -19,7 +19,8 @@
     "themeLight": "Light",
     "themeDark": "Dark",
     "about": "About",
-    "version": "Version"
+    "version": "Version",
+    "general": "General"
   },
   "auth": {
     "welcomeTitle": "Welcome to Twake Drive",
@@ -231,7 +232,10 @@
       "foldersSection": "Folders",
       "filesSection": "Files",
       "errorsSection": "Errors",
-      "retry": "Retry"
+      "retry": "Retry",
+      "noFolders": "No folders saved for offline use.",
+      "noFiles": "No files saved for offline use.",
+      "truncated": "{{size}} — incomplete download ({{localSize}})"
     },
     "search": {
       "placeholder": "Search in Drive",
