@@ -6,6 +6,7 @@ import {
   getLoginUri,
   getTwakeWorkplaceLoginUri
 } from './autodiscovery'
+import { NetworkError } from './types'
 
 describe('extractDomain', () => {
   it('returns the domain part of a valid email', () => {
@@ -51,10 +52,24 @@ describe('fetchTwakeConfiguration', () => {
     expect(result).toBeNull()
   })
 
-  it('returns null on network error', async () => {
+  // A transport failure must stay distinguishable from "this domain has no
+  // Twake configuration", otherwise an offline user is told their company
+  // does not support Twake Drive.
+  it('throws NetworkError on transport failure', async () => {
     nock('https://example.com').get('/.well-known/twake-configuration').replyWithError('boom')
-    const result = await fetchTwakeConfiguration('example.com')
-    expect(result).toBeNull()
+    await expect(fetchTwakeConfiguration('example.com')).rejects.toBeInstanceOf(NetworkError)
+  })
+
+  it('throws NetworkError on a 5xx response', async () => {
+    nock('https://example.com').get('/.well-known/twake-configuration').reply(503)
+    await expect(fetchTwakeConfiguration('example.com')).rejects.toBeInstanceOf(NetworkError)
+  })
+
+  it('returns null when the body is not valid JSON', async () => {
+    nock('https://example.com')
+      .get('/.well-known/twake-configuration')
+      .reply(200, 'not json at all')
+    expect(await fetchTwakeConfiguration('example.com')).toBeNull()
   })
 })
 

@@ -47,3 +47,16 @@ export class DiscoveryError extends Error {
     this.name = 'DiscoveryError'
   }
 }
+
+/**
+ * The server could not be reached (or answered 5xx) while resolving the
+ * instance. Distinct from "this domain has no Twake configuration": the login
+ * screen must offer a retry rather than tell the user their domain is
+ * unsupported.
+ */
+export class NetworkError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'NetworkError'
+  }
+}
