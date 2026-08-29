@@ -36,7 +36,8 @@
     "continue": "Continua",
     "errorDomainUnsupported": "Questo dominio non supporta Twake Drive.",
     "errorNetwork": "Nessuna connessione. Controlla la rete.",
-    "errorGeneric": "Impossibile accedere. Riprova."
+    "errorGeneric": "Impossibile accedere. Riprova.",
+    "errorSessionExpired": "La tua sessione è scaduta. Accedi di nuovo."
   },
   "drive": {
     "myFiles": "I miei file",
