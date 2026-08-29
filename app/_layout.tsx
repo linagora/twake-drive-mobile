@@ -7,6 +7,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { ThemeProvider } from '@react-navigation/native'
 import { Stack } from 'expo-router'
+import * as SplashScreen from 'expo-splash-screen'
 import { StatusBar } from 'expo-status-bar'
 import { I18nextProvider } from 'react-i18next'
 
@@ -31,14 +32,20 @@ import { SharingProvider } from '@/sharing/SharingProvider'
 import { useThemePreference } from '@/preferences/themePreference'
 import { AppProviderTree } from './_AppProviderTree'
 
+// Hold the native launch screen until the app can actually paint its first
+// screen. Without this it hides as soon as the RN root view exists, which is
+// well before the fonts are ready and before the stored session has been read
+// — the gap showed as a blank frame in the launch-screen colour.
+void SplashScreen.preventAutoHideAsync()
+
 const InnerLayout = () => {
   const colorScheme = useColorScheme()
   const { pref: themePref } = useThemePreference()
   const activeScheme = themePref === 'system' ? colorScheme : themePref
   const theme = activeScheme === 'dark' ? darkTheme : lightTheme
   const navigationTheme = activeScheme === 'dark' ? darkNavigationTheme : lightNavigationTheme
-  const { client, logout, authenticating } = useAuth()
-  const [fontsLoaded] = useFonts({
+  const { client, logout, authenticating, status } = useAuth()
+  const [fontsLoaded, fontError] = useFonts({
     Inter_400Regular,
     Inter_500Medium,
     Inter_600SemiBold,
@@ -52,7 +59,16 @@ const InnerLayout = () => {
     })
   }, [client, logout])
 
-  if (!fontsLoaded) return null
+  // A font that fails to load must not strand the app behind the splash, so
+  // treat an error as "done" and let it fall back to the system face.
+  const appIsReady = (fontsLoaded || !!fontError) && status !== 'loading'
+
+  useEffect(() => {
+    if (appIsReady) void SplashScreen.hideAsync()
+  }, [appIsReady])
+
+  // The native splash is still on screen here, so this renders nothing visible.
+  if (!appIsReady) return null
 
   const content = (
     <SafeAreaProvider>
