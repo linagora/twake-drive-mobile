@@ -367,5 +367,16 @@ export const ICONS: Record<string, CozyIconDef> = {
         d: 'M1.455 12.954h12.363v1.455H1.455A1.46 1.46 0 010 12.954V3.5h1.455v9.454zM16 3.5v6.545c0 .8-.655 1.455-1.454 1.455H4.364a1.46 1.46 0 01-1.455-1.455l.007-8c0-.8.648-1.454 1.448-1.454H8l1.455 1.454h5.09c.8 0 1.455.655 1.455 1.455zM4.364 10.045h10.181V3.5H8.852L7.396 2.045H4.364v8z'
       }
     ]
+  },
+  // translate — Material Symbols "translate", not cozy-ui: the icon pack has no
+  // language glyph. Same shape react-native-paper was already rendering for the
+  // language row, moved here so it picks up the theme colour like every other icon.
+  translate: {
+    viewBox: '0 0 24 24',
+    paths: [
+      {
+        d: 'M12.87 15.07l-2.54-2.51.03-.03A17.52 17.52 0 0014.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11.76-2.04zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2l-4.5-12zm-2.62 7l1.62-4.33L19.12 17h-3.24z'
+      }
+    ]
   }
 }
