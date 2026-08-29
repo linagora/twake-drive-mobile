@@ -1,14 +1,18 @@
 appId: com.linagora.twakedrive
 tags:
   - inapp
+  - skip
 env:
   SEARCH_QUERY: 'Rapport'
 ---
-# Search reachable + input (cross-platform testIDs). Assertion on server result
-# intentionally omitted (paginated + .includes() → non-deterministic).
-- runFlow: ../../subflows/openDrive.yaml
-- tapOn:
-    id: 'appbar-search-button'
+# DISABLED (tag `skip` → excluded from runs).
+#
+# /search has no entry point in the shipped UI: AppBar's `showSearch` renders a
+# help button that opens twake.app, not a magnifier (see src/ui/AppBar.tsx).
+# The screen and its useFileSearch hook still work, so this flow is kept and
+# drives /search by deep link instead of by tapping a button that no longer
+# exists. Re-tag it `inapp` and restore the tapOn once search is surfaced again.
+- openLink: twakedrive:///search
 - assertVisible:
     id: 'search-input'
 - inputText: '${SEARCH_QUERY}'
