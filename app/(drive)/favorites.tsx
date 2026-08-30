@@ -119,6 +119,13 @@ export default function FavoritesScreen() {
           data={data}
           keyExtractor={item => item._id}
           renderItem={renderItem}
+          // The query over-fetches and isFavorite filters client-side, so a page
+          // can yield few or no rows while more favourites remain further down
+          // the index. Keep pulling pages instead of stopping at the first cap.
+          onEndReachedThreshold={0.5}
+          onEndReached={() => {
+            void query.fetchMore?.()
+          }}
           refreshControl={
             <RefreshControl
               refreshing={query.fetchStatus === 'loading'}
