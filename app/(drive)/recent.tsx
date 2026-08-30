@@ -129,7 +129,6 @@ export default function RecentScreen() {
       seenIds.add(d._id)
       return true
     })
-    .slice(0, 50)
 
   return (
     <ScreenContainer>
@@ -148,6 +147,13 @@ export default function RecentScreen() {
           data={data}
           keyExtractor={item => item._id}
           renderItem={renderItem}
+          // Was capped at 50 rows out of the 200 the query fetched, with no way
+          // to reach the rest. Page instead: the client-side filters below drop
+          // folders and trashed rows, so a page can yield few usable items.
+          onEndReachedThreshold={0.5}
+          onEndReached={() => {
+            void query.fetchMore?.()
+          }}
           refreshControl={
             <RefreshControl
               refreshing={query.fetchStatus === 'loading'}
