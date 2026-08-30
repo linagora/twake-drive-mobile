@@ -58,8 +58,7 @@ export const VideoPreview = ({ fileId, source }: VideoPreviewProps): React.React
         }}
         onPictureInPictureStop={() => {
           // KNOWN LIMITATION: tapping "restore" on the PiP window does
-          // not bring the video back. See docs/TODO.md ("PiP restore
-          // doesn't reattach"). expo-video does not expose iOS's
+          // not bring the video back. expo-video does not expose iOS's
           // restoreUserInterfaceForPictureInPictureStop callback, so we
           // can't differentiate restore vs close and re-push reliably.
           // For now we always re-push: at least the close path lands

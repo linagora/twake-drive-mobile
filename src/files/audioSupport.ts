@@ -4,7 +4,7 @@
 // route can render an "open externally" fallback instead of an audio player
 // that never starts.
 //
-// Long-term fix is a server-side remux (Ogg → CAF/m4a); see docs/TODO.md.
+// Long-term fix is a server-side remux (Ogg → CAF/m4a).
 
 const UNSUPPORTED_MIMES = new Set([
   'audio/ogg',
