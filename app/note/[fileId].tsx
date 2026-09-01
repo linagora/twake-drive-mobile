@@ -10,6 +10,7 @@ import { ErrorState } from '@/ui/ErrorState'
 import { LoadingState } from '@/ui/LoadingState'
 import { buildCozyAppUrl } from '@/files/cozyAppLink'
 import { useSessionCode } from '@/auth/useSessionCode'
+import { useEditorNavigationGuard } from '@/files/useEditorNavigationGuard'
 
 // Mirrors twake-drive web's "note" file-type routing: open the cozy `notes`
 // web app inside a WebView with a session_code so the notes editor renders
@@ -22,17 +23,23 @@ export default function CozyNoteScreen() {
   const router = useRouter()
   const fetchSessionCode = useSessionCode()
   const [editorUrl, setEditorUrl] = useState<string | null>(null)
+  const [stackUri, setStackUri] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [reloadTick, setReloadTick] = useState(0)
+  // Bound to the instance this document is served from. Today that is always
+  // the signed-in instance; a document opened from a sharing will additionally
+  // carry its owner's instance here (see backlog #24).
+  const { originWhitelist, onShouldStartLoadWithRequest } = useEditorNavigationGuard([stackUri])
 
   useEffect(() => {
     let cancelled = false
     const run = async () => {
       if (!client || !fileId) return
       try {
-        const stackUri = client.getStackClient().uri as string
+        const uri = client.getStackClient().uri as string
+        if (!cancelled) setStackUri(uri)
         const sessionCode = await fetchSessionCode()
-        const url = buildCozyAppUrl(stackUri, 'notes', sessionCode, `/n/${fileId}`)
+        const url = buildCozyAppUrl(uri, 'notes', sessionCode, `/n/${fileId}`)
         if (!cancelled) setEditorUrl(url)
       } catch (e) {
         console.error('[CozyNoteScreen] failed', e)
@@ -61,7 +68,8 @@ export default function CozyNoteScreen() {
         <LoadingState />
       ) : (
         <WebView
-          originWhitelist={['*']}
+          originWhitelist={originWhitelist}
+          onShouldStartLoadWithRequest={onShouldStartLoadWithRequest}
           javaScriptEnabled
           domStorageEnabled
           allowsInlineMediaPlayback
