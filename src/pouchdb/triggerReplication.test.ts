@@ -35,4 +35,8 @@ describe('triggerPouchReplication', () => {
   it('is a no-op when client is undefined', () => {
     expect(() => triggerPouchReplication(undefined)).not.toThrow()
   })
+
+  it('is a no-op when the client carries no link chain', () => {
+    expect(() => triggerPouchReplication({} as unknown as CozyClient)).not.toThrow()
+  })
 })

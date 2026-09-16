@@ -15,6 +15,7 @@ const log = Minilog('PouchReplication')
  *                  cozy-pouch-link refuses to debounce when `periodicSync: true` (it throws
  *                  `createDebounceableReplication cannot be called when periodic sync is
  *                  configured`), so every trigger calls `startReplication()` directly.
+
  */
 export const triggerPouchReplication = (
   client?: CozyClient,
@@ -29,6 +30,6 @@ export const triggerPouchReplication = (
 }
 
 export const getPouchLink = (client?: CozyClient): PouchLink | null => {
-  if (!client) return null
+  if (!client?.links) return null
   return (client.links.find(l => l instanceof PouchLink) as PouchLink | undefined) ?? null
 }
