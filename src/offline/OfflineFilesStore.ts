@@ -14,10 +14,29 @@ type GlobalListener = () => void
 const fileListeners = new Map<string, Set<FileListener>>()
 const globalListeners = new Set<GlobalListener>()
 
-const notify = (fileId: string): void => {
+// Depth of nested batch() calls, and what they have to replay on the way out.
+let batchDepth = 0
+const batchedFiles = new Set<string>()
+
+const emit = (fileId: string): void => {
   const entry = readEntry(fileId)
   fileListeners.get(fileId)?.forEach(l => l(entry))
+}
+
+const notify = (fileId: string): void => {
+  if (batchDepth > 0) {
+    batchedFiles.add(fileId)
+    return
+  }
+  emit(fileId)
   globalListeners.forEach(l => l())
+}
+
+const flushBatch = (): void => {
+  const ids = [...batchedFiles]
+  batchedFiles.clear()
+  ids.forEach(emit)
+  if (ids.length > 0) globalListeners.forEach(l => l())
 }
 
 const readEntry = (fileId: string): OfflineFileEntry | undefined => {
@@ -100,6 +119,23 @@ export const OfflineFilesStore = {
     const next = buildEntry(fileId, meta, prev)
     next.isDirectPin = true
     writeEntry(next)
+  },
+
+  /**
+   * Coalesces the notifications of everything written inside `fn` into one.
+   *
+   * Pinning a folder writes two entries per file, and each write woke every
+   * subscriber — with a few hundred files that is a re-render storm that
+   * starves the UI for seconds.
+   */
+  batch(fn: () => void): void {
+    batchDepth += 1
+    try {
+      fn()
+    } finally {
+      batchDepth -= 1
+      if (batchDepth === 0) flushBatch()
+    }
   },
 
   pinViaFolder(fileId: string, dirId: string, meta: PinMeta): void {
