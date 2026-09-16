@@ -7,6 +7,15 @@ jest.mock('cozy-client', () => ({
   useClient: () => null
 }))
 
+jest.mock('@/network/useIsOnline', () => ({ useIsOnline: () => true }))
+
+jest.mock('@/files/favorites', () => ({
+  isFavorite: jest.fn().mockReturnValue(false),
+  toggleFavorite: jest.fn().mockResolvedValue(undefined)
+}))
+
+jest.mock('@/pouchdb/triggerReplication', () => ({ triggerPouchReplication: jest.fn() }))
+
 jest.mock('@/offline/useOfflineState', () => ({
   useOfflineState: jest.fn().mockReturnValue(undefined),
   useOfflineFolderState: jest.fn().mockReturnValue({
@@ -113,5 +122,50 @@ describe('FileGridItem', () => {
   it('renders no offline badge when the item is not kept offline', () => {
     render(wrap(<FileGridItem file={file} onPress={() => {}} />))
     expect(screen.queryByTestId('pinned-badge')).toBeNull()
+  })
+})
+
+// Grid used to offer nothing but the multi-select long press, so sharing a
+// file meant switching back to the list view.
+describe('FileGridItem actions', () => {
+  it('renders no action anchor when no action is wired', () => {
+    render(wrap(<FileGridItem file={file} onPress={jest.fn()} />))
+    expect(screen.queryByTestId('file-grid-actions')).toBeNull()
+  })
+
+  it('renders the file action menu when actions are wired', () => {
+    render(wrap(<FileGridItem file={file} onPress={jest.fn()} onShare={jest.fn()} />))
+    expect(screen.getByTestId('file-grid-actions')).toBeOnTheScreen()
+  })
+
+  it('offers the same entries as the list row', () => {
+    const onShare = jest.fn()
+    render(
+      wrap(
+        <FileGridItem
+          file={file}
+          onPress={jest.fn()}
+          onShare={onShare}
+          onMove={jest.fn()}
+          onInfo={jest.fn()}
+        />
+      )
+    )
+    fireEvent.press(screen.getByTestId('file-grid-actions'))
+    expect(screen.getByText('drive.fileMeta.share')).toBeOnTheScreen()
+    expect(screen.getByText('drive.fileMeta.move')).toBeOnTheScreen()
+    expect(screen.getByText('drive.fileMeta.favorite')).toBeOnTheScreen()
+    fireEvent.press(screen.getByText('drive.fileMeta.share'))
+    expect(onShare).toHaveBeenCalledWith(expect.objectContaining({ _id: 'file-1' }))
+  })
+
+  it('renders the folder action menu for a directory', () => {
+    render(wrap(<FileGridItem file={folder} onPress={jest.fn()} onShare={jest.fn()} />))
+    expect(screen.getByTestId('folder-grid-actions')).toBeOnTheScreen()
+  })
+
+  it('hides the actions while the tile is selected', () => {
+    render(wrap(<FileGridItem file={file} onPress={jest.fn()} onShare={jest.fn()} selected />))
+    expect(screen.queryByTestId('file-grid-actions')).toBeNull()
   })
 })

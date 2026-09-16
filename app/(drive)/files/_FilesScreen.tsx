@@ -380,6 +380,30 @@ export const FilesScreen = ({ basePath }: FilesScreenProps): React.ReactElement 
       <FileGridItem
         file={item}
         selected={isSelected}
+        onShare={
+          selection.isSelecting
+            ? undefined
+            : file => {
+                if (!requireOnline(isOnline, setSnackbar, t)) return
+                router.push(`/share/${file._id}`)
+              }
+        }
+        onRename={selection.isSelecting ? undefined : () => requestRename(item)}
+        onDelete={selection.isSelecting ? undefined : () => requestDelete(item)}
+        onMove={selection.isSelecting ? undefined : file => router.push(`/move/${file._id}`)}
+        onTogglePin={
+          selection.isSelecting
+            ? undefined
+            : file =>
+                item.type === 'directory'
+                  ? onToggleFolderPin(file)
+                  : onToggleFilePin({ ...file, size: file.size ?? null })
+        }
+        onInfo={
+          selection.isSelecting || item.type === 'directory'
+            ? undefined
+            : file => router.push(`/metadata/${file._id}`)
+        }
         onPress={file => {
           if (selection.isSelecting) {
             selection.toggle(file._id)
