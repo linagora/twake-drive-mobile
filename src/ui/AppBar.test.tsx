@@ -25,15 +25,21 @@ const wrap = (ui: React.ReactElement) => (
   </PaperProvider>
 )
 
-describe('AppBar search (disabled)', () => {
-  it('does not render the search button even with showSearch', () => {
-    render(wrap(<AppBar title="Mes fichiers" showSearch />))
+describe('AppBar', () => {
+  it('renders no search button', () => {
+    render(wrap(<AppBar title="Mes fichiers" />))
     expect(screen.queryByLabelText('drive.search.action')).toBeNull()
     expect(screen.queryByTestId('appbar-search-button')).toBeNull()
   })
 
+  // Removed with the button it opened twake.app from.
+  it('renders no help button', () => {
+    render(wrap(<AppBar title="Mes fichiers" onLogout={jest.fn()} />))
+    expect(screen.queryByTestId('appbar-help-button')).toBeNull()
+  })
+
   it('still exposes the back-button testID for Maestro', () => {
-    render(wrap(<AppBar title="Mes fichiers" showSearch onBack={() => {}} />))
+    render(wrap(<AppBar title="Mes fichiers" onBack={() => {}} />))
     expect(screen.getByTestId('appbar-back-button')).toBeOnTheScreen()
   })
 })

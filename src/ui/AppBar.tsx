@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Linking, Pressable, StyleSheet, View } from 'react-native'
+import { Pressable, StyleSheet, View } from 'react-native'
 import { Appbar, Avatar, Menu, useTheme } from 'react-native-paper'
 import { useTranslation } from 'react-i18next'
 import { useRouter } from 'expo-router'
@@ -38,14 +38,6 @@ interface Props {
   onClose?: () => void
   onLogout?: () => void
   /**
-   * When true, a help icon button is rendered to the left of the avatar menu.
-   * Tapping it opens twake.app in the system browser.
-   *
-   * Despite the name this does NOT surface the file-name search screen: search
-   * lives at /search and is currently only reachable by deep link.
-   */
-  showSearch?: boolean
-  /**
    * When set, the AppBar swaps to selection mode: the title shows the
    * count, the back/menu controls are replaced with a close action, and
    * the provided actions are rendered on the right.
@@ -53,7 +45,7 @@ interface Props {
   selection?: AppBarSelection
 }
 
-export const AppBar = ({ title, onBack, onClose, onLogout, showSearch, selection }: Props) => {
+export const AppBar = ({ title, onBack, onClose, onLogout, selection }: Props) => {
   const { t } = useTranslation()
   const [menuVisible, setMenuVisible] = useState(false)
   const theme = useTheme()
@@ -125,16 +117,6 @@ export const AppBar = ({ title, onBack, onClose, onLogout, showSearch, selection
         <TwakeLogo size={cozyTokens.logoSize.appBar} />
       </View>
       <Appbar.Content title={title} />
-      {showSearch ? (
-        <Pressable
-          onPress={() => Linking.openURL('https://twake.app')}
-          accessibilityLabel={t('common.help')}
-          style={styles.searchButton}
-          testID="appbar-help-button"
-        >
-          <CozyIcon name="info" size={cozyTokens.iconSize.md} color={theme.colors.onSurface} />
-        </Pressable>
-      ) : null}
       {onLogout ? (
         <Menu
           visible={menuVisible}
@@ -194,11 +176,5 @@ const styles = StyleSheet.create({
     marginLeft: cozyTokens.spacing.xs,
     marginRight: cozyTokens.spacing.xs,
     justifyContent: 'center'
-  },
-  searchButton: {
-    marginHorizontal: cozyTokens.spacing.xs,
-    padding: cozyTokens.spacing.xs + cozyTokens.spacing.xxs,
-    justifyContent: 'center',
-    alignItems: 'center'
   }
 })

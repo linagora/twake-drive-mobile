@@ -132,7 +132,7 @@ export default function RecentScreen() {
 
   return (
     <ScreenContainer>
-      <AppBar title={t('drive.recent')} onLogout={logout} showSearch />
+      <AppBar title={t('drive.recent')} onLogout={logout} />
       {query.fetchStatus === 'loading' && data.length === 0 ? (
         <LoadingState />
       ) : query.fetchStatus === 'failed' ? (
