@@ -77,6 +77,31 @@ describe('OnlineMonitor', () => {
     expect(listener).toHaveBeenCalledWith(false)
   })
 
+  // Airplane mode kept the app looking online, and the sync indicator spinning,
+  // until the probe timer happened to tick.
+  it('re-probes at once when NetInfo reports the network is gone', async () => {
+    const mon = createOnlineMonitor({
+      probeUri: 'https://stack.example.com',
+      probeIntervalMs: 60_000
+    })
+    await flush()
+    expect(mon.getCurrent()).toBe(true)
+
+    const listener = jest.fn()
+    mon.subscribe(listener)
+    fetchMock.mockRejectedValue(new Error('offline'))
+    ;(NetInfo as unknown as { __emit: (s: Partial<NetInfoState>) => void }).__emit({
+      isConnected: false,
+      isInternetReachable: false,
+      type: 'none' as never
+    })
+    await flush()
+
+    // No timer advanced: the transition itself triggered the probe.
+    expect(mon.getCurrent()).toBe(false)
+    expect(listener).toHaveBeenCalledWith(false)
+  })
+
   it('unsubscribe stops notifications', async () => {
     const mon = createOnlineMonitor({ probeUri: 'https://stack.example.com' })
     await flush()

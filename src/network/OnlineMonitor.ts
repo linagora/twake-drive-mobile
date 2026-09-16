@@ -75,9 +75,16 @@ export const createOnlineMonitor = (opts: CreateOptions = {}): OnlineMonitor => 
   })
 
   const unsubNetInfo = NetInfo.addEventListener(s => {
-    netInfoOnline = computeOnline(s)
+    const next = computeOnline(s)
+    const changed = next !== netInfoOnline
+    netInfoOnline = next
     netType = s.type
     emit()
+    // A cached probe result keeps `current()` online on its own, so losing the
+    // network left the app looking online until the next tick of the probe
+    // timer — up to probeIntervalMs of a spinning sync indicator in airplane
+    // mode. Re-probe on the transition instead of waiting for it.
+    if (changed) void probe()
   })
 
   const probeTimer = setInterval(() => void probe(), probeIntervalMs)
