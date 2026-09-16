@@ -104,7 +104,7 @@ export default function FavoritesScreen() {
 
   return (
     <ScreenContainer>
-      <AppBar title={t('drive.favorites')} onLogout={logout} showSearch />
+      <AppBar title={t('drive.favorites')} onLogout={logout} />
       {query.fetchStatus === 'loading' && data.length === 0 ? (
         <LoadingState />
       ) : query.fetchStatus === 'failed' ? (
