@@ -46,8 +46,9 @@ const enumerateFolderChildren = async (
     .where({ dir_id: dirId })
     .indexFields(['dir_id', 'type', 'name'])
     .sortBy([{ dir_id: 'asc' }, { type: 'asc' }, { name: 'asc' }])
-  const result = await client.query(definition)
-  const data = (result?.data ?? []) as unknown as FileShape[]
+  // queryAll, not query: a single page stopped the walk at the first hundred
+  // children, and every subfolder left out took its whole subtree with it.
+  const data = ((await client.queryAll(definition)) ?? []) as unknown as FileShape[]
   const files = data.filter(d => d.type === 'file')
   const subfolders = data.filter(d => d.type === 'directory')
   return { files, subfolders }
@@ -93,11 +94,18 @@ export const useOfflineActions = (): UseOfflineActionsResult => {
         Downloader.enqueue(f._id)
       }
       for (const sub of subfolders) {
-        const { files: subFiles, subfolders: subSubs } = await enumerateFolderChildren(
-          client,
-          sub._id
-        )
-        await doPinFolder(sub, subFiles, subSubs, [...ancestors, folder._id])
+        // One unreadable subfolder must not abandon the rest of the tree: the
+        // rejection used to bubble to a caller that discards it, leaving the
+        // pin silently incomplete.
+        try {
+          const { files: subFiles, subfolders: subSubs } = await enumerateFolderChildren(
+            client,
+            sub._id
+          )
+          await doPinFolder(sub, subFiles, subSubs, [...ancestors, folder._id])
+        } catch (e) {
+          console.error('[useOfflineActions] could not walk subfolder', sub._id, e)
+        }
       }
     },
     [client]
