@@ -1,3 +1,4 @@
+import { Platform } from 'react-native'
 import * as WebBrowser from 'expo-web-browser'
 import * as Crypto from 'expo-crypto'
 import * as Linking from 'expo-linking'
@@ -93,18 +94,25 @@ const openViaSystemBrowser = (url: string): Promise<string> =>
 
 export const openAuthorizeUrl = async (url: string): Promise<string> => {
   console.log('[auth] opening authorize URL', url.split('?')[0])
-  // The stack's /auth/authorize step usually redirects to twakedrive:// instantly with
-  // no UI. openAuthSessionAsync captures that native redirect reliably; the
-  // openBrowserAsync + deep-link path misses the instant custom-scheme redirect.
-  // This does not affect the Docs cookie jar — the Lemon SSO cookie is set during
-  // login (openLoginUrl / SFSafariViewController), not here.
+  // Android delivers the custom-scheme intent to the app, so the Custom Tab and
+  // its deep-link listener catch the instant redirect AND survive the excursion
+  // to the mail app that the email-code certification requires. One consent
+  // screen, whether the client is certified or not.
+  if (Platform.OS === 'android') return openViaSystemBrowser(url)
+  // iOS: the stack's /auth/authorize step usually redirects to twakedrive://
+  // instantly with no UI, and only openAuthSessionAsync captures that redirect
+  // out of SFSafariViewController — the deep-link path misses it. This does not
+  // affect the Docs cookie jar: the Lemon SSO cookie is set during login
+  // (openLoginUrl / SFSafariViewController), not here.
   const result = await WebBrowser.openAuthSessionAsync(url, REDIRECT_URL, { showInRecents: false })
   if (result.type === 'success' && result.url) {
     return normalizeRedirectUrl(result.url)
   }
   // An uncertified client shows the email-code form instead of redirecting; the
   // user leaves to read the code, which aborts openAuthSessionAsync on refocus.
-  // Retry in the system browser, which survives the mail excursion.
+  // Retry in the system browser, which survives the mail excursion, at the cost
+  // of a second consent screen. Kept on iOS on purpose: a certified client
+  // redirects without ever showing one, so this path stays exceptional.
   console.log('[auth] auth session returned', result.type, '— falling back to system browser')
   return openViaSystemBrowser(url)
 }

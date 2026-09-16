@@ -1,3 +1,4 @@
+import { Platform } from 'react-native'
 import * as WebBrowser from 'expo-web-browser'
 import * as Linking from 'expo-linking'
 
@@ -151,6 +152,44 @@ describe('openAuthorizeUrl (fast native redirect + email-code fallback)', () => 
     await Promise.resolve()
     urlHandler({ url: 'twakedrive://?code=viacustomtab' })
     await expect(p).resolves.toBe('twakedrive://?code=viacustomtab')
+    expect(wb.openBrowserAsync).toHaveBeenCalledWith('https://x/auth/authorize', {
+      showInRecents: true
+    })
+  })
+})
+
+describe('openAuthorizeUrl on Android', () => {
+  let urlHandler: (e: { url: string }) => void
+  let remove: jest.Mock
+
+  beforeEach(() => {
+    jest.clearAllMocks()
+    Object.defineProperty(Platform, 'OS', { value: 'android', configurable: true })
+    remove = jest.fn()
+    linking.addEventListener.mockImplementation(
+      (_evt: string, cb: (e: { url: string }) => void) => {
+        urlHandler = cb
+        return { remove }
+      }
+    )
+    wb.dismissBrowser.mockReturnValue(undefined)
+  })
+
+  afterEach(() => {
+    Object.defineProperty(Platform, 'OS', { value: 'ios', configurable: true })
+  })
+
+  // Android delivers the custom-scheme intent to the app, so the Custom Tab
+  // catches the instant redirect as well as surviving the mail excursion the
+  // email-code certification needs. Going through the auth session first only
+  // bought a second consent screen when it was dismissed.
+  it('goes straight to the Custom Tab, never the auth session', async () => {
+    wb.openBrowserAsync.mockReturnValue(new Promise(() => undefined))
+    const p = openAuthorizeUrl('https://x/auth/authorize')
+    await Promise.resolve()
+    urlHandler({ url: 'twakedrive://?code=android' })
+    await expect(p).resolves.toBe('twakedrive://?code=android')
+    expect(wb.openAuthSessionAsync).not.toHaveBeenCalled()
     expect(wb.openBrowserAsync).toHaveBeenCalledWith('https://x/auth/authorize', {
       showInRecents: true
     })
