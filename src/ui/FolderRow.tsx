@@ -220,6 +220,7 @@ export const FolderRow = ({
               />
             ) : null}
             <Menu.Item
+              disabled={!isOnline}
               leadingIcon={() => (
                 <CozyIcon
                   name={
