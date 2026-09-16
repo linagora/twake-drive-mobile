@@ -15,6 +15,7 @@ import { ConfirmDeleteDialog } from '@/ui/ConfirmDeleteDialog'
 import { formatFileSize } from '@/utils/formatters'
 import { openFileNatively } from '@/files/openFile'
 import { renameEntry } from '@/files/renameEntry'
+import { optimisticFiles } from '@/files/optimisticFiles'
 import { softDeleteEntry } from '@/files/deleteFile'
 import { isCozyNoteFile, isDocsNoteFile, isOfficeFile, isShortcutFile } from '@/files/fileTypes'
 import { fetchShortcutUrl } from '@/files/shortcuts'
@@ -133,6 +134,7 @@ export default function MetadataRoute() {
   const onRenameSubmit = async (newName: string): Promise<void> => {
     if (!client || !file) return
     setMutating(true)
+    const revert = optimisticFiles(client, [{ ...file, name: newName }])
     try {
       await renameEntry(client, file._id, newName)
       setRenameVisible(false)
@@ -141,6 +143,7 @@ export default function MetadataRoute() {
       )
       setTimeout(close, SNACKBAR_DISMISS_DELAY_MS)
     } catch (e) {
+      revert()
       setSnackbar(t('drive.rename.errorGeneric'))
     } finally {
       setMutating(false)

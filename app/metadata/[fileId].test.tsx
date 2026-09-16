@@ -1,7 +1,7 @@
 import React from 'react'
 import { ActivityIndicator } from 'react-native-paper'
 import { Provider as PaperProvider } from 'react-native-paper'
-import { fireEvent, render, screen } from '@testing-library/react-native'
+import { act, fireEvent, render, screen } from '@testing-library/react-native'
 
 const mockBack = jest.fn()
 const mockPush = jest.fn()
@@ -20,9 +20,14 @@ jest.mock('expo-router', () => ({
 
 const mockUseQuery = jest.fn()
 
+const mockClient = {
+  collection: jest.fn(),
+  getStackClient: () => ({ uri: 'https://example.twake.linagora.com' })
+}
+
 jest.mock('cozy-client', () => ({
   __esModule: true,
-  useClient: () => null,
+  useClient: () => mockClient,
   useQuery: (...args: unknown[]) => mockUseQuery(...args),
   Q: () => ({ getById: () => ({}) })
 }))
@@ -40,11 +45,15 @@ jest.mock('@/network/useIsOnline', () => ({ useIsOnline: () => true }))
 jest.mock('@/files/openFile', () => ({ openFileNatively: jest.fn() }))
 jest.mock('@/files/shortcuts', () => ({ fetchShortcutUrl: jest.fn() }))
 jest.mock('@/files/renameEntry', () => ({ renameEntry: jest.fn() }))
+const mockRevert = jest.fn()
+jest.mock('@/files/optimisticFiles', () => ({ optimisticFiles: jest.fn(() => mockRevert) }))
 jest.mock('@/files/deleteFile', () => ({ softDeleteEntry: jest.fn() }))
 jest.mock('@/offline/FileSystemRepo', () => ({
   FileSystemRepo: { localPath: (id: string) => `file://${id}` }
 }))
 
+import { renameEntry } from '@/files/renameEntry'
+import { optimisticFiles } from '@/files/optimisticFiles'
 import MetadataRoute from './[fileId]'
 
 const wrap = (ui: React.ReactElement) => <PaperProvider>{ui}</PaperProvider>
@@ -67,11 +76,39 @@ describe('MetadataRoute', () => {
     mockReplace.mockReset()
     mockPin.mockReset()
     mockUnpin.mockReset()
+    mockRevert.mockReset()
+    ;(optimisticFiles as jest.Mock).mockClear()
     mockUseQuery.mockReturnValue({
       data: defaultFileData,
       fetchStatus: 'loaded',
       fetch: jest.fn()
     })
+  })
+
+  // The rename goes straight to the stack, which does not write to the local
+  // replica: without this the list behind kept the old name until a sync.
+  it('pushes the renamed doc to the store when renaming from the sheet', async () => {
+    ;(renameEntry as jest.Mock).mockResolvedValue({ _id: 'f1', name: 'bilan.pdf' })
+    render(wrap(<MetadataRoute />))
+    fireEvent.press(screen.getByText('drive.fileMeta.rename'))
+    fireEvent.changeText(screen.getByDisplayValue('rapport.pdf'), 'bilan.pdf')
+    await act(async () => {
+      fireEvent.press(screen.getByText('drive.rename.submit'))
+    })
+    expect(optimisticFiles).toHaveBeenCalledWith(expect.anything(), [
+      expect.objectContaining({ _id: 'f1', name: 'bilan.pdf' })
+    ])
+  })
+
+  it('reverts the store update when the rename fails', async () => {
+    ;(renameEntry as jest.Mock).mockRejectedValue(new Error('boom'))
+    render(wrap(<MetadataRoute />))
+    fireEvent.press(screen.getByText('drive.fileMeta.rename'))
+    fireEvent.changeText(screen.getByDisplayValue('rapport.pdf'), 'bilan.pdf')
+    await act(async () => {
+      fireEvent.press(screen.getByText('drive.rename.submit'))
+    })
+    expect(mockRevert).toHaveBeenCalled()
   })
 
   it('renders the file name', () => {
