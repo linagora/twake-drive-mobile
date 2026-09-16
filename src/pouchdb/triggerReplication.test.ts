@@ -4,9 +4,18 @@ import { triggerPouchReplication } from './triggerReplication'
 
 jest.mock('cozy-pouch-link', () => jest.fn())
 
+let mockOnline = true
+jest.mock('@/network/OnlineMonitor', () => ({
+  getOnlineMonitor: () => ({ getCurrent: () => mockOnline })
+}))
+
 const makeClient = (link: unknown): CozyClient => ({ links: [link] }) as unknown as CozyClient
 
 describe('triggerPouchReplication', () => {
+  beforeEach(() => {
+    mockOnline = true
+  })
+
   it('calls startReplication on the PouchLink in the chain', () => {
     const link = Object.create((PouchLink as unknown as jest.Mock).prototype)
     link.startReplication = jest.fn()
@@ -38,5 +47,15 @@ describe('triggerPouchReplication', () => {
 
   it('is a no-op when the client carries no link chain', () => {
     expect(() => triggerPouchReplication({} as unknown as CozyClient)).not.toThrow()
+  })
+
+  // A replication started with no network never ends, and the sync indicator
+  // it lights up stays on forever.
+  it('does not start a replication while offline', () => {
+    mockOnline = false
+    const link = Object.create((PouchLink as unknown as jest.Mock).prototype)
+    link.startReplication = jest.fn()
+    triggerPouchReplication(makeClient(link))
+    expect(link.startReplication).not.toHaveBeenCalled()
   })
 })
