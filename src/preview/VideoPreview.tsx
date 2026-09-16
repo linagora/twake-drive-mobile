@@ -47,7 +47,11 @@ export const VideoPreview = ({ fileId, source }: VideoPreviewProps): React.React
         fullscreenOptions={{ enable: true }}
         allowsPictureInPicture
         startsPictureInPictureAutomatically
-        nativeControls
+        // Bound to readiness: the controls appear when the view does and hide
+        // themselves a few seconds later, which on a slow stream is before the
+        // first frame is there. Enabling them on ready shows them over the
+        // video instead of over a black rectangle the user has to tap.
+        nativeControls={ready}
         onPictureInPictureStart={() => {
           // Dismiss the page-sheet modal so iOS can detach PiP at system
           // level. AVPictureInPictureController cannot detach from a

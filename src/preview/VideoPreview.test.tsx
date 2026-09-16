@@ -1,5 +1,5 @@
 import React from 'react'
-import { render } from '@testing-library/react-native'
+import { act, render } from '@testing-library/react-native'
 
 const mockBack = jest.fn()
 const mockPush = jest.fn()
@@ -9,16 +9,18 @@ jest.mock('expo-router', () => ({
   useRouter: () => ({ back: mockBack, push: mockPush, canGoBack: () => true })
 }))
 
-const captured: { onStart?: () => void; onStop?: () => void } = {}
+const captured: { onStart?: () => void; onStop?: () => void; nativeControls?: boolean } = {}
 
 jest.mock('expo-video', () => ({
   __esModule: true,
   VideoView: (props: {
     onPictureInPictureStart?: () => void
     onPictureInPictureStop?: () => void
+    nativeControls?: boolean
   }) => {
     captured.onStart = props.onPictureInPictureStart
     captured.onStop = props.onPictureInPictureStop
+    captured.nativeControls = props.nativeControls
     return null
   },
   useVideoPlayer: jest.fn()
@@ -58,6 +60,34 @@ describe('VideoPreview', () => {
     mockRelease.mockReset()
     captured.onStart = undefined
     captured.onStop = undefined
+  })
+
+  // The controls appear with the view and hide a few seconds later, so on a
+  // slow stream they were already gone by the time the first frame arrived.
+  it('keeps the native controls off until the player is ready', () => {
+    render(wrap(<VideoPreview fileId="f1" source={{ uri: 'https://x/v.mp4', headers: {} }} />))
+    expect(captured.nativeControls).toBe(false)
+  })
+
+  it('turns the native controls on when the player reports readyToPlay', () => {
+    const player = makePlayer(true) as unknown as PiPSessionContextValue['player'] & {
+      addListener: jest.Mock
+    }
+    const ctxValue: PiPSessionContextValue = {
+      active: null,
+      player,
+      claim: mockClaim,
+      release: mockRelease
+    }
+    render(
+      <PiPSessionContext.Provider value={ctxValue}>
+        <VideoPreview fileId="f1" source={{ uri: 'https://x/v.mp4', headers: {} }} />
+      </PiPSessionContext.Provider>
+    )
+    expect(captured.nativeControls).toBe(false)
+    const onStatusChange = player.addListener.mock.calls[0][1] as (e: { status: string }) => void
+    act(() => onStatusChange({ status: 'readyToPlay' }))
+    expect(captured.nativeControls).toBe(true)
   })
 
   it('dismisses the modal when PiP starts', () => {
