@@ -270,6 +270,10 @@
     "forbidden": "Acceso denegado",
     "notFound": "Esta carpeta ya no existe",
     "server": "Error del servidor, inténtalo más tarde",
-    "generic": "Algo salió mal"
+    "generic": "Algo salió mal",
+    "showDetails": "Detalles",
+    "hideDetails": "Ocultar detalles",
+    "copyDetails": "Copiar detalles",
+    "copied": "Copiado"
   }
 }

@@ -261,6 +261,10 @@
     "forbidden": "Zugriff verweigert",
     "notFound": "Dieser Ordner existiert nicht mehr",
     "server": "Serverfehler, versuchen Sie es später erneut",
-    "generic": "Etwas ist schiefgelaufen"
+    "generic": "Etwas ist schiefgelaufen",
+    "showDetails": "Details",
+    "hideDetails": "Details ausblenden",
+    "copyDetails": "Details kopieren",
+    "copied": "Kopiert"
   }
 }

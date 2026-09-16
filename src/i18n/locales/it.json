@@ -270,6 +270,10 @@
     "forbidden": "Accesso negato",
     "notFound": "Questa cartella non esiste più",
     "server": "Errore del server, riprova più tardi",
-    "generic": "Si è verificato un problema"
+    "generic": "Si è verificato un problema",
+    "showDetails": "Dettagli",
+    "hideDetails": "Nascondi i dettagli",
+    "copyDetails": "Copia i dettagli",
+    "copied": "Copiato"
   }
 }

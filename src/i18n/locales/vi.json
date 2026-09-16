@@ -252,6 +252,10 @@
     "forbidden": "Truy cập bị từ chối",
     "notFound": "Thư mục này không còn tồn tại",
     "server": "Lỗi máy chủ, hãy thử lại sau",
-    "generic": "Đã xảy ra lỗi"
+    "generic": "Đã xảy ra lỗi",
+    "showDetails": "Chi tiết",
+    "hideDetails": "Ẩn chi tiết",
+    "copyDetails": "Sao chép chi tiết",
+    "copied": "Đã sao chép"
   }
 }

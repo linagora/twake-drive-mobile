@@ -261,6 +261,10 @@
     "forbidden": "Access denied",
     "notFound": "This folder no longer exists",
     "server": "Server error, try again later",
-    "generic": "Something went wrong"
+    "generic": "Something went wrong",
+    "showDetails": "Details",
+    "hideDetails": "Hide details",
+    "copyDetails": "Copy details",
+    "copied": "Copied"
   }
 }
