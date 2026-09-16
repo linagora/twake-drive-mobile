@@ -203,7 +203,7 @@
     },
     "offline": {
       "requiresOnline": "Có sẵn khi bạn trực tuyến trở lại",
-      "banner": "Ngoại tuyến — đang hiển thị dữ liệu đã lưu",
+      "banner": "Ngoại tuyến — chế độ hạn chế",
       "pin": "Giữ ngoại tuyến",
       "unpin": "Xóa khỏi ngoại tuyến",
       "keepOffline": "Giữ ngoại tuyến",

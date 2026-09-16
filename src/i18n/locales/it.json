@@ -215,7 +215,7 @@
     },
     "offline": {
       "requiresOnline": "Disponibile quando tornerai online",
-      "banner": "Offline: visualizzazione dei dati in cache",
+      "banner": "Offline: modalità limitata",
       "pin": "Mantieni offline",
       "unpin": "Rimuovi da offline",
       "keepOffline": "Mantieni offline",

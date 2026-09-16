@@ -215,7 +215,7 @@
     },
     "offline": {
       "requiresOnline": "Disponible cuando vuelvas a estar en línea",
-      "banner": "Sin conexión: mostrando datos en caché",
+      "banner": "Sin conexión: modo restringido",
       "pin": "Guardar sin conexión",
       "unpin": "Quitar de sin conexión",
       "keepOffline": "Guardar sin conexión",

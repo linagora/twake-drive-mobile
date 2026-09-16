@@ -209,7 +209,7 @@
     },
     "offline": {
       "requiresOnline": "Available when you're back online",
-      "banner": "Offline — showing cached data",
+      "banner": "Offline — restricted mode",
       "pin": "Keep offline",
       "unpin": "Remove from offline",
       "keepOffline": "Keep offline",
