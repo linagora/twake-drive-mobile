@@ -555,6 +555,7 @@ export default function FilesScreen() {
         onCancel={offlineActions.cancelPending}
       />
       <FAB.Group
+        style={styles.fabGroup}
         testID="drive-fab"
         open={fabOpen}
         visible={!selection.isSelecting && isOnline}
@@ -609,6 +610,7 @@ export default function FilesScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { flex: 1 },
+  fabGroup: { zIndex: 20 },
   gridPlaceholder: { flex: 1, margin: 4 },
   toolbar: {
     flexDirection: 'row',
