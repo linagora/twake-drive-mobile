@@ -10,8 +10,15 @@ jest.mock('cozy-client', () => ({
 // AppBar renders the real account identity via useCurrentUser (Task 4), which
 // calls cozy-client's useQuery under the hood. Mock it so the avatar shows a
 // deterministic 'AB' instead of requiring a CozyClient in the render tree.
+let mockAvatarUrl: string | undefined
 jest.mock('@/account/useCurrentUser', () => ({
-  useCurrentUser: () => ({ name: 'Alice B', email: 'a@b.c', initials: 'AB', loading: false })
+  useCurrentUser: () => ({
+    name: 'Alice B',
+    email: 'a@b.c',
+    initials: 'AB',
+    avatarUrl: mockAvatarUrl,
+    loading: false
+  })
 }))
 
 const mockPush = jest.fn()
@@ -26,6 +33,7 @@ const wrap = (ui: React.ReactElement) => <PaperProvider>{ui}</PaperProvider>
 
 beforeEach(() => {
   mockPush.mockClear()
+  mockAvatarUrl = undefined
 })
 
 test('tapping the avatar opens the menu with settings and logout', () => {
@@ -41,4 +49,25 @@ test('tapping the avatar opens the menu with settings and logout', () => {
   // Shared drives are not finished on mobile, the entry is not offered yet.
   expect(screen.queryByText('drive.sharedDrives')).toBeNull()
   expect(screen.getByText('common.logout')).toBeOnTheScreen()
+})
+
+test('renders the instance avatar when there is one', () => {
+  mockAvatarUrl = 'https://alice.example.com/public/avatar'
+  render(wrap(<AppBar title="Mes fichiers" onLogout={jest.fn()} />))
+
+  expect(screen.getByTestId('appbar-avatar-image')).toBeOnTheScreen()
+  expect(screen.queryByText('AB')).toBeNull()
+})
+
+test('falls back to the initials when the avatar cannot be loaded', () => {
+  mockAvatarUrl = 'https://alice.example.com/public/avatar'
+  render(wrap(<AppBar title="Mes fichiers" onLogout={jest.fn()} />))
+
+  fireEvent(screen.getByTestId('appbar-avatar-image'), 'error')
+  expect(screen.getByText('AB')).toBeOnTheScreen()
+})
+
+test('shows the initials when the instance has no avatar url yet', () => {
+  render(wrap(<AppBar title="Mes fichiers" onLogout={jest.fn()} />))
+  expect(screen.getByText('AB')).toBeOnTheScreen()
 })

@@ -50,7 +50,8 @@ export const AppBar = ({ title, onBack, onClose, onLogout, selection }: Props) =
   const [menuVisible, setMenuVisible] = useState(false)
   const theme = useTheme()
   const router = useRouter()
-  const { initials } = useCurrentUser()
+  const { initials, avatarUrl } = useCurrentUser()
+  const [avatarFailed, setAvatarFailed] = useState(false)
 
   if (selection) {
     return (
@@ -122,8 +123,17 @@ export const AppBar = ({ title, onBack, onClose, onLogout, selection }: Props) =
           visible={menuVisible}
           onDismiss={() => setMenuVisible(false)}
           anchor={
-            <Pressable onPress={() => setMenuVisible(true)}>
-              <Avatar.Text size={cozyTokens.avatarSize.sm} label={initials} />
+            <Pressable onPress={() => setMenuVisible(true)} testID="appbar-avatar">
+              {avatarUrl && !avatarFailed ? (
+                <Avatar.Image
+                  size={cozyTokens.avatarSize.sm}
+                  source={{ uri: avatarUrl }}
+                  onError={() => setAvatarFailed(true)}
+                  testID="appbar-avatar-image"
+                />
+              ) : (
+                <Avatar.Text size={cozyTokens.avatarSize.sm} label={initials} />
+              )}
             </Pressable>
           }
         >
