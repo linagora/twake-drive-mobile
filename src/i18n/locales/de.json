@@ -209,7 +209,7 @@
     },
     "offline": {
       "requiresOnline": "Verfügbar, sobald Sie wieder online sind",
-      "banner": "Offline – zwischengespeicherte Daten werden angezeigt",
+      "banner": "Offline – eingeschränkter Modus",
       "pin": "Offline behalten",
       "unpin": "Aus Offline entfernen",
       "keepOffline": "Offline behalten",

@@ -215,7 +215,7 @@
     },
     "offline": {
       "requiresOnline": "Disponible quand vous serez en ligne",
-      "banner": "Hors-ligne — affichage du cache",
+      "banner": "Hors-ligne — mode restreint",
       "pin": "Garder hors-ligne",
       "unpin": "Retirer du hors-ligne",
       "keepOffline": "Garder hors-ligne",
