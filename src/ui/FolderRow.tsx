@@ -13,6 +13,7 @@ import { PinnedBadge } from '@/offline/PinnedBadge'
 import { folderBadgeEntry } from '@/offline/folderBadgeEntry'
 import { isFavorite, toggleFavorite } from '@/files/favorites'
 import { triggerPouchReplication } from '@/pouchdb/triggerReplication'
+import { FolderActionsMenu } from './FolderActionsMenu'
 import { SharedBadge } from './SharedBadge'
 
 export interface FolderItem {
@@ -131,123 +132,16 @@ export const FolderRow = ({
       />
       <View style={styles.actionSlot} pointerEvents="box-none">
         {hasMenu ? (
-          <Menu
-            visible={menuVisible}
-            onDismiss={() => setMenuVisible(false)}
-            anchor={
-              <IconButton
-                icon={p => <CozyIcon name="dotsVertical" size={p?.size ?? 24} color={p?.color} />}
-                onPress={() => setMenuVisible(true)}
-                accessibilityLabel={t('a11y.folderActions')}
-                testID={`folder-actions:${folder.name}`}
-              />
-            }
-          >
-            {onTogglePin ? (
-              <Menu.Item
-                leadingIcon={isPinned ? 'cloud-off-outline' : 'cloud-download-outline'}
-                title={t(isPinned ? 'drive.offline.unpin' : 'drive.offline.pin')}
-                disabled={!isPinned && !isOnline}
-                onPress={() => {
-                  setMenuVisible(false)
-                  onTogglePin(folder)
-                }}
-              />
-            ) : null}
-            {onShare ? (
-              <Menu.Item
-                leadingIcon={() => (
-                  <CozyIcon name="shareExternal" size={24} color={theme.colors.onSurface} />
-                )}
-                title={t('drive.fileMeta.share')}
-                disabled={!isOnline}
-                onPress={() => {
-                  setMenuVisible(false)
-                  onShare(folder)
-                }}
-              />
-            ) : null}
-            {onRename ? (
-              <Menu.Item
-                leadingIcon={() => (
-                  <CozyIcon name="rename" size={24} color={theme.colors.onSurface} />
-                )}
-                title={t('drive.fileMeta.rename')}
-                disabled={!isOnline}
-                onPress={() => {
-                  setMenuVisible(false)
-                  onRename(folder)
-                }}
-              />
-            ) : null}
-            {onRestore ? (
-              <Menu.Item
-                leadingIcon={() => (
-                  <CozyIcon name="restore" size={24} color={theme.colors.onSurface} />
-                )}
-                title={t('drive.trashActions.restore')}
-                disabled={!isOnline}
-                onPress={() => {
-                  setMenuVisible(false)
-                  onRestore(folder)
-                }}
-              />
-            ) : null}
-            {onDelete ? (
-              <Menu.Item
-                leadingIcon={() => (
-                  <CozyIcon name="trash" size={24} color={theme.colors.onSurface} />
-                )}
-                title={t('drive.fileMeta.delete')}
-                disabled={!isOnline}
-                onPress={() => {
-                  setMenuVisible(false)
-                  onDelete(folder)
-                }}
-              />
-            ) : null}
-            {onMove ? (
-              <Menu.Item
-                leadingIcon={() => (
-                  <CozyIcon name="moveto" size={24} color={theme.colors.onSurface} />
-                )}
-                title={t('drive.fileMeta.move')}
-                disabled={!isOnline}
-                onPress={() => {
-                  setMenuVisible(false)
-                  onMove(folder)
-                }}
-              />
-            ) : null}
-            <Menu.Item
-              disabled={!isOnline}
-              leadingIcon={() => (
-                <CozyIcon
-                  name={
-                    isFavorite(folder as Parameters<typeof isFavorite>[0]) ? 'star' : 'starOutline'
-                  }
-                  size={24}
-                  color={theme.colors.onSurface}
-                />
-              )}
-              title={t(
-                isFavorite(folder as Parameters<typeof isFavorite>[0])
-                  ? 'drive.fileMeta.unfavorite'
-                  : 'drive.fileMeta.favorite'
-              )}
-              onPress={() => {
-                setMenuVisible(false)
-                if (!client) return
-                const next = !isFavorite(folder as Parameters<typeof isFavorite>[0])
-                void toggleFavorite(client, folder as Parameters<typeof toggleFavorite>[1], next)
-                  .then(() => {
-                    triggerPouchReplication(client)
-                    onFavoriteChange?.()
-                  })
-                  .catch(e => console.error('[FolderRow] toggleFavorite failed', e))
-              }}
-            />
-          </Menu>
+          <FolderActionsMenu
+            folder={folder}
+            onShare={onShare}
+            onRename={onRename}
+            onRestore={onRestore}
+            onDelete={onDelete}
+            onTogglePin={onTogglePin}
+            onMove={onMove}
+            onFavoriteChange={onFavoriteChange}
+          />
         ) : (
           <IconButton
             icon={p => <CozyIcon name="chevronRight" size={p?.size ?? 24} color={p?.color} />}
