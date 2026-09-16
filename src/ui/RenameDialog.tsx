@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { Keyboard } from 'react-native'
 import { Button, Dialog, HelperText, Portal, TextInput } from 'react-native-paper'
 import { useTranslation } from 'react-i18next'
 
@@ -17,6 +18,25 @@ export const RenameDialog = ({ visible, initialName, type, onDismiss, onSubmit }
   const [name, setName] = useState(initialName)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // Paper centres the dialog in its own overlay and does nothing about the
+  // keyboard. Inside the metadata page sheet nothing resizes either, so the
+  // input sat under the keyboard: the user typed with no visible field.
+  const [keyboardHeight, setKeyboardHeight] = useState(0)
+
+  useEffect(() => {
+    if (!visible) {
+      setKeyboardHeight(0)
+      return
+    }
+    const shown = Keyboard.addListener('keyboardDidShow', e =>
+      setKeyboardHeight(e.endCoordinates.height)
+    )
+    const hidden = Keyboard.addListener('keyboardDidHide', () => setKeyboardHeight(0))
+    return () => {
+      shown.remove()
+      hidden.remove()
+    }
+  }, [visible])
 
   useEffect(() => {
     if (visible) {
@@ -52,7 +72,11 @@ export const RenameDialog = ({ visible, initialName, type, onDismiss, onSubmit }
 
   return (
     <Portal>
-      <Dialog visible={visible} onDismiss={submitting ? undefined : onDismiss}>
+      <Dialog
+        visible={visible}
+        onDismiss={submitting ? undefined : onDismiss}
+        style={keyboardHeight > 0 ? { marginBottom: keyboardHeight } : undefined}
+      >
         <Dialog.Title>{t(titleKey)}</Dialog.Title>
         <Dialog.Content>
           <TextInput
