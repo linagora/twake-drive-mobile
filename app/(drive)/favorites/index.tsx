@@ -6,6 +6,7 @@ import { useClient, useQuery } from 'cozy-client'
 import { useTranslation } from 'react-i18next'
 
 import { AppBar } from '@/ui/AppBar'
+import { useGuardedPush } from '@/ui/useGuardedPush'
 import { ScreenContainer } from '@/ui/ScreenContainer'
 import { EmptyState } from '@/ui/EmptyState'
 import { ErrorState } from '@/ui/ErrorState'
@@ -30,6 +31,7 @@ const isInTrash = (d: FileQueryResult): boolean =>
 
 export default function FavoritesScreen() {
   const router = useRouter()
+  const guardedPush = useGuardedPush()
   const { t } = useTranslation()
   const { logout } = useAuth()
   const client = useClient()
@@ -64,7 +66,7 @@ export default function FavoritesScreen() {
             name: item.name,
             cozyMetadata: item.cozyMetadata
           }}
-          onPress={() => router.push(`/(drive)/favorites/${item._id}`)}
+          onPress={() => guardedPush(`/(drive)/favorites/${item._id}`)}
           onShare={folder => router.push(`/share/${folder._id}`)}
           onMove={folder => router.push(`/move/${folder._id}`)}
           onFavoriteChange={() => {

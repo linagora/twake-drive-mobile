@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next'
 import { Snackbar } from 'react-native-paper'
 
 import { AppBar } from '@/ui/AppBar'
+import { useGuardedPush } from '@/ui/useGuardedPush'
 import { ScreenContainer } from '@/ui/ScreenContainer'
 import { EmptyState } from '@/ui/EmptyState'
 import { ErrorState } from '@/ui/ErrorState'
@@ -65,6 +66,7 @@ const normalizeChild = (raw: Record<string, unknown>): DriveChild => {
 
 export default function SharedDrivesScreen() {
   const router = useRouter()
+  const guardedPush = useGuardedPush()
   const { t } = useTranslation()
   const { logout } = useAuth()
   const client = useClient()
@@ -176,7 +178,7 @@ export default function SharedDrivesScreen() {
       }
 
       if (driveId && rootFolderId) {
-        router.push(`/(drive)/shareddrives/${driveId}/${rootFolderId}`)
+        guardedPush(`/(drive)/shareddrives/${driveId}/${rootFolderId}`)
         return
       }
       if (url) {
@@ -201,7 +203,7 @@ export default function SharedDrivesScreen() {
         <FolderRow
           folder={{ _id: item._id, name: item.name }}
           onPress={folderItem =>
-            router.push(`/(drive)/shareddrives/${[...path, folderItem._id].join('/')}`)
+            guardedPush(`/(drive)/shareddrives/${[...path, folderItem._id].join('/')}`)
           }
           onShare={folderItem => router.push(`/share/${folderItem._id}`)}
           onMove={folderItem => router.push(`/move/${folderItem._id}`)}
