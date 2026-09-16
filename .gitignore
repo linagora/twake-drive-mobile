@@ -43,6 +43,7 @@ gcp-service-account*.json
 *.tsbuildinfo
 
 # native build outputs (the ios/ and android/ projects themselves are tracked)
+/build
 /ios/Pods
 /ios/build
 /android/build
