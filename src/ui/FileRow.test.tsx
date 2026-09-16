@@ -11,8 +11,9 @@ jest.mock('@/offline/useOfflineState', () => ({
   useOfflineState: jest.fn().mockReturnValue(undefined)
 }))
 
+let mockOnline = true
 jest.mock('@/network/useIsOnline', () => ({
-  useIsOnline: () => true
+  useIsOnline: () => mockOnline
 }))
 
 jest.mock('@/files/favorites', () => ({
@@ -41,6 +42,10 @@ const file: FileItem = {
 }
 
 const wrap = (ui: React.ReactElement) => <PaperProvider>{ui}</PaperProvider>
+
+afterEach(() => {
+  mockOnline = true
+})
 
 describe('FileRow', () => {
   it('renders the file name', () => {
@@ -102,6 +107,16 @@ describe('FileRow', () => {
       fireEvent.press(screen.getByTestId('file-actions'))
       fireEvent.press(screen.getByText('drive.fileMeta.favorite'))
       expect(toggleFavorite).toHaveBeenCalledWith(expect.anything(), file, true)
+    })
+
+    // The flag is persisted through the stack, so offline the toggle cannot
+    // reach anything: the file never showed up in Favoris afterwards.
+    it('disables the favorite action while offline', () => {
+      mockOnline = false
+      ;(isFavorite as jest.Mock).mockReturnValue(false)
+      render(wrap(<FileRow file={file} onPress={() => {}} onShare={jest.fn()} />))
+      fireEvent.press(screen.getByTestId('file-actions'))
+      expect(screen.getByText('drive.fileMeta.favorite')).toBeDisabled()
     })
 
     it('calls toggleFavorite with next=false when file is already a favorite', () => {

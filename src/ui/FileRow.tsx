@@ -234,6 +234,7 @@ export const FileRow = ({
               />
             ) : null}
             <Menu.Item
+              disabled={!isOnline}
               leadingIcon={() => (
                 <CozyIcon
                   name={

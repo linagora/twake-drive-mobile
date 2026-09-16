@@ -20,8 +20,9 @@ jest.mock('@/offline/useOfflineState', () => ({
   })
 }))
 
+let mockOnline = true
 jest.mock('@/network/useIsOnline', () => ({
-  useIsOnline: () => true
+  useIsOnline: () => mockOnline
 }))
 
 jest.mock('@/files/favorites', () => ({
@@ -39,6 +40,10 @@ import { FolderRow, FolderItem } from './FolderRow'
 const folder: FolderItem = { _id: 'd1', name: 'Documents' }
 
 const wrap = (ui: React.ReactElement) => <PaperProvider>{ui}</PaperProvider>
+
+afterEach(() => {
+  mockOnline = true
+})
 
 describe('FolderRow', () => {
   it('renders the folder name', () => {
@@ -102,6 +107,16 @@ describe('FolderRow', () => {
       fireEvent.press(screen.getByTestId('folder-actions:Documents'))
       fireEvent.press(screen.getByText('drive.fileMeta.favorite'))
       expect(toggleFavorite).toHaveBeenCalledWith(expect.anything(), folder, true)
+    })
+
+    // The flag is persisted through the stack, so offline the toggle cannot
+    // reach anything: the folder never showed up in Favoris afterwards.
+    it('disables the favorite action while offline', () => {
+      mockOnline = false
+      ;(isFavorite as jest.Mock).mockReturnValue(false)
+      render(wrap(<FolderRow folder={folder} onPress={() => {}} onShare={jest.fn()} />))
+      fireEvent.press(screen.getByTestId('folder-actions:Documents'))
+      expect(screen.getByText('drive.fileMeta.favorite')).toBeDisabled()
     })
 
     it('calls toggleFavorite with next=false when folder is already a favorite', () => {
