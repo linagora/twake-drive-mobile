@@ -270,6 +270,10 @@
     "forbidden": "Accès refusé",
     "notFound": "Ce dossier n'existe plus",
     "server": "Erreur serveur, réessayez plus tard",
-    "generic": "Quelque chose s'est mal passé"
+    "generic": "Quelque chose s'est mal passé",
+    "showDetails": "Détails",
+    "hideDetails": "Masquer les détails",
+    "copyDetails": "Copier les détails",
+    "copied": "Copié"
   }
 }
