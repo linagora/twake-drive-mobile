@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { FlatList, RefreshControl, StyleSheet, View } from 'react-native'
 import { Button, Dialog, FAB, Portal, Snackbar, Text, useTheme } from 'react-native-paper'
 import { useFocusEffect, useRouter } from 'expo-router'
@@ -50,6 +50,11 @@ export default function TrashScreen() {
   const [snackbar, setSnackbar] = useState<string | null>(null)
   const [emptyDialogVisible, setEmptyDialogVisible] = useState(false)
   const [emptying, setEmptying] = useState(false)
+  const [refreshing, setRefreshing] = useState(false)
+  // Emptying the trash leaves a list that is empty AND refetching. Swapping the
+  // whole list for the loading state on every background refetch made the empty
+  // state blink in and out; only the very first load gets it.
+  const [loadedOnce, setLoadedOnce] = useState(false)
   const isOnline = useIsOnline()
   // Optimistic removal: restoreEntry / emptyTrash hit the server only (they
   // bypass local Pouch), so an immediate refetch races the async replication and
@@ -62,6 +67,12 @@ export default function TrashScreen() {
   // Folders first, then files — same display order as the regular folder
   // listing and as twake-drive-web's trash view.
   const data = [...folderDocs, ...fileDocs].filter(d => !removedIds.has(d._id))
+
+  useEffect(() => {
+    if (foldersQuery.fetchStatus === 'loaded' || filesQuery.fetchStatus === 'loaded') {
+      setLoadedOnce(true)
+    }
+  }, [foldersQuery.fetchStatus, filesQuery.fetchStatus])
 
   const handleRestore = async (item: FileQueryResult): Promise<void> => {
     if (!requireOnline(isOnline, setSnackbar, t)) return
@@ -102,8 +113,8 @@ export default function TrashScreen() {
    * useQuery handles the initial fetch on mount on its own.
    */
   const onRefresh = useCallback((): void => {
-    void foldersQuery.fetch()
-    void filesQuery.fetch()
+    setRefreshing(true)
+    void Promise.all([foldersQuery.fetch(), filesQuery.fetch()]).finally(() => setRefreshing(false))
   }, [foldersQuery, filesQuery])
 
   const renderItem = ({ item }: { item: FileQueryResult }) => {
@@ -128,7 +139,8 @@ export default function TrashScreen() {
   return (
     <ScreenContainer>
       <AppBar title={t('drive.trash')} onLogout={logout} showSearch />
-      {(foldersQuery.fetchStatus === 'loading' || filesQuery.fetchStatus === 'loading') &&
+      {!loadedOnce &&
+      (foldersQuery.fetchStatus === 'loading' || filesQuery.fetchStatus === 'loading') &&
       data.length === 0 ? (
         <LoadingState />
       ) : foldersQuery.fetchStatus === 'failed' || filesQuery.fetchStatus === 'failed' ? (
@@ -152,14 +164,7 @@ export default function TrashScreen() {
             void foldersQuery.fetchMore?.()
             void filesQuery.fetchMore?.()
           }}
-          refreshControl={
-            <RefreshControl
-              refreshing={
-                foldersQuery.fetchStatus === 'loading' || filesQuery.fetchStatus === 'loading'
-              }
-              onRefresh={onRefresh}
-            />
-          }
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         />
       )}
       {data.length > 0 ? (
