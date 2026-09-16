@@ -1,10 +1,11 @@
 import React from 'react'
-import { StyleSheet } from 'react-native'
+import { StyleSheet, useWindowDimensions } from 'react-native'
 import { Image } from 'expo-image'
 import Animated, {
   runOnJS,
   useAnimatedStyle,
   useSharedValue,
+  withDecay,
   withSpring,
   withTiming
 } from 'react-native-reanimated'
@@ -13,6 +14,7 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler'
 const MIN_SCALE = 1
 const MAX_SCALE = 5
 const DOUBLE_TAP_SCALE = 2.5
+const PAN_DECELERATION = 0.994
 
 interface Props {
   uri: string
@@ -26,7 +28,7 @@ interface Props {
 /**
  * Image viewer with native-feeling gestures:
  * - Pinch to zoom (1x → 5x, clamped)
- * - Pan to move when zoomed
+ * - Pan to move when zoomed, carrying on with the release velocity
  * - Double-tap toggles 1x ↔ 2.5x
  *
  * Drag-to-dismiss is delegated to the parent route's pageSheet
@@ -41,6 +43,7 @@ export const ZoomableImage = ({
   onLoad,
   onError
 }: Props): React.ReactElement => {
+  const { width, height } = useWindowDimensions()
   const scale = useSharedValue(1)
   const savedScale = useSharedValue(1)
   const translateX = useSharedValue(0)
@@ -77,13 +80,44 @@ export const ZoomableImage = ({
       if (scale.value > 1) state.activate()
       else state.fail()
     })
+    // Touching down during a fling stops it where it is, so the next drag
+    // starts from what is on screen rather than from the pre-fling position.
+    .onStart(() => {
+      savedTranslateX.value = translateX.value
+      savedTranslateY.value = translateY.value
+    })
     .onUpdate(e => {
       translateX.value = savedTranslateX.value + e.translationX
       translateY.value = savedTranslateY.value + e.translationY
     })
-    .onEnd(() => {
-      savedTranslateX.value = translateX.value
-      savedTranslateY.value = translateY.value
+    // Carry the release velocity instead of stopping dead under the finger.
+    // Bounded by how far the scaled image can travel before its edge would
+    // cross the viewport, with a bounce when a fling overshoots.
+    .onEnd(e => {
+      const maxX = ((scale.value - 1) * width) / 2
+      const maxY = ((scale.value - 1) * height) / 2
+      translateX.value = withDecay(
+        {
+          velocity: e.velocityX,
+          deceleration: PAN_DECELERATION,
+          clamp: [-maxX, maxX],
+          rubberBandEffect: true
+        },
+        () => {
+          savedTranslateX.value = translateX.value
+        }
+      )
+      translateY.value = withDecay(
+        {
+          velocity: e.velocityY,
+          deceleration: PAN_DECELERATION,
+          clamp: [-maxY, maxY],
+          rubberBandEffect: true
+        },
+        () => {
+          savedTranslateY.value = translateY.value
+        }
+      )
     })
 
   const doubleTap = Gesture.Tap()
