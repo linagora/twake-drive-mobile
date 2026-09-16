@@ -1,5 +1,11 @@
 import { isFavorite, toggleFavorite } from './favorites'
+import { optimisticFiles } from '@/files/optimisticFiles'
 import type { FileQueryResult } from '@/client/queries'
+
+const mockRevert = jest.fn()
+jest.mock('@/files/optimisticFiles', () => ({
+  optimisticFiles: jest.fn(() => mockRevert)
+}))
 
 // Minimal fake file used across tests
 const makeFile = (favorite?: boolean): FileQueryResult => ({
@@ -43,6 +49,33 @@ describe('isFavorite', () => {
 })
 
 describe('toggleFavorite', () => {
+  beforeEach(() => {
+    jest.clearAllMocks()
+  })
+
+  // The stack mutation does not write to the local replica, so the lists only
+  // saw the new favourite on the next replication.
+  it('pushes the updated doc to the store so the queries re-evaluate at once', async () => {
+    const { client } = makeMockClient()
+    await toggleFavorite(client, makeFile(false), true)
+    expect(optimisticFiles).toHaveBeenCalledWith(client, [
+      expect.objectContaining({ _id: 'file-1', cozyMetadata: { favorite: true } })
+    ])
+  })
+
+  it('reverts the store update and rethrows when the stack refuses', async () => {
+    const { client, updateAttributes } = makeMockClient()
+    updateAttributes.mockRejectedValue(new Error('403'))
+    await expect(toggleFavorite(client, makeFile(false), true)).rejects.toThrow('403')
+    expect(mockRevert).toHaveBeenCalled()
+  })
+
+  it('keeps the store update when the stack accepts', async () => {
+    const { client } = makeMockClient()
+    await toggleFavorite(client, makeFile(false), true)
+    expect(mockRevert).not.toHaveBeenCalled()
+  })
+
   it('updates io.cozy.files via updateAttributes with favorite = true when next is true', async () => {
     const { client, collection, updateAttributes } = makeMockClient()
     await toggleFavorite(client, makeFile(false), true)
