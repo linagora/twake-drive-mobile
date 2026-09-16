@@ -28,7 +28,7 @@ beforeEach(() => {
   mockPush.mockClear()
 })
 
-test('tapping the avatar opens the menu and the 3 items are present', () => {
+test('tapping the avatar opens the menu with settings and logout', () => {
   const onLogout = jest.fn()
   render(wrap(<AppBar title="Mes fichiers" onLogout={onLogout} />))
 
@@ -36,8 +36,9 @@ test('tapping the avatar opens the menu and the 3 items are present', () => {
   // useCurrentUser, as text — mocked above to 'AB', not the old hardcoded 'MM')
   fireEvent.press(screen.getByText('AB'))
 
-  // All 3 menu items must be present (i18n returns key in test env)
+  // i18n returns the key in the test env
   expect(screen.getByText('settings.title')).toBeOnTheScreen()
-  expect(screen.getByText('drive.sharedDrives')).toBeOnTheScreen()
+  // Shared drives are not finished on mobile, the entry is not offered yet.
+  expect(screen.queryByText('drive.sharedDrives')).toBeNull()
   expect(screen.getByText('common.logout')).toBeOnTheScreen()
 })
