@@ -158,20 +158,6 @@ export const AppBar = ({ title, onBack, onClose, onLogout, showSearch, selection
           <Menu.Item
             onPress={() => {
               setMenuVisible(false)
-              router.push('/(drive)/shareddrives')
-            }}
-            title={t('drive.sharedDrives')}
-            leadingIcon={() => (
-              <CozyIcon
-                name="folderMultiple"
-                size={cozyTokens.iconSize.md}
-                color={theme.colors.onSurface}
-              />
-            )}
-          />
-          <Menu.Item
-            onPress={() => {
-              setMenuVisible(false)
               onLogout()
             }}
             title={t('common.logout')}
