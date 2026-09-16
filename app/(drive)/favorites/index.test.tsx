@@ -1,13 +1,15 @@
 import React from 'react'
-import { render, screen } from '@testing-library/react-native'
+import { fireEvent, render, screen } from '@testing-library/react-native'
 import { Provider as PaperProvider } from 'react-native-paper'
 import { I18nextProvider } from 'react-i18next'
+
+const mockPush = jest.fn()
 
 jest.mock('expo-router', () => ({
   __esModule: true,
   useRouter: () => ({
     back: jest.fn(),
-    push: jest.fn(),
+    push: mockPush,
     replace: jest.fn()
   }),
   useFocusEffect: (cb: () => void) => cb()
@@ -77,7 +79,7 @@ jest.mock('@/pouchdb/triggerReplication', () => ({
   getPouchLink: () => null
 }))
 
-import FavoritesScreen from './favorites'
+import FavoritesScreen from './index'
 import i18n from '@/i18n'
 
 const wrap = (ui: React.ReactElement) => (
@@ -98,6 +100,7 @@ describe('FavoritesScreen', () => {
   beforeEach(() => {
     mockUseQuery.mockReset()
     mockUseQuery.mockReturnValue(makeQueryResult([]))
+    mockPush.mockClear()
   })
 
   it('renders the Favoris title', () => {
@@ -148,6 +151,24 @@ describe('FavoritesScreen', () => {
     )
     render(wrap(<FavoritesScreen />))
     expect(screen.getByText('My Project')).toBeOnTheScreen()
+  })
+
+  // Pushing onto the files tab left the Favoris stack entirely, so going back
+  // landed on Mon Drive instead of the favourites list.
+  it('opens a favourited folder inside the favourites stack', () => {
+    mockUseQuery.mockReturnValue(
+      makeQueryResult([
+        {
+          _id: 'dir-1',
+          name: 'My Project',
+          type: 'directory',
+          cozyMetadata: { favorite: true }
+        }
+      ])
+    )
+    render(wrap(<FavoritesScreen />))
+    fireEvent.press(screen.getByText('My Project'))
+    expect(mockPush).toHaveBeenCalledWith('/(drive)/favorites/dir-1')
   })
 
   // The offline pouch query fails OPEN and returns non-favourites too; the

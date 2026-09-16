@@ -64,7 +64,7 @@ export default function FavoritesScreen() {
             name: item.name,
             cozyMetadata: item.cozyMetadata
           }}
-          onPress={() => router.push(`/(drive)/files/${item._id}`)}
+          onPress={() => router.push(`/(drive)/favorites/${item._id}`)}
           onShare={folder => router.push(`/share/${folder._id}`)}
           onMove={folder => router.push(`/move/${folder._id}`)}
           onFavoriteChange={() => {
