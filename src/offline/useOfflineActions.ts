@@ -89,11 +89,16 @@ export const useOfflineActions = (): UseOfflineActionsResult => {
         pinnedAt: Date.now(),
         ancestorPins: ancestors
       })
-      for (const f of files) {
-        OfflineFilesStore.pinViaFolder(f._id, folder._id, fileMeta(f))
-        Downloader.enqueue(f._id)
-      }
+      OfflineFilesStore.batch(() => {
+        for (const f of files) {
+          OfflineFilesStore.pinViaFolder(f._id, folder._id, fileMeta(f))
+          Downloader.enqueue(f._id)
+        }
+      })
       for (const sub of subfolders) {
+        // Hand the thread back between folders so touches are processed: the
+        // walk otherwise runs shoulder to shoulder and the UI stops answering.
+        await new Promise(resolve => setTimeout(resolve, 0))
         // One unreadable subfolder must not abandon the rest of the tree: the
         // rejection used to bubble to a caller that discards it, leaving the
         // pin silently incomplete.

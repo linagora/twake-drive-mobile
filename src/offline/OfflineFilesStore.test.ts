@@ -121,3 +121,29 @@ describe('OfflineFilesStore', () => {
     expect(listener).toHaveBeenCalledTimes(2)
   })
 })
+
+describe('OfflineFilesStore.batch', () => {
+  // Pinning a folder writes two entries per file, and each write used to wake
+  // every subscriber: a few hundred files starved the UI for seconds.
+  it('wakes the global listeners once instead of once per write', () => {
+    const listener = jest.fn()
+    const unsubscribe = OfflineFilesStore.subscribeAll(listener)
+    OfflineFilesStore.batch(() => {
+      OfflineFilesStore.pinViaFolder('f1', 'd1', baseMeta)
+      OfflineFilesStore.pinViaFolder('f2', 'd1', baseMeta)
+      OfflineFilesStore.pinViaFolder('f3', 'd1', baseMeta)
+    })
+    expect(listener).toHaveBeenCalledTimes(1)
+    unsubscribe()
+  })
+
+  it('still delivers the per-file entry to its own listener', () => {
+    const listener = jest.fn()
+    const unsubscribe = OfflineFilesStore.subscribe('f1', listener)
+    OfflineFilesStore.batch(() => {
+      OfflineFilesStore.pinViaFolder('f1', 'd1', baseMeta)
+    })
+    expect(listener).toHaveBeenCalledWith(expect.objectContaining({ fileId: 'f1' }))
+    unsubscribe()
+  })
+})

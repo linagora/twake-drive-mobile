@@ -17,6 +17,7 @@ jest.mock('cozy-client', () => {
 
 jest.mock('./OfflineFilesStore', () => ({
   OfflineFilesStore: {
+    batch: (fn: () => void) => fn(),
     pinFolder: jest.fn(),
     pinViaFolder: jest.fn(),
     unpinFolder: jest.fn(),
