@@ -2,6 +2,8 @@ import CozyClient from 'cozy-client'
 import PouchLink from 'cozy-pouch-link'
 import Minilog from 'cozy-minilog'
 
+import { getOnlineMonitor } from '@/network/OnlineMonitor'
+
 const log = Minilog('PouchReplication')
 
 /**
@@ -15,7 +17,9 @@ const log = Minilog('PouchReplication')
  *                  cozy-pouch-link refuses to debounce when `periodicSync: true` (it throws
  *                  `createDebounceableReplication cannot be called when periodic sync is
  *                  configured`), so every trigger calls `startReplication()` directly.
-
+ *
+ * Offline the call is skipped: a replication started with no network never
+ * completes, so the sync indicator it lights up stays on forever.
  */
 export const triggerPouchReplication = (
   client?: CozyClient,
@@ -24,6 +28,10 @@ export const triggerPouchReplication = (
 ): void => {
   const pouchLink = getPouchLink(client)
   if (!pouchLink) return
+  if (!getOnlineMonitor().getCurrent()) {
+    log.debug('offline, skipping startReplication', doctype ?? '')
+    return
+  }
   log.debug('startReplication', doctype ?? '')
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any
   ;(pouchLink as any).startReplication()

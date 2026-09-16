@@ -4,11 +4,13 @@ import { ProgressBar, useTheme } from 'react-native-paper'
 import { useClient } from 'cozy-client'
 
 import { clientEmitter } from '@/client/cozyClientInternals'
+import { useIsOnline } from '@/network/useIsOnline'
 
 export const SyncBanner = (): React.ReactElement | null => {
   const client = useClient()
   const theme = useTheme()
   const [syncing, setSyncing] = useState(false)
+  const isOnline = useIsOnline()
 
   useEffect(() => {
     if (!client) return
@@ -25,10 +27,13 @@ export const SyncBanner = (): React.ReactElement | null => {
     }
   }, [client])
 
-  if (!syncing) return null
+  // Going offline stops the replication loop through the platform's `offline`
+  // event, which PouchManager handles without emitting anything at the link
+  // level: the last `sync:start` would otherwise leave the bar up for good.
+  if (!syncing || !isOnline) return null
 
   return (
-    <View style={styles.wrap} pointerEvents="none">
+    <View style={styles.wrap} pointerEvents="none" testID="sync-progress">
       <ProgressBar indeterminate color={theme.colors.primary} style={styles.bar} />
     </View>
   )
