@@ -6,6 +6,7 @@ import { useClient, useQuery } from 'cozy-client'
 import { useTranslation } from 'react-i18next'
 
 import { AppBar } from '@/ui/AppBar'
+import { useGuardedPush } from '@/ui/useGuardedPush'
 import { ScreenContainer } from '@/ui/ScreenContainer'
 import { EmptyState } from '@/ui/EmptyState'
 import { ErrorState } from '@/ui/ErrorState'
@@ -34,6 +35,7 @@ import { surfaceOpenError } from '@/files/errors'
 
 export default function SharedScreen() {
   const router = useRouter()
+  const guardedPush = useGuardedPush()
   const { t } = useTranslation()
   const { logout } = useAuth()
   const params = useLocalSearchParams<{ path?: string | string[] }>()
@@ -130,7 +132,7 @@ export default function SharedScreen() {
         <FolderRow
           folder={item}
           onPress={folder =>
-            router.push(`/(drive)/shared/${[...(path ?? []), folder._id].join('/')}`)
+            guardedPush(`/(drive)/shared/${[...(path ?? []), folder._id].join('/')}`)
           }
           onShare={folder => router.push(`/share/${folder._id}`)}
           onMove={folder => router.push(`/move/${folder._id}`)}

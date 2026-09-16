@@ -6,6 +6,7 @@ import { useClient, useQuery } from 'cozy-client'
 import { useTranslation } from 'react-i18next'
 
 import { AppBar } from '@/ui/AppBar'
+import { useGuardedPush } from '@/ui/useGuardedPush'
 import { ScreenContainer } from '@/ui/ScreenContainer'
 import { EmptyState } from '@/ui/EmptyState'
 import { ErrorState } from '@/ui/ErrorState'
@@ -64,6 +65,7 @@ interface FilesScreenProps {
 
 export const FilesScreen = ({ basePath }: FilesScreenProps): React.ReactElement => {
   const router = useRouter()
+  const guardedPush = useGuardedPush()
   const { t } = useTranslation()
   const { logout } = useAuth()
   const fetchSessionCode = useSessionCode()
@@ -323,7 +325,7 @@ export const FilesScreen = ({ basePath }: FilesScreenProps): React.ReactElement 
           selected={isSelected}
           onPress={folder => {
             if (selection.isSelecting) selection.toggle(folder._id)
-            else router.push(`${basePath}/${[...(path ?? []), folder._id].join('/')}`)
+            else guardedPush(`${basePath}/${[...(path ?? []), folder._id].join('/')}`)
           }}
           onLongPress={folder => selection.select(folder._id)}
           onShare={
@@ -410,7 +412,7 @@ export const FilesScreen = ({ basePath }: FilesScreenProps): React.ReactElement 
             return
           }
           if (item.type === 'directory') {
-            router.push(`${basePath}/${[...(path ?? []), file._id].join('/')}`)
+            guardedPush(`${basePath}/${[...(path ?? []), file._id].join('/')}`)
           } else {
             if (!client) return
             void openFileFromList(client, router, file).catch(e =>
