@@ -60,7 +60,7 @@ export const FolderActionsMenu = ({
     >
       {onTogglePin ? (
         <Menu.Item
-          leadingIcon={isPinned ? 'cloud-off-outline' : 'cloud-download-outline'}
+          leadingIcon={() => <CozyIcon name="cloud2" size={24} color={theme.colors.onSurface} />}
           title={t(isPinned ? 'drive.offline.unpin' : 'drive.offline.pin')}
           disabled={!isPinned && !isOnline}
           onPress={() => {

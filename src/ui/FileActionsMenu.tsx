@@ -66,7 +66,7 @@ export const FileActionsMenu = ({
     >
       {onTogglePin ? (
         <Menu.Item
-          leadingIcon={isDirectPin ? 'cloud-off-outline' : 'cloud-download-outline'}
+          leadingIcon={() => <CozyIcon name="cloud2" size={24} color={theme.colors.onSurface} />}
           title={t(isDirectPin ? 'drive.offline.unpin' : 'drive.offline.pin')}
           disabled={!isDirectPin && !isOnline}
           onPress={() => {
