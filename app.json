@@ -5,7 +5,7 @@
     "version": "0.2.2",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "scheme": ["cozy", "twakedrive"],
+    "scheme": ["twakedrive"],
     "userInterfaceStyle": "automatic",
     "splash": {
       "image": "./assets/splash.png",
