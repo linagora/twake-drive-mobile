@@ -23,7 +23,12 @@ export const PERIODIC_SYNC_INTERVAL_MS = 30 * 1000
 // initial replication hangs on fetchRemoteLastSequence — and the data is
 // only useful online anyway (share sheet, viewers). They go directly to
 // StackLink.
-export const offlineDoctypes = ['io.cozy.files', 'io.cozy.contacts'] as const
+//
+// io.cozy.settings is replicated because the whole chain fails without it
+// offline: PouchLink does not hold the doctype, StackLink cannot reach the
+// stack, and cozy-client throws "No link could handle operation" — taking the
+// account header, the avatar, the instance locale and the flags down with it.
+export const offlineDoctypes = ['io.cozy.files', 'io.cozy.contacts', 'io.cozy.settings'] as const
 
 // Warmup queries are GATES: until they complete on the first replication
 // loop, every query for the doctype is FORWARDED to the next link (StackLink)

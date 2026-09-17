@@ -35,10 +35,11 @@ describe('getLinks', () => {
     }
   })
 
-  it('targets exactly the offline doctypes (files + contacts)', () => {
+  it('targets exactly the offline doctypes (files, contacts, settings)', () => {
     // sharings/permissions/notes were dropped (online-only; their initial
     // replication hangs on fetchRemoteLastSequence) — see getLinks.ts.
-    expect(offlineDoctypes).toEqual(['io.cozy.files', 'io.cozy.contacts'])
+    // settings is in: without it the whole link chain fails offline.
+    expect(offlineDoctypes).toEqual(['io.cozy.files', 'io.cozy.contacts', 'io.cozy.settings'])
   })
 
   it('enables periodic sync with a 30 second interval', () => {
