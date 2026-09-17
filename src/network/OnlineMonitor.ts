@@ -39,8 +39,16 @@ export const createOnlineMonitor = (opts: CreateOptions = {}): OnlineMonitor => 
   let netType: string | undefined
   const listeners = new Set<OnlineListener>()
 
-  const current = (): boolean =>
-    probeOnline === null ? netInfoOnline : netInfoOnline || probeOnline
+  // The probe is a direct measurement of the only thing "online" means here:
+  // can we reach the stack. Once it has answered, it decides. NetInfo is the
+  // bootstrap answer, used until the first probe lands.
+  //
+  // It used to be `netInfoOnline || probeOnline`, so that a NetInfo
+  // false-negative could be overridden. That also meant a NetInfo that stayed
+  // true when the network was gone — which is what it does on the simulator,
+  // and what airplane mode produced on device — kept the app online with the
+  // probe failing next to it.
+  const current = (): boolean => (probeOnline === null ? netInfoOnline : probeOnline)
   let lastEmitted = current()
   const emit = (): void => {
     const v = current()

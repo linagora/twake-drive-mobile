@@ -56,25 +56,27 @@ describe('OnlineMonitor', () => {
     expect(listener).not.toHaveBeenCalled()
   })
 
-  it('current() is false only when both signals say offline; subscribers notified', async () => {
-    // Both NetInfo offline AND probe failure required to flip to offline.
-    fetchMock.mockResolvedValue({ status: 0 } as unknown as Response) // make probe also fail
+  it('goes offline as soon as the probe fails, whatever NetInfo says', async () => {
+    // The probe measures the only thing that matters: can the stack be reached.
+    fetchMock.mockResolvedValue({ status: 0 } as unknown as Response) // make the probe fail
     const mon = createOnlineMonitor({
       probeUri: 'https://stack.example.com',
       probeIntervalMs: 1000
     })
-    await flush()
     const listener = jest.fn()
     mon.subscribe(listener)
-    ;(NetInfo as unknown as { __emit: (s: Partial<NetInfoState>) => void }).__emit({
-      isConnected: false,
-      isInternetReachable: false,
-      type: 'none' as never
-    })
-    // NetInfo offline + initial probe also reports offline (status 0 < 200) → current() = false
+    // The first probe answers false, and from then on it decides.
     await flush()
     expect(mon.getCurrent()).toBe(false)
     expect(listener).toHaveBeenCalledWith(false)
+    ;(NetInfo as unknown as { __emit: (s: Partial<NetInfoState>) => void }).__emit({
+      isConnected: true,
+      isInternetReachable: true,
+      type: 'wifi' as never
+    })
+    await flush()
+    // NetInfo claiming a live connection does not bring it back on its own.
+    expect(mon.getCurrent()).toBe(false)
   })
 
   // Airplane mode kept the app looking online, and the sync indicator spinning,
@@ -98,6 +100,27 @@ describe('OnlineMonitor', () => {
     await flush()
 
     // No timer advanced: the transition itself triggered the probe.
+    expect(mon.getCurrent()).toBe(false)
+    expect(listener).toHaveBeenCalledWith(false)
+  })
+
+  // NetInfo kept reporting a live connection with the network gone, and the OR
+  // that let a NetInfo false-negative be overridden also let that stale true
+  // outvote a probe that had just failed.
+  it('a failing probe wins over a NetInfo that still says connected', async () => {
+    const mon = createOnlineMonitor({
+      probeUri: 'https://stack.example.com',
+      probeIntervalMs: 1000
+    })
+    await flush()
+    expect(mon.getCurrent()).toBe(true)
+
+    const listener = jest.fn()
+    mon.subscribe(listener)
+    fetchMock.mockRejectedValue(new Error('unreachable'))
+    jest.advanceTimersByTime(1000)
+    await flush()
+
     expect(mon.getCurrent()).toBe(false)
     expect(listener).toHaveBeenCalledWith(false)
   })
