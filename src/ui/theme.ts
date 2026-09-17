@@ -35,6 +35,22 @@ export const cozyTokens = {
   /** Room a list has to leave below its last row for the floating button
    *  that hovers over it: the FAB plus its margins. */
   fabClearance: 88,
+  /**
+   * Stacking order, named by role rather than by number, so a surface never
+   * has to guess what it must sit above. Listed bottom to top.
+   */
+  zIndex: {
+    /** Chrome drawn over a screen's content, like the sync progress bar. */
+    chrome: 10,
+    /** Floating actions, above that chrome so their menu is never covered. */
+    fab: 20,
+    /** App-wide status, like the offline banner. */
+    banner: 30,
+    /** Full-screen overlays that take the app over. */
+    overlay: 40,
+    /** Development-only affordances, always on top. */
+    devTools: 9999
+  },
   shadowColor: '#0A1F44'
 }
 

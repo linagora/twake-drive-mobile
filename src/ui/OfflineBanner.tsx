@@ -5,6 +5,7 @@ import { useTheme } from 'react-native-paper'
 import { useTranslation } from 'react-i18next'
 
 import { useIsOnline } from '@/network/useIsOnline'
+import { cozyTokens } from './theme'
 
 export const OfflineBanner = (): React.ReactElement | null => {
   const { t } = useTranslation()
@@ -37,8 +38,8 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     alignItems: 'center',
-    zIndex: 100,
-    elevation: 100
+    zIndex: cozyTokens.zIndex.banner,
+    elevation: cozyTokens.zIndex.banner
   },
   pill: {
     paddingVertical: 6,
