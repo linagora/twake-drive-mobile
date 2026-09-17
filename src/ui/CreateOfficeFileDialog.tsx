@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react'
 import { Button, Dialog, HelperText, Portal, TextInput } from 'react-native-paper'
 import { useTranslation } from 'react-i18next'
 
+import { useKeyboardOffset } from './useKeyboardOffset'
+
 import type { OfficeFileClass } from '@/files/createOfficeFile'
 
 interface Props {
@@ -20,6 +22,7 @@ const CLASS_LABEL_KEY: Record<OfficeFileClass, string> = {
 export const CreateOfficeFileDialog = ({ visible, fileClass, onDismiss, onSubmit }: Props) => {
   const { t } = useTranslation()
   const [name, setName] = useState('')
+  const keyboardHeight = useKeyboardOffset(visible)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -49,7 +52,11 @@ export const CreateOfficeFileDialog = ({ visible, fileClass, onDismiss, onSubmit
 
   return (
     <Portal>
-      <Dialog visible={visible} onDismiss={submitting ? undefined : onDismiss}>
+      <Dialog
+        visible={visible}
+        onDismiss={submitting ? undefined : onDismiss}
+        style={keyboardHeight > 0 ? { marginBottom: keyboardHeight } : undefined}
+      >
         <Dialog.Title>{subtitle || t('drive.createOffice.title')}</Dialog.Title>
         <Dialog.Content>
           <TextInput
