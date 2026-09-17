@@ -111,6 +111,8 @@ export const FilesScreen = ({ basePath }: FilesScreenProps): React.ReactElement 
   )
   const client = useClient()
   const docsEnabled = !!useFlag('drive.lasuitedocs.enabled')
+  const officeEnabled = !!useFlag('drive.onlyoffice.enabled')
+  const excalidrawEnabled = !!useFlag('drive.excalidraw.enabled')
   const isOnline = useIsOnline()
 
   const isRoot = !path || path.length === 0
@@ -475,28 +477,36 @@ export const FilesScreen = ({ basePath }: FilesScreenProps): React.ReactElement 
           }
         ]
       : []),
-    {
-      icon: 'file-document-outline',
-      label: t('drive.createMenu.text'),
-      onPress: () => setCreatingClass('text')
-    },
-    {
-      icon: 'file-table-outline',
-      label: t('drive.createMenu.sheet'),
-      onPress: () => setCreatingClass('sheet')
-    },
-    {
-      icon: 'file-presentation-box',
-      label: t('drive.createMenu.slide'),
-      onPress: () => setCreatingClass('slide')
-    },
-    {
-      icon: (p: { size: number; color?: string }) => (
-        <CozyIcon name="excalidraw" size={p.size} color={p.color} />
-      ),
-      label: t('drive.createMenu.excalidraw'),
-      onPress: () => void handleCreateExcalidraw()
-    },
+    ...(officeEnabled
+      ? [
+          {
+            icon: 'file-document-outline',
+            label: t('drive.createMenu.text'),
+            onPress: () => setCreatingClass('text')
+          },
+          {
+            icon: 'file-table-outline',
+            label: t('drive.createMenu.sheet'),
+            onPress: () => setCreatingClass('sheet')
+          },
+          {
+            icon: 'file-presentation-box',
+            label: t('drive.createMenu.slide'),
+            onPress: () => setCreatingClass('slide')
+          }
+        ]
+      : []),
+    ...(excalidrawEnabled
+      ? [
+          {
+            icon: (p: { size: number; color?: string }) => (
+              <CozyIcon name="excalidraw" size={p.size} color={p.color} />
+            ),
+            label: t('drive.createMenu.excalidraw'),
+            onPress: () => void handleCreateExcalidraw()
+          }
+        ]
+      : []),
     {
       icon: (p: { size: number; color?: string }) => (
         <CozyIcon name="deviceBrowser" size={p.size} color={p.color} />
