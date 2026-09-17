@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native'
 import { ActivityIndicator, useTheme } from 'react-native-paper'
 
 import { TwakeLogo } from '@/ui/icons/TwakeLogo'
+import { cozyTokens } from './theme'
 
 export const AuthTransitionOverlay = () => {
   const theme = useTheme()
@@ -21,6 +22,6 @@ export const AuthTransitionOverlay = () => {
 }
 
 const styles = StyleSheet.create({
-  overlay: { alignItems: 'center', justifyContent: 'center', zIndex: 10 },
+  overlay: { alignItems: 'center', justifyContent: 'center', zIndex: cozyTokens.zIndex.overlay },
   spinner: { marginTop: 28 }
 })

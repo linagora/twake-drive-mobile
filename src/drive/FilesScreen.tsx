@@ -645,7 +645,7 @@ export const FilesScreen = ({ basePath }: FilesScreenProps): React.ReactElement 
 const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { flex: 1 },
-  fabGroup: { zIndex: 20 },
+  fabGroup: { zIndex: cozyTokens.zIndex.fab },
   listContent: { paddingBottom: cozyTokens.fabClearance },
   gridPlaceholder: { flex: 1, margin: 4 },
   toolbar: {

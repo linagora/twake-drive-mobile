@@ -5,6 +5,7 @@ import { useClient } from 'cozy-client'
 
 import { clientEmitter } from '@/client/cozyClientInternals'
 import { useIsOnline } from '@/network/useIsOnline'
+import { cozyTokens } from './theme'
 
 export const SyncBanner = (): React.ReactElement | null => {
   const client = useClient()
@@ -45,7 +46,7 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    zIndex: 10
+    zIndex: cozyTokens.zIndex.chrome
   },
   bar: {
     height: 3

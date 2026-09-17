@@ -28,6 +28,7 @@ import { FileSystemRepo } from '@/offline/FileSystemRepo'
 import { useOfflineState } from '@/offline/useOfflineState'
 import { VideoPreview } from '@/preview/VideoPreview'
 import { ZoomableImage } from '@/ui/ZoomableImage'
+import { cozyTokens } from '@/ui/theme'
 
 const TEXT_MAX_BYTES = 1_000_000
 
@@ -507,7 +508,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(0,0,0,0.55)',
-    zIndex: 10
+    zIndex: cozyTokens.zIndex.chrome
   },
   viewerContainer: { flex: 1 },
   pdf: { flex: 1, width: SCREEN_WIDTH, backgroundColor: '#000' },

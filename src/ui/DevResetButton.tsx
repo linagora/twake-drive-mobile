@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { Pressable, StyleSheet, Text } from 'react-native'
 
 import { useAuth } from '@/auth/useAuth'
+import { cozyTokens } from './theme'
 
 export const DevResetButton = (): React.ReactElement | null => {
   const { devResetAndResync } = useAuth()
@@ -31,7 +32,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 12,
     bottom: 110,
-    zIndex: 9999,
+    zIndex: cozyTokens.zIndex.devTools,
     backgroundColor: '#d32f2f',
     paddingHorizontal: 14,
     paddingVertical: 9,
