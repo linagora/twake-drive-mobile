@@ -1,7 +1,7 @@
 import React from 'react'
 import { useLocalSearchParams } from 'expo-router'
 
-import { MoveScreen } from './_MoveScreen'
+import { MoveScreen } from '@/drive/MoveScreen'
 
 export default function MoveDrillScreen() {
   const { path } = useLocalSearchParams<{ path: string | string[] }>()
