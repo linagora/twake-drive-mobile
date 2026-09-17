@@ -9,6 +9,7 @@ import { EditorHeader } from '@/ui/EditorHeader'
 import { ErrorState } from '@/ui/ErrorState'
 import { LoadingState } from '@/ui/LoadingState'
 import { useSessionCode } from '@/auth/useSessionCode'
+import { useEditorNavigationGuard } from '@/files/useEditorNavigationGuard'
 
 // TODO(backend): cozy-stack returns 403 Forbidden on `GET /office/{id}/open`
 // for OAuth clients of kind=mobile. The endpoint is currently restricted to the
@@ -38,17 +39,23 @@ export default function OnlyOfficeScreen() {
   const router = useRouter()
   const fetchSessionCode = useSessionCode()
   const [editorUrl, setEditorUrl] = useState<string | null>(null)
+  const [stackUri, setStackUri] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [reloadTick, setReloadTick] = useState(0)
+  // Bound to the instance this document is served from. Today that is always
+  // the signed-in instance; a document opened from a sharing will additionally
+  // carry its owner's instance here (see backlog #24).
+  const { originWhitelist, onShouldStartLoadWithRequest } = useEditorNavigationGuard([stackUri])
 
   useEffect(() => {
     let cancelled = false
     const run = async () => {
       if (!client || !fileId) return
       try {
-        const stackUri = client.getStackClient().uri as string
+        const uri = client.getStackClient().uri as string
+        if (!cancelled) setStackUri(uri)
         const sessionCode = await fetchSessionCode()
-        const url = buildDriveOnlyOfficeUrl(stackUri, fileId, sessionCode)
+        const url = buildDriveOnlyOfficeUrl(uri, fileId, sessionCode)
         if (!cancelled) setEditorUrl(url)
       } catch (e) {
         console.error('[OnlyOfficeScreen] failed', e)
@@ -77,7 +84,8 @@ export default function OnlyOfficeScreen() {
         <LoadingState />
       ) : (
         <WebView
-          originWhitelist={['*']}
+          originWhitelist={originWhitelist}
+          onShouldStartLoadWithRequest={onShouldStartLoadWithRequest}
           javaScriptEnabled
           domStorageEnabled
           allowsInlineMediaPlayback
