@@ -46,6 +46,11 @@ jest.mock('@/ui/OfflineBanner', () => ({
   OfflineBanner: () => null
 }))
 
+let mockAuthStatus = 'authenticated'
+jest.mock('@/auth/useAuth', () => ({
+  useAuth: () => ({ status: mockAuthStatus })
+}))
+
 jest.mock('@/pouchdb/useForegroundSync', () => ({
   useForegroundSync: () => undefined
 }))
@@ -61,6 +66,7 @@ const wrap = (ui: React.ReactElement) => <PaperProvider>{ui}</PaperProvider>
 
 describe('DriveLayout — bottom tabs', () => {
   beforeEach(() => {
+    mockAuthStatus = 'authenticated'
     mockClient = {}
   })
 
@@ -68,8 +74,20 @@ describe('DriveLayout — bottom tabs', () => {
     // A logged-out client would otherwise reach useQuery with a null client and
     // crash ("Cannot read property 'getState' of null"); the guard redirects first.
     mockClient = null
+    mockAuthStatus = 'unauthenticated'
     render(wrap(<DriveLayout />))
     expect(screen.getByTestId('redirect').props.children).toBe('/(auth)/welcome')
+    expect(screen.queryByTestId('tab-label')).toBeNull()
+  })
+
+  // The client is briefly null while it is rebuilt — a dev resync, a
+  // reconnection — and redirecting on that dropped the user on the welcome
+  // screen with a valid session.
+  it('waits instead of redirecting while the client is being rebuilt', () => {
+    mockClient = null
+    mockAuthStatus = 'loading'
+    render(wrap(<DriveLayout />))
+    expect(screen.queryByTestId('redirect')).toBeNull()
     expect(screen.queryByTestId('tab-label')).toBeNull()
   })
 

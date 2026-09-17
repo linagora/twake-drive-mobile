@@ -10,10 +10,18 @@ import { useForegroundSync } from '@/pouchdb/useForegroundSync'
 import { useFlagsRefresh } from '@/client/useFlagsRefresh'
 import { useSyncInstanceLocale } from '@/i18n/useSyncInstanceLocale'
 import { initOfflineSubsystem } from '@/offline/initOffline'
+import { useAuth } from '@/auth/useAuth'
+import { LoadingState } from '@/ui/LoadingState'
 
 export default function DriveLayout() {
   const client = useClient()
-  if (!client) return <Redirect href="/(auth)/welcome" />
+  const { status } = useAuth()
+  // Only leave for the auth stack once the session is known to be gone. The
+  // client is briefly null while it is being rebuilt — a dev resync, a
+  // reconnection — and redirecting on that dropped the user on the welcome
+  // screen with a perfectly valid session.
+  if (!client && status === 'unauthenticated') return <Redirect href="/(auth)/welcome" />
+  if (!client) return <LoadingState />
   return <DriveTabs />
 }
 
