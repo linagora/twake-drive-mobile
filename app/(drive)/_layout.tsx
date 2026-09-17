@@ -7,6 +7,7 @@ import { useClient } from 'cozy-client'
 import { CozyIcon } from '@/ui/icons/CozyIcon'
 import { OfflineBanner } from '@/ui/OfflineBanner'
 import { useForegroundSync } from '@/pouchdb/useForegroundSync'
+import { useFlagsRefresh } from '@/client/useFlagsRefresh'
 import { useSyncInstanceLocale } from '@/i18n/useSyncInstanceLocale'
 import { initOfflineSubsystem } from '@/offline/initOffline'
 
@@ -21,6 +22,7 @@ function DriveTabs() {
   const { t } = useTranslation()
   const client = useClient()
   useForegroundSync()
+  useFlagsRefresh()
   useSyncInstanceLocale()
   useEffect(() => {
     if (!client) return

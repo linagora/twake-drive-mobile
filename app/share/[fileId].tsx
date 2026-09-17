@@ -76,6 +76,10 @@ export default function ShareRoute() {
   //   sheet doesn't have an "advanced settings" panel; recorded for parity.
   const generateLinkFlag = useFlag('sharing.generate-link-button.enabled')
   const generateLinkEnabled = generateLinkFlag !== false
+  // Sharing with people by email belongs to the shared drive feature, which the
+  // instance turns on explicitly. Default off: an instance that never set the
+  // flag does not get it.
+  const emailSharingEnabled = useFlag('drive.shared-drive.enabled') === true
   // TODO: when an advanced-settings panel is added, gate it on this flag too.
   // const autoOpenSettingsEnabled = !!useFlag('sharing.auto-open-settings.enabled')
 
@@ -407,7 +411,7 @@ export default function ShareRoute() {
             ))
           )}
 
-          {showAddForm ? (
+          {showAddForm && emailSharingEnabled ? (
             <View style={styles.addForm}>
               <TextInput
                 mode="outlined"
@@ -505,7 +509,7 @@ export default function ShareRoute() {
                 </Button>
               </View>
             </View>
-          ) : (
+          ) : emailSharingEnabled ? (
             <Button
               mode="outlined"
               icon="account-plus"
@@ -515,7 +519,7 @@ export default function ShareRoute() {
             >
               {t('drive.share.addRecipient')}
             </Button>
-          )}
+          ) : null}
         </View>
 
         <View style={styles.footer}>
