@@ -37,6 +37,29 @@ Maestro targets elements by **visible text** (`tapOn: 'Mon Drive'`) or by point
 (`tapOn: { point: "50%,45%" }`). The manual login is tagged `login` and
 **excluded** from runs by default (see `config.yaml`).
 
+## Visual regression
+
+```bash
+npm run e2e:ios:visual              # play the `visual` flows, diff vs baseline
+npm run e2e:ios:visual -- --update  # accept the current run as the new baseline
+```
+
+Flows tagged `visual` take a screenshot at every stop. The runner collects them
+into `e2e/maestro/screenshots/current/` and diffs each against the committed
+`baseline/`; a mismatch writes an annotated PNG to `diff/` and fails the run.
+Only `baseline/` is tracked.
+
+The top 120 device pixels are masked before comparing, because the status bar
+clock changes every minute. Tolerance is 0.5% of pixels, enough to absorb font
+and shadow dithering: an extra row in a list lands around 0.8%, so real drift
+still fails. Both are tunable via `--mask-top` and `--tolerance`.
+
+A baseline with no matching screenshot fails too, so renaming or deleting a step
+has to be an explicit `--update` rather than a silent pass.
+
+Update the baseline only after eyeballing the diffs: `--update` overwrites every
+reference, including a regression.
+
 ## Iteration loop (perf / debug)
 
 1. `npm run ios`, then **manual login** once (the session persists).

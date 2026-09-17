@@ -1,0 +1,83 @@
+appId: com.linagora.twakedrive
+tags:
+  - inapp
+  - visual
+env:
+  NAV_FOLDER: 'Linagora'
+  NAV_PDF: 'sample.pdf'
+---
+# Navigation round-trip with a screenshot at every stop, so `npm run
+# e2e:ios:visual` can diff the run against the committed baseline and catch UI
+# regressions the assertions below would not see (spacing, colours, truncation).
+#
+# Screenshot names are the baseline file names: renaming one orphans its
+# baseline, which the compare script reports as missing rather than passing.
+#
+# ⚠️ NOT yet validated end to end: the test account browsed so far holds no PDF,
+# so NAV_PDF is still the fixtures.env placeholder and no baseline is committed.
+# Point NAV_FOLDER / NAV_PDF at real documents, run `npm run e2e:ios:visual --
+# --update` once, EYEBALL the captures, then commit them as the baseline.
+#
+# Rows carry no testID (see app/(drive)/files/[...path].tsx), so they are matched
+# by name; the trailing `.*` absorbs the localized accessibility suffix iOS
+# appends.
+- runFlow: ../../subflows/openDrive.yaml
+- waitForAnimationToEnd
+- takeScreenshot: 20-nav-01-drive-root
+
+- tapOn:
+    text: '${NAV_FOLDER}.*'
+- extendedWaitUntil:
+    visible:
+      id: 'appbar-back-button'
+    timeout: 15000
+- waitForAnimationToEnd
+- takeScreenshot: 20-nav-02-folder-content
+
+# The pdf viewer is chromeless: no AppBar, and react-native-pdf exposes no
+# testID, so the floating close button is the only anchor proving it mounted.
+# What the page actually renders is what the screenshot diff is for.
+- tapOn:
+    text: '${NAV_PDF}.*'
+- extendedWaitUntil:
+    visible:
+      id: 'preview-close-button'
+    timeout: 30000
+- waitForAnimationToEnd
+- takeScreenshot: 20-nav-03-pdf-preview
+
+- tapOn:
+    id: 'preview-close-button'
+- extendedWaitUntil:
+    visible:
+      id: 'appbar-back-button'
+    timeout: 15000
+- waitForAnimationToEnd
+- takeScreenshot: 20-nav-04-back-to-folder
+
+- tapOn:
+    id: 'appbar-back-button'
+- extendedWaitUntil:
+    visible:
+      text: 'Mon Drive.*'
+    timeout: 15000
+- waitForAnimationToEnd
+
+# Per-row menu. `folder-actions:<name>` is the only unambiguous handle: the file
+# rows all share the bare `file-actions` id, and a `rightOf` selector resolves to
+# the wrong row (see e2e/DEVICE-NOTES.md). MENU_SUFFIX is set by the runner.
+- tapOn:
+    id: 'folder-actions:${NAV_FOLDER}${MENU_SUFFIX}'
+- waitForAnimationToEnd
+- takeScreenshot: 20-nav-05-row-menu
+
+# Dismiss without firing an action: the menu is a modal overlay, so a tap near
+# the top of the screen lands on the scrim.
+- tapOn:
+    point: '50%, 12%'
+- extendedWaitUntil:
+    visible:
+      text: 'Mon Drive.*'
+    timeout: 15000
+- waitForAnimationToEnd
+- takeScreenshot: 20-nav-06-menu-dismissed
