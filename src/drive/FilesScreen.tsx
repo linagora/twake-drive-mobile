@@ -16,6 +16,7 @@ import { FolderRow } from '@/ui/FolderRow'
 import { FileGridItem } from '@/ui/FileGridItem'
 import { ViewSwitcher } from '@/ui/ViewSwitcher'
 import { useViewMode } from '@/ui/useViewMode'
+import { cozyTokens } from '@/ui/theme'
 import { SortControl } from '@/ui/SortControl'
 import { useFolderSort } from '@/ui/useFolderSort'
 import { CreateFolderDialog } from '@/ui/CreateFolderDialog'
@@ -569,6 +570,9 @@ export const FilesScreen = ({ basePath }: FilesScreenProps): React.ReactElement 
             keyExtractor={item => item._id}
             numColumns={mode === 'grid' ? 3 : undefined}
             renderItem={mode === 'grid' ? renderGridItem : renderItem}
+            // The FAB floats over the list, so the last rows need room to be
+            // scrolled clear of it: their 3 dot menu sat under it otherwise.
+            contentContainerStyle={styles.listContent}
             refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
             onEndReachedThreshold={0.5}
             onEndReached={() => {
@@ -642,6 +646,7 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { flex: 1 },
   fabGroup: { zIndex: 20 },
+  listContent: { paddingBottom: cozyTokens.fabClearance },
   gridPlaceholder: { flex: 1, margin: 4 },
   toolbar: {
     flexDirection: 'row',
