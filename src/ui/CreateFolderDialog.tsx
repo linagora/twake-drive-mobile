@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react'
 import { Button, Dialog, HelperText, Portal, TextInput } from 'react-native-paper'
 import { useTranslation } from 'react-i18next'
 
+import { useKeyboardOffset } from './useKeyboardOffset'
+
 interface Props {
   visible: boolean
   onDismiss: () => void
@@ -11,6 +13,7 @@ interface Props {
 export const CreateFolderDialog = ({ visible, onDismiss, onSubmit }: Props) => {
   const { t } = useTranslation()
   const [name, setName] = useState('')
+  const keyboardHeight = useKeyboardOffset(visible)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -43,7 +46,11 @@ export const CreateFolderDialog = ({ visible, onDismiss, onSubmit }: Props) => {
 
   return (
     <Portal>
-      <Dialog visible={visible} onDismiss={submitting ? undefined : onDismiss}>
+      <Dialog
+        visible={visible}
+        onDismiss={submitting ? undefined : onDismiss}
+        style={keyboardHeight > 0 ? { marginBottom: keyboardHeight } : undefined}
+      >
         <Dialog.Title>{t('drive.createFolder.title')}</Dialog.Title>
         <Dialog.Content>
           <TextInput
