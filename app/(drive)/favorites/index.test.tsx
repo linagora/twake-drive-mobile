@@ -120,6 +120,27 @@ describe('FavoritesScreen', () => {
     expect(screen.queryByText('Aucun favori')).toBeNull()
   })
 
+  // The list refetches on every focus; binding the loading state to that made
+  // it replace the list, and the pull-to-refresh spinner appear unprompted.
+  it('keeps the list during a refetch once it has loaded once', () => {
+    const rows = [
+      {
+        _id: 'fav-1',
+        name: 'Important doc.pdf',
+        type: 'file',
+        size: 2048,
+        cozyMetadata: { favorite: true }
+      }
+    ]
+    mockUseQuery.mockReturnValue(makeQueryResult(rows))
+    const { rerender } = render(wrap(<FavoritesScreen />))
+    expect(screen.getByText('Important doc.pdf')).toBeOnTheScreen()
+
+    mockUseQuery.mockReturnValue(makeQueryResult(rows, 'loading'))
+    rerender(wrap(<FavoritesScreen />))
+    expect(screen.getByText('Important doc.pdf')).toBeOnTheScreen()
+  })
+
   it('renders a favorited file name in the list', () => {
     mockUseQuery.mockReturnValue(
       makeQueryResult([

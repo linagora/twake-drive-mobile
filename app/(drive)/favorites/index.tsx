@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { FlatList, RefreshControl } from 'react-native'
 import { Snackbar } from 'react-native-paper'
 import { useFocusEffect, useRouter } from 'expo-router'
@@ -48,6 +48,20 @@ export default function FavoritesScreen() {
   // the focus effect (that would setState during render under the test's mock); the
   // entries become redundant anyway once isFavorite filters the refreshed data.
   const [removedIds, setRemovedIds] = useState<Set<string>>(new Set())
+  const [refreshing, setRefreshing] = useState(false)
+  // The list refetches on every focus, and binding the full-screen loading
+  // state to that made it replace the list on each pass. Only the first load
+  // gets it.
+  const [loadedOnce, setLoadedOnce] = useState(false)
+
+  useEffect(() => {
+    if (query.fetchStatus === 'loaded') setLoadedOnce(true)
+  }, [query.fetchStatus])
+
+  const onRefresh = useCallback((): void => {
+    setRefreshing(true)
+    void Promise.resolve(queryRef.current.fetch()).finally(() => setRefreshing(false))
+  }, [])
 
   useFocusEffect(
     useCallback(() => {
@@ -107,7 +121,7 @@ export default function FavoritesScreen() {
   return (
     <ScreenContainer>
       <AppBar title={t('drive.favorites')} onLogout={logout} />
-      {query.fetchStatus === 'loading' && data.length === 0 ? (
+      {!loadedOnce && query.fetchStatus === 'loading' && data.length === 0 ? (
         <LoadingState />
       ) : query.fetchStatus === 'failed' ? (
         <ErrorState
@@ -128,12 +142,7 @@ export default function FavoritesScreen() {
           onEndReached={() => {
             void query.fetchMore?.()
           }}
-          refreshControl={
-            <RefreshControl
-              refreshing={query.fetchStatus === 'loading'}
-              onRefresh={() => query.fetch()}
-            />
-          }
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         />
       )}
       <Snackbar visible={!!snackbar} onDismiss={() => setSnackbar(null)} duration={3000}>
