@@ -32,6 +32,9 @@ export const cozyTokens = {
   avatarSize: { sm: 32, md: 40 },
   /** Twake wordmark/logo sizes per surface. */
   logoSize: { appBar: 28, hero: 76 },
+  /** Room a list has to leave below its last row for the floating button
+   *  that hovers over it: the FAB plus its margins. */
+  fabClearance: 88,
   shadowColor: '#0A1F44'
 }
 

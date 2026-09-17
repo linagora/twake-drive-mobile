@@ -7,6 +7,7 @@ import { useClient } from 'cozy-client'
 import { useTranslation } from 'react-i18next'
 
 import { AppBar } from '@/ui/AppBar'
+import { cozyTokens } from '@/ui/theme'
 import { ScreenContainer } from '@/ui/ScreenContainer'
 import { EmptyState } from '@/ui/EmptyState'
 import { ErrorState } from '@/ui/ErrorState'
@@ -158,7 +159,7 @@ export default function TrashScreen() {
           keyExtractor={item => item._id}
           renderItem={renderItem}
           ListEmptyComponent={<EmptyState message={t('drive.emptyTrash')} />}
-          contentContainerStyle={data.length === 0 ? styles.emptyContent : undefined}
+          contentContainerStyle={data.length === 0 ? styles.emptyContent : styles.listContent}
           onEndReachedThreshold={0.5}
           onEndReached={() => {
             void foldersQuery.fetchMore?.()
@@ -211,5 +212,7 @@ export default function TrashScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   fab: { position: 'absolute', right: 16, bottom: 16 },
-  emptyContent: { flexGrow: 1, justifyContent: 'center' }
+  emptyContent: { flexGrow: 1, justifyContent: 'center' },
+  // The empty-trash FAB floats over the list; leave room for the last row.
+  listContent: { paddingBottom: cozyTokens.fabClearance }
 })
