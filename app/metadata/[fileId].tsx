@@ -1,7 +1,7 @@
 import React, { useCallback, useState } from 'react'
 import { Image, Linking, ScrollView, StyleSheet, View } from 'react-native'
 import { useLocalSearchParams, useRouter } from 'expo-router'
-import { Button, Divider, Snackbar, Switch, Text, useTheme } from 'react-native-paper'
+import { Button, Divider, Portal, Snackbar, Switch, Text, useTheme } from 'react-native-paper'
 import { format } from 'date-fns'
 import { useTranslation } from 'react-i18next'
 import { useClient, useQuery } from 'cozy-client'
@@ -174,130 +174,136 @@ export default function MetadataRoute() {
 
   if (fileLookup.fetchStatus === 'loading' && !file) {
     return (
-      <ScreenContainer>
-        <LoadingState />
-      </ScreenContainer>
+      <Portal.Host>
+        <ScreenContainer>
+          <LoadingState />
+        </ScreenContainer>
+      </Portal.Host>
     )
   }
   if (!file) {
     return (
-      <ScreenContainer>
-        <ErrorState message={t('drive.preview.loadFailed')} onRetry={() => fileLookup.fetch()} />
-      </ScreenContainer>
+      <Portal.Host>
+        <ScreenContainer>
+          <ErrorState message={t('drive.preview.loadFailed')} onRetry={() => fileLookup.fetch()} />
+        </ScreenContainer>
+      </Portal.Host>
     )
   }
 
   return (
-    <ScreenContainer>
-      <ScrollView contentContainerStyle={styles.container}>
-        <View style={styles.header}>
-          {isPinned && offlineEntry?.state === 'downloaded' && file.class === 'image' ? (
-            <Image
-              source={{ uri: FileSystemRepo.localPath(file._id) }}
-              style={styles.localPreview}
-              resizeMode="contain"
-              accessibilityLabel={file.name}
-            />
-          ) : (
-            <FileThumbnail file={file} size={120} />
-          )}
-          <Text variant="titleMedium" style={styles.name}>
-            {file.name}
-          </Text>
-        </View>
-        <Divider />
-        <View style={styles.toggleRow}>
-          <Text style={styles.toggleLabel}>{t('drive.offline.keepOffline')}</Text>
-          <Switch value={isPinned} onValueChange={togglePin} disabled={!isPinned && !isOnline} />
-        </View>
-        {!isPinned && !isOnline ? (
-          <Text style={[styles.toggleHelper, { color: theme.colors.outline }]}>
-            {t('drive.offline.disabledOffline')}
-          </Text>
-        ) : null}
-        <Divider />
-        <Row label={t('drive.fileMeta.type')} value={file.mime ?? '—'} />
-        <Row label={t('drive.fileMeta.size')} value={formatFileSize(file.size)} />
-        <Row
-          label={t('drive.fileMeta.modified')}
-          value={file.updated_at ? format(new Date(file.updated_at), 'PPp') : '—'}
-        />
-        <Row label={t('drive.fileMeta.path')} value={file.path ?? '—'} />
-        <Row
-          label={t('drive.fileMeta.owner')}
-          value={file.cozyMetadata?.createdBy?.account ?? '—'}
-        />
-        <View style={styles.footer}>
-          <Button
-            mode="contained"
-            onPress={onOpen}
-            loading={opening}
-            disabled={opening || (!isOnline && offlineEntry?.state !== 'downloaded')}
-            icon="open-in-new"
-          >
-            {t('drive.fileMeta.open')}
-          </Button>
-          {openError ? (
-            <Text variant="bodySmall" style={[styles.errorText, { color: theme.colors.error }]}>
-              {openError}
+    <Portal.Host>
+      <ScreenContainer>
+        <ScrollView contentContainerStyle={styles.container}>
+          <View style={styles.header}>
+            {isPinned && offlineEntry?.state === 'downloaded' && file.class === 'image' ? (
+              <Image
+                source={{ uri: FileSystemRepo.localPath(file._id) }}
+                style={styles.localPreview}
+                resizeMode="contain"
+                accessibilityLabel={file.name}
+              />
+            ) : (
+              <FileThumbnail file={file} size={120} />
+            )}
+            <Text variant="titleMedium" style={styles.name}>
+              {file.name}
+            </Text>
+          </View>
+          <Divider />
+          <View style={styles.toggleRow}>
+            <Text style={styles.toggleLabel}>{t('drive.offline.keepOffline')}</Text>
+            <Switch value={isPinned} onValueChange={togglePin} disabled={!isPinned && !isOnline} />
+          </View>
+          {!isPinned && !isOnline ? (
+            <Text style={[styles.toggleHelper, { color: theme.colors.outline }]}>
+              {t('drive.offline.disabledOffline')}
             </Text>
           ) : null}
-          <Button mode="outlined" onPress={onShare} icon="share-variant" disabled={!isOnline}>
-            {t('drive.fileMeta.share')}
-          </Button>
-          <Button
-            mode="outlined"
-            onPress={() => router.replace(`/move/${file._id}`)}
-            icon="folder-move-outline"
-            disabled={!isOnline}
-          >
-            {t('drive.fileMeta.move')}
-          </Button>
-          <Button
-            mode="outlined"
-            onPress={() => setRenameVisible(true)}
-            icon="pencil-outline"
-            disabled={!isOnline}
-          >
-            {t('drive.fileMeta.rename')}
-          </Button>
-          <Button
-            mode="outlined"
-            onPress={() => setDeleteVisible(true)}
-            icon="trash-can-outline"
-            textColor={theme.colors.error}
-            disabled={!isOnline}
-          >
-            {t('drive.fileMeta.delete')}
-          </Button>
-          {!isOnline ? (
-            <Text variant="bodySmall" style={[styles.hint, { color: theme.colors.outline }]}>
-              {t('drive.offline.requiresOnline')}
-            </Text>
-          ) : null}
-          <Button mode="outlined" onPress={close}>
-            {t('common.close')}
-          </Button>
-        </View>
-      </ScrollView>
-      <RenameDialog
-        visible={renameVisible}
-        initialName={file.name}
-        type={file.type}
-        onDismiss={() => (mutating ? undefined : setRenameVisible(false))}
-        onSubmit={onRenameSubmit}
-      />
-      <ConfirmDeleteDialog
-        visible={deleteVisible}
-        target={file}
-        loading={mutating}
-        onConfirm={() => void onDeleteConfirm()}
-        onDismiss={() => (mutating ? undefined : setDeleteVisible(false))}
-      />
-      <Snackbar visible={!!snackbar} onDismiss={() => setSnackbar(null)} duration={3000}>
-        {snackbar ?? ''}
-      </Snackbar>
-    </ScreenContainer>
+          <Divider />
+          <Row label={t('drive.fileMeta.type')} value={file.mime ?? '—'} />
+          <Row label={t('drive.fileMeta.size')} value={formatFileSize(file.size)} />
+          <Row
+            label={t('drive.fileMeta.modified')}
+            value={file.updated_at ? format(new Date(file.updated_at), 'PPp') : '—'}
+          />
+          <Row label={t('drive.fileMeta.path')} value={file.path ?? '—'} />
+          <Row
+            label={t('drive.fileMeta.owner')}
+            value={file.cozyMetadata?.createdBy?.account ?? '—'}
+          />
+          <View style={styles.footer}>
+            <Button
+              mode="contained"
+              onPress={onOpen}
+              loading={opening}
+              disabled={opening || (!isOnline && offlineEntry?.state !== 'downloaded')}
+              icon="open-in-new"
+            >
+              {t('drive.fileMeta.open')}
+            </Button>
+            {openError ? (
+              <Text variant="bodySmall" style={[styles.errorText, { color: theme.colors.error }]}>
+                {openError}
+              </Text>
+            ) : null}
+            <Button mode="outlined" onPress={onShare} icon="share-variant" disabled={!isOnline}>
+              {t('drive.fileMeta.share')}
+            </Button>
+            <Button
+              mode="outlined"
+              onPress={() => router.replace(`/move/${file._id}`)}
+              icon="folder-move-outline"
+              disabled={!isOnline}
+            >
+              {t('drive.fileMeta.move')}
+            </Button>
+            <Button
+              mode="outlined"
+              onPress={() => setRenameVisible(true)}
+              icon="pencil-outline"
+              disabled={!isOnline}
+            >
+              {t('drive.fileMeta.rename')}
+            </Button>
+            <Button
+              mode="outlined"
+              onPress={() => setDeleteVisible(true)}
+              icon="trash-can-outline"
+              textColor={theme.colors.error}
+              disabled={!isOnline}
+            >
+              {t('drive.fileMeta.delete')}
+            </Button>
+            {!isOnline ? (
+              <Text variant="bodySmall" style={[styles.hint, { color: theme.colors.outline }]}>
+                {t('drive.offline.requiresOnline')}
+              </Text>
+            ) : null}
+            <Button mode="outlined" onPress={close}>
+              {t('common.close')}
+            </Button>
+          </View>
+        </ScrollView>
+        <RenameDialog
+          visible={renameVisible}
+          initialName={file.name}
+          type={file.type}
+          onDismiss={() => (mutating ? undefined : setRenameVisible(false))}
+          onSubmit={onRenameSubmit}
+        />
+        <ConfirmDeleteDialog
+          visible={deleteVisible}
+          target={file}
+          loading={mutating}
+          onConfirm={() => void onDeleteConfirm()}
+          onDismiss={() => (mutating ? undefined : setDeleteVisible(false))}
+        />
+        <Snackbar visible={!!snackbar} onDismiss={() => setSnackbar(null)} duration={3000}>
+          {snackbar ?? ''}
+        </Snackbar>
+      </ScreenContainer>
+    </Portal.Host>
   )
 }
 
