@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useMemo, useRef, useState } from 'react'
 import { Snackbar } from 'react-native-paper'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
@@ -7,27 +7,9 @@ import { useClient, useQuery } from 'cozy-client'
 import { moveEntry, MoveEntryTarget } from '@/files/moveEntry'
 import { optimisticFiles } from '@/files/optimisticFiles'
 import { filesByIdsQuery, filesByIdsQueryAs, FileQueryResult } from '@/client/queries'
+import { MoveContext, MoveContextValue } from '@/drive/moveContext'
 
 const SNACKBAR_DISMISS_DELAY_MS = 200
-
-interface MoveContextValue {
-  idList: string[]
-  firstDoc: FileQueryResult | null
-  isLoading: boolean
-  hasError: boolean
-  isBusy: boolean
-  onConfirm: (dest: { _id: string; name: string }) => Promise<void>
-  onCancel: () => void
-  retry: () => void
-}
-
-const MoveContext = createContext<MoveContextValue | null>(null)
-
-export const useMoveContext = (): MoveContextValue => {
-  const ctx = useContext(MoveContext)
-  if (!ctx) throw new Error('useMoveContext must be used inside MoveLayout')
-  return ctx
-}
 
 export default function MoveLayout() {
   const { t } = useTranslation()

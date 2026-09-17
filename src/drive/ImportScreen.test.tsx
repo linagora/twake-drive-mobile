@@ -55,8 +55,8 @@ jest.mock('@/ui/FolderPicker', () => {
   }
 })
 
-import ImportLayout from './_layout'
-import { ImportScreen } from './_ImportScreen'
+import ImportLayout from '../../app/import/_layout'
+import { ImportScreen } from './ImportScreen'
 
 // PaperProvider: ImportLayout renders a real react-native-paper Snackbar.
 // SafeAreaProvider: Snackbar reads safe-area insets via useSafeAreaInsets,

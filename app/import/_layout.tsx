@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useMemo, useState } from 'react'
+import React, { useCallback, useMemo, useState } from 'react'
 import { Snackbar } from 'react-native-paper'
 import { Stack, useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
@@ -7,23 +7,9 @@ import { useClient } from 'cozy-client'
 import { uploadBatch } from '@/share/uploadBatch'
 import { optimisticFiles } from '@/files/optimisticFiles'
 import { usePendingShare } from '@/share/PendingShareProvider'
-import type { SharedItem } from '@/files/uploadSharedFile'
+import { ImportContext, ImportContextValue } from '@/drive/importContext'
 
 const SNACKBAR_DISMISS_DELAY_MS = 200
-
-interface ImportContextValue {
-  items: SharedItem[]
-  isBusy: boolean
-  onConfirm: (dest: { _id: string; name: string }) => Promise<void>
-  onCancel: () => void
-}
-
-const ImportContext = createContext<ImportContextValue | null>(null)
-export const useImportContext = (): ImportContextValue => {
-  const ctx = useContext(ImportContext)
-  if (!ctx) throw new Error('useImportContext must be used inside ImportLayout')
-  return ctx
-}
 
 export default function ImportLayout({ children }: { children?: React.ReactNode }) {
   const { t } = useTranslation()

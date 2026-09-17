@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { FolderPicker } from '@/ui/FolderPicker'
 import { ROOT_DIR_ID } from '@/client/queries'
 
-import { useImportContext } from './_layout'
+import { useImportContext } from '@/drive/importContext'
 
 interface Props {
   pathSegments: string[]
