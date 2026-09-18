@@ -175,7 +175,8 @@
       "sheet": "Tabelle",
       "slide": "Präsentation",
       "excalidraw": "Excalidraw",
-      "shortcut": "Verknüpfung"
+      "shortcut": "Verknüpfung",
+      "open": "Erstellen"
     },
     "createShortcut": {
       "title": "Neue Verknüpfung",

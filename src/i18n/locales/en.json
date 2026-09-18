@@ -175,7 +175,8 @@
       "sheet": "Spreadsheet",
       "slide": "Presentation",
       "excalidraw": "Excalidraw",
-      "shortcut": "Shortcut"
+      "shortcut": "Shortcut",
+      "open": "Create"
     },
     "createShortcut": {
       "title": "New shortcut",
