@@ -121,6 +121,21 @@ export default function WelcomeScreen() {
               {t('auth.orgServerLink')}
             </Text>
           </Pressable>
+          {__DEV__ ? (
+            <Pressable
+              testID="welcome-dev-instance-link"
+              onPress={() => router.push('/(auth)/dev-instance')}
+              disabled={loading !== null}
+              style={styles.link}
+            >
+              <Text
+                variant="labelLarge"
+                style={[styles.linkText, { color: theme.colors.onSurfaceVariant }]}
+              >
+                Sign in to an instance (dev)
+              </Text>
+            </Pressable>
+          ) : null}
         </View>
       </View>
     </SafeAreaView>

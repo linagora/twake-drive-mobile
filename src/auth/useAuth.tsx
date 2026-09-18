@@ -16,6 +16,7 @@ import { destroyLocalData } from '@/pouchdb/destroyLocalData'
 import { clearSession, getSession, saveSession } from './tokenStorage'
 import { startOidcFlow } from './oidcFlow'
 import { registerSession } from './registerSession'
+import { registerDirectSession } from './registerDirectSession'
 import { getLoginUri, getTwakeWorkplaceLoginUri } from './autodiscovery'
 import { certifyFlagship as certifyFlagshipModule } from './certifyFlagship'
 
@@ -35,6 +36,8 @@ interface AuthContextValue extends AuthState {
   dismissSessionExpired: () => void
   login: (email: string) => Promise<void>
   loginWithTwakeWorkplace: (mode: 'signin' | 'signup') => Promise<void>
+  /** Development only: sign in against a stack instance, no cloudery. */
+  loginWithInstance: (instanceUri: string) => Promise<void>
   logout: () => Promise<void>
   certifyFlagship: () => Promise<CozyClient>
   devResetAndResync: () => Promise<void>
@@ -123,6 +126,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     [completeOidc]
   )
 
+  const loginWithInstance = useCallback(async (instanceUri: string): Promise<void> => {
+    setAuthenticating(true)
+    try {
+      const session = await registerDirectSession(instanceUri)
+      await saveSession(session)
+      const client = await createClient(session)
+      setState({ status: 'authenticated', client })
+    } finally {
+      setAuthenticating(false)
+    }
+  }, [])
+
   const logout = useCallback(async (): Promise<void> => {
     setState(prev => {
       if (prev.client) {
@@ -175,6 +190,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       dismissSessionExpired,
       login,
       loginWithTwakeWorkplace,
+      loginWithInstance,
       logout,
       certifyFlagship,
       devResetAndResync
@@ -186,6 +202,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       dismissSessionExpired,
       login,
       loginWithTwakeWorkplace,
+      loginWithInstance,
       logout,
       certifyFlagship,
       devResetAndResync
