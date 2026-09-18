@@ -49,3 +49,33 @@ describe('getLinks', () => {
     expect(opts.replicationInterval).toBe(30_000)
   })
 })
+
+describe('a client rebuilt after a shared drive was registered', () => {
+  beforeEach(() => (PouchLink as unknown as jest.Mock).mockClear())
+
+  it('hands the link its own copy of the replication options', () => {
+    const first = getLinks()
+    const firstOptions = (PouchLink as unknown as jest.Mock).mock.calls[0][0]
+      .doctypesReplicationOptions as Record<string, unknown>
+    // What cozy-pouch-link does when a drive is opened: it writes the new
+    // doctype into the object it was handed.
+    firstOptions['io.cozy.files.shareddrives-drive-1'] = {
+      strategy: 'fromRemote',
+      driveId: 'drive-1'
+    }
+    expect(first).toHaveLength(2)
+
+    getLinks()
+    const secondOptions = (PouchLink as unknown as jest.Mock).mock.calls[1][0]
+      .doctypesReplicationOptions as Record<string, unknown>
+    expect(secondOptions['io.cozy.files.shareddrives-drive-1']).toBeUndefined()
+  })
+
+  it('builds the links rather than throw on a doctype with no warmup queries', () => {
+    getLinks()
+    const handed = (PouchLink as unknown as jest.Mock).mock.calls[0][0]
+      .doctypesReplicationOptions as Record<string, unknown>
+    handed['io.cozy.files.shareddrives-drive-2'] = { strategy: 'fromRemote', driveId: 'drive-2' }
+    expect(() => getLinks()).not.toThrow()
+  })
+})

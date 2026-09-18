@@ -104,7 +104,10 @@ const PERSISTED_WARMUP_KEY = 'cozy-client-pouch-link-warmupedqueries'
 const expectedAliasesByDoctype = (): Record<string, string[]> => {
   const out: Record<string, string[]> = {}
   for (const [doctype, opts] of Object.entries(doctypesReplicationOptions)) {
-    out[doctype] = (opts.warmupQueries as Array<{ options: { as: string } }>).map(q => q.options.as)
+    // A doctype registered at runtime, like a shared drive, has no warmup
+    // queries: it is gated by its own replication, not by a warmup.
+    const warmupQueries = (opts.warmupQueries ?? []) as Array<{ options: { as: string } }>
+    out[doctype] = warmupQueries.map(q => q.options.as)
   }
   return out
 }
@@ -149,7 +152,10 @@ export const getLinks = (): CozyLink[] => {
     syncDebounceMaxDelayInMs: REPLICATION_DEBOUNCE_MAX_DELAY,
     platform: platformReactNative,
     ignoreWarmup: false,
-    doctypesReplicationOptions,
+    // A copy: cozy-pouch-link writes into this object when a doctype is added
+    // at runtime, and the static configuration must not grow those entries —
+    // the next client rebuild reads it back.
+    doctypesReplicationOptions: { ...doctypesReplicationOptions },
     pouch: {
       options: {
         adapter: 'react-native-sqlite'
