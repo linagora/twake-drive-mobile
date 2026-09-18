@@ -247,7 +247,14 @@
     },
     "open": {
       "noApp": "No app on your device can open this file type"
-    }
+    },
+    "sharings": {
+      "withMe": "With me",
+      "byMe": "By me",
+      "drives": "Drives",
+      "driveFileNotSupported": "Opening a file shared as a drive is not available yet"
+    },
+    "emptySharedByMe": "You are not sharing any file"
   },
   "a11y": {
     "listView": "List view",

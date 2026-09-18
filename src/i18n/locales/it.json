@@ -256,7 +256,14 @@
     },
     "open": {
       "noApp": "Nessuna app può aprire questo tipo di file"
-    }
+    },
+    "sharings": {
+      "withMe": "Con me",
+      "byMe": "Da me",
+      "drives": "Drive",
+      "driveFileNotSupported": "Aprire un file condiviso come drive non è ancora disponibile"
+    },
+    "emptySharedByMe": "Non stai condividendo alcun file"
   },
   "a11y": {
     "listView": "Vista elenco",

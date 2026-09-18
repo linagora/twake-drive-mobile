@@ -14,6 +14,10 @@ export interface SharedDriveEntry {
   /** True when the current user owns the drive: its files live on their own
    *  instance, so they are already in the main replica. */
   owner: boolean
+  /** Organisational drive: the web keeps those in their own tab. */
+  orgDrive: boolean
+  /** A drive can share a single file instead of a folder. */
+  rootType: 'directory' | 'file'
 }
 
 interface RawSharing {
@@ -21,10 +25,14 @@ interface RawSharing {
   id?: string
   description?: string
   owner?: boolean
+  org_drive?: boolean
+  drive_root_type?: string
   rules?: Array<{ values?: string[] }>
   attributes?: {
     description?: string
     owner?: boolean
+    org_drive?: boolean
+    drive_root_type?: string
     rules?: Array<{ values?: string[] }>
   }
 }
@@ -46,7 +54,10 @@ export const toSharedDriveEntry = (raw: RawSharing): SharedDriveEntry | null => 
     driveId,
     name: raw.description ?? attrs.description ?? '',
     rootFolderId: rules?.[0]?.values?.[0] ?? null,
-    owner: (raw.owner ?? attrs.owner) === true
+    owner: (raw.owner ?? attrs.owner) === true,
+    orgDrive: (raw.org_drive ?? attrs.org_drive) === true,
+    // The stack leaves drive_root_type out when the root is a directory.
+    rootType: (raw.drive_root_type ?? attrs.drive_root_type) === 'file' ? 'file' : 'directory'
   }
 }
 

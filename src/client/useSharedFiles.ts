@@ -23,9 +23,22 @@ interface SharedFileIdsState {
  * the previous duplicate-fetching local hook so the shared screen and the
  * row badges share a single source of truth.
  */
-export const useSharedFileIds = (): SharedFileIdsState => {
+export type SharedScope = 'with-me' | 'by-me'
+
+export const useSharedFileIds = (scope?: SharedScope): SharedFileIdsState => {
   const ctx = useContext(SharingContext)
-  const ids = useMemo(() => Array.from(ctx.byId.keys()).sort(), [ctx.byId])
+  const ids = useMemo(
+    () =>
+      Array.from(ctx.byId.entries())
+        .filter(([, entry]) => {
+          if (scope === 'by-me') return entry.isOwner
+          if (scope === 'with-me') return !entry.isOwner
+          return true
+        })
+        .map(([id]) => id)
+        .sort(),
+    [ctx.byId, scope]
+  )
   return {
     status: ctx.loaded ? 'loaded' : 'loading',
     error: null,

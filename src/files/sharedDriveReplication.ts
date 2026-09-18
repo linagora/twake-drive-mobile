@@ -108,11 +108,25 @@ export const restoreSharedDriveReplication = async (client: CozyClient): Promise
   }
 }
 
+let inFlight: Promise<SharedDriveEntry[]> | null = null
+
 /**
  * Re-reads the drive list from the instance and drops the local copy of any
  * drive the user lost access to. Returns the fresh list.
+ *
+ * Several screens want the list at once; they share the call in flight rather
+ * than each asking the instance for the same thing.
  */
 export const syncSharedDrives = async (client: CozyClient): Promise<SharedDriveEntry[]> => {
+  if (!inFlight) {
+    inFlight = runSyncSharedDrives(client).finally(() => {
+      inFlight = null
+    })
+  }
+  return inFlight
+}
+
+const runSyncSharedDrives = async (client: CozyClient): Promise<SharedDriveEntry[]> => {
   const drives = await fetchSharedDrives(client)
   const accessible = new Set(drives.filter(drive => !drive.owner).map(drive => drive.driveId))
 
