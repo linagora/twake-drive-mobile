@@ -7,6 +7,8 @@ import { useTranslation } from 'react-i18next'
 
 import { AppBar } from '@/ui/AppBar'
 import { useGuardedPush } from '@/ui/useGuardedPush'
+import { FileListView } from '@/ui/FileListView'
+import { useFileRowActions } from '@/files/useFileRowActions'
 import { useTabBack } from '@/ui/useTabBack'
 import { ScreenContainer } from '@/ui/ScreenContainer'
 import { EmptyState } from '@/ui/EmptyState'
@@ -87,11 +89,9 @@ export const FilesScreen = ({ basePath }: FilesScreenProps): React.ReactElement 
   const [creatingClass, setCreatingClass] = useState<OfficeFileClass | null>(null)
   const [createShortcutVisible, setCreateShortcutVisible] = useState(false)
   const [fabOpen, setFabOpen] = useState(false)
-  const [pendingDelete, setPendingDelete] = useState<FileQueryResult | null>(null)
-  const [pendingRename, setPendingRename] = useState<FileQueryResult | null>(null)
   const [bulkConfirmVisible, setBulkConfirmVisible] = useState(false)
   const [deleting, setDeleting] = useState(false)
-  const [snackbar, setSnackbar] = useState<string | null>(null)
+  const actions = useFileRowActions({ screen: 'FilesScreen' })
   const { mode } = useViewMode()
   const { sort } = useFolderSort()
   const selection = useMultiSelect()
@@ -150,7 +150,7 @@ export const FilesScreen = ({ basePath }: FilesScreenProps): React.ReactElement 
   }, [foldersQuery, filesQuery])
 
   const handleCreate = async (name: string) => {
-    if (!requireOnline(isOnline, setSnackbar, t)) return
+    if (!requireOnline(isOnline, actions.notify, t)) return
     if (!client) throw new Error('No client')
     const created = await createFolder(client, name, currentDirId)
     optimisticFiles(client, [
@@ -166,7 +166,7 @@ export const FilesScreen = ({ basePath }: FilesScreenProps): React.ReactElement 
   }
 
   const handleCreateOffice = async (name: string) => {
-    if (!requireOnline(isOnline, setSnackbar, t)) return
+    if (!requireOnline(isOnline, actions.notify, t)) return
     if (!client || !creatingClass) throw new Error('No client or class')
     const cls = creatingClass
     const created = await createOfficeFile(client, cls, name, currentDirId)
@@ -184,7 +184,7 @@ export const FilesScreen = ({ basePath }: FilesScreenProps): React.ReactElement 
   }
 
   const handleCreateNote = async (): Promise<void> => {
-    if (!requireOnline(isOnline, setSnackbar, t)) return
+    if (!requireOnline(isOnline, actions.notify, t)) return
     if (!client) return
     try {
       const created = await createCozyNote(client, currentDirId)
@@ -208,7 +208,7 @@ export const FilesScreen = ({ basePath }: FilesScreenProps): React.ReactElement 
   }
 
   const handleCreateExcalidraw = async (): Promise<void> => {
-    if (!requireOnline(isOnline, setSnackbar, t)) return
+    if (!requireOnline(isOnline, actions.notify, t)) return
     if (!client) return
     try {
       const sessionCode = await fetchSessionCode()
@@ -224,7 +224,7 @@ export const FilesScreen = ({ basePath }: FilesScreenProps): React.ReactElement 
   }
 
   const handleCreateShortcut = async (name: string, url: string): Promise<void> => {
-    if (!requireOnline(isOnline, setSnackbar, t)) return
+    if (!requireOnline(isOnline, actions.notify, t)) return
     if (!client) throw new Error('No client')
     const created = await createShortcut(client, currentDirId, name, url)
     optimisticFiles(client, [
@@ -239,59 +239,8 @@ export const FilesScreen = ({ basePath }: FilesScreenProps): React.ReactElement 
     setCreateShortcutVisible(false)
   }
 
-  const requestDelete = (entry: FileQueryResult): void => {
-    setPendingDelete(entry)
-  }
-
-  const requestRename = (entry: FileQueryResult): void => {
-    setPendingRename(entry)
-  }
-
-  const submitRename = async (newName: string): Promise<void> => {
-    if (!requireOnline(isOnline, setSnackbar, t)) return
-    if (!client || !pendingRename) return
-    const doc = pendingRename
-    const revert = optimisticFiles(client, [{ ...doc, name: newName }])
-    setPendingRename(null)
-    try {
-      await renameEntry(client, doc._id, newName)
-      setSnackbar(
-        t(doc.type === 'directory' ? 'drive.rename.successFolder' : 'drive.rename.successFile')
-      )
-    } catch (e) {
-      revert()
-      throw e
-    }
-  }
-
-  const confirmDelete = async (): Promise<void> => {
-    if (!requireOnline(isOnline, setSnackbar, t)) return
-    if (!client || !pendingDelete) return
-    const doc = pendingDelete
-    const revert = optimisticFiles(client, [{ ...doc, dir_id: TRASH_DIR_ID }])
-    setPendingDelete(null)
-    setDeleting(true)
-    try {
-      await softDeleteEntry(client, {
-        _id: doc._id,
-        _rev: (doc as unknown as { _rev?: string })._rev,
-        name: doc.name,
-        type: doc.type
-      })
-      setSnackbar(
-        t(doc.type === 'directory' ? 'drive.delete.successFolder' : 'drive.delete.successFile')
-      )
-    } catch (e) {
-      console.error('[FilesScreen] delete failed', e)
-      revert()
-      setSnackbar(t('drive.delete.errorGeneric'))
-    } finally {
-      setDeleting(false)
-    }
-  }
-
   const confirmBulkDelete = async (): Promise<void> => {
-    if (!requireOnline(isOnline, setSnackbar, t)) return
+    if (!requireOnline(isOnline, actions.notify, t)) return
     if (!client) return
     const items = data.filter(d => selection.isSelected(d._id))
     if (items.length === 0) return
@@ -313,119 +262,78 @@ export const FilesScreen = ({ basePath }: FilesScreenProps): React.ReactElement 
           type: item.type
         })
       }
-      setSnackbar(t('drive.delete.successBulk', { count: items.length }))
+      actions.notify(t('drive.delete.successBulk', { count: items.length }))
     } catch (e) {
       console.error('[FilesScreen] bulk delete failed', e)
       revert()
-      setSnackbar(t('drive.delete.errorGeneric'))
+      actions.notify(t('drive.delete.errorGeneric'))
     } finally {
       setDeleting(false)
     }
   }
 
-  const renderItem = ({ item }: { item: FileQueryResult }) => {
+  // In selection mode a row selects instead of acting: its menu is dropped and
+  // a tap toggles the row.
+  const renderItem = ({ item }: { item: FileQueryResult }): React.ReactElement => {
     const isSelected = selection.isSelected(item._id)
+    const selecting = selection.isSelecting
     if (item.type === 'directory') {
+      const folderHandlers = selecting
+        ? ({} as Partial<ReturnType<typeof actions.folderProps>>)
+        : actions.folderProps(item)
       return (
         <FolderRow
           folder={item}
           selected={isSelected}
+          {...folderHandlers}
           onPress={folder => {
-            if (selection.isSelecting) selection.toggle(folder._id)
+            if (selecting) selection.toggle(folder._id)
             else guardedPush(`${basePath}/${[...(path ?? []), folder._id].join('/')}`)
           }}
           onLongPress={folder => selection.select(folder._id)}
-          onShare={
-            selection.isSelecting
-              ? undefined
-              : folder => {
-                  if (!requireOnline(isOnline, setSnackbar, t)) return
-                  router.push(`/share/${folder._id}`)
-                }
-          }
-          onRename={selection.isSelecting ? undefined : () => requestRename(item)}
-          onDelete={selection.isSelecting ? undefined : () => requestDelete(item)}
-          onMove={selection.isSelecting ? undefined : folder => router.push(`/move/${folder._id}`)}
-          onTogglePin={selection.isSelecting ? undefined : onToggleFolderPin}
         />
       )
     }
+    const fileHandlers = selecting
+      ? ({} as Partial<ReturnType<typeof actions.fileProps>>)
+      : actions.fileProps(item)
     return (
       <FileRow
         file={{ ...item, size: item.size ?? null }}
         selected={isSelected}
+        {...fileHandlers}
         onPress={file => {
-          if (selection.isSelecting) {
-            selection.toggle(file._id)
-            return
-          }
-          if (!client) return
-          void openFileFromList(client, router, file).catch(e =>
-            surfaceOpenError(e, setSnackbar, t, 'FilesScreen')
-          )
+          if (selecting) selection.toggle(file._id)
+          else fileHandlers.onPress?.(file)
         }}
         onLongPress={file => selection.select(file._id)}
-        onShare={
-          selection.isSelecting
-            ? undefined
-            : file => {
-                if (!requireOnline(isOnline, setSnackbar, t)) return
-                router.push(`/share/${file._id}`)
-              }
-        }
-        onRename={selection.isSelecting ? undefined : () => requestRename(item)}
-        onDelete={selection.isSelecting ? undefined : () => requestDelete(item)}
-        onMove={selection.isSelecting ? undefined : file => router.push(`/move/${file._id}`)}
-        onTogglePin={selection.isSelecting ? undefined : onToggleFilePin}
-        onInfo={selection.isSelecting ? undefined : file => router.push(`/metadata/${file._id}`)}
       />
     )
   }
 
-  const renderGridItem = ({ item }: { item: FileQueryResult }) => {
+  const renderGridItem = ({ item }: { item: FileQueryResult }): React.ReactElement => {
     if (item._id.startsWith('__ph_')) return <View style={styles.gridPlaceholder} />
     const isSelected = selection.isSelected(item._id)
+    const selecting = selection.isSelecting
+    const isFolder = item.type === 'directory'
+    const handlers = selecting
+      ? ({} as Partial<ReturnType<typeof actions.fileProps>>)
+      : isFolder
+        ? actions.folderProps(item)
+        : actions.fileProps(item)
     return (
       <FileGridItem
         file={item}
         selected={isSelected}
-        onShare={
-          selection.isSelecting
-            ? undefined
-            : file => {
-                if (!requireOnline(isOnline, setSnackbar, t)) return
-                router.push(`/share/${file._id}`)
-              }
-        }
-        onRename={selection.isSelecting ? undefined : () => requestRename(item)}
-        onDelete={selection.isSelecting ? undefined : () => requestDelete(item)}
-        onMove={selection.isSelecting ? undefined : file => router.push(`/move/${file._id}`)}
-        onTogglePin={
-          selection.isSelecting
-            ? undefined
-            : file =>
-                item.type === 'directory'
-                  ? onToggleFolderPin(file)
-                  : onToggleFilePin({ ...file, size: file.size ?? null })
-        }
-        onInfo={
-          selection.isSelecting || item.type === 'directory'
-            ? undefined
-            : file => router.push(`/metadata/${file._id}`)
-        }
+        {...handlers}
+        onInfo={selecting || isFolder ? undefined : file => router.push(`/metadata/${file._id}`)}
         onPress={file => {
-          if (selection.isSelecting) {
+          if (selecting) {
             selection.toggle(file._id)
             return
           }
-          if (item.type === 'directory') {
-            guardedPush(`${basePath}/${[...(path ?? []), file._id].join('/')}`)
-          } else {
-            if (!client) return
-            void openFileFromList(client, router, file).catch(e =>
-              surfaceOpenError(e, setSnackbar, t, 'FilesScreen')
-            )
-          }
+          if (isFolder) guardedPush(`${basePath}/${[...(path ?? []), file._id].join('/')}`)
+          else (handlers as ReturnType<typeof actions.fileProps>).onPress?.(file)
         }}
         onLongPress={file => selection.select(file._id)}
       />
@@ -565,45 +473,33 @@ export const FilesScreen = ({ basePath }: FilesScreenProps): React.ReactElement 
       </View>
       <View style={styles.content}>
         <SyncBanner />
-        {(foldersQuery.fetchStatus === 'loading' || filesQuery.fetchStatus === 'loading') &&
-        data.length === 0 ? (
-          <LoadingState />
-        ) : foldersQuery.fetchStatus === 'failed' || filesQuery.fetchStatus === 'failed' ? (
-          <ErrorState
-            message={t(getErrorMessageKey(foldersQuery.lastError ?? filesQuery.lastError))}
-            onRetry={() => {
-              void foldersQuery.fetch()
-              void filesQuery.fetch()
-            }}
-          />
-        ) : data.length === 0 ? (
-          <EmptyState message={t('drive.emptyFolder')} />
-        ) : (
-          <FlatList
-            key={mode}
-            data={mode === 'grid' ? gridData : data}
-            keyExtractor={item => item._id}
-            numColumns={mode === 'grid' ? 3 : undefined}
-            renderItem={mode === 'grid' ? renderGridItem : renderItem}
-            // The FAB floats over the list, so the last rows need room to be
-            // scrolled clear of it: their 3 dot menu sat under it otherwise.
-            contentContainerStyle={styles.listContent}
-            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-            onEndReachedThreshold={0.5}
-            onEndReached={() => {
-              void foldersQuery.fetchMore?.()
-              void filesQuery.fetchMore?.()
-            }}
-          />
-        )}
+        <FileListView
+          items={mode === 'grid' ? gridData : data}
+          keyExtractor={(item: FileQueryResult) => item._id}
+          renderItem={mode === 'grid' ? renderGridItem : renderItem}
+          numColumns={mode === 'grid' ? 3 : undefined}
+          loading={foldersQuery.fetchStatus === 'loading' || filesQuery.fetchStatus === 'loading'}
+          error={
+            foldersQuery.fetchStatus === 'failed' || filesQuery.fetchStatus === 'failed'
+              ? (foldersQuery.lastError ?? filesQuery.lastError)
+              : undefined
+          }
+          onRetry={() => {
+            void foldersQuery.fetch()
+            void filesQuery.fetch()
+          }}
+          refreshing={refreshing}
+          onRefresh={() => void onRefresh()}
+          onEndReached={() => {
+            void foldersQuery.fetchMore?.()
+            void filesQuery.fetchMore?.()
+          }}
+          emptyMessage="drive.emptyFolder"
+          // The FAB floats over the list, so the last rows need room to be
+          // scrolled clear of it: their 3 dot menu sat under it otherwise.
+          contentContainerStyle={styles.listContent}
+        />
       </View>
-      <BigFolderConfirmDialog
-        visible={!!offlineActions.pendingConfirmation}
-        count={offlineActions.pendingConfirmation?.count ?? 0}
-        bytes={offlineActions.pendingConfirmation?.bytes ?? 0}
-        onConfirm={() => void offlineActions.confirmPending()}
-        onCancel={offlineActions.cancelPending}
-      />
       <FAB.Group
         style={styles.fabGroup}
         testID="drive-fab"
@@ -630,29 +526,13 @@ export const FilesScreen = ({ basePath }: FilesScreenProps): React.ReactElement 
         onSubmit={handleCreateShortcut}
       />
       <ConfirmDeleteDialog
-        visible={!!pendingDelete}
-        target={pendingDelete}
-        loading={deleting}
-        onConfirm={() => void confirmDelete()}
-        onDismiss={() => (deleting ? undefined : setPendingDelete(null))}
-      />
-      <RenameDialog
-        visible={!!pendingRename}
-        initialName={pendingRename?.name ?? ''}
-        type={pendingRename?.type}
-        onDismiss={() => setPendingRename(null)}
-        onSubmit={submitRename}
-      />
-      <ConfirmDeleteDialog
         visible={bulkConfirmVisible}
         bulkCount={selection.count}
         loading={deleting}
         onConfirm={() => void confirmBulkDelete()}
         onDismiss={() => (deleting ? undefined : setBulkConfirmVisible(false))}
       />
-      <Snackbar visible={!!snackbar} onDismiss={() => setSnackbar(null)} duration={3000}>
-        {snackbar ?? ''}
-      </Snackbar>
+      {actions.dialogs}
     </ScreenContainer>
   )
 }

@@ -1,119 +1,23 @@
-import React, { useState } from 'react'
-import { FlatList, RefreshControl, StyleSheet, View } from 'react-native'
-import { Snackbar } from 'react-native-paper'
-import { useRouter } from 'expo-router'
-import { useClient, useQuery } from 'cozy-client'
+import React from 'react'
+import { useQuery } from 'cozy-client'
 import { useTranslation } from 'react-i18next'
 
 import { AppBar } from '@/ui/AppBar'
 import { ScreenContainer } from '@/ui/ScreenContainer'
-import { EmptyState } from '@/ui/EmptyState'
-import { ErrorState } from '@/ui/ErrorState'
-import { LoadingState } from '@/ui/LoadingState'
+import { FileListView } from '@/ui/FileListView'
 import { FileRow } from '@/ui/FileRow'
-import { ConfirmDeleteDialog } from '@/ui/ConfirmDeleteDialog'
-import { RenameDialog } from '@/ui/RenameDialog'
 import { useAuth } from '@/auth/useAuth'
-import { getErrorMessageKey } from '@/utils/errorMessages'
-import {
-  recentQuery,
-  recentQueryAs,
-  FileQueryResult,
-  HIDDEN_ROOT_DIR_IDS,
-  TRASH_DIR_ID
-} from '@/client/queries'
-import { softDeleteEntry } from '@/files/deleteFile'
-import { renameEntry } from '@/files/renameEntry'
-import { optimisticFiles } from '@/files/optimisticFiles'
-import { openFileFromList } from '@/files/openFromList'
-import { surfaceOpenError } from '@/files/errors'
-import { useIsOnline } from '@/network/useIsOnline'
-import { requireOnline } from '@/network/requireOnline'
-import { useOfflineActions } from '@/offline/useOfflineActions'
-import { OfflineFilesStore } from '@/offline/OfflineFilesStore'
+import { recentQuery, recentQueryAs, FileQueryResult, HIDDEN_ROOT_DIR_IDS } from '@/client/queries'
+import { useFileRowActions } from '@/files/useFileRowActions'
 
 export default function RecentScreen() {
-  const router = useRouter()
   const { t } = useTranslation()
   const { logout } = useAuth()
-  const client = useClient()
   const query = useQuery(recentQuery(), { as: recentQueryAs })
-
-  const [pendingDelete, setPendingDelete] = useState<FileQueryResult | null>(null)
-  const [pendingRename, setPendingRename] = useState<FileQueryResult | null>(null)
-  const [deleting, setDeleting] = useState(false)
-  const [snackbar, setSnackbar] = useState<string | null>(null)
-  const isOnline = useIsOnline()
-  const offlineActions = useOfflineActions()
-  const onToggleFilePin = (file: { _id: string; name: string; size?: number | null }): void => {
-    const entry = OfflineFilesStore.get(file._id)
-    if (entry?.isDirectPin) void offlineActions.unpin(file._id)
-    else offlineActions.pin({ _id: file._id, name: file.name, size: file.size ?? null })
-  }
-
-  const confirmDelete = async (): Promise<void> => {
-    if (!requireOnline(isOnline, setSnackbar, t)) return
-    if (!client || !pendingDelete) return
-    const doc = pendingDelete
-    const revert = optimisticFiles(client, [{ ...doc, dir_id: TRASH_DIR_ID, trashed: true }])
-    setPendingDelete(null)
-    setDeleting(true)
-    try {
-      await softDeleteEntry(client, {
-        _id: doc._id,
-        _rev: (doc as unknown as { _rev?: string })._rev,
-        name: doc.name,
-        type: doc.type
-      })
-      setSnackbar(t('drive.delete.successFile'))
-    } catch (e) {
-      console.error('[RecentScreen] delete failed', e)
-      revert()
-      setSnackbar(t('drive.delete.errorGeneric'))
-    } finally {
-      setDeleting(false)
-    }
-  }
-
-  const submitRename = async (newName: string): Promise<void> => {
-    if (!requireOnline(isOnline, setSnackbar, t)) return
-    if (!client || !pendingRename) return
-    const doc = pendingRename
-    const revert = optimisticFiles(client, [{ ...doc, name: newName }])
-    setPendingRename(null)
-    try {
-      await renameEntry(client, doc._id, newName)
-      setSnackbar(t('drive.rename.successFile'))
-    } catch (e) {
-      revert()
-      throw e
-    }
-  }
-
-  const renderItem = ({ item }: { item: FileQueryResult }) => (
-    <FileRow
-      file={{ ...item, size: item.size ?? null }}
-      onPress={file => {
-        if (!client) return
-        void openFileFromList(client, router, file).catch(e =>
-          surfaceOpenError(e, setSnackbar, t, 'RecentScreen')
-        )
-      }}
-      onShare={file => {
-        if (!requireOnline(isOnline, setSnackbar, t)) return
-        router.push(`/share/${file._id}`)
-      }}
-      onRename={() => setPendingRename(item)}
-      onDelete={() => setPendingDelete(item)}
-      onMove={file => router.push(`/move/${file._id}`)}
-      onTogglePin={onToggleFilePin}
-      onInfo={file => router.push(`/metadata/${file._id}`)}
-    />
-  )
+  const actions = useFileRowActions({ screen: 'RecentScreen' })
 
   // recentQuery is index-backed on updated_at only (no partial index — see its
-  // definition); apply the file / not-trashed / not-hidden-dir filter here, then
-  // cap at 50 for display.
+  // definition); apply the file / not-trashed / not-hidden-dir filter here.
   //
   // Also drop docs whose updated_at is in the FUTURE (beyond a 24h clock-skew
   // tolerance): a file can't be "recently modified" in the future, and such
@@ -133,56 +37,25 @@ export default function RecentScreen() {
   return (
     <ScreenContainer>
       <AppBar title={t('drive.recent')} onLogout={logout} />
-      {query.fetchStatus === 'loading' && data.length === 0 ? (
-        <LoadingState />
-      ) : query.fetchStatus === 'failed' ? (
-        <ErrorState
-          message={t(getErrorMessageKey(query.lastError))}
-          onRetry={() => query.fetch()}
-        />
-      ) : data.length === 0 ? (
-        <EmptyState message={t('drive.emptyRecent')} />
-      ) : (
-        <FlatList
-          data={data}
-          keyExtractor={item => item._id}
-          renderItem={renderItem}
-          // Was capped at 50 rows out of the 200 the query fetched, with no way
-          // to reach the rest. Page instead: the client-side filters below drop
-          // folders and trashed rows, so a page can yield few usable items.
-          onEndReachedThreshold={0.5}
-          onEndReached={() => {
-            void query.fetchMore?.()
-          }}
-          refreshControl={
-            <RefreshControl
-              refreshing={query.fetchStatus === 'loading'}
-              onRefresh={() => query.fetch()}
-            />
-          }
-        />
-      )}
-      <ConfirmDeleteDialog
-        visible={!!pendingDelete}
-        target={pendingDelete}
-        loading={deleting}
-        onConfirm={() => void confirmDelete()}
-        onDismiss={() => (deleting ? undefined : setPendingDelete(null))}
+      <FileListView
+        items={data}
+        keyExtractor={item => item._id}
+        renderItem={({ item }) => (
+          <FileRow file={{ ...item, size: item.size ?? null }} {...actions.fileProps(item)} />
+        )}
+        loading={query.fetchStatus === 'loading'}
+        error={query.fetchStatus === 'failed' ? query.lastError : undefined}
+        onRetry={() => query.fetch()}
+        refreshing={query.fetchStatus === 'loading'}
+        onRefresh={() => query.fetch()}
+        // The filters above drop folders and trashed rows, so a page can yield
+        // few usable items: keep paging rather than capping the list.
+        onEndReached={() => {
+          void query.fetchMore?.()
+        }}
+        emptyMessage="drive.emptyRecent"
       />
-      <RenameDialog
-        visible={!!pendingRename}
-        initialName={pendingRename?.name ?? ''}
-        type={pendingRename?.type}
-        onDismiss={() => setPendingRename(null)}
-        onSubmit={submitRename}
-      />
-      <Snackbar visible={!!snackbar} onDismiss={() => setSnackbar(null)} duration={3000}>
-        {snackbar ?? ''}
-      </Snackbar>
+      {actions.dialogs}
     </ScreenContainer>
   )
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1 }
-})

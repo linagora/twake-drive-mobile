@@ -1,6 +1,6 @@
 import React, { useCallback, useContext, useMemo, useRef, useState } from 'react'
-import { FlatList, RefreshControl, StyleSheet, View } from 'react-native'
-import { SegmentedButtons, Snackbar } from 'react-native-paper'
+import { StyleSheet, View } from 'react-native'
+import { SegmentedButtons } from 'react-native-paper'
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router'
 import { useClient, useQuery } from 'cozy-client'
 import { useTranslation } from 'react-i18next'
@@ -9,13 +9,10 @@ import { AppBar } from '@/ui/AppBar'
 import { useGuardedPush } from '@/ui/useGuardedPush'
 import { useTabBack } from '@/ui/useTabBack'
 import { ScreenContainer } from '@/ui/ScreenContainer'
-import { EmptyState } from '@/ui/EmptyState'
-import { ErrorState } from '@/ui/ErrorState'
-import { LoadingState } from '@/ui/LoadingState'
+import { FileListView } from '@/ui/FileListView'
 import { FileRow } from '@/ui/FileRow'
 import { FolderRow } from '@/ui/FolderRow'
 import { useAuth } from '@/auth/useAuth'
-import { getErrorMessageKey } from '@/utils/errorMessages'
 import {
   fileByIdQuery,
   fileByIdQueryAs,
@@ -34,10 +31,8 @@ import { useSharedDrives } from '@/files/useSharedDrives'
 import { registerSharedDrive } from '@/files/sharedDriveReplication'
 import { querySharedDriveFile, SharedDriveEntry } from '@/files/sharedDrives'
 import { buildSharingRows, drivesForTab, SharingRow, SharingsTab } from '@/files/sharingRows'
-import { useOfflineActions } from '@/offline/useOfflineActions'
-import { OfflineFilesStore } from '@/offline/OfflineFilesStore'
-import { BigFolderConfirmDialog } from '@/offline/BigFolderConfirmDialog'
 import { openFileFromList } from '@/files/openFromList'
+import { useFileRowActions } from '@/files/useFileRowActions'
 import { surfaceOpenError } from '@/files/errors'
 import { cozyTokens } from '@/ui/theme'
 import { SortControl } from '@/ui/SortControl'
@@ -60,18 +55,12 @@ export default function SharedScreen() {
           ? [rawPath]
           : undefined
   const [refreshing, setRefreshing] = useState(false)
-  const [snackbar, setSnackbar] = useState<string | null>(null)
   const client = useClient()
-  const offlineActions = useOfflineActions()
-  const onToggleFilePin = (file: { _id: string; name: string; size?: number | null }): void => {
-    const entry = OfflineFilesStore.get(file._id)
-    if (entry?.isDirectPin) void offlineActions.unpin(file._id)
-    else offlineActions.pin({ _id: file._id, name: file.name, size: file.size ?? null })
-  }
-  const onToggleFolderPin = (folder: { _id: string; name: string }): void => {
-    if (OfflineFilesStore.getFolder(folder._id)) void offlineActions.unpinFolder(folder._id)
-    else void offlineActions.pinFolder({ _id: folder._id, name: folder.name })
-  }
+  // Renaming or trashing something someone shared with you is not offered here.
+  const actions = useFileRowActions({
+    screen: 'SharedScreen',
+    can: { rename: false, delete: false }
+  })
 
   const [tab, setTab] = useState<SharingsTab>('with-me')
 
@@ -160,42 +149,26 @@ export default function SharedScreen() {
     }
   }, [isRoot, sharedIds, sharedFilesQuery, subfoldersQuery, folderFilesQ, refreshDrives])
 
-  const renderFileItem = ({ item }: { item: FileQueryResult }) => {
+  const renderFileItem = ({ item }: { item: FileQueryResult }): React.ReactElement => {
     if (item.type === 'directory') {
       return (
         <FolderRow
           folder={item}
+          {...actions.folderProps(item)}
           onPress={folder =>
             guardedPush(`/(drive)/shared/${[...(path ?? []), folder._id].join('/')}`)
           }
-          onShare={folder => router.push(`/share/${folder._id}`)}
-          onMove={folder => router.push(`/move/${folder._id}`)}
-          onTogglePin={onToggleFolderPin}
         />
       )
     }
-    return (
-      <FileRow
-        file={{ ...item, size: item.size ?? null }}
-        onPress={file => {
-          if (!client) return
-          void openFileFromList(client, router, file).catch(e =>
-            surfaceOpenError(e, setSnackbar, t, 'SharedScreen')
-          )
-        }}
-        onShare={file => router.push(`/share/${file._id}`)}
-        onMove={file => router.push(`/move/${file._id}`)}
-        onTogglePin={onToggleFilePin}
-        onInfo={file => router.push(`/metadata/${file._id}`)}
-      />
-    )
+    return <FileRow file={{ ...item, size: item.size ?? null }} {...actions.fileProps(item)} />
   }
 
   // A drive whose root is a file opens that file, through the drive routes: it
   // is served by the owner instance, not by ours.
   const onDriveFilePress = async (drive: SharedDriveEntry): Promise<void> => {
     if (!client || !drive.rootFolderId) {
-      setSnackbar(t('errors.generic'))
+      actions.notify(t('errors.generic'))
       return
     }
     const scope = { driveId: drive.driveId, owner: drive.owner }
@@ -203,18 +176,18 @@ export default function SharedScreen() {
       if (!drive.owner) await registerSharedDrive(client, drive.driveId)
       const doc = await querySharedDriveFile(client, scope, drive.rootFolderId)
       if (!doc) {
-        setSnackbar(t('drive.sharings.driveFileSyncing'))
+        actions.notify(t('drive.sharings.driveFileSyncing'))
         return
       }
       await openFileFromList(client, router, doc, drive.owner ? undefined : drive.driveId)
     } catch (e) {
-      surfaceOpenError(e, setSnackbar, t, 'SharedScreen')
+      surfaceOpenError(e, actions.notify, t, 'SharedScreen')
     }
   }
 
   const onDrivePress = (drive: SharedDriveEntry): void => {
     if (!drive.rootFolderId) {
-      setSnackbar(t('errors.generic'))
+      actions.notify(t('errors.generic'))
       return
     }
     guardedPush(`/(drive)/shared/drive/${drive.driveId}/${drive.rootFolderId}`)
@@ -348,47 +321,32 @@ export default function SharedScreen() {
           <SortControl />
         </View>
       ) : null}
-      {isLoading && hasNothingYet ? (
-        <LoadingState />
-      ) : isFailed ? (
-        <ErrorState message={t(getErrorMessageKey(error))} onRetry={retry} />
-      ) : hasNothingYet ? (
-        <EmptyState
-          message={t(
-            showsDrives
-              ? 'drive.emptySharedDrives'
-              : tab === 'by-me'
-                ? 'drive.emptySharedByMe'
-                : 'drive.emptyShared'
-          )}
-        />
-      ) : (
-        <FlatList
-          data={rows}
-          keyExtractor={item => item.key}
-          renderItem={renderRow}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-          onEndReachedThreshold={0.5}
-          onEndReached={
-            isRoot
-              ? undefined
-              : () => {
-                  void subfoldersQuery.fetchMore?.()
-                  void folderFilesQ.fetchMore?.()
-                }
-          }
-        />
-      )}
-      <BigFolderConfirmDialog
-        visible={!!offlineActions.pendingConfirmation}
-        count={offlineActions.pendingConfirmation?.count ?? 0}
-        bytes={offlineActions.pendingConfirmation?.bytes ?? 0}
-        onConfirm={() => void offlineActions.confirmPending()}
-        onCancel={offlineActions.cancelPending}
+      <FileListView
+        items={rows}
+        keyExtractor={item => item.key}
+        renderItem={renderRow}
+        loading={isLoading}
+        error={isFailed ? error : undefined}
+        onRetry={retry}
+        refreshing={refreshing}
+        onRefresh={() => void onRefresh()}
+        onEndReached={
+          isRoot
+            ? undefined
+            : () => {
+                void subfoldersQuery.fetchMore?.()
+                void folderFilesQ.fetchMore?.()
+              }
+        }
+        emptyMessage={
+          showsDrives
+            ? 'drive.emptySharedDrives'
+            : tab === 'by-me'
+              ? 'drive.emptySharedByMe'
+              : 'drive.emptyShared'
+        }
       />
-      <Snackbar visible={!!snackbar} onDismiss={() => setSnackbar(null)} duration={3000}>
-        {snackbar ?? ''}
-      </Snackbar>
+      {actions.dialogs}
     </ScreenContainer>
   )
 }
