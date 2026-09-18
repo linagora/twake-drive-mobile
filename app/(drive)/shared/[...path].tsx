@@ -1,6 +1,6 @@
-import React, { useCallback, useRef, useState } from 'react'
+import React, { useCallback, useMemo, useRef, useState } from 'react'
 import { FlatList, RefreshControl, StyleSheet, View } from 'react-native'
-import { Snackbar } from 'react-native-paper'
+import { SegmentedButtons, Snackbar } from 'react-native-paper'
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router'
 import { useClient, useQuery } from 'cozy-client'
 import { useTranslation } from 'react-i18next'
@@ -27,11 +27,17 @@ import {
   FileQueryResult
 } from '@/client/queries'
 import { useSharedFileIds } from '@/client/useSharedFiles'
+import { useSharedDrives } from '@/files/useSharedDrives'
+import { SharedDriveEntry } from '@/files/sharedDrives'
+import { buildSharingRows, drivesForTab, SharingRow, SharingsTab } from '@/files/sharingRows'
 import { useOfflineActions } from '@/offline/useOfflineActions'
 import { OfflineFilesStore } from '@/offline/OfflineFilesStore'
 import { BigFolderConfirmDialog } from '@/offline/BigFolderConfirmDialog'
 import { openFileFromList } from '@/files/openFromList'
 import { surfaceOpenError } from '@/files/errors'
+import { cozyTokens } from '@/ui/theme'
+import { SortControl } from '@/ui/SortControl'
+import { useFolderSort } from '@/ui/useFolderSort'
 
 export default function SharedScreen() {
   const router = useRouter()
@@ -62,13 +68,17 @@ export default function SharedScreen() {
     else void offlineActions.pinFolder({ _id: folder._id, name: folder.name })
   }
 
+  const [tab, setTab] = useState<SharingsTab>('with-me')
+
   const isRoot = !path || path.length === 0
   const safeCurrentDirId = isRoot ? 'io.cozy.files.root-dir' : path![path!.length - 1]
 
-  const sharedIds = useSharedFileIds()
+  const { sort } = useFolderSort()
+  const { drives, refresh: refreshDrives } = useSharedDrives()
+  const sharedIds = useSharedFileIds(tab === 'by-me' ? 'by-me' : 'with-me')
   const sharedFilesQuery = useQuery(filesByIdsQuery(sharedIds.ids), {
     as: filesByIdsQueryAs(sharedIds.ids),
-    enabled: isRoot && sharedIds.status === 'loaded' && sharedIds.ids.length > 0
+    enabled: isRoot && tab !== 'drives' && sharedIds.status === 'loaded' && sharedIds.ids.length > 0
   })
 
   const subfoldersQuery = useQuery(folderSubfoldersQuery(safeCurrentDirId), {
@@ -98,7 +108,9 @@ export default function SharedScreen() {
     useCallback(() => {
       if (isRoot) {
         sharedIdsRef.current.refresh()
-        void sharedFilesQueryRef.current.fetch?.()
+        // The query is disabled while the tab has no id to look up, and
+        // fetching a disabled query runs it with no definition at all.
+        if (sharedIdsRef.current.ids.length > 0) void sharedFilesQueryRef.current.fetch?.()
       } else {
         void subfoldersQueryRef.current.fetch()
         void folderFilesQRef.current.fetch()
@@ -109,7 +121,7 @@ export default function SharedScreen() {
   const lookupData = currentDirLookup.data
   const lookupDoc = Array.isArray(lookupData) ? lookupData[0] : lookupData
   const currentDirName = isRoot
-    ? t('drive.shared')
+    ? t('drive.shares')
     : ((lookupDoc as { name?: string } | null | undefined)?.name ?? '')
 
   const onRefresh = useCallback(async () => {
@@ -117,14 +129,17 @@ export default function SharedScreen() {
     try {
       if (isRoot) {
         sharedIds.refresh()
-        await sharedFilesQuery.fetch?.()
+        await Promise.all([
+          sharedIds.ids.length > 0 ? sharedFilesQuery.fetch?.() : Promise.resolve(),
+          refreshDrives()
+        ])
       } else {
         await Promise.all([subfoldersQuery.fetch(), folderFilesQ.fetch()])
       }
     } finally {
       setRefreshing(false)
     }
-  }, [isRoot, sharedIds, sharedFilesQuery, subfoldersQuery, folderFilesQ])
+  }, [isRoot, sharedIds, sharedFilesQuery, subfoldersQuery, folderFilesQ, refreshDrives])
 
   const renderFileItem = ({ item }: { item: FileQueryResult }) => {
     if (item.type === 'directory') {
@@ -157,6 +172,48 @@ export default function SharedScreen() {
     )
   }
 
+  const onDrivePress = (drive: SharedDriveEntry): void => {
+    if (!drive.rootFolderId) {
+      setSnackbar(t('errors.generic'))
+      return
+    }
+    guardedPush(`/(drive)/shareddrives/${drive.driveId}/${drive.rootFolderId}`)
+  }
+
+  const renderRow = ({
+    item
+  }: {
+    item: SharingRow<FileQueryResult>
+  }): React.ReactElement | null => {
+    if (item.drive) {
+      const drive = item.drive
+      // A drive whose root is a single file is a document, not a folder. Its
+      // content lives on the owner's instance and the viewers still resolve
+      // files on ours, so opening it is not there yet (see #207).
+      if (drive.rootType === 'file') {
+        return (
+          <FileRow
+            file={{
+              ...({
+                _id: drive.rootFolderId ?? drive.driveId,
+                name: drive.name
+              } as unknown as FileQueryResult),
+              size: null
+            }}
+            onPress={() => setSnackbar(t('drive.sharings.driveFileNotSupported'))}
+          />
+        )
+      }
+      return (
+        <FolderRow
+          folder={{ _id: drive.driveId, name: drive.name }}
+          onPress={() => onDrivePress(drive)}
+        />
+      )
+    }
+    return item.file ? renderFileItem({ item: item.file }) : null
+  }
+
   const folderListing: FileQueryResult[] = isRoot
     ? []
     : [
@@ -167,23 +224,41 @@ export default function SharedScreen() {
     ? ((sharedFilesQuery.data as FileQueryResult[] | null | undefined) ?? [])
     : folderListing
 
-  const isLoading = isRoot
-    ? sharedIds.status === 'loading' ||
-      (sharedIds.status === 'loaded' &&
-        sharedIds.ids.length > 0 &&
-        sharedFilesQuery.fetchStatus === 'loading' &&
-        data.length === 0)
-    : subfoldersQuery.fetchStatus === 'loading' || folderFilesQ.fetchStatus === 'loading'
+  const orgDrives = useMemo(() => drivesForTab(drives, 'drives'), [drives])
+
+  const rows = useMemo<SharingRow<FileQueryResult>[]>(
+    () =>
+      buildSharingRows({
+        files: data,
+        drives: isRoot ? drives : [],
+        tab,
+        sortDir: sort.dir
+      }),
+    [data, drives, isRoot, sort.dir, tab]
+  )
+
+  const showsDrives = isRoot && tab === 'drives'
+  const isLoading = showsDrives
+    ? false
+    : isRoot
+      ? sharedIds.status === 'loading' ||
+        (sharedIds.status === 'loaded' &&
+          sharedIds.ids.length > 0 &&
+          sharedFilesQuery.fetchStatus === 'loading' &&
+          data.length === 0)
+      : subfoldersQuery.fetchStatus === 'loading' || folderFilesQ.fetchStatus === 'loading'
   // Note: SharingProvider swallows its own fetch errors, so sharedIds no
   // longer surfaces a 'failed' state — failures of the secondary
   // filesByIdsQuery fetch still drive the failed UI here.
-  const isFailed = isRoot
-    ? sharedFilesQuery.fetchStatus === 'failed'
-    : subfoldersQuery.fetchStatus === 'failed' || folderFilesQ.fetchStatus === 'failed'
+  const isFailed = showsDrives
+    ? false
+    : isRoot
+      ? sharedFilesQuery.fetchStatus === 'failed'
+      : subfoldersQuery.fetchStatus === 'failed' || folderFilesQ.fetchStatus === 'failed'
   const error = isRoot
     ? sharedFilesQuery.lastError
     : (subfoldersQuery.lastError ?? folderFilesQ.lastError)
-  const hasNothingYet = data.length === 0
+  const hasNothingYet = rows.length === 0
   const retry = () => {
     if (isRoot) {
       sharedIds.refresh()
@@ -201,17 +276,50 @@ export default function SharedScreen() {
         onBack={isRoot ? undefined : () => router.back()}
         onLogout={isRoot ? logout : undefined}
       />
+      {isRoot ? (
+        <SegmentedButtons
+          value={tab}
+          onValueChange={value => setTab(value as SharingsTab)}
+          style={styles.tabs}
+          buttons={[
+            { value: 'with-me', label: t('drive.sharings.withMe'), testID: 'sharings-tab-with-me' },
+            { value: 'by-me', label: t('drive.sharings.byMe'), testID: 'sharings-tab-by-me' },
+            ...(orgDrives.length > 0
+              ? [
+                  {
+                    value: 'drives',
+                    label: t('drive.sharings.drives'),
+                    testID: 'sharings-tab-drives'
+                  }
+                ]
+              : [])
+          ]}
+        />
+      ) : null}
+      {isRoot ? (
+        <View style={styles.toolbar}>
+          <SortControl />
+        </View>
+      ) : null}
       {isLoading && hasNothingYet ? (
         <LoadingState />
       ) : isFailed ? (
         <ErrorState message={t(getErrorMessageKey(error))} onRetry={retry} />
       ) : hasNothingYet ? (
-        <EmptyState message={t('drive.emptyShared')} />
+        <EmptyState
+          message={t(
+            showsDrives
+              ? 'drive.emptySharedDrives'
+              : tab === 'by-me'
+                ? 'drive.emptySharedByMe'
+                : 'drive.emptyShared'
+          )}
+        />
       ) : (
         <FlatList
-          data={data}
-          keyExtractor={item => item._id}
-          renderItem={renderFileItem}
+          data={rows}
+          keyExtractor={item => item.key}
+          renderItem={renderRow}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
           onEndReachedThreshold={0.5}
           onEndReached={
@@ -240,5 +348,11 @@ export default function SharedScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  tabs: { marginHorizontal: cozyTokens.spacing.md, marginVertical: cozyTokens.spacing.sm },
+  toolbar: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    paddingHorizontal: cozyTokens.spacing.sm
+  },
   row: { paddingVertical: 4 }
 })

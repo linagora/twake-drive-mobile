@@ -238,7 +238,14 @@
     },
     "open": {
       "noApp": "Không có ứng dụng nào có thể mở loại tệp này"
-    }
+    },
+    "sharings": {
+      "withMe": "Với tôi",
+      "byMe": "Bởi tôi",
+      "drives": "Drive",
+      "driveFileNotSupported": "Chưa thể mở tệp được chia sẻ dưới dạng drive"
+    },
+    "emptySharedByMe": "Bạn chưa chia sẻ tệp nào"
   },
   "a11y": {
     "listView": "Xem dạng danh sách",

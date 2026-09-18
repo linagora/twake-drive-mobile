@@ -247,7 +247,14 @@
     },
     "open": {
       "noApp": "Keine App kann diesen Dateityp öffnen"
-    }
+    },
+    "sharings": {
+      "withMe": "Mit mir",
+      "byMe": "Von mir",
+      "drives": "Drives",
+      "driveFileNotSupported": "Das Öffnen einer als Drive geteilten Datei ist noch nicht möglich"
+    },
+    "emptySharedByMe": "Sie teilen derzeit keine Datei"
   },
   "a11y": {
     "listView": "Listenansicht",

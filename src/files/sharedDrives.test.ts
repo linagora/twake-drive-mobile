@@ -38,7 +38,14 @@ describe('fetchSharedDrives', () => {
       }
     ])
     expect(await fetchSharedDrives(client)).toEqual([
-      { driveId: 'sharing-A', name: 'Marketing', rootFolderId: 'root-folder-A', owner: false }
+      {
+        driveId: 'sharing-A',
+        name: 'Marketing',
+        rootFolderId: 'root-folder-A',
+        owner: false,
+        orgDrive: false,
+        rootType: 'directory'
+      }
     ])
   })
 
@@ -52,8 +59,18 @@ describe('fetchSharedDrives', () => {
       driveId: 'sharing-B',
       name: 'Legal',
       rootFolderId: 'root-folder-B',
-      owner: true
+      owner: true,
+      orgDrive: false,
+      rootType: 'directory'
     })
+  })
+
+  it('marks an organisational drive', () => {
+    expect(toSharedDriveEntry({ _id: 'sharing-D', org_drive: true })?.orgDrive).toBe(true)
+  })
+
+  it('reads a drive that shares a single file', () => {
+    expect(toSharedDriveEntry({ _id: 'sharing-E', drive_root_type: 'file' })?.rootType).toBe('file')
   })
 
   it('drops a sharing with no id', () => {
