@@ -290,5 +290,11 @@
     "hideDetails": "Masquer les détails",
     "copyDetails": "Copier les détails",
     "copied": "Copié"
+  },
+  "units": {
+    "byte": "o",
+    "kilobyte": "Ko",
+    "megabyte": "Mo",
+    "gigabyte": "Go"
   }
 }
