@@ -43,11 +43,15 @@ export interface SharingDoc {
     active?: boolean
     owner?: boolean
     description?: string
+    created_at?: string
+    updated_at?: string
   }
   // Sometimes the normalizer flattens these to top-level too.
   rules?: SharingRule[]
   members?: SharingMember[]
   owner?: boolean
+  created_at?: string
+  updated_at?: string
 }
 
 export interface PublicLinkPermission {
@@ -57,11 +61,15 @@ export interface PublicLinkPermission {
     codes?: Record<string, string>
     shortcodes?: Record<string, string>
     permissions?: Record<string, { type?: string; values?: string[]; verbs?: string[] }>
+    created_at?: string
+    updated_at?: string
   }
   // Normalizer also flattens these to top-level.
   codes?: Record<string, string>
   shortcodes?: Record<string, string>
   permissions?: Record<string, { type?: string; values?: string[]; verbs?: string[] }>
+  created_at?: string
+  updated_at?: string
 }
 
 interface SharingsCollectionApi {

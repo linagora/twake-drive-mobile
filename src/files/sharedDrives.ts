@@ -18,24 +18,40 @@ export interface SharedDriveEntry {
   orgDrive: boolean
   /** A drive can share a single file instead of a folder. */
   rootType: 'directory' | 'file'
+  /** Mime of the shared file, when the drive shares one. The rule carries it,
+   *  the size and the dates of that file are not part of the listing. */
+  mime?: string
+  /** Last activity on the sharing itself, which is the only date a drive has:
+   *  the listing says nothing about its content. */
+  updatedAt?: string
 }
 
-interface RawSharing {
-  _id?: string
-  id?: string
+interface RawSharingRule {
+  values?: string[]
+  mime?: string
+}
+
+interface RawSharingFields {
   description?: string
   owner?: boolean
   org_drive?: boolean
   drive_root_type?: string
-  rules?: Array<{ values?: string[] }>
-  attributes?: {
-    description?: string
-    owner?: boolean
-    org_drive?: boolean
-    drive_root_type?: string
-    rules?: Array<{ values?: string[] }>
-  }
+  created_at?: string
+  updated_at?: string
+  rules?: RawSharingRule[]
 }
+
+interface RawSharing extends RawSharingFields {
+  _id?: string
+  id?: string
+  attributes?: RawSharingFields
+}
+
+const latestDate = (...dates: Array<string | undefined>): string | undefined =>
+  dates
+    .filter((d): d is string => !!d)
+    .sort()
+    .pop()
 
 interface SharingsCollection {
   fetchSharedDrives: () => Promise<{ data?: RawSharing[] }>
@@ -57,7 +73,9 @@ export const toSharedDriveEntry = (raw: RawSharing): SharedDriveEntry | null => 
     owner: (raw.owner ?? attrs.owner) === true,
     orgDrive: (raw.org_drive ?? attrs.org_drive) === true,
     // The stack leaves drive_root_type out when the root is a directory.
-    rootType: (raw.drive_root_type ?? attrs.drive_root_type) === 'file' ? 'file' : 'directory'
+    rootType: (raw.drive_root_type ?? attrs.drive_root_type) === 'file' ? 'file' : 'directory',
+    mime: rules?.[0]?.mime,
+    updatedAt: latestDate(raw.created_at ?? attrs.created_at, raw.updated_at ?? attrs.updated_at)
   }
 }
 

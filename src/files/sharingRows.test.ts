@@ -62,7 +62,7 @@ describe('buildSharingRows', () => {
     expect(rows.map(r => r.name)).toEqual(['beta', 'alpha'])
   })
 
-  it('drops the document that is a drive root, keeping the drive row', () => {
+  it('keeps the document of a drive root on the drive row, not twice', () => {
     const rows = buildSharingRows({
       files: [file('root-drive-1', 'Marketing', 'directory')],
       drives: [drive('drive-1', { name: 'Marketing' })],
@@ -71,6 +71,26 @@ describe('buildSharingRows', () => {
     })
     expect(rows).toHaveLength(1)
     expect(rows[0].drive?.driveId).toBe('drive-1')
+    // The document is what carries the size and the thumbnail.
+    expect(rows[0].file?._id).toBe('root-drive-1')
+  })
+
+  it('dates a drive on its document when the user has it, not on the sharing', () => {
+    const rows = buildSharingRows({
+      files: [
+        {
+          _id: 'root-drive-1',
+          name: 'Marketing',
+          type: 'directory',
+          updated_at: '2026-09-01T00:00:00Z'
+        }
+      ],
+      drives: [drive('drive-1', { name: 'Marketing', updatedAt: '2026-01-01T00:00:00Z' })],
+      tab: 'with-me',
+      sortAttr: 'updated_at',
+      sortDir: 'desc'
+    })
+    expect(rows[0].updatedAt).toBe('2026-09-01T00:00:00Z')
   })
 })
 
@@ -101,14 +121,61 @@ describe('sorting by date', () => {
     expect(rows.map(r => r.name)).toEqual(['new', 'old'])
   })
 
-  it('leaves the drives in name order, having no date to sort on', () => {
+  it('sorts a drive on its sharing date, the only one it has', () => {
     const rows = buildSharingRows({
-      files: [],
-      drives: [drive('d2', { name: 'beta' }), drive('d1', { name: 'alpha' })],
+      files: [{ _id: 'f1', name: 'a file', type: 'file', updated_at: '2026-05-01T00:00:00Z' }],
+      drives: [
+        drive('d1', { name: 'older drive', updatedAt: '2026-01-01T00:00:00Z' }),
+        drive('d2', { name: 'newer drive', updatedAt: '2026-09-01T00:00:00Z' })
+      ],
       tab: 'with-me',
       sortAttr: 'updated_at',
       sortDir: 'desc'
     })
-    expect(rows.map(r => r.name)).toEqual(['alpha', 'beta'])
+    expect(rows.map(r => r.name)).toEqual(['newer drive', 'a file', 'older drive'])
+  })
+
+  it('mixes folders and files under a date sort, like the web view does', () => {
+    const rows = buildSharingRows({
+      files: [
+        { _id: 'd1', name: 'old folder', type: 'directory', updated_at: '2026-01-01T00:00:00Z' },
+        { _id: 'f1', name: 'new file', type: 'file', updated_at: '2026-09-01T00:00:00Z' }
+      ],
+      drives: [],
+      tab: 'with-me',
+      sortAttr: 'updated_at',
+      sortDir: 'desc'
+    })
+    expect(rows.map(r => r.name)).toEqual(['new file', 'old folder'])
+  })
+
+  it('leaves a row with no date at the end, both ways', () => {
+    const build = (sortDir: 'asc' | 'desc'): string[] =>
+      buildSharingRows({
+        files: [
+          { _id: 'f1', name: 'dated', type: 'file', updated_at: '2026-01-01T00:00:00Z' },
+          { _id: 'f2', name: 'undated', type: 'file' }
+        ],
+        drives: [],
+        tab: 'with-me',
+        sortAttr: 'updated_at',
+        sortDir
+      }).map(r => r.name)
+    expect(build('desc')).toEqual(['dated', 'undated'])
+    expect(build('asc')).toEqual(['dated', 'undated'])
+  })
+
+  it('falls back to the created date when a document was never updated', () => {
+    const rows = buildSharingRows({
+      files: [
+        { _id: 'f1', name: 'created only', type: 'file', created_at: '2026-09-01T00:00:00Z' },
+        { _id: 'f2', name: 'updated', type: 'file', updated_at: '2026-01-01T00:00:00Z' }
+      ],
+      drives: [],
+      tab: 'with-me',
+      sortAttr: 'updated_at',
+      sortDir: 'desc'
+    })
+    expect(rows.map(r => r.name)).toEqual(['created only', 'updated'])
   })
 })
