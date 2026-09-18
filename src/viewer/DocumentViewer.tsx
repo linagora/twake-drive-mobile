@@ -43,8 +43,9 @@ const editorRoute = (file: DocumentViewerFile): string | null => {
   if (isCozyNoteFile(file.name)) return `/note/${file._id}`
   if (isDocsNoteFile(file.name)) return `/docs/${file._id}`
   if (isOfficeFile(file.mime)) return `/onlyoffice/${file._id}`
-  // An excalidraw drawing is edited in the drive web app, which owns that route.
-  if (/\.excalidraw$/i.test(file.name)) return null
+  // A drawing is read by the app and edited in the drive web app, which owns
+  // the excalidraw editor.
+  if (/\.excalidraw$/i.test(file.name)) return `/excalidraw/${file._id}`
   return null
 }
 
