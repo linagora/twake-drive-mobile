@@ -45,9 +45,9 @@ describe('localViewerFor', () => {
     ).toBe('office')
   })
 
-  it('leaves alone the types whose viewer is not built yet, flag or not', () => {
+  it('opens an excalidraw drawing locally too', () => {
     mockFlag.mockReturnValue(true)
-    expect(localViewerFor({ name: 'schéma.excalidraw' })).toBeNull()
+    expect(localViewerFor({ name: 'schéma.excalidraw' })).toBe('excalidraw')
   })
 })
 
