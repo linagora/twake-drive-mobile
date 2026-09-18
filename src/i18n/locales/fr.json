@@ -56,6 +56,8 @@
     "emptyTrash": "Corbeille vide",
     "sortAZ": "A-Z",
     "sortZA": "Z-A",
+    "sortRecent": "Plus récents",
+    "sortOldest": "Plus anciens",
     "fileMeta": {
       "type": "Type",
       "size": "Taille",
@@ -261,7 +263,7 @@
       "withMe": "Avec moi",
       "byMe": "Par moi",
       "drives": "Drives",
-      "driveFileNotSupported": "L'ouverture d'un fichier partagé en espace n'est pas encore disponible"
+      "driveFileSyncing": "Ce document est en cours de synchronisation, réessayez dans un instant"
     },
     "emptySharedByMe": "Vous ne partagez aucun fichier"
   },

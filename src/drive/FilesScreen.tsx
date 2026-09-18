@@ -118,11 +118,13 @@ export const FilesScreen = ({ basePath }: FilesScreenProps): React.ReactElement 
   const isRoot = !path || path.length === 0
   const currentDirId = isRoot ? ROOT_DIR_ID : path![path!.length - 1]
 
-  const foldersQuery = useQuery(folderSubfoldersQuery(currentDirId), {
-    as: folderSubfoldersQueryAs(currentDirId)
+  // The sort is part of the query: sorting a page that was fetched in another
+  // order would only sort what is already on screen.
+  const foldersQuery = useQuery(folderSubfoldersQuery(currentDirId, sort), {
+    as: folderSubfoldersQueryAs(currentDirId, sort)
   })
-  const filesQuery = useQuery(folderFilesQuery(currentDirId), {
-    as: folderFilesQueryAs(currentDirId)
+  const filesQuery = useQuery(folderFilesQuery(currentDirId, sort), {
+    as: folderFilesQueryAs(currentDirId, sort)
   })
 
   const currentDirLookup = useQuery(fileByIdQuery(currentDirId), {
@@ -435,13 +437,14 @@ export const FilesScreen = ({ basePath }: FilesScreenProps): React.ReactElement 
   // buildDriveQuery (see src/client/queries.ts).
   // Sort within each group (folders / files) separately to preserve grouping.
   const data = useMemo(() => {
-    const dir = sort.dir === 'asc' ? 1 : -1
-    const sorted = (arr: FileQueryResult[]) =>
-      [...arr].sort(
-        (a, b) => dir * a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
-      )
+    const direction = sort.dir === 'asc' ? 1 : -1
+    const compare = (a: FileQueryResult, b: FileQueryResult): number =>
+      sort.attr === 'updated_at'
+        ? direction * (a.updated_at ?? '').localeCompare(b.updated_at ?? '')
+        : direction * a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
+    const sorted = (arr: FileQueryResult[]): FileQueryResult[] => [...arr].sort(compare)
     return [...sorted(folderDocs), ...sorted(fileDocs)]
-  }, [folderDocs, fileDocs, sort.dir])
+  }, [folderDocs, fileDocs, sort.attr, sort.dir])
 
   // In grid mode, pad the last row to a full 3 columns with invisible
   // placeholders so a lone item stays left-aligned (flex:1 would otherwise

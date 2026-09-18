@@ -46,21 +46,39 @@ export interface FileQueryResult {
 // system directories (shared-drives-dir, trash-dir) at the server level so
 // every consumer (file list, folder picker, etc.) gets the same hidden set
 // without duplicating client-side filters.
-const buildDriveQuery = (dirId: string, type: 'directory' | 'file'): QueryDefinition =>
+export interface FolderSortSpec {
+  attr: 'name' | 'updated_at'
+  dir: 'asc' | 'desc'
+}
+
+const DEFAULT_FOLDER_SORT: FolderSortSpec = { attr: 'name', dir: 'asc' }
+
+// Mango wants every sorted field in the index, in order and in the same
+// direction, which is also how twake-drive web builds its folder query.
+const buildDriveQuery = (
+  dirId: string,
+  type: 'directory' | 'file',
+  sort: FolderSortSpec = DEFAULT_FOLDER_SORT
+): QueryDefinition =>
   Q('io.cozy.files')
-    .where({ dir_id: dirId, type, name: { $gt: null } })
+    .where({ dir_id: dirId, type, [sort.attr]: { $gt: null } })
     .partialIndex({ _id: { $nin: HIDDEN_ROOT_DIR_IDS } })
-    .indexFields(['dir_id', 'type', 'name'])
-    .sortBy([{ dir_id: 'asc' }, { type: 'asc' }, { name: 'asc' }])
+    .indexFields(['dir_id', 'type', sort.attr])
+    .sortBy([{ dir_id: sort.dir }, { type: sort.dir }, { [sort.attr]: sort.dir }])
     .limitBy(100)
 
-export const folderSubfoldersQuery = (dirId: string): QueryDefinition =>
-  buildDriveQuery(dirId, 'directory')
-export const folderSubfoldersQueryAs = (dirId: string): string =>
-  `io.cozy.files/dir/${dirId}/folders`
+const sortSuffix = (sort: FolderSortSpec = DEFAULT_FOLDER_SORT): string =>
+  `${sort.attr}-${sort.dir}`
 
-export const folderFilesQuery = (dirId: string): QueryDefinition => buildDriveQuery(dirId, 'file')
-export const folderFilesQueryAs = (dirId: string): string => `io.cozy.files/dir/${dirId}/files`
+export const folderSubfoldersQuery = (dirId: string, sort?: FolderSortSpec): QueryDefinition =>
+  buildDriveQuery(dirId, 'directory', sort)
+export const folderSubfoldersQueryAs = (dirId: string, sort?: FolderSortSpec): string =>
+  `io.cozy.files/dir/${dirId}/folders/${sortSuffix(sort)}`
+
+export const folderFilesQuery = (dirId: string, sort?: FolderSortSpec): QueryDefinition =>
+  buildDriveQuery(dirId, 'file', sort)
+export const folderFilesQueryAs = (dirId: string, sort?: FolderSortSpec): string =>
+  `io.cozy.files/dir/${dirId}/files/${sortSuffix(sort)}`
 
 export interface SharingRule {
   title: string

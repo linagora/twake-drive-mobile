@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from 'react'
 import { createMMKV } from 'react-native-mmkv'
 
-export type SortAttr = 'name'
+export type SortAttr = 'name' | 'updated_at'
 export type SortDir = 'asc' | 'desc'
 
 export interface FolderSort {
@@ -31,7 +31,8 @@ function parseSort(raw: string | undefined): FolderSort {
       typeof parsed === 'object' &&
       'attr' in parsed &&
       'dir' in parsed &&
-      (parsed as { attr: unknown }).attr === 'name' &&
+      ((parsed as { attr: unknown }).attr === 'name' ||
+        (parsed as { attr: unknown }).attr === 'updated_at') &&
       ((parsed as { dir: unknown }).dir === 'asc' || (parsed as { dir: unknown }).dir === 'desc')
     ) {
       return parsed as FolderSort

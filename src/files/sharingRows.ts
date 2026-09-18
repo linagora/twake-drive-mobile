@@ -6,6 +6,7 @@ export interface SharingRowFile {
   _id: string
   name: string
   type?: 'file' | 'directory'
+  updated_at?: string
 }
 
 /** One line of the sharings list: a shared drive, or a shared document.
@@ -13,6 +14,7 @@ export interface SharingRowFile {
 export interface SharingRow<F extends SharingRowFile = SharingRowFile> {
   key: string
   name: string
+  updatedAt?: string
   group: 0 | 1 | 2
   drive?: SharedDriveEntry
   file?: F
@@ -42,11 +44,13 @@ export const buildSharingRows = <F extends SharingRowFile>({
   files,
   drives,
   tab,
+  sortAttr = 'name',
   sortDir
 }: {
   files: F[]
   drives: SharedDriveEntry[]
   tab: SharingsTab
+  sortAttr?: 'name' | 'updated_at'
   sortDir: 'asc' | 'desc'
 }): SharingRow<F>[] => {
   const direction = sortDir === 'asc' ? 1 : -1
@@ -61,17 +65,26 @@ export const buildSharingRows = <F extends SharingRowFile>({
     group: drive.rootType === 'file' ? 2 : 0,
     drive
   }))
+  // The listing carries no date for a drive, so a date sort leaves them in
+  // name order rather than in an order that would mean nothing.
   const fileRows: SharingRow<F>[] = files
     .filter(file => !driveRootIds.has(file._id))
     .map(file => ({
       key: file._id,
       name: file.name,
+      updatedAt: file.updated_at,
       group: file.type === 'directory' ? 1 : 2,
       file
     }))
-  return [...driveRows, ...fileRows].sort(
-    (a, b) =>
-      a.group - b.group ||
-      direction * a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
-  )
+  const byName = (a: SharingRow<F>, b: SharingRow<F>): number =>
+    direction * a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
+  return [...driveRows, ...fileRows].sort((a, b) => {
+    if (a.group !== b.group) return a.group - b.group
+    if (sortAttr === 'updated_at') {
+      if (!a.updatedAt && !b.updatedAt)
+        return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
+      return direction * (a.updatedAt ?? '').localeCompare(b.updatedAt ?? '') || byName(a, b)
+    }
+    return byName(a, b)
+  })
 }
