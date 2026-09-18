@@ -1,7 +1,14 @@
 const mockReadDocumentBytes = jest.fn()
+const mockReadDocumentPathWithName = jest.fn()
 jest.mock('./documentBytes', () => ({
   readDocumentBytes: (...a: unknown[]) => mockReadDocumentBytes(...a),
+  readDocumentPathWithName: (...a: unknown[]) => mockReadDocumentPathWithName(...a),
   OFFLINE_ERROR: 'DocumentUnavailableOfflineError'
+}))
+
+const mockOpenInViewer = jest.fn()
+jest.mock('@/files/openFile', () => ({
+  openInViewer: (...a: unknown[]) => mockOpenInViewer(...a)
 }))
 
 const offlineError = (): Error => {
@@ -73,6 +80,32 @@ describe('DocumentViewer', () => {
     show({ _id: 'f2', name: 'notes.md' })
     await waitFor(() => expect(screen.getByText('corps')).toBeOnTheScreen())
     expect(screen.queryByTestId('document-viewer-edit')).toBeNull()
+  })
+
+  it('hands an office document to the OS viewer, from the local copy', async () => {
+    mockReadDocumentPathWithName.mockResolvedValue('file:///cache/open/f3-rapport.docx')
+    show({
+      _id: 'f3',
+      name: 'rapport.docx',
+      mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    })
+    await waitFor(() =>
+      expect(mockOpenInViewer).toHaveBeenCalledWith('file:///cache/open/f3-rapport.docx')
+    )
+    expect(mockReadDocumentBytes).not.toHaveBeenCalled()
+    expect(screen.getByTestId('document-viewer-open-again')).toBeOnTheScreen()
+  })
+
+  it('offers the office editor once the document is open', async () => {
+    mockReadDocumentPathWithName.mockResolvedValue('file:///cache/open/f3-rapport.docx')
+    show({
+      _id: 'f3',
+      name: 'rapport.docx',
+      mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    })
+    await waitFor(() => expect(screen.getByTestId('document-viewer-edit')).toBeOnTheScreen())
+    fireEvent.press(screen.getByTestId('document-viewer-edit'))
+    expect(mockPush).toHaveBeenCalledWith('/onlyoffice/f3')
   })
 
   it('leaves the edit button out of reach offline', async () => {

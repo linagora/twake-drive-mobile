@@ -250,7 +250,9 @@
     "emptySharedByMe": "Bạn chưa chia sẻ tệp nào",
     "viewer": {
       "edit": "Chỉnh sửa",
-      "unavailableOffline": "Tài liệu này không khả dụng khi ngoại tuyến"
+      "unavailableOffline": "Tài liệu này không khả dụng khi ngoại tuyến",
+      "openedWithSystem": "Đã mở trong một ứng dụng trên thiết bị của bạn.",
+      "openAgain": "Mở lại"
     }
   },
   "a11y": {

@@ -23,6 +23,31 @@ export interface ViewableFile {
 
 const viewerCacheDir = (): string => `${FileSystem.cacheDirectory ?? ''}twake-drive/viewer/`
 
+const sanitize = (name: string): string => name.replace(/[/\\?%*:|"<>]/g, '_')
+
+/**
+ * A copy of the document under its real name, which is what the OS viewer needs
+ * to pick a handler: the cached copy is named after the id and the revision,
+ * and iOS and Android both refuse to dispatch a file with no extension.
+ */
+export const readDocumentPathWithName = async (
+  client: CozyClient,
+  file: ViewableFile,
+  driveId?: string
+): Promise<string> => {
+  const source = await readDocumentPath(client, file, driveId)
+  // One directory per document, so the copy can carry the file's own name: the
+  // OS viewer puts that name in its title bar.
+  const directory = `${viewerCacheDir()}open/${file._id}/`
+  const named = `${directory}${sanitize(file.name)}`
+  const existing = await FileSystem.getInfoAsync(named)
+  if (!existing.exists) {
+    await FileSystem.makeDirectoryAsync(directory, { intermediates: true })
+    await FileSystem.copyAsync({ from: source, to: named })
+  }
+  return named
+}
+
 /** Keyed by revision, so a new version of a file is fetched rather than read
  *  from the copy of the previous one. */
 const cachePath = (file: ViewableFile): string =>
@@ -44,25 +69,24 @@ interface MinimalStackClient {
 }
 
 /**
- * The bytes a local viewer renders.
+ * Where the document is on disk, downloading it once if it is nowhere yet.
  *
  * A pinned file is read from what the pin keeps up to date. Anything else is
- * downloaded once into the OS cache under `id-rev` and read from there next
- * time, which is what lets a file that was opened before still open offline.
- * A file that is neither pinned nor cached cannot be opened without network.
+ * cached under `id-rev`, which is what lets a document opened before still
+ * open with no network.
  */
-export const readDocumentBytes = async (
+export const readDocumentPath = async (
   client: CozyClient,
   file: ViewableFile,
   driveId?: string
-): Promise<Uint8Array> => {
+): Promise<string> => {
   if (OfflineFilesStore.isPinnedAndDownloaded(file._id)) {
-    return readFile(FileSystemRepo.localPath(file._id))
+    return FileSystemRepo.localPath(file._id)
   }
 
   const path = cachePath(file)
   const cached = await FileSystem.getInfoAsync(path)
-  if (cached.exists) return readFile(path)
+  if (cached.exists) return path
 
   if (!getOnlineMonitor().getCurrent()) throw new DocumentUnavailableOfflineError()
 
@@ -77,5 +101,19 @@ export const readDocumentBytes = async (
     { headers: { Authorization: `Bearer ${token}` } }
   )
   if (result.status >= 400) throw new Error(`Download failed (HTTP ${result.status})`)
-  return readFile(path)
+  return path
 }
+
+/**
+ * The bytes a local viewer renders.
+ *
+ * A pinned file is read from what the pin keeps up to date. Anything else is
+ * downloaded once into the OS cache under `id-rev` and read from there next
+ * time, which is what lets a file that was opened before still open offline.
+ * A file that is neither pinned nor cached cannot be opened without network.
+ */
+export const readDocumentBytes = async (
+  client: CozyClient,
+  file: ViewableFile,
+  driveId?: string
+): Promise<Uint8Array> => readFile(await readDocumentPath(client, file, driveId))

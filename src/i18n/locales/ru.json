@@ -277,7 +277,9 @@
     "emptySharedByMe": "Вы не делитесь ни одним файлом",
     "viewer": {
       "edit": "Изменить",
-      "unavailableOffline": "Документ недоступен офлайн"
+      "unavailableOffline": "Документ недоступен офлайн",
+      "openedWithSystem": "Открыт в приложении на вашем устройстве.",
+      "openAgain": "Открыть снова"
     }
   },
   "a11y": {

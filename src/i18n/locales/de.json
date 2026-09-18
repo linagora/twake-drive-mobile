@@ -259,7 +259,9 @@
     "emptySharedByMe": "Sie teilen derzeit keine Datei",
     "viewer": {
       "edit": "Bearbeiten",
-      "unavailableOffline": "Dieses Dokument ist offline nicht verfügbar"
+      "unavailableOffline": "Dieses Dokument ist offline nicht verfügbar",
+      "openedWithSystem": "In einer App auf Ihrem Gerät geöffnet.",
+      "openAgain": "Erneut öffnen"
     }
   },
   "a11y": {
