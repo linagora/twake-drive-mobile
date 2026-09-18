@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
-import { FlatList, RefreshControl, StyleSheet, View } from 'react-native'
+import { StyleSheet, View } from 'react-native'
 import { Button, Dialog, FAB, Portal, Snackbar, Text, useTheme } from 'react-native-paper'
 import { useFocusEffect, useRouter } from 'expo-router'
 import { useQuery } from 'cozy-client'
@@ -9,13 +9,10 @@ import { useTranslation } from 'react-i18next'
 import { AppBar } from '@/ui/AppBar'
 import { cozyTokens } from '@/ui/theme'
 import { ScreenContainer } from '@/ui/ScreenContainer'
-import { EmptyState } from '@/ui/EmptyState'
-import { ErrorState } from '@/ui/ErrorState'
-import { LoadingState } from '@/ui/LoadingState'
+import { FileListView } from '@/ui/FileListView'
 import { FileRow } from '@/ui/FileRow'
 import { FolderRow } from '@/ui/FolderRow'
 import { useAuth } from '@/auth/useAuth'
-import { getErrorMessageKey } from '@/utils/errorMessages'
 import {
   trashFoldersQuery,
   trashFoldersQueryAs,
@@ -140,34 +137,29 @@ export default function TrashScreen() {
   return (
     <ScreenContainer>
       <AppBar title={t('drive.trash')} onLogout={logout} />
-      {!loadedOnce &&
-      (foldersQuery.fetchStatus === 'loading' || filesQuery.fetchStatus === 'loading') &&
-      data.length === 0 ? (
-        <LoadingState />
-      ) : foldersQuery.fetchStatus === 'failed' || filesQuery.fetchStatus === 'failed' ? (
-        <ErrorState
-          message={t(getErrorMessageKey(foldersQuery.lastError ?? filesQuery.lastError))}
-          onRetry={onRefresh}
-        />
-      ) : (
-        // Always render the FlatList (even when empty, via
-        // ListEmptyComponent) so the RefreshControl stays reachable —
-        // otherwise the user can't pull-to-refresh to ask Pouch to
-        // sync a freshly-trashed doc that hasn't replicated yet.
-        <FlatList
-          data={data}
-          keyExtractor={item => item._id}
-          renderItem={renderItem}
-          ListEmptyComponent={<EmptyState message={t('drive.emptyTrash')} />}
-          contentContainerStyle={data.length === 0 ? styles.emptyContent : styles.listContent}
-          onEndReachedThreshold={0.5}
-          onEndReached={() => {
-            void foldersQuery.fetchMore?.()
-            void filesQuery.fetchMore?.()
-          }}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-        />
-      )}
+      <FileListView
+        items={data}
+        keyExtractor={item => item._id}
+        renderItem={renderItem}
+        loading={
+          !loadedOnce &&
+          (foldersQuery.fetchStatus === 'loading' || filesQuery.fetchStatus === 'loading')
+        }
+        error={
+          foldersQuery.fetchStatus === 'failed' || filesQuery.fetchStatus === 'failed'
+            ? (foldersQuery.lastError ?? filesQuery.lastError)
+            : undefined
+        }
+        onRetry={onRefresh}
+        refreshing={refreshing}
+        onRefresh={onRefresh}
+        onEndReached={() => {
+          void foldersQuery.fetchMore?.()
+          void filesQuery.fetchMore?.()
+        }}
+        emptyMessage="drive.emptyTrash"
+        contentContainerStyle={styles.listContent}
+      />
       {data.length > 0 ? (
         <FAB
           icon="delete-sweep"
@@ -212,7 +204,6 @@ export default function TrashScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   fab: { position: 'absolute', right: 16, bottom: 16 },
-  emptyContent: { flexGrow: 1, justifyContent: 'center' },
   // The empty-trash FAB floats over the list; leave room for the last row.
   listContent: { paddingBottom: cozyTokens.fabClearance }
 })

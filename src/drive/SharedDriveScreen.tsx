@@ -1,24 +1,18 @@
 import React, { useCallback, useState } from 'react'
-import { FlatList, RefreshControl, StyleSheet, View } from 'react-native'
-import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router'
+import { useFocusEffect, useLocalSearchParams } from 'expo-router'
 import { useClient } from 'cozy-client'
+import { useTranslation } from 'react-i18next'
 
 import { DriveChild, normalizeDriveChild } from './sharedDriveChild'
-
-import { useTranslation } from 'react-i18next'
-import { Snackbar } from 'react-native-paper'
 
 import { AppBar } from '@/ui/AppBar'
 import { useGuardedPush } from '@/ui/useGuardedPush'
 import { useTabBack } from '@/ui/useTabBack'
 import { ScreenContainer } from '@/ui/ScreenContainer'
-import { EmptyState } from '@/ui/EmptyState'
-import { ErrorState } from '@/ui/ErrorState'
-import { LoadingState } from '@/ui/LoadingState'
+import { FileListView } from '@/ui/FileListView'
 import { FileRow } from '@/ui/FileRow'
 import { FolderRow } from '@/ui/FolderRow'
 import { useAuth } from '@/auth/useAuth'
-import { getErrorMessageKey } from '@/utils/errorMessages'
 import { querySharedDriveFolder, SharedDriveEntry } from '@/files/sharedDrives'
 import {
   getCachedSharedDrives,
@@ -27,11 +21,7 @@ import {
 } from '@/files/sharedDriveReplication'
 import { useIsOnline } from '@/network/useIsOnline'
 import { FileQueryResult } from '@/client/queries'
-import { useOfflineActions } from '@/offline/useOfflineActions'
-import { OfflineFilesStore } from '@/offline/OfflineFilesStore'
-import { BigFolderConfirmDialog } from '@/offline/BigFolderConfirmDialog'
-import { openFileFromList } from '@/files/openFromList'
-import { surfaceOpenError } from '@/files/errors'
+import { useFileRowActions } from '@/files/useFileRowActions'
 
 interface Props {
   /** Route prefix of the tab this screen is mounted in, so its own pushes stay
@@ -40,7 +30,6 @@ interface Props {
 }
 
 export const SharedDriveScreen = ({ basePath }: Props): React.ReactElement => {
-  const router = useRouter()
   const guardedPush = useGuardedPush()
   // The drive list lives on the tab this screen is mounted in, so backing out
   // of a drive returns there rather than to whatever tab came before.
@@ -59,17 +48,6 @@ export const SharedDriveScreen = ({ basePath }: Props): React.ReactElement => {
           ? [rawPath]
           : []
   const [refreshing, setRefreshing] = useState(false)
-  const [resolveError, setResolveError] = useState<string | null>(null)
-  const offlineActions = useOfflineActions()
-  const onToggleFilePin = (file: { _id: string; name: string; size?: number | null }): void => {
-    const entry = OfflineFilesStore.get(file._id)
-    if (entry?.isDirectPin) void offlineActions.unpin(file._id)
-    else offlineActions.pin({ _id: file._id, name: file.name, size: file.size ?? null })
-  }
-  const onToggleFolderPin = (folder: { _id: string; name: string }): void => {
-    if (OfflineFilesStore.getFolder(folder._id)) void offlineActions.unpinFolder(folder._id)
-    else void offlineActions.pinFolder({ _id: folder._id, name: folder.name })
-  }
 
   // path semantics:
   //   []                       → drives list (root)
@@ -93,6 +71,11 @@ export const SharedDriveScreen = ({ basePath }: Props): React.ReactElement => {
   const [folderLoading, setFolderLoading] = useState(false)
 
   const currentDrive = (drives ?? []).find(drive => drive.driveId === driveId)
+  const actions = useFileRowActions({
+    screen: 'SharedDriveScreen',
+    driveId: currentDrive?.owner ? undefined : driveId,
+    can: { rename: false, delete: false }
+  })
 
   const reloadDrives = useCallback(async () => {
     if (!client) return
@@ -157,54 +140,32 @@ export const SharedDriveScreen = ({ basePath }: Props): React.ReactElement => {
     (entry: SharedDriveEntry) => {
       if (!entry.rootFolderId) {
         console.error('[SharedDrives] drive without a root folder', entry.driveId)
-        setResolveError(t('errors.generic'))
+        actions.notify(t('errors.generic'))
         return
       }
       guardedPush(`${basePath}/${entry.driveId}/${entry.rootFolderId}`)
     },
-    [guardedPush, t]
+    [actions, basePath, guardedPush, t]
   )
 
-  const renderDrive = ({ item }: { item: SharedDriveEntry }) => (
+  const renderDrive = ({ item }: { item: SharedDriveEntry }): React.ReactElement => (
     <FolderRow folder={{ _id: item.driveId, name: item.name }} onPress={() => onDrivePress(item)} />
   )
 
-  const renderChild = ({ item }: { item: DriveChild }) => {
+  const renderChild = ({ item }: { item: DriveChild }): React.ReactElement => {
+    const doc = item as unknown as FileQueryResult
     if (item.type === 'directory') {
       return (
         <FolderRow
           folder={{ _id: item._id, name: item.name }}
+          {...actions.folderProps(doc)}
           onPress={folderItem => guardedPush(`${basePath}/${[...path, folderItem._id].join('/')}`)}
-          onShare={folderItem => router.push(`/share/${folderItem._id}`)}
-          onMove={folderItem => router.push(`/move/${folderItem._id}`)}
-          onTogglePin={onToggleFolderPin}
         />
       )
     }
-    return (
-      <FileRow
-        file={{ ...(item as unknown as FileQueryResult), size: item.size ?? null }}
-        onPress={file => {
-          if (!client) return
-          void openFileFromList(
-            client,
-            router,
-            file,
-            currentDrive?.owner ? undefined : driveId
-          ).catch(e => surfaceOpenError(e, setResolveError, t, 'SharedDrives'))
-        }}
-        onMove={file => router.push(`/move/${file._id}`)}
-        onTogglePin={onToggleFilePin}
-        onInfo={file => router.push(`/metadata/${file._id}`)}
-        driveId={currentDrive?.owner ? undefined : driveId}
-      />
-    )
+    return <FileRow file={{ ...doc, size: item.size ?? null }} {...actions.fileProps(doc)} />
   }
 
-  const isLoading = isRoot ? drivesLoading && drives === null : folderLoading && children === null
-  const hasFailed = isRoot ? !!drivesError : !!folderError
-  const errorObj = isRoot ? drivesError : folderError
-  const dataLength = isRoot ? (drives?.length ?? 0) : (children?.length ?? 0)
   // The drive's own root folder is not part of what replicates, so its name
   // comes from the drive listing.
   const title = isRoot ? t('drive.sharedDrives') : (folder?.name ?? currentDrive?.name ?? '')
@@ -216,44 +177,32 @@ export const SharedDriveScreen = ({ basePath }: Props): React.ReactElement => {
         onBack={isRoot ? undefined : goBack}
         onLogout={isRoot ? logout : undefined}
       />
-      {isLoading ? (
-        <LoadingState />
-      ) : hasFailed ? (
-        <ErrorState
-          message={t(getErrorMessageKey(errorObj))}
-          onRetry={() => (isRoot ? void reloadDrives() : void reloadFolder())}
-        />
-      ) : dataLength === 0 ? (
-        <EmptyState message={t(isRoot ? 'drive.emptySharedDrives' : 'drive.emptyFolder')} />
-      ) : isRoot ? (
-        <FlatList
-          data={drives ?? []}
+      {isRoot ? (
+        <FileListView
+          items={drives ?? []}
           keyExtractor={item => item.driveId}
           renderItem={renderDrive}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+          loading={drivesLoading && drives === null}
+          error={drivesError}
+          onRetry={() => void reloadDrives()}
+          refreshing={refreshing}
+          onRefresh={() => void onRefresh()}
+          emptyMessage="drive.emptySharedDrives"
         />
       ) : (
-        <FlatList
-          data={children ?? []}
+        <FileListView
+          items={children ?? []}
           keyExtractor={item => item._id}
           renderItem={renderChild}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+          loading={folderLoading && children === null}
+          error={folderError}
+          onRetry={() => void reloadFolder()}
+          refreshing={refreshing}
+          onRefresh={() => void onRefresh()}
+          emptyMessage="drive.emptyFolder"
         />
       )}
-      <BigFolderConfirmDialog
-        visible={!!offlineActions.pendingConfirmation}
-        count={offlineActions.pendingConfirmation?.count ?? 0}
-        bytes={offlineActions.pendingConfirmation?.bytes ?? 0}
-        onConfirm={() => void offlineActions.confirmPending()}
-        onCancel={offlineActions.cancelPending}
-      />
-      <Snackbar visible={!!resolveError} onDismiss={() => setResolveError(null)} duration={3000}>
-        {resolveError ?? ''}
-      </Snackbar>
+      {actions.dialogs}
     </ScreenContainer>
   )
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1 }
-})
