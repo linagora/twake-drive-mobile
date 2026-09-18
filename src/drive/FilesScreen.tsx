@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next'
 
 import { AppBar } from '@/ui/AppBar'
 import { useGuardedPush } from '@/ui/useGuardedPush'
+import { useTabBack } from '@/ui/useTabBack'
 import { ScreenContainer } from '@/ui/ScreenContainer'
 import { EmptyState } from '@/ui/EmptyState'
 import { ErrorState } from '@/ui/ErrorState'
@@ -67,6 +68,7 @@ interface FilesScreenProps {
 export const FilesScreen = ({ basePath }: FilesScreenProps): React.ReactElement => {
   const router = useRouter()
   const guardedPush = useGuardedPush()
+  const goBack = useTabBack(basePath)
   const { t } = useTranslation()
   const { logout } = useAuth()
   const fetchSessionCode = useSessionCode()
@@ -523,7 +525,7 @@ export const FilesScreen = ({ basePath }: FilesScreenProps): React.ReactElement 
     <ScreenContainer>
       <AppBar
         title={currentDirName}
-        onBack={isRoot ? undefined : () => router.back()}
+        onBack={isRoot ? undefined : goBack}
         onLogout={isRoot ? logout : undefined}
         selection={
           selection.isSelecting

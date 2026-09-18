@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next'
 
 import { AppBar } from '@/ui/AppBar'
 import { useGuardedPush } from '@/ui/useGuardedPush'
+import { useTabBack } from '@/ui/useTabBack'
 import { ScreenContainer } from '@/ui/ScreenContainer'
 import { EmptyState } from '@/ui/EmptyState'
 import { ErrorState } from '@/ui/ErrorState'
@@ -45,6 +46,7 @@ import { useFolderSort } from '@/ui/useFolderSort'
 export default function SharedScreen() {
   const router = useRouter()
   const guardedPush = useGuardedPush()
+  const goBack = useTabBack('/(drive)/shared')
   const { t } = useTranslation()
   const { logout } = useAuth()
   const params = useLocalSearchParams<{ path?: string | string[] }>()
@@ -318,7 +320,7 @@ export default function SharedScreen() {
     <ScreenContainer>
       <AppBar
         title={currentDirName}
-        onBack={isRoot ? undefined : () => router.back()}
+        onBack={isRoot ? undefined : goBack}
         onLogout={isRoot ? logout : undefined}
       />
       {isRoot ? (

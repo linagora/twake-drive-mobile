@@ -10,6 +10,7 @@ import { Snackbar } from 'react-native-paper'
 
 import { AppBar } from '@/ui/AppBar'
 import { useGuardedPush } from '@/ui/useGuardedPush'
+import { useTabBack } from '@/ui/useTabBack'
 import { ScreenContainer } from '@/ui/ScreenContainer'
 import { EmptyState } from '@/ui/EmptyState'
 import { ErrorState } from '@/ui/ErrorState'
@@ -41,6 +42,9 @@ interface Props {
 export const SharedDriveScreen = ({ basePath }: Props): React.ReactElement => {
   const router = useRouter()
   const guardedPush = useGuardedPush()
+  // The drive list lives on the tab this screen is mounted in, so backing out
+  // of a drive returns there rather than to whatever tab came before.
+  const goBack = useTabBack(basePath.replace(/\/drive$/, ''))
   const { t } = useTranslation()
   const { logout } = useAuth()
   const client = useClient()
@@ -209,7 +213,7 @@ export const SharedDriveScreen = ({ basePath }: Props): React.ReactElement => {
     <ScreenContainer>
       <AppBar
         title={title}
-        onBack={isRoot ? undefined : () => router.back()}
+        onBack={isRoot ? undefined : goBack}
         onLogout={isRoot ? logout : undefined}
       />
       {isLoading ? (
