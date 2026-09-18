@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { StyleSheet, View } from 'react-native'
-import { Button } from 'react-native-paper'
+import { Button, Text } from 'react-native-paper'
 import { useRouter } from 'expo-router'
 import { useClient } from 'cozy-client'
 import { useTranslation } from 'react-i18next'
@@ -13,7 +13,9 @@ import { isCozyNoteFile, isDocsNoteFile, isOfficeFile } from '@/files/fileTypes'
 import { MarkdownView } from './markdown/MarkdownView'
 import { OFFLINE_ERROR, readDocumentBytes } from './documentBytes'
 import { readNoteContent, resolveNoteImage } from './noteBlob'
-import { hasWebEditor } from './documentKind'
+import { hasWebEditor, rendersInApp, viewerKindOf } from './documentKind'
+import { readDocumentPathWithName } from './documentBytes'
+import { openInViewer } from '@/files/openFile'
 
 export interface DocumentViewerFile {
   _id: string
@@ -54,8 +56,11 @@ export const DocumentViewer = ({ file, driveId }: Props): React.ReactElement => 
   const client = useClient()
   const router = useRouter()
   const isOnline = useIsOnline()
+  const kind = viewerKindOf(file)
+  const nativeOnly = !!kind && !rendersInApp(kind)
   const [markdown, setMarkdown] = useState<string | null>(null)
   const [images, setImages] = useState<Map<string, Uint8Array>>(new Map())
+  const [nativePath, setNativePath] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [reloadTick, setReloadTick] = useState(0)
 
@@ -65,6 +70,16 @@ export const DocumentViewer = ({ file, driveId }: Props): React.ReactElement => 
       if (!client) return
       setError(null)
       try {
+        // An office document is handed to the OS viewer, which reads formats
+        // the app does not: the bytes still come from the local copy, so a
+        // pinned or already opened document opens with no network.
+        if (nativeOnly) {
+          const path = await readDocumentPathWithName(client, file, driveId)
+          if (cancelled) return
+          setNativePath(path)
+          await openInViewer(path)
+          return
+        }
         const bytes = await readDocumentBytes(client, file, driveId)
         const content = readNoteContent(bytes)
         if (cancelled) return
@@ -86,7 +101,7 @@ export const DocumentViewer = ({ file, driveId }: Props): React.ReactElement => 
     return () => {
       cancelled = true
     }
-  }, [client, driveId, file, reloadTick, t])
+  }, [client, driveId, file, nativeOnly, reloadTick, t])
 
   const route = editorRoute(file)
 
@@ -99,6 +114,35 @@ export const DocumentViewer = ({ file, driveId }: Props): React.ReactElement => 
           setReloadTick(tick => tick + 1)
         }}
       />
+    )
+  }
+
+  if (nativeOnly) {
+    return (
+      <View style={styles.nativePanel}>
+        <Text variant="bodyMedium" style={styles.nativeText}>
+          {t('drive.viewer.openedWithSystem')}
+        </Text>
+        <Button
+          mode="contained-tonal"
+          icon="open-in-new"
+          testID="document-viewer-open-again"
+          disabled={!nativePath}
+          onPress={() => nativePath && void openInViewer(nativePath)}
+        >
+          {t('drive.viewer.openAgain')}
+        </Button>
+        {route && isOnline ? (
+          <Button
+            mode="text"
+            icon="pencil"
+            testID="document-viewer-edit"
+            onPress={() => router.push(route as Parameters<typeof router.push>[0])}
+          >
+            {t('drive.viewer.edit')}
+          </Button>
+        ) : null}
+      </View>
     )
   }
 
@@ -132,6 +176,14 @@ export const DocumentViewer = ({ file, driveId }: Props): React.ReactElement => 
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  nativePanel: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: cozyTokens.spacing.sm,
+    padding: cozyTokens.spacing.xl
+  },
+  nativeText: { textAlign: 'center', marginBottom: cozyTokens.spacing.sm },
   edit: {
     position: 'absolute',
     right: cozyTokens.spacing.md,

@@ -30,7 +30,7 @@ const cacheAliasPath = (cacheDir: string, file: OpenableFile): string =>
 // "No app associated with this mime type" when nothing can open it; translate
 // that into a typed error so callers can surface a friendly message instead of
 // leaking the raw string. Other failures pass through unchanged.
-const openInViewer = async (path: string): Promise<void> => {
+export const openInViewer = async (path: string): Promise<void> => {
   try {
     await FileViewer.open(path, { showOpenWithDialog: true, showAppsSuggestions: true })
   } catch (e) {

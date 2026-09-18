@@ -268,7 +268,9 @@
     "emptySharedByMe": "No estás compartiendo ningún archivo",
     "viewer": {
       "edit": "Editar",
-      "unavailableOffline": "Este documento no está disponible sin conexión"
+      "unavailableOffline": "Este documento no está disponible sin conexión",
+      "openedWithSystem": "Abierto en una aplicación de tu dispositivo.",
+      "openAgain": "Abrir de nuevo"
     }
   },
   "a11y": {

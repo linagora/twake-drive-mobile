@@ -1,7 +1,7 @@
 const mockFlag = jest.fn()
 jest.mock('cozy-flags', () => ({ __esModule: true, default: (name: string) => mockFlag(name) }))
 
-import { hasWebEditor, localViewerFor, viewerKindOf } from './documentKind'
+import { hasWebEditor, localViewerFor, rendersInApp, viewerKindOf } from './documentKind'
 
 describe('viewerKindOf', () => {
   it('knows the types a local viewer is meant to render', () => {
@@ -35,15 +35,19 @@ describe('localViewerFor', () => {
     expect(localViewerFor({ name: 'a.cozy-note' })).toBeNull()
   })
 
-  it('leaves alone the types whose viewer is not built yet, flag or not', () => {
+  it('opens an office document locally, through the OS viewer', () => {
     mockFlag.mockReturnValue(true)
-    expect(localViewerFor({ name: 'schéma.excalidraw' })).toBeNull()
     expect(
       localViewerFor({
         name: 'rapport.docx',
         mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
       })
-    ).toBeNull()
+    ).toBe('office')
+  })
+
+  it('leaves alone the types whose viewer is not built yet, flag or not', () => {
+    mockFlag.mockReturnValue(true)
+    expect(localViewerFor({ name: 'schéma.excalidraw' })).toBeNull()
   })
 })
 
@@ -55,5 +59,16 @@ describe('hasWebEditor', () => {
 
   it('is false for a plain markdown file, which no editor claims', () => {
     expect(hasWebEditor({ name: 'notes.md' })).toBe(false)
+  })
+})
+
+describe('rendersInApp', () => {
+  it('is true for what the app draws itself', () => {
+    expect(rendersInApp('markdown')).toBe(true)
+    expect(rendersInApp('note')).toBe(true)
+  })
+
+  it('is false for an office document, which goes to the OS viewer', () => {
+    expect(rendersInApp('office')).toBe(false)
   })
 })

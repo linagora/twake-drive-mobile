@@ -259,7 +259,9 @@
     "emptySharedByMe": "You are not sharing any file",
     "viewer": {
       "edit": "Edit",
-      "unavailableOffline": "This document is not available offline"
+      "unavailableOffline": "This document is not available offline",
+      "openedWithSystem": "Opened in an app on your device.",
+      "openAgain": "Open again"
     }
   },
   "a11y": {
