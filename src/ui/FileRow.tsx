@@ -47,6 +47,8 @@ interface Props {
   onRestore?: (file: FileItem) => void
   onDelete?: (file: FileItem) => void
   onTogglePin?: (file: FileItem) => void
+  /** Set inside a shared drive, so the row's actions use the drive routes. */
+  driveId?: string
   onMove?: (file: FileItem) => void
   /** Opens the metadata/details sheet for this row. */
   onInfo?: (file: FileItem) => void
@@ -67,6 +69,7 @@ export const FileRow = ({
   onRestore,
   onDelete,
   onTogglePin,
+  driveId,
   onMove,
   onInfo,
   onFavoriteChange,
@@ -141,6 +144,7 @@ export const FileRow = ({
             onRestore={onRestore}
             onDelete={onDelete}
             onTogglePin={onTogglePin}
+            driveId={driveId}
             onMove={onMove}
             onInfo={onInfo}
             onFavoriteChange={onFavoriteChange}

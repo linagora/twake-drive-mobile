@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { StyleSheet } from 'react-native'
 import { WebView } from 'react-native-webview'
 import { useLocalSearchParams, useRouter } from 'expo-router'
-import { useClient } from 'cozy-client'
+import { models, useClient } from 'cozy-client'
 
 import { ScreenContainer } from '@/ui/ScreenContainer'
 import { EditorHeader } from '@/ui/EditorHeader'
@@ -17,7 +17,7 @@ import { useSessionCode } from '@/auth/useSessionCode'
 // single document, identical to what computePath returns for `type === 'note'`.
 
 export default function CozyNoteScreen() {
-  const { fileId } = useLocalSearchParams<{ fileId: string }>()
+  const { fileId, driveId } = useLocalSearchParams<{ fileId: string; driveId?: string }>()
   const client = useClient()
   const router = useRouter()
   const fetchSessionCode = useSessionCode()
@@ -30,9 +30,27 @@ export default function CozyNoteScreen() {
     const run = async () => {
       if (!client || !fileId) return
       try {
-        const stackUri = client.getStackClient().uri as string
-        const sessionCode = await fetchSessionCode()
-        const url = buildCozyAppUrl(stackUri, 'notes', sessionCode, `/n/${fileId}`)
+        // A note of a shared drive is served by the owner instance: the stack
+        // hands back its notes-app URL, with a sharecode, through the drive's
+        // own open route.
+        const url = driveId
+          ? ((await (
+              models as unknown as {
+                note: {
+                  fetchURL: (
+                    c: typeof client,
+                    f: { id: string },
+                    o: { driveId: string }
+                  ) => Promise<string>
+                }
+              }
+            ).note.fetchURL(client, { id: fileId }, { driveId })) as string)
+          : buildCozyAppUrl(
+              client.getStackClient().uri as string,
+              'notes',
+              await fetchSessionCode(),
+              `/n/${fileId}`
+            )
         if (!cancelled) setEditorUrl(url)
       } catch (e) {
         console.error('[CozyNoteScreen] failed', e)
@@ -43,7 +61,7 @@ export default function CozyNoteScreen() {
     return () => {
       cancelled = true
     }
-  }, [client, fileId, reloadTick, fetchSessionCode])
+  }, [client, driveId, fileId, reloadTick, fetchSessionCode])
 
   return (
     <ScreenContainer>

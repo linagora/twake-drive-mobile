@@ -97,6 +97,28 @@ const driveQueryOptions = (
 })
 
 /**
+ * One document of a shared drive, read from the local replica.
+ *
+ * A drive whose root is a single file has that file as its only document; it
+ * only lands here once the drive has replicated.
+ */
+export const querySharedDriveFile = async (
+  client: CozyClient,
+  entry: Pick<SharedDriveEntry, 'driveId' | 'owner'>,
+  fileId: string
+): Promise<SharedDriveFile | null> => {
+  const resp = (await client.query(
+    Query('io.cozy.files').getById(fileId) as never,
+    {
+      ...driveQueryOptions(entry, `shareddrive-${entry.driveId}-file-${fileId}`),
+      singleDocData: true
+    } as never
+  )) as { data?: SharedDriveFile | null }
+  const doc = resp.data
+  return doc && !Array.isArray(doc) ? doc : null
+}
+
+/**
  * A folder inside a shared drive, read from the local replica.
  *
  * A drive the user is a recipient of replicates into its own database under

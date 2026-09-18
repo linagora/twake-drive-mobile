@@ -10,16 +10,32 @@ export interface StreamSource {
   headers: Record<string, string>
 }
 
-export const buildFileStreamSource = (client: CozyClient, fileId: string): StreamSource => {
+/**
+ * `driveId` switches the download to the shared-drive route: a drive file is
+ * held by the owner instance, which only serves it through the drive.
+ */
+export const buildFileStreamSource = (
+  client: CozyClient,
+  fileId: string,
+  driveId?: string
+): StreamSource => {
   const stackClient = client.getStackClient() as unknown as MinimalStackClient
   const stackUri = stackClient.uri
   const token = stackClient.getAccessToken()
   if (!stackUri) throw new Error('Stack URI unavailable')
   if (!token) throw new Error('No access token available')
   return {
-    uri: `${stackUri.replace(/\/$/, '')}/files/download/${encodeURIComponent(fileId)}`,
+    uri: buildDownloadUrl(stackUri, fileId, driveId),
     headers: { Authorization: `Bearer ${token}` }
   }
+}
+
+export const buildDownloadUrl = (stackUri: string, fileId: string, driveId?: string): string => {
+  const base = stackUri.replace(/\/$/, '')
+  const id = encodeURIComponent(fileId)
+  return driveId
+    ? `${base}/sharings/drives/${encodeURIComponent(driveId)}/download/${id}`
+    : `${base}/files/download/${id}`
 }
 
 export type ThumbnailSize = 'tiny' | 'small' | 'medium' | 'large'

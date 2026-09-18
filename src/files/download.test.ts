@@ -14,7 +14,7 @@ describe('download', () => {
   it('delegates to openFileNatively with the same client and file', async () => {
     await download(client, file)
     expect(openFileNatively).toHaveBeenCalledTimes(1)
-    expect(openFileNatively).toHaveBeenCalledWith(client, file)
+    expect(openFileNatively).toHaveBeenCalledWith(client, file, undefined)
   })
 
   it('returns the resolved value from openFileNatively', async () => {

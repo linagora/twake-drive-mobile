@@ -209,13 +209,17 @@ export default function SharedDrivesScreen() {
         file={{ ...(item as unknown as FileQueryResult), size: item.size ?? null }}
         onPress={file => {
           if (!client) return
-          void openFileFromList(client, router, file).catch(e =>
-            surfaceOpenError(e, setResolveError, t, 'SharedDrives')
-          )
+          void openFileFromList(
+            client,
+            router,
+            file,
+            currentDrive?.owner ? undefined : driveId
+          ).catch(e => surfaceOpenError(e, setResolveError, t, 'SharedDrives'))
         }}
         onMove={file => router.push(`/move/${file._id}`)}
         onTogglePin={onToggleFilePin}
         onInfo={file => router.push(`/metadata/${file._id}`)}
+        driveId={currentDrive?.owner ? undefined : driveId}
       />
     )
   }

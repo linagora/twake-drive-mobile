@@ -28,7 +28,8 @@ import {
 } from '@/client/queries'
 import { useSharedFileIds } from '@/client/useSharedFiles'
 import { useSharedDrives } from '@/files/useSharedDrives'
-import { SharedDriveEntry } from '@/files/sharedDrives'
+import { registerSharedDrive } from '@/files/sharedDriveReplication'
+import { querySharedDriveFile, SharedDriveEntry } from '@/files/sharedDrives'
 import { buildSharingRows, drivesForTab, SharingRow, SharingsTab } from '@/files/sharingRows'
 import { useOfflineActions } from '@/offline/useOfflineActions'
 import { OfflineFilesStore } from '@/offline/OfflineFilesStore'
@@ -81,12 +82,12 @@ export default function SharedScreen() {
     enabled: isRoot && tab !== 'drives' && sharedIds.status === 'loaded' && sharedIds.ids.length > 0
   })
 
-  const subfoldersQuery = useQuery(folderSubfoldersQuery(safeCurrentDirId), {
-    as: folderSubfoldersQueryAs(safeCurrentDirId),
+  const subfoldersQuery = useQuery(folderSubfoldersQuery(safeCurrentDirId, sort), {
+    as: folderSubfoldersQueryAs(safeCurrentDirId, sort),
     enabled: !isRoot
   })
-  const folderFilesQ = useQuery(folderFilesQuery(safeCurrentDirId), {
-    as: folderFilesQueryAs(safeCurrentDirId),
+  const folderFilesQ = useQuery(folderFilesQuery(safeCurrentDirId, sort), {
+    as: folderFilesQueryAs(safeCurrentDirId, sort),
     enabled: !isRoot
   })
 
@@ -172,6 +173,27 @@ export default function SharedScreen() {
     )
   }
 
+  // A drive whose root is a file opens that file, through the drive routes: it
+  // is served by the owner instance, not by ours.
+  const onDriveFilePress = async (drive: SharedDriveEntry): Promise<void> => {
+    if (!client || !drive.rootFolderId) {
+      setSnackbar(t('errors.generic'))
+      return
+    }
+    const scope = { driveId: drive.driveId, owner: drive.owner }
+    try {
+      if (!drive.owner) await registerSharedDrive(client, drive.driveId)
+      const doc = await querySharedDriveFile(client, scope, drive.rootFolderId)
+      if (!doc) {
+        setSnackbar(t('drive.sharings.driveFileSyncing'))
+        return
+      }
+      await openFileFromList(client, router, doc, drive.owner ? undefined : drive.driveId)
+    } catch (e) {
+      surfaceOpenError(e, setSnackbar, t, 'SharedScreen')
+    }
+  }
+
   const onDrivePress = (drive: SharedDriveEntry): void => {
     if (!drive.rootFolderId) {
       setSnackbar(t('errors.generic'))
@@ -200,7 +222,8 @@ export default function SharedScreen() {
               } as unknown as FileQueryResult),
               size: null
             }}
-            onPress={() => setSnackbar(t('drive.sharings.driveFileNotSupported'))}
+            onPress={() => void onDriveFilePress(drive)}
+            driveId={drive.owner ? undefined : drive.driveId}
           />
         )
       }
@@ -232,9 +255,10 @@ export default function SharedScreen() {
         files: data,
         drives: isRoot ? drives : [],
         tab,
+        sortAttr: sort.attr,
         sortDir: sort.dir
       }),
-    [data, drives, isRoot, sort.dir, tab]
+    [data, drives, isRoot, sort.attr, sort.dir, tab]
   )
 
   const showsDrives = isRoot && tab === 'drives'

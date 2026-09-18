@@ -18,6 +18,8 @@ interface Props {
   onRestore?: (file: FileItem) => void
   onDelete?: (file: FileItem) => void
   onTogglePin?: (file: FileItem) => void
+  /** Set inside a shared drive: the download goes through the drive route. */
+  driveId?: string
   onMove?: (file: FileItem) => void
   onInfo?: (file: FileItem) => void
   onFavoriteChange?: () => void
@@ -36,6 +38,7 @@ export const FileActionsMenu = ({
   onRestore,
   onDelete,
   onTogglePin,
+  driveId,
   onMove,
   onInfo,
   onFavoriteChange,
@@ -174,7 +177,7 @@ export const FileActionsMenu = ({
         onPress={() => {
           setMenuVisible(false)
           if (!client) return
-          void download(client, file)
+          void download(client, file, driveId)
         }}
       />
     </Menu>
