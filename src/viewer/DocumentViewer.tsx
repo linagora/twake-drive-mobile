@@ -8,12 +8,11 @@ import { useTranslation } from 'react-i18next'
 import { ErrorState } from '@/ui/ErrorState'
 import { LoadingState } from '@/ui/LoadingState'
 import { cozyTokens } from '@/ui/theme'
-import { useIsOnline } from '@/network/useIsOnline'
-import { isCozyNoteFile, isDocsNoteFile, isOfficeFile } from '@/files/fileTypes'
 import { MarkdownView } from './markdown/MarkdownView'
 import { OFFLINE_ERROR, readDocumentBytes } from './documentBytes'
 import { readNoteContent, resolveNoteImage } from './noteBlob'
-import { hasWebEditor, isMarkdownKind, rendersInApp, viewerKindOf } from './documentKind'
+import { isMarkdownKind, rendersInApp, viewerKindOf } from './documentKind'
+import { EditDocumentButton } from './EditDocumentButton'
 import { ExcalidrawView } from './excalidraw/ExcalidrawView'
 import { readDocumentPathWithName } from './documentBytes'
 import { openInViewer } from '@/files/openFile'
@@ -39,16 +38,6 @@ const toDataUri = (bytes: Uint8Array, name: string): string => {
   return `data:${mime};base64,${global.btoa(binary)}`
 }
 
-const editorRoute = (file: DocumentViewerFile): string | null => {
-  if (isCozyNoteFile(file.name)) return `/note/${file._id}`
-  if (isDocsNoteFile(file.name)) return `/docs/${file._id}`
-  if (isOfficeFile(file.mime)) return `/onlyoffice/${file._id}`
-  // A drawing is read by the app and edited in the drive web app, which owns
-  // the excalidraw editor.
-  if (/\.excalidraw$/i.test(file.name)) return `/excalidraw/${file._id}`
-  return null
-}
-
 /**
  * Reads a document from the bytes the app already has, so a note or a Markdown
  * file opens without the stack — the web editor needs it, reading should not.
@@ -59,7 +48,6 @@ export const DocumentViewer = ({ file, driveId }: Props): React.ReactElement => 
   const { t } = useTranslation()
   const client = useClient()
   const router = useRouter()
-  const isOnline = useIsOnline()
   const kind = viewerKindOf(file)
   const nativeOnly = !!kind && !rendersInApp(kind)
   const [markdown, setMarkdown] = useState<string | null>(null)
@@ -112,8 +100,6 @@ export const DocumentViewer = ({ file, driveId }: Props): React.ReactElement => 
     }
   }, [client, driveId, file, kind, nativeOnly, reloadTick, t])
 
-  const route = editorRoute(file)
-
   if (error) {
     return (
       <ErrorState
@@ -141,16 +127,7 @@ export const DocumentViewer = ({ file, driveId }: Props): React.ReactElement => 
         >
           {t('drive.viewer.openAgain')}
         </Button>
-        {route && isOnline ? (
-          <Button
-            mode="text"
-            icon="pencil"
-            testID="document-viewer-edit"
-            onPress={() => router.push(route as Parameters<typeof router.push>[0])}
-          >
-            {t('drive.viewer.edit')}
-          </Button>
-        ) : null}
+        <EditDocumentButton file={file} driveId={driveId} mode="text" />
       </View>
     )
   }
@@ -159,18 +136,7 @@ export const DocumentViewer = ({ file, driveId }: Props): React.ReactElement => 
     return (
       <View style={styles.container}>
         <ExcalidrawView content={drawing} testID="document-viewer" />
-        {route && hasWebEditor(file) ? (
-          <Button
-            mode="contained-tonal"
-            icon="pencil"
-            testID="document-viewer-edit"
-            style={styles.edit}
-            disabled={!isOnline}
-            onPress={() => router.push(route as Parameters<typeof router.push>[0])}
-          >
-            {t('drive.viewer.edit')}
-          </Button>
-        ) : null}
+        <EditDocumentButton file={file} driveId={driveId} style={styles.edit} />
       </View>
     )
   }
@@ -187,18 +153,7 @@ export const DocumentViewer = ({ file, driveId }: Props): React.ReactElement => 
           return bytes ? toDataUri(bytes.content, bytes.name) : undefined
         }}
       />
-      {route && hasWebEditor(file) ? (
-        <Button
-          mode="contained-tonal"
-          icon="pencil"
-          testID="document-viewer-edit"
-          style={styles.edit}
-          disabled={!isOnline}
-          onPress={() => router.push(route as Parameters<typeof router.push>[0])}
-        >
-          {t('drive.viewer.edit')}
-        </Button>
-      ) : null}
+      <EditDocumentButton file={file} driveId={driveId} style={styles.edit} />
     </View>
   )
 }
