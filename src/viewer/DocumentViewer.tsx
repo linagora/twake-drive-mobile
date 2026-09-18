@@ -13,7 +13,8 @@ import { isCozyNoteFile, isDocsNoteFile, isOfficeFile } from '@/files/fileTypes'
 import { MarkdownView } from './markdown/MarkdownView'
 import { OFFLINE_ERROR, readDocumentBytes } from './documentBytes'
 import { readNoteContent, resolveNoteImage } from './noteBlob'
-import { hasWebEditor, rendersInApp, viewerKindOf } from './documentKind'
+import { hasWebEditor, isMarkdownKind, rendersInApp, viewerKindOf } from './documentKind'
+import { ExcalidrawView } from './excalidraw/ExcalidrawView'
 import { readDocumentPathWithName } from './documentBytes'
 import { openInViewer } from '@/files/openFile'
 
@@ -42,6 +43,8 @@ const editorRoute = (file: DocumentViewerFile): string | null => {
   if (isCozyNoteFile(file.name)) return `/note/${file._id}`
   if (isDocsNoteFile(file.name)) return `/docs/${file._id}`
   if (isOfficeFile(file.mime)) return `/onlyoffice/${file._id}`
+  // An excalidraw drawing is edited in the drive web app, which owns that route.
+  if (/\.excalidraw$/i.test(file.name)) return null
   return null
 }
 
@@ -60,6 +63,7 @@ export const DocumentViewer = ({ file, driveId }: Props): React.ReactElement => 
   const nativeOnly = !!kind && !rendersInApp(kind)
   const [markdown, setMarkdown] = useState<string | null>(null)
   const [images, setImages] = useState<Map<string, Uint8Array>>(new Map())
+  const [drawing, setDrawing] = useState<string | null>(null)
   const [nativePath, setNativePath] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [reloadTick, setReloadTick] = useState(0)
@@ -81,8 +85,12 @@ export const DocumentViewer = ({ file, driveId }: Props): React.ReactElement => 
           return
         }
         const bytes = await readDocumentBytes(client, file, driveId)
-        const content = readNoteContent(bytes)
         if (cancelled) return
+        if (kind && !isMarkdownKind(kind)) {
+          setDrawing(new TextDecoder().decode(bytes))
+          return
+        }
+        const content = readNoteContent(bytes)
         setMarkdown(content.markdown)
         setImages(content.images)
       } catch (e) {
@@ -101,7 +109,7 @@ export const DocumentViewer = ({ file, driveId }: Props): React.ReactElement => 
     return () => {
       cancelled = true
     }
-  }, [client, driveId, file, nativeOnly, reloadTick, t])
+  }, [client, driveId, file, kind, nativeOnly, reloadTick, t])
 
   const route = editorRoute(file)
 
@@ -137,6 +145,26 @@ export const DocumentViewer = ({ file, driveId }: Props): React.ReactElement => 
             mode="text"
             icon="pencil"
             testID="document-viewer-edit"
+            onPress={() => router.push(route as Parameters<typeof router.push>[0])}
+          >
+            {t('drive.viewer.edit')}
+          </Button>
+        ) : null}
+      </View>
+    )
+  }
+
+  if (drawing !== null) {
+    return (
+      <View style={styles.container}>
+        <ExcalidrawView content={drawing} testID="document-viewer" />
+        {route && hasWebEditor(file) ? (
+          <Button
+            mode="contained-tonal"
+            icon="pencil"
+            testID="document-viewer-edit"
+            style={styles.edit}
+            disabled={!isOnline}
             onPress={() => router.push(route as Parameters<typeof router.push>[0])}
           >
             {t('drive.viewer.edit')}
