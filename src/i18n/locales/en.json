@@ -56,6 +56,8 @@
     "emptyTrash": "Trash is empty",
     "sortAZ": "A-Z",
     "sortZA": "Z-A",
+    "sortRecent": "Most recent",
+    "sortOldest": "Oldest",
     "fileMeta": {
       "type": "Type",
       "size": "Size",
@@ -252,7 +254,7 @@
       "withMe": "With me",
       "byMe": "By me",
       "drives": "Drives",
-      "driveFileNotSupported": "Opening a file shared as a drive is not available yet"
+      "driveFileSyncing": "This document is still syncing, try again in a moment"
     },
     "emptySharedByMe": "You are not sharing any file"
   },

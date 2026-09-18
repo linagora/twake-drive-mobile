@@ -56,6 +56,8 @@
     "emptyTrash": "Thùng rác trống",
     "sortAZ": "A-Z",
     "sortZA": "Z-A",
+    "sortRecent": "Mới nhất",
+    "sortOldest": "Cũ nhất",
     "fileMeta": {
       "type": "Loại",
       "size": "Kích thước",
@@ -243,7 +245,7 @@
       "withMe": "Với tôi",
       "byMe": "Bởi tôi",
       "drives": "Drive",
-      "driveFileNotSupported": "Chưa thể mở tệp được chia sẻ dưới dạng drive"
+      "driveFileSyncing": "Tài liệu này đang được đồng bộ, hãy thử lại sau giây lát"
     },
     "emptySharedByMe": "Bạn chưa chia sẻ tệp nào"
   },

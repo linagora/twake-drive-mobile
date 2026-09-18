@@ -85,3 +85,30 @@ describe('a drive that shares a single file', () => {
     expect(rows.map(r => r.key)).toEqual(['d1', 'drive:drive-1'])
   })
 })
+
+describe('sorting by date', () => {
+  it('orders the documents by date, newest first', () => {
+    const rows = buildSharingRows({
+      files: [
+        { _id: 'f1', name: 'old', type: 'file', updated_at: '2026-01-01T00:00:00Z' },
+        { _id: 'f2', name: 'new', type: 'file', updated_at: '2026-09-01T00:00:00Z' }
+      ],
+      drives: [],
+      tab: 'with-me',
+      sortAttr: 'updated_at',
+      sortDir: 'desc'
+    })
+    expect(rows.map(r => r.name)).toEqual(['new', 'old'])
+  })
+
+  it('leaves the drives in name order, having no date to sort on', () => {
+    const rows = buildSharingRows({
+      files: [],
+      drives: [drive('d2', { name: 'beta' }), drive('d1', { name: 'alpha' })],
+      tab: 'with-me',
+      sortAttr: 'updated_at',
+      sortDir: 'desc'
+    })
+    expect(rows.map(r => r.name)).toEqual(['alpha', 'beta'])
+  })
+})

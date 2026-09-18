@@ -56,6 +56,8 @@
     "emptyTrash": "La papelera está vacía",
     "sortAZ": "A-Z",
     "sortZA": "Z-A",
+    "sortRecent": "Más recientes",
+    "sortOldest": "Más antiguos",
     "fileMeta": {
       "type": "Tipo",
       "size": "Tamaño",
@@ -261,7 +263,7 @@
       "withMe": "Conmigo",
       "byMe": "Por mí",
       "drives": "Drives",
-      "driveFileNotSupported": "Abrir un archivo compartido como drive aún no está disponible"
+      "driveFileSyncing": "Este documento se está sincronizando, inténtalo de nuevo en un momento"
     },
     "emptySharedByMe": "No estás compartiendo ningún archivo"
   },
