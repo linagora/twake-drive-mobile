@@ -6,6 +6,7 @@ import { isCozyNoteFile, isDocsNoteFile, isOfficeFile, isShortcutFile } from './
 import { canPreviewInApp } from './streamUrl'
 import { fetchShortcutUrl } from './shortcuts'
 import { openFileNatively } from './openFile'
+import { localViewerFor } from '@/viewer/documentKind'
 
 interface FileLike {
   _id: string
@@ -33,6 +34,12 @@ export const openFileFromList = async (
   // A file inside a shared drive is served by the owner instance through the
   // drive routes, so every viewer has to be told which drive it came from.
   const scope = driveId ? `?driveId=${encodeURIComponent(driveId)}` : ''
+  // A type with a local viewer opens in it, online or not; the web editor is
+  // then one tap away from the viewer.
+  if (localViewerFor(file)) {
+    router.push(`/preview/${file._id}${scope}`)
+    return
+  }
   if (isCozyNoteFile(file.name)) {
     router.push(`/note/${file._id}${scope}`)
     return
