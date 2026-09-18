@@ -299,5 +299,11 @@
     "hideDetails": "Скрыть подробности",
     "copyDetails": "Копировать подробности",
     "copied": "Скопировано"
+  },
+  "units": {
+    "byte": "Б",
+    "kilobyte": "КБ",
+    "megabyte": "МБ",
+    "gigabyte": "ГБ"
   }
 }

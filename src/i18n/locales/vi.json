@@ -272,5 +272,11 @@
     "hideDetails": "Ẩn chi tiết",
     "copyDetails": "Sao chép chi tiết",
     "copied": "Đã sao chép"
+  },
+  "units": {
+    "byte": "B",
+    "kilobyte": "KB",
+    "megabyte": "MB",
+    "gigabyte": "GB"
   }
 }

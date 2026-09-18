@@ -281,5 +281,11 @@
     "hideDetails": "Details ausblenden",
     "copyDetails": "Details kopieren",
     "copied": "Kopiert"
+  },
+  "units": {
+    "byte": "B",
+    "kilobyte": "KB",
+    "megabyte": "MB",
+    "gigabyte": "GB"
   }
 }
