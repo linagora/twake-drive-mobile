@@ -24,16 +24,25 @@ import { useSessionCode } from '@/auth/useSessionCode'
 // editor, token, documentType} that we pass into the OnlyOffice DocsAPI in a
 // minimal HTML wrapper (see git history for the previous implementation).
 
-const buildDriveOnlyOfficeUrl = (stackUri: string, fileId: string, sessionCode: string): string => {
+const buildDriveOnlyOfficeUrl = (
+  stackUri: string,
+  fileId: string,
+  sessionCode: string,
+  driveId?: string
+): string => {
   const url = new URL(stackUri)
   const [instance, ...rest] = url.host.split('.')
   const driveHost = `${instance}-drive.${rest.join('.')}`
   const params = new URLSearchParams({ session_code: sessionCode })
-  return `${url.protocol}//${driveHost}/?${params.toString()}#/onlyoffice/${encodeURIComponent(fileId)}`
+  // The web app takes the drive in the route itself: #/onlyoffice/:driveId/:fileId.
+  const path = driveId
+    ? `/onlyoffice/${encodeURIComponent(driveId)}/${encodeURIComponent(fileId)}`
+    : `/onlyoffice/${encodeURIComponent(fileId)}`
+  return `${url.protocol}//${driveHost}/?${params.toString()}#${path}`
 }
 
 export default function OnlyOfficeScreen() {
-  const { fileId } = useLocalSearchParams<{ fileId: string }>()
+  const { fileId, driveId } = useLocalSearchParams<{ fileId: string; driveId?: string }>()
   const client = useClient()
   const router = useRouter()
   const fetchSessionCode = useSessionCode()
@@ -48,7 +57,7 @@ export default function OnlyOfficeScreen() {
       try {
         const stackUri = client.getStackClient().uri as string
         const sessionCode = await fetchSessionCode()
-        const url = buildDriveOnlyOfficeUrl(stackUri, fileId, sessionCode)
+        const url = buildDriveOnlyOfficeUrl(stackUri, fileId, sessionCode, driveId)
         if (!cancelled) setEditorUrl(url)
       } catch (e) {
         console.error('[OnlyOfficeScreen] failed', e)
@@ -59,7 +68,7 @@ export default function OnlyOfficeScreen() {
     return () => {
       cancelled = true
     }
-  }, [client, fileId, reloadTick, fetchSessionCode])
+  }, [client, driveId, fileId, reloadTick, fetchSessionCode])
 
   return (
     <ScreenContainer>

@@ -128,11 +128,13 @@ const ImagePreview = ({
 const UnsupportedAudio = ({
   fileId,
   name,
-  mime
+  mime,
+  driveId
 }: {
   fileId: string
   name: string
   mime: string | undefined
+  driveId?: string
 }) => {
   const theme = useTheme()
   const { t } = useTranslation()
@@ -146,7 +148,7 @@ const UnsupportedAudio = ({
     setError(null)
     setPresented(false)
     try {
-      await openFileNatively(client, { _id: fileId, name, mime })
+      await openFileNatively(client, { _id: fileId, name, mime }, driveId)
       // FileViewer (UIDocumentInteractionController on iOS) resolves
       // silently even when no third-party app can handle the file. We
       // don't auto-dismiss the modal: show a hint instead so the user
@@ -191,15 +193,17 @@ const AudioPreview = ({
   fileId,
   source,
   name,
-  mime
+  mime,
+  driveId
 }: {
   fileId: string
   source: StreamSource
   name: string
   mime: string | undefined
+  driveId?: string
 }) => {
   if (isUnsupportedAudio(mime, name)) {
-    return <UnsupportedAudio fileId={fileId} name={name} mime={mime} />
+    return <UnsupportedAudio fileId={fileId} name={name} mime={mime} driveId={driveId} />
   }
   return <SupportedAudioPlayer source={source} name={name} />
 }
@@ -306,13 +310,18 @@ export default function PreviewScreen() {
   const { t } = useTranslation()
   const insets = useSafeAreaInsets()
   const client = useClient()
-  const { fileId } = useLocalSearchParams<{ fileId: string }>()
+  const { fileId, driveId } = useLocalSearchParams<{ fileId: string; driveId?: string }>()
   const [externalError, setExternalError] = useState<string | null>(null)
   const fallbackTriggered = useRef(false)
 
+  // A file from a shared drive lives in that drive's own database, which the
+  // driveId option is what reaches.
   const fileLookup = useQuery(fileByIdQuery(fileId ?? ''), {
-    as: fileByIdQueryAs(fileId ?? ''),
-    enabled: !!fileId
+    as: driveId
+      ? `${fileByIdQueryAs(fileId ?? '')}/drive/${driveId}`
+      : fileByIdQueryAs(fileId ?? ''),
+    enabled: !!fileId,
+    ...(driveId ? { driveId } : {})
   })
   const lookupData = fileLookup.data
   const file = (Array.isArray(lookupData) ? lookupData[0] : lookupData) as
@@ -383,11 +392,11 @@ export default function PreviewScreen() {
     }
     if (!client) return null
     try {
-      return buildFileStreamSource(client, fileId)
+      return buildFileStreamSource(client, fileId, driveId)
     } catch {
       return null
     }
-  }, [client, fileId, kind, pinnedAliasPath, offlineEntry?.state])
+  }, [client, driveId, fileId, kind, pinnedAliasPath, offlineEntry?.state])
 
   // Unsupported types: download then native intent, then back.
   useEffect(() => {
@@ -395,7 +404,7 @@ export default function PreviewScreen() {
     fallbackTriggered.current = true
     void (async () => {
       try {
-        await openFileNatively(client, { _id: file._id, name: file.name, mime: file.mime })
+        await openFileNatively(client, { _id: file._id, name: file.name, mime: file.mime }, driveId)
         router.back()
       } catch (e) {
         console.error('[PreviewScreen] native fallback failed', e)
@@ -430,6 +439,7 @@ export default function PreviewScreen() {
             source={source}
             name={file?.name ?? ''}
             mime={file?.mime}
+            driveId={driveId}
           />
         )
       case 'text':

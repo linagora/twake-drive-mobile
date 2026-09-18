@@ -153,7 +153,14 @@ describe('FileRow', () => {
       render(wrap(<FileRow file={file} onPress={() => {}} onShare={jest.fn()} />))
       fireEvent.press(screen.getByTestId('file-actions'))
       fireEvent.press(screen.getByText('drive.fileMeta.download'))
-      expect(download).toHaveBeenCalledWith(expect.anything(), file)
+      expect(download).toHaveBeenCalledWith(expect.anything(), file, undefined)
+    })
+
+    it('downloads through the drive route when the row belongs to a shared drive', () => {
+      render(wrap(<FileRow file={file} onPress={() => {}} onShare={jest.fn()} driveId="drive-1" />))
+      fireEvent.press(screen.getByTestId('file-actions'))
+      fireEvent.press(screen.getByText('drive.fileMeta.download'))
+      expect(download).toHaveBeenCalledWith(expect.anything(), file, 'drive-1')
     })
   })
 })

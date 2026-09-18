@@ -11,6 +11,15 @@ const buildClient = (uri: string | undefined, token: string | null): never =>
   }) as never
 
 describe('buildFileStreamSource', () => {
+  it('goes through the drive route for a file of a shared drive', () => {
+    const src = buildFileStreamSource(
+      buildClient('https://alice.cozy.test', 'TOK'),
+      'abc',
+      'drive-1'
+    )
+    expect(src.uri).toBe('https://alice.cozy.test/sharings/drives/drive-1/download/abc')
+  })
+
   it('builds /files/download URL with bearer header', () => {
     const src = buildFileStreamSource(buildClient('https://alice.cozy.test', 'TOK'), 'abc')
     expect(src).toEqual({

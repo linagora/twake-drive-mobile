@@ -27,22 +27,26 @@ interface FileLike {
 export const openFileFromList = async (
   client: CozyClient,
   router: Router,
-  file: FileLike
+  file: FileLike,
+  driveId?: string
 ): Promise<void> => {
+  // A file inside a shared drive is served by the owner instance through the
+  // drive routes, so every viewer has to be told which drive it came from.
+  const scope = driveId ? `?driveId=${encodeURIComponent(driveId)}` : ''
   if (isCozyNoteFile(file.name)) {
-    router.push(`/note/${file._id}`)
+    router.push(`/note/${file._id}${scope}`)
     return
   }
   if (isDocsNoteFile(file.name)) {
-    router.push(`/docs/${file._id}`)
+    router.push(`/docs/${file._id}${scope}`)
     return
   }
   if (isOfficeFile(file.mime)) {
-    router.push(`/onlyoffice/${file._id}`)
+    router.push(`/onlyoffice/${file._id}${scope}`)
     return
   }
   if (canPreviewInApp(file)) {
-    router.push(`/preview/${file._id}`)
+    router.push(`/preview/${file._id}${scope}`)
     return
   }
   if (isShortcutFile(file)) {
@@ -51,5 +55,5 @@ export const openFileFromList = async (
     await Linking.openURL(url)
     return
   }
-  await openFileNatively(client, { _id: file._id, name: file.name, mime: file.mime })
+  await openFileNatively(client, { _id: file._id, name: file.name, mime: file.mime }, driveId)
 }

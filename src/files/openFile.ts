@@ -8,6 +8,7 @@ import type CozyClient from 'cozy-client'
 import { OfflineFilesStore } from '@/offline/OfflineFilesStore'
 import { FileSystemRepo } from '@/offline/FileSystemRepo'
 import { NoCompatibleAppError } from './errors'
+import { buildDownloadUrl } from './streamUrl'
 
 export interface OpenableFile {
   _id: string
@@ -39,7 +40,11 @@ const openInViewer = async (path: string): Promise<void> => {
   }
 }
 
-export const openFileNatively = async (client: CozyClient, file: OpenableFile): Promise<void> => {
+export const openFileNatively = async (
+  client: CozyClient,
+  file: OpenableFile,
+  driveId?: string
+): Promise<void> => {
   const cacheDir = FileSystem.cacheDirectory
   if (!cacheDir) throw new Error('Cache directory unavailable')
   const aliasPath = cacheAliasPath(cacheDir, file)
@@ -69,7 +74,7 @@ export const openFileNatively = async (client: CozyClient, file: OpenableFile): 
   const token = stackClient.getAccessToken()
   if (!token) throw new Error('No access token available')
 
-  const downloadUrl = `${stackUri}/files/download/${encodeURIComponent(file._id)}`
+  const downloadUrl = buildDownloadUrl(stackUri, file._id, driveId)
 
   const result = await FileSystem.downloadAsync(downloadUrl, aliasPath, {
     headers: { Authorization: `Bearer ${token}` }

@@ -15,5 +15,8 @@ export interface DownloadableFile {
  *
  * Mirrors the explicit "Télécharger" action in twake-drive-web.
  */
-export const download = (client: CozyClient, file: DownloadableFile): Promise<void> =>
-  openFileNatively(client, file)
+export const download = (
+  client: CozyClient,
+  file: DownloadableFile,
+  driveId?: string
+): Promise<void> => openFileNatively(client, file, driveId)
