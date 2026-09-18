@@ -265,7 +265,11 @@
       "drives": "Drives",
       "driveFileSyncing": "Ce document est en cours de synchronisation, réessayez dans un instant"
     },
-    "emptySharedByMe": "Vous ne partagez aucun fichier"
+    "emptySharedByMe": "Vous ne partagez aucun fichier",
+    "viewer": {
+      "edit": "Modifier",
+      "unavailableOffline": "Ce document n'est pas disponible hors-ligne"
+    }
   },
   "a11y": {
     "listView": "Vue liste",

@@ -256,7 +256,11 @@
       "drives": "Drives",
       "driveFileSyncing": "This document is still syncing, try again in a moment"
     },
-    "emptySharedByMe": "You are not sharing any file"
+    "emptySharedByMe": "You are not sharing any file",
+    "viewer": {
+      "edit": "Edit",
+      "unavailableOffline": "This document is not available offline"
+    }
   },
   "a11y": {
     "listView": "List view",

@@ -265,7 +265,11 @@
       "drives": "Drive",
       "driveFileSyncing": "Questo documento si sta sincronizzando, riprova tra un istante"
     },
-    "emptySharedByMe": "Non stai condividendo alcun file"
+    "emptySharedByMe": "Non stai condividendo alcun file",
+    "viewer": {
+      "edit": "Modifica",
+      "unavailableOffline": "Questo documento non è disponibile offline"
+    }
   },
   "a11y": {
     "listView": "Vista elenco",
