@@ -22,6 +22,8 @@ import {
   StreamSource
 } from '@/files/streamUrl'
 import { openFileNatively } from '@/files/openFile'
+import { DocumentViewer } from '@/viewer/DocumentViewer'
+import { localViewerFor } from '@/viewer/documentKind'
 import { isUnsupportedAudio } from '@/files/audioSupport'
 import { OfflineFilesStore } from '@/offline/OfflineFilesStore'
 import { FileSystemRepo } from '@/offline/FileSystemRepo'
@@ -401,6 +403,7 @@ export default function PreviewScreen() {
   // Unsupported types: download then native intent, then back.
   useEffect(() => {
     if (!client || !file || kind !== 'unsupported' || fallbackTriggered.current) return
+    if (localViewerFor(file)) return
     fallbackTriggered.current = true
     void (async () => {
       try {
@@ -424,6 +427,16 @@ export default function PreviewScreen() {
   const title = file?.name ?? t('drive.preview.title')
 
   const renderViewer = (): React.ReactElement => {
+    // Types with a local viewer are read from the bytes the app has, so they
+    // open with no network and never touch the web editor to be read.
+    if (file && localViewerFor(file)) {
+      return (
+        <DocumentViewer
+          file={{ _id: file._id, _rev: file._rev, name: file.name, mime: file.mime }}
+          driveId={driveId}
+        />
+      )
+    }
     if (!source) return <LoadingState />
     switch (kind) {
       case 'pdf':

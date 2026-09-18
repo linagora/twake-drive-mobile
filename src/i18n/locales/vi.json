@@ -247,7 +247,11 @@
       "drives": "Drive",
       "driveFileSyncing": "Tài liệu này đang được đồng bộ, hãy thử lại sau giây lát"
     },
-    "emptySharedByMe": "Bạn chưa chia sẻ tệp nào"
+    "emptySharedByMe": "Bạn chưa chia sẻ tệp nào",
+    "viewer": {
+      "edit": "Chỉnh sửa",
+      "unavailableOffline": "Tài liệu này không khả dụng khi ngoại tuyến"
+    }
   },
   "a11y": {
     "listView": "Xem dạng danh sách",
