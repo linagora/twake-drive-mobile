@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useContext, useMemo, useRef, useState } from 'react'
 import { FlatList, RefreshControl, StyleSheet, View } from 'react-native'
 import { SegmentedButtons, Snackbar } from 'react-native-paper'
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router'
@@ -27,6 +27,8 @@ import {
   FileQueryResult
 } from '@/client/queries'
 import { useSharedFileIds } from '@/client/useSharedFiles'
+import { SharingContext } from '@/sharing/SharingProvider'
+import { sharedFileLastUpdatedAt } from '@/sharing/lastUpdatedAt'
 import { useSharedDrives } from '@/files/useSharedDrives'
 import { registerSharedDrive } from '@/files/sharedDriveReplication'
 import { querySharedDriveFile, SharedDriveEntry } from '@/files/sharedDrives'
@@ -75,6 +77,7 @@ export default function SharedScreen() {
   const safeCurrentDirId = isRoot ? 'io.cozy.files.root-dir' : path![path!.length - 1]
 
   const { sort } = useFolderSort()
+  const sharingContext = useContext(SharingContext)
   const { drives, refresh: refreshDrives } = useSharedDrives()
   const sharedIds = useSharedFileIds(tab === 'by-me' ? 'by-me' : 'with-me')
   const sharedFilesQuery = useQuery(filesByIdsQuery(sharedIds.ids), {
@@ -209,18 +212,22 @@ export default function SharedScreen() {
   }): React.ReactElement | null => {
     if (item.drive) {
       const drive = item.drive
-      // A drive whose root is a single file is a document, not a folder. Its
-      // content lives on the owner's instance and the viewers still resolve
-      // files on ours, so opening it is not there yet (see #207).
+      // The listing knows a drive's name and, for a file root, its mime — the
+      // size and the dates are not part of it (linagora/cozy-stack#4930). When
+      // the user also has the document itself, it is what the row is built on.
+      const document = item.file
+      // A drive whose root is a single file is a document, not a folder.
       if (drive.rootType === 'file') {
         return (
           <FileRow
             file={{
-              ...({
-                _id: drive.rootFolderId ?? drive.driveId,
-                name: drive.name
-              } as unknown as FileQueryResult),
-              size: null
+              ...(document ??
+                ({
+                  _id: drive.rootFolderId ?? drive.driveId,
+                  name: drive.name,
+                  mime: drive.mime
+                } as unknown as FileQueryResult)),
+              size: document?.size ?? null
             }}
             onPress={() => void onDriveFilePress(drive)}
             driveId={drive.owner ? undefined : drive.driveId}
@@ -229,7 +236,7 @@ export default function SharedScreen() {
       }
       return (
         <FolderRow
-          folder={{ _id: drive.driveId, name: drive.name }}
+          folder={document ?? { _id: drive.driveId, name: drive.name }}
           onPress={() => onDrivePress(drive)}
         />
       )
@@ -256,9 +263,10 @@ export default function SharedScreen() {
         drives: isRoot ? drives : [],
         tab,
         sortAttr: sort.attr,
-        sortDir: sort.dir
+        sortDir: sort.dir,
+        getFileDate: file => sharedFileLastUpdatedAt(file, sharingContext.byId.get(file._id))
       }),
-    [data, drives, isRoot, sort.attr, sort.dir, tab]
+    [data, drives, isRoot, sharingContext.byId, sort.attr, sort.dir, tab]
   )
 
   const showsDrives = isRoot && tab === 'drives'
