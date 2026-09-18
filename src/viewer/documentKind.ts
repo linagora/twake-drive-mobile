@@ -20,10 +20,14 @@ export const viewerKindOf = (file: ViewableDocument): ViewerKind | null => {
 }
 
 /** The viewers that render something today; the others are still being built. */
-const IMPLEMENTED: ViewerKind[] = ['markdown', 'note', 'docsNote', 'office']
+const IMPLEMENTED: ViewerKind[] = ['markdown', 'note', 'docsNote', 'office', 'excalidraw']
 
 /** Whether the app renders the document itself or hands it to the OS viewer. */
 export const rendersInApp = (kind: ViewerKind): boolean => kind !== 'office'
+
+/** The types the app draws from the document's own bytes. */
+export const isMarkdownKind = (kind: ViewerKind): boolean =>
+  kind === 'markdown' || kind === 'note' || kind === 'docsNote'
 
 /**
  * The local viewer to open a document with, or null to leave it to the web
