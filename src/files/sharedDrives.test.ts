@@ -1,154 +1,103 @@
-import { fetchSharedDriveFolder, fetchSharedDrives } from './sharedDrives'
+import { fetchSharedDrives, querySharedDriveFolder, toSharedDriveEntry } from './sharedDrives'
 
 const buildClient = (
-  queryResponse: unknown,
-  collectionGetResponse?: unknown
+  drives: unknown[],
+  folderDoc: unknown = null,
+  children: unknown[] = []
 ): {
   client: never
+  fetchSharedDrivesMock: jest.Mock
   query: jest.Mock
-  collectionGet: jest.Mock
-  collection: jest.Mock
+  queryAll: jest.Mock
 } => {
-  const query = jest.fn().mockResolvedValue(queryResponse)
-  const collectionGet = jest.fn().mockResolvedValue(collectionGetResponse)
-  const collection = jest.fn(() => ({ get: collectionGet }))
+  const fetchSharedDrivesMock = jest.fn().mockResolvedValue({ data: drives })
+  const query = jest.fn().mockResolvedValue({ data: folderDoc })
+  const queryAll = jest.fn().mockResolvedValue(children)
   return {
-    client: { query, getStackClient: () => ({ collection }) } as never,
+    client: {
+      query,
+      queryAll,
+      getStackClient: () => ({
+        collection: () => ({ fetchSharedDrives: fetchSharedDrivesMock })
+      })
+    } as never,
+    fetchSharedDrivesMock,
     query,
-    collectionGet,
-    collection
+    queryAll
   }
 }
 
 describe('fetchSharedDrives', () => {
-  it('queries io.cozy.files inside shared-drives-dir and maps shortcuts to drives', async () => {
-    const { client, query } = buildClient({
-      data: [
-        {
-          _id: 'shortcut-1',
-          _type: 'io.cozy.files',
-          name: 'Marketing.url',
-          type: 'file',
-          class: 'shortcut',
-          metadata: { target: { _id: 'root-folder-A' } },
-          relationships: {
-            referenced_by: { data: [{ id: 'sharing-A', type: 'io.cozy.sharings' }] }
-          }
-        }
-      ]
-    })
-    const drives = await fetchSharedDrives(client)
-    expect(drives).toEqual([
+  it('maps the sharings from GET /sharings/drives', async () => {
+    const { client } = buildClient([
       {
-        shortcutId: 'shortcut-1',
-        driveId: 'sharing-A',
-        rootFolderId: 'root-folder-A',
-        name: 'Marketing'
+        _id: 'sharing-A',
+        description: 'Marketing',
+        owner: false,
+        rules: [{ values: ['root-folder-A'] }]
       }
     ])
-    const definition = query.mock.calls[0][0]
-    expect(definition.doctype).toBe('io.cozy.files')
-    expect(definition.selector).toMatchObject({ dir_id: 'io.cozy.files.shared-drives-dir' })
+    expect(await fetchSharedDrives(client)).toEqual([
+      { driveId: 'sharing-A', name: 'Marketing', rootFolderId: 'root-folder-A', owner: false }
+    ])
   })
 
-  it('keeps every shortcut even when driveId/rootFolderId are missing (resolved lazily on tap)', async () => {
-    const { client } = buildClient({
-      data: [
-        // not a shortcut — must be filtered out (e.g. system trash entry)
-        { _id: 'a', name: 'plain.txt', class: 'text', type: 'file' },
-        {
-          _id: 'b',
-          name: 'Orphan.url',
-          class: 'shortcut',
-          metadata: { target: { _id: 'root-b' } }
-        },
-        {
-          _id: 'c',
-          name: 'NoTarget.url',
-          class: 'shortcut',
-          relationships: { referenced_by: { data: [{ id: 'sh-c' }] } }
-        },
-        {
-          _id: 'd',
-          name: 'Engineering.url',
-          class: 'shortcut',
-          metadata: { target: { _id: 'root-d' } },
-          relationships: { referenced_by: { data: [{ id: 'sh-d' }] } }
-        }
-      ]
-    })
-    const drives = await fetchSharedDrives(client)
-    expect(drives.map(d => d.shortcutId)).toEqual(['b', 'c', 'd'])
-    expect(drives[0]).toMatchObject({ driveId: null, rootFolderId: 'root-b' })
-    expect(drives[1]).toMatchObject({ driveId: 'sh-c', rootFolderId: null })
-    expect(drives[2]).toMatchObject({
-      driveId: 'sh-d',
-      rootFolderId: 'root-d',
-      name: 'Engineering'
+  it('reads a sharing served with its attributes nested', () => {
+    expect(
+      toSharedDriveEntry({
+        id: 'sharing-B',
+        attributes: { description: 'Legal', owner: true, rules: [{ values: ['root-folder-B'] }] }
+      })
+    ).toEqual({
+      driveId: 'sharing-B',
+      name: 'Legal',
+      rootFolderId: 'root-folder-B',
+      owner: true
     })
   })
 
-  it('reads metadata.target / relationships from JSON-API attributes when not normalized', async () => {
-    const { client } = buildClient({
-      data: [
-        {
-          _id: 'jsonapi-1',
-          attributes: {
-            name: 'Marketing.url',
-            class: 'shortcut',
-            metadata: { target: { _id: 'root-Z' } },
-            relationships: { referenced_by: { data: [{ id: 'sh-Z' }] } }
-          }
-        }
-      ]
-    })
-    const drives = await fetchSharedDrives(client)
-    expect(drives[0]).toMatchObject({
-      shortcutId: 'jsonapi-1',
-      driveId: 'sh-Z',
-      rootFolderId: 'root-Z',
-      name: 'Marketing'
-    })
+  it('drops a sharing with no id', () => {
+    expect(toSharedDriveEntry({ description: 'Nameless' })).toBeNull()
   })
 
-  it('keeps the original name when stripping .url leaves it empty', async () => {
-    const { client } = buildClient({
-      data: [
-        {
-          _id: 'a',
-          name: '.url',
-          class: 'shortcut',
-          metadata: { target: { _id: 'root' } },
-          relationships: { referenced_by: { data: [{ id: 'sh' }] } }
-        }
-      ]
-    })
-    const drives = await fetchSharedDrives(client)
-    expect(drives[0].name).toBe('.url')
+  it('leaves rootFolderId null when the sharing carries no rule', () => {
+    expect(toSharedDriveEntry({ _id: 'sharing-C', description: 'Empty' })?.rootFolderId).toBeNull()
   })
 })
 
-describe('fetchSharedDriveFolder', () => {
-  it('opens FileCollection with driveId and calls .get(folderId)', async () => {
-    const { client, collection, collectionGet } = buildClient(undefined, {
-      data: { _id: 'folder-1', attributes: { name: 'Shared Folder' } },
-      included: [
-        { _id: 'child-a', name: 'a.txt', type: 'file', class: 'text' },
-        { _id: 'child-b', name: 'sub', type: 'directory' }
-      ]
-    })
-    const result = await fetchSharedDriveFolder(client, 'sharing-A', 'folder-1')
-    expect(collection).toHaveBeenCalledWith('io.cozy.files', { driveId: 'sharing-A' })
-    expect(collectionGet).toHaveBeenCalledWith('folder-1')
-    expect(result.folder).toEqual({ _id: 'folder-1', name: 'Shared Folder' })
-    expect(result.children).toHaveLength(2)
-    expect(result.children[0]._id).toBe('child-a')
+describe('querySharedDriveFolder', () => {
+  it('scopes the queries to the drive the user is a recipient of', async () => {
+    const { client, query, queryAll } = buildClient([], { _id: 'folder-1', name: 'Reports' }, [
+      { _id: 'file-1', name: 'a.pdf', type: 'file' }
+    ])
+    const res = await querySharedDriveFolder(
+      client,
+      { driveId: 'sharing-A', owner: false },
+      'folder-1'
+    )
+
+    expect(query.mock.calls[0][1]).toMatchObject({ driveId: 'sharing-A' })
+    expect(queryAll.mock.calls[0][1]).toMatchObject({ driveId: 'sharing-A' })
+    expect(res.folder).toEqual({ _id: 'folder-1', name: 'Reports' })
+    expect(res.children).toHaveLength(1)
   })
 
-  it('returns empty children array when included is missing', async () => {
-    const { client } = buildClient(undefined, { data: { _id: 'f', name: 'F' } })
-    const result = await fetchSharedDriveFolder(client, 'sh', 'f')
-    expect(result.children).toEqual([])
-    expect(result.folder).toEqual({ _id: 'f', name: 'F' })
+  it('reads a drive the user owns from their own replica, with no drive scope', async () => {
+    const { client, query, queryAll } = buildClient([], { _id: 'folder-2', name: 'Mine' }, [])
+    await querySharedDriveFolder(client, { driveId: 'sharing-B', owner: true }, 'folder-2')
+
+    expect(query.mock.calls[0][1]).not.toHaveProperty('driveId')
+    expect(queryAll.mock.calls[0][1]).not.toHaveProperty('driveId')
+  })
+
+  it('survives a folder the local replica does not hold yet', async () => {
+    const { client } = buildClient([], null, [])
+    const res = await querySharedDriveFolder(
+      client,
+      { driveId: 'sharing-A', owner: false },
+      'folder-3'
+    )
+    expect(res.folder).toBeNull()
+    expect(res.children).toEqual([])
   })
 })
