@@ -12,7 +12,7 @@ import { useIsOnline } from '@/network/useIsOnline'
 import { isCozyNoteFile, isDocsNoteFile, isOfficeFile } from '@/files/fileTypes'
 import { MarkdownView } from './markdown/MarkdownView'
 import { OFFLINE_ERROR, readDocumentBytes } from './documentBytes'
-import { readNoteContent } from './noteBlob'
+import { readNoteContent, resolveNoteImage } from './noteBlob'
 import { hasWebEditor } from './documentKind'
 
 export interface DocumentViewerFile {
@@ -109,9 +109,9 @@ export const DocumentViewer = ({ file, driveId }: Props): React.ReactElement => 
       <MarkdownView
         markdown={markdown}
         testID="document-viewer"
-        resolveImage={src => {
-          const image = images.get(src.replace(/^\.\//, ''))
-          return image ? toDataUri(image, src) : undefined
+        resolveImage={image => {
+          const bytes = resolveNoteImage(images, image)
+          return bytes ? toDataUri(bytes.content, bytes.name) : undefined
         }}
       />
       {route && hasWebEditor(file) ? (
