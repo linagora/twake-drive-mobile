@@ -169,7 +169,8 @@
       "sheet": "Bảng tính",
       "slide": "Bản trình bày",
       "excalidraw": "Excalidraw",
-      "shortcut": "Lối tắt"
+      "shortcut": "Lối tắt",
+      "open": "Tạo"
     },
     "createShortcut": {
       "title": "Lối tắt mới",

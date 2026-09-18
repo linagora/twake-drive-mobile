@@ -506,6 +506,9 @@ export const FilesScreen = ({ basePath }: FilesScreenProps): React.ReactElement 
         open={fabOpen}
         visible={!selection.isSelecting && isOnline}
         icon={fabOpen ? 'close' : 'plus'}
+        // The app's main action carries only an icon: without a label a screen
+        // reader announces it as "Button".
+        accessibilityLabel={t(fabOpen ? 'common.close' : 'drive.createMenu.open')}
         actions={fabActions}
         onStateChange={({ open }) => setFabOpen(open)}
       />

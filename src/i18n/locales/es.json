@@ -181,7 +181,8 @@
       "sheet": "Hoja de cálculo",
       "slide": "Presentación",
       "excalidraw": "Excalidraw",
-      "shortcut": "Acceso directo"
+      "shortcut": "Acceso directo",
+      "open": "Crear"
     },
     "createShortcut": {
       "title": "Nuevo acceso directo",

@@ -181,7 +181,8 @@
       "sheet": "Foglio di calcolo",
       "slide": "Presentazione",
       "excalidraw": "Excalidraw",
-      "shortcut": "Scorciatoia"
+      "shortcut": "Scorciatoia",
+      "open": "Crea"
     },
     "createShortcut": {
       "title": "Nuova scorciatoia",

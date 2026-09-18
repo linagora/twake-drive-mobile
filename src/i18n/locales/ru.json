@@ -187,7 +187,8 @@
       "sheet": "Таблица",
       "slide": "Презентация",
       "excalidraw": "Excalidraw",
-      "shortcut": "Ярлык"
+      "shortcut": "Ярлык",
+      "open": "Создать"
     },
     "createShortcut": {
       "title": "Новый ярлык",

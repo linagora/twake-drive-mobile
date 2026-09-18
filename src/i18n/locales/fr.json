@@ -181,7 +181,8 @@
       "sheet": "Tableur",
       "slide": "Présentation",
       "excalidraw": "Excalidraw",
-      "shortcut": "Raccourci"
+      "shortcut": "Raccourci",
+      "open": "Créer"
     },
     "createShortcut": {
       "title": "Nouveau raccourci",
