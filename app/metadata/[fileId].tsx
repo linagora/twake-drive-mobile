@@ -24,6 +24,7 @@ import { fileByIdQuery, fileByIdQueryAs, FileQueryResult } from '@/client/querie
 import { useIsOnline } from '@/network/useIsOnline'
 import { useOfflineState } from '@/offline/useOfflineState'
 import { useOfflineActions } from '@/offline/useOfflineActions'
+import { isKeepOfflineEnabled } from '@/offline/keepOfflineFlag'
 import { FileSystemRepo } from '@/offline/FileSystemRepo'
 
 // Brief delay so the success snackbar is visible before the modal dismisses.
@@ -60,6 +61,7 @@ export default function MetadataRoute() {
 
   const offlineEntry = useOfflineState(fileId ?? undefined)
   const { pin, unpin } = useOfflineActions()
+  const keepOfflineEnabled = isKeepOfflineEnabled()
   const isPinned = !!offlineEntry
   const togglePin = (): void => {
     if (!file) return
@@ -210,15 +212,23 @@ export default function MetadataRoute() {
               {file.name}
             </Text>
           </View>
-          <Divider />
-          <View style={styles.toggleRow}>
-            <Text style={styles.toggleLabel}>{t('drive.offline.keepOffline')}</Text>
-            <Switch value={isPinned} onValueChange={togglePin} disabled={!isPinned && !isOnline} />
-          </View>
-          {!isPinned && !isOnline ? (
-            <Text style={[styles.toggleHelper, { color: theme.colors.outline }]}>
-              {t('drive.offline.disabledOffline')}
-            </Text>
+          {keepOfflineEnabled ? (
+            <>
+              <Divider />
+              <View style={styles.toggleRow}>
+                <Text style={styles.toggleLabel}>{t('drive.offline.keepOffline')}</Text>
+                <Switch
+                  value={isPinned}
+                  onValueChange={togglePin}
+                  disabled={!isPinned && !isOnline}
+                />
+              </View>
+              {!isPinned && !isOnline ? (
+                <Text style={[styles.toggleHelper, { color: theme.colors.outline }]}>
+                  {t('drive.offline.disabledOffline')}
+                </Text>
+              ) : null}
+            </>
           ) : null}
           <Divider />
           <Row label={t('drive.fileMeta.type')} value={file.mime ?? '—'} />

@@ -1,3 +1,9 @@
+const mockFlag = jest.fn()
+jest.mock('cozy-flags', () => ({
+  __esModule: true,
+  default: (name: string) => mockFlag(name)
+}))
+
 import React from 'react'
 import { Provider as PaperProvider } from 'react-native-paper'
 import { fireEvent, render, screen } from '@testing-library/react-native'
@@ -48,6 +54,8 @@ afterEach(() => {
 })
 
 describe('FileRow', () => {
+  beforeEach(() => mockFlag.mockReturnValue(undefined))
+
   it('renders the file name', () => {
     render(wrap(<FileRow file={file} onPress={() => {}} />))
     expect(screen.getByText('rapport.pdf')).toBeOnTheScreen()
@@ -63,6 +71,12 @@ describe('FileRow', () => {
   it('renders a 3-dot menu trigger when onTogglePin is provided', () => {
     render(wrap(<FileRow file={file} onPress={jest.fn()} onTogglePin={jest.fn()} />))
     expect(screen.getByTestId('file-actions')).toBeOnTheScreen()
+  })
+
+  it('drops the menu when keep-offline is off and it was its only action', () => {
+    mockFlag.mockReturnValue(false)
+    render(wrap(<FileRow file={file} onPress={jest.fn()} onTogglePin={jest.fn()} />))
+    expect(screen.queryByTestId('file-actions')).toBeNull()
   })
 
   it('exposes testIDs for Maestro selection', () => {

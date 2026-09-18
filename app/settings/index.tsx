@@ -14,8 +14,10 @@ import { getLocalePreference, LOCALE_SYSTEM } from '@/preferences/localePreferen
 import { localeDisplayName } from '@/i18n/localeNames'
 import { useThemePreference, ThemePref } from '@/preferences/themePreference'
 import { useAuth } from '@/auth/useAuth'
+import { isKeepOfflineEnabled } from '@/offline/keepOfflineFlag'
 
 export default function SettingsIndex(): React.ReactElement {
+  const keepOfflineEnabled = isKeepOfflineEnabled()
   const { t } = useTranslation()
   const router = useRouter()
   const { name, email, initials } = useCurrentUser()
@@ -50,13 +52,15 @@ export default function SettingsIndex(): React.ReactElement {
             trailing="chevron"
             onPress={() => router.push('/settings/language')}
           />
-          <SettingsRow
-            testID="settings-offline-storage"
-            title={t('drive.offline.storageTitle')}
-            icon="download"
-            trailing="chevron"
-            onPress={() => router.push('/settings/offline-storage')}
-          />
+          {keepOfflineEnabled ? (
+            <SettingsRow
+              testID="settings-offline-storage"
+              title={t('drive.offline.storageTitle')}
+              icon="download"
+              trailing="chevron"
+              onPress={() => router.push('/settings/offline-storage')}
+            />
+          ) : null}
         </SettingsSection>
 
         <SettingsSection title={t('settings.theme')}>

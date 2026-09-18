@@ -1,3 +1,9 @@
+const mockFlag = jest.fn()
+jest.mock('cozy-flags', () => ({
+  __esModule: true,
+  default: (name: string) => mockFlag(name)
+}))
+
 import React from 'react'
 import { Provider as PaperProvider } from 'react-native-paper'
 import { fireEvent, render, screen } from '@testing-library/react-native'
@@ -46,6 +52,8 @@ afterEach(() => {
 })
 
 describe('FolderRow', () => {
+  beforeEach(() => mockFlag.mockReturnValue(undefined))
+
   it('renders the folder name', () => {
     render(wrap(<FolderRow folder={folder} onPress={() => {}} />))
     expect(screen.getByText('Documents')).toBeOnTheScreen()
@@ -61,6 +69,12 @@ describe('FolderRow', () => {
   it('renders a 3-dot menu trigger when onTogglePin is provided', () => {
     render(wrap(<FolderRow folder={folder} onPress={jest.fn()} onTogglePin={jest.fn()} />))
     expect(screen.getByTestId('folder-actions:Documents')).toBeOnTheScreen()
+  })
+
+  it('drops the menu when keep-offline is off and it was its only action', () => {
+    mockFlag.mockReturnValue(false)
+    render(wrap(<FolderRow folder={folder} onPress={jest.fn()} onTogglePin={jest.fn()} />))
+    expect(screen.queryByTestId('folder-actions:Documents')).toBeNull()
   })
 
   it('exposes testIDs for Maestro selection', () => {

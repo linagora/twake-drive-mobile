@@ -6,6 +6,7 @@ import { useClient } from 'cozy-client'
 import { CozyIcon } from '@/ui/icons/CozyIcon'
 import { useIsOnline } from '@/network/useIsOnline'
 import { useOfflineState } from '@/offline/useOfflineState'
+import { isKeepOfflineEnabled } from '@/offline/keepOfflineFlag'
 import { isFavorite, toggleFavorite } from '@/files/favorites'
 import { download } from '@/files/download'
 import { triggerPouchReplication } from '@/pouchdb/triggerReplication'
@@ -64,7 +65,7 @@ export const FileActionsMenu = ({
         />
       }
     >
-      {onTogglePin ? (
+      {onTogglePin && isKeepOfflineEnabled() ? (
         <Menu.Item
           leadingIcon={() => <CozyIcon name="cloud2" size={24} color={theme.colors.onSurface} />}
           title={t(isDirectPin ? 'drive.offline.unpin' : 'drive.offline.pin')}
@@ -187,6 +188,6 @@ export const hasFileActions = (props: Omit<Props, 'file' | 'testID'>): boolean =
   !!props.onRename ||
   !!props.onRestore ||
   !!props.onDelete ||
-  !!props.onTogglePin ||
+  (!!props.onTogglePin && isKeepOfflineEnabled()) ||
   !!props.onMove ||
   !!props.onInfo

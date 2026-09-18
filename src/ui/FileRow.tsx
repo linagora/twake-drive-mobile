@@ -16,7 +16,7 @@ import { isFavorite, toggleFavorite } from '@/files/favorites'
 import { download } from '@/files/download'
 import { triggerPouchReplication } from '@/pouchdb/triggerReplication'
 import { FileThumbnail } from './FileThumbnail'
-import { FileActionsMenu } from './FileActionsMenu'
+import { FileActionsMenu, hasFileActions } from './FileActionsMenu'
 import { SharedBadge } from './SharedBadge'
 
 export interface FileItem {
@@ -96,13 +96,7 @@ export const FileRow = ({
   const description = offlineDescription ?? (date ? `${size} · ${date}` : size)
   const sharingStatus = useFileSharingStatus(file._id)
   const hasMenu =
-    (!!onShare ||
-      !!onRename ||
-      !!onRestore ||
-      !!onDelete ||
-      !!onTogglePin ||
-      !!onMove ||
-      !!onInfo) &&
+    hasFileActions({ onShare, onRename, onRestore, onDelete, onTogglePin, onMove, onInfo }) &&
     !selected
 
   return (
