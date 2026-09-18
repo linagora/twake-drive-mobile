@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react'
-import { FlatList, Linking, RefreshControl, StyleSheet, View } from 'react-native'
+import { FlatList, RefreshControl, StyleSheet, View } from 'react-native'
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router'
 import { useClient } from 'cozy-client'
 import { useTranslation } from 'react-i18next'
@@ -15,12 +15,13 @@ import { FileRow } from '@/ui/FileRow'
 import { FolderRow } from '@/ui/FolderRow'
 import { useAuth } from '@/auth/useAuth'
 import { getErrorMessageKey } from '@/utils/errorMessages'
+import { querySharedDriveFolder, SharedDriveEntry } from '@/files/sharedDrives'
 import {
-  fetchSharedDriveFolder,
-  fetchSharedDrives,
-  resolveSharedDriveTarget,
-  SharedDriveEntry
-} from '@/files/sharedDrives'
+  getCachedSharedDrives,
+  registerSharedDrive,
+  syncSharedDrives
+} from '@/files/sharedDriveReplication'
+import { useIsOnline } from '@/network/useIsOnline'
 import { FileQueryResult } from '@/client/queries'
 import { useOfflineActions } from '@/offline/useOfflineActions'
 import { OfflineFilesStore } from '@/offline/OfflineFilesStore'
@@ -101,7 +102,11 @@ export default function SharedDrivesScreen() {
   const driveId = path[0]
   const currentFolderId = path[path.length - 1]
 
-  const [drives, setDrives] = useState<SharedDriveEntry[] | null>(null)
+  const isOnline = useIsOnline()
+  const [drives, setDrives] = useState<SharedDriveEntry[] | null>(() => {
+    const cached = getCachedSharedDrives()
+    return cached.length > 0 ? cached : null
+  })
   const [drivesError, setDrivesError] = useState<unknown>(null)
   const [drivesLoading, setDrivesLoading] = useState(false)
 
@@ -110,35 +115,47 @@ export default function SharedDrivesScreen() {
   const [folderError, setFolderError] = useState<unknown>(null)
   const [folderLoading, setFolderLoading] = useState(false)
 
+  const currentDrive = (drives ?? []).find(drive => drive.driveId === driveId)
+
   const reloadDrives = useCallback(async () => {
     if (!client) return
+    // The listing is a stack call: offline, the last one is all there is, and
+    // it is enough to browse what already replicated.
+    if (!isOnline) {
+      setDrives(getCachedSharedDrives())
+      return
+    }
     setDrivesLoading(true)
     setDrivesError(null)
     try {
-      setDrives(await fetchSharedDrives(client))
+      setDrives(await syncSharedDrives(client))
     } catch (e) {
-      console.error('[SharedDrives] fetchSharedDrives failed', e)
-      setDrivesError(e)
+      console.error('[SharedDrives] syncSharedDrives failed', e)
+      const cached = getCachedSharedDrives()
+      if (cached.length > 0) setDrives(cached)
+      else setDrivesError(e)
     } finally {
       setDrivesLoading(false)
     }
-  }, [client])
+  }, [client, isOnline])
 
   const reloadFolder = useCallback(async () => {
     if (!client || !driveId || !currentFolderId) return
     setFolderLoading(true)
     setFolderError(null)
     try {
-      const res = await fetchSharedDriveFolder(client, driveId, currentFolderId)
-      setFolder({ name: res.folder.name })
-      setChildren(res.children.map(c => normalizeChild(c as Record<string, unknown>)))
+      const entry = { driveId, owner: currentDrive?.owner === true }
+      if (!entry.owner) await registerSharedDrive(client, driveId)
+      const res = await querySharedDriveFolder(client, entry, currentFolderId)
+      if (res.folder) setFolder({ name: res.folder.name })
+      setChildren(res.children.map(c => normalizeChild(c as unknown as Record<string, unknown>)))
     } catch (e) {
-      console.error('[SharedDrives] fetchSharedDriveFolder failed', e)
+      console.error('[SharedDrives] querySharedDriveFolder failed', e)
       setFolderError(e)
     } finally {
       setFolderLoading(false)
     }
-  }, [client, driveId, currentFolderId])
+  }, [client, driveId, currentFolderId, currentDrive?.owner])
 
   useFocusEffect(
     useCallback(() => {
@@ -158,43 +175,19 @@ export default function SharedDrivesScreen() {
   }, [isRoot, reloadDrives, reloadFolder])
 
   const onDrivePress = useCallback(
-    async (entry: SharedDriveEntry) => {
-      let driveId = entry.driveId
-      let rootFolderId = entry.rootFolderId
-      let url: string | null = null
-
-      if (!driveId || !rootFolderId) {
-        if (!client) return
-        try {
-          const resolved = await resolveSharedDriveTarget(client, entry.shortcutId)
-          driveId = driveId ?? resolved.driveId
-          rootFolderId = rootFolderId ?? resolved.rootFolderId
-          url = resolved.url
-        } catch (e) {
-          console.error('[SharedDrives] resolveSharedDriveTarget failed', e)
-          setResolveError(t('errors.generic'))
-          return
-        }
-      }
-
-      if (driveId && rootFolderId) {
-        guardedPush(`/(drive)/shareddrives/${driveId}/${rootFolderId}`)
+    (entry: SharedDriveEntry) => {
+      if (!entry.rootFolderId) {
+        console.error('[SharedDrives] drive without a root folder', entry.driveId)
+        setResolveError(t('errors.generic'))
         return
       }
-      if (url) {
-        await Linking.openURL(url)
-        return
-      }
-      setResolveError(t('errors.generic'))
+      guardedPush(`/(drive)/shareddrives/${entry.driveId}/${entry.rootFolderId}`)
     },
-    [client, router, t]
+    [guardedPush, t]
   )
 
   const renderDrive = ({ item }: { item: SharedDriveEntry }) => (
-    <FolderRow
-      folder={{ _id: item.shortcutId, name: item.name }}
-      onPress={() => void onDrivePress(item)}
-    />
+    <FolderRow folder={{ _id: item.driveId, name: item.name }} onPress={() => onDrivePress(item)} />
   )
 
   const renderChild = ({ item }: { item: DriveChild }) => {
@@ -231,7 +224,9 @@ export default function SharedDrivesScreen() {
   const hasFailed = isRoot ? !!drivesError : !!folderError
   const errorObj = isRoot ? drivesError : folderError
   const dataLength = isRoot ? (drives?.length ?? 0) : (children?.length ?? 0)
-  const title = isRoot ? t('drive.sharedDrives') : (folder?.name ?? '')
+  // The drive's own root folder is not part of what replicates, so its name
+  // comes from the drive listing.
+  const title = isRoot ? t('drive.sharedDrives') : (folder?.name ?? currentDrive?.name ?? '')
 
   return (
     <ScreenContainer>
@@ -252,7 +247,7 @@ export default function SharedDrivesScreen() {
       ) : isRoot ? (
         <FlatList
           data={drives ?? []}
-          keyExtractor={item => item.shortcutId}
+          keyExtractor={item => item.driveId}
           renderItem={renderDrive}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         />
