@@ -1,4 +1,4 @@
-import { isTar, readNoteContent, readTarEntries } from './noteBlob'
+import { isTar, readNoteContent, readTarEntries, resolveNoteImage } from './noteBlob'
 
 const encoder = new TextEncoder()
 
@@ -87,5 +87,34 @@ describe('readTarEntries', () => {
         ])
       ).keys()
     ]).toEqual(['a.md', 'b.png'])
+  })
+})
+
+describe('resolveNoteImage', () => {
+  const images = new Map([
+    ['Capture decran 2025-10-07 a 16.30.06.png', encoder.encode('PNG1')],
+    ['schema.png', encoder.encode('PNG2')]
+  ])
+
+  it('matches the image on the file name the alt text carries, accents aside', () => {
+    const image = resolveNoteImage(images, {
+      src: 'noteid/imageid',
+      alt: 'Capture d’écran 2025-10-07 à 16.30.06.png',
+      index: 1
+    })
+    expect(image?.name).toBe('Capture decran 2025-10-07 a 16.30.06.png')
+  })
+
+  it('falls back on the rank of the image when no name matches', () => {
+    const image = resolveNoteImage(images, { src: 'noteid/other', alt: '', index: 1 })
+    expect(image?.name).toBe('schema.png')
+  })
+
+  it('has nothing to give when the note carries no image', () => {
+    expect(resolveNoteImage(new Map(), { src: 'a', alt: 'b', index: 0 })).toBeNull()
+  })
+
+  it('has nothing to give when the rank is past what the note carries', () => {
+    expect(resolveNoteImage(images, { src: 'a', alt: 'nope.png', index: 5 })).toBeNull()
   })
 })

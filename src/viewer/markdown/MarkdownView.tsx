@@ -8,11 +8,20 @@ import { cozyTokens } from '@/ui/theme'
 
 const md = new MarkdownIt({ html: false, linkify: true, breaks: true })
 
+export interface MarkdownImage {
+  /** What the document points at, which for a note is `<noteId>/<imageId>`. */
+  src: string
+  /** The alt text, which for a note is the image's original file name. */
+  alt: string
+  /** Rank of the image in the document, to fall back on when nothing matches. */
+  index: number
+}
+
 export interface MarkdownViewProps {
   markdown: string
-  /** Turns an image path of the document into something Image can load, e.g. a
-   *  data URI built from the images a note carries. */
-  resolveImage?: (src: string) => string | undefined
+  /** Turns an image of the document into something Image can load, e.g. a data
+   *  URI built from the images a note carries. */
+  resolveImage?: (image: MarkdownImage) => string | undefined
   testID?: string
 }
 
@@ -46,6 +55,8 @@ export const MarkdownView = ({
 }: MarkdownViewProps): React.ReactElement => {
   const theme = useTheme()
   const tokens = useMemo(() => md.parse(markdown, {}), [markdown])
+
+  let imageCount = 0
 
   const renderInline = (children: Token[], keyPrefix: string): React.ReactNode[] => {
     const nodes: React.ReactNode[] = []
@@ -87,7 +98,7 @@ export const MarkdownView = ({
           break
         case 'image': {
           const src = token.attrGet('src') ?? ''
-          const uri = resolveImage?.(src) ?? src
+          const uri = resolveImage?.({ src, alt: token.content, index: imageCount++ }) ?? src
           nodes.push(
             <Image
               key={key}

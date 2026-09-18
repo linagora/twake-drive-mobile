@@ -5,7 +5,10 @@ import { PaperProvider } from 'react-native-paper'
 
 import { MarkdownView } from './MarkdownView'
 
-const show = (markdown: string, resolveImage?: (src: string) => string | undefined) =>
+const show = (
+  markdown: string,
+  resolveImage?: (image: { src: string; alt: string; index: number }) => string | undefined
+) =>
   render(
     <PaperProvider>
       <MarkdownView markdown={markdown} resolveImage={resolveImage} />
@@ -50,12 +53,24 @@ describe('MarkdownView', () => {
   })
 
   it('asks the document for the images it carries', () => {
-    show('![alt](photo.png)', src =>
+    show('![alt](photo.png)', ({ src }) =>
       src === 'photo.png' ? 'data:image/png;base64,AAA' : undefined
     )
     expect(screen.UNSAFE_getByType(Image).props.source).toEqual({
       uri: 'data:image/png;base64,AAA'
     })
+  })
+
+  it('hands the resolver the alt text and the rank of each image', () => {
+    const seen: { src: string; alt: string; index: number }[] = []
+    show('![une.png](a/b)\n\n![deux.png](c/d)', image => {
+      seen.push(image)
+      return undefined
+    })
+    expect(seen).toEqual([
+      { src: 'a/b', alt: 'une.png', index: 0 },
+      { src: 'c/d', alt: 'deux.png', index: 1 }
+    ])
   })
 
   it('leaves an image it cannot resolve to its own source', () => {

@@ -61,3 +61,33 @@ export const readNoteContent = (bytes: Uint8Array): NoteContent => {
   }
   return { markdown, images }
 }
+
+/**
+ * The image an `![alt](src)` of a note refers to.
+ *
+ * A note's Markdown points at `<noteId>/<imageId>` while the archive names the
+ * entry after the file itself, so the two never match on the path. The alt text
+ * carries that file name, give or take the accents the archive drops, and the
+ * order of the images is the last resort.
+ */
+export const resolveNoteImage = (
+  images: Map<string, Uint8Array>,
+  image: { src: string; alt: string; index: number }
+): { name: string; content: Uint8Array } | null => {
+  const entries = [...images.entries()]
+  if (entries.length === 0) return null
+
+  const normalize = (value: string): string =>
+    value
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9.]+/g, '')
+
+  const wanted = normalize(image.alt || image.src.split('/').pop() || '')
+  const named = entries.find(([name]) => normalize(name) === wanted)
+  if (named) return { name: named[0], content: named[1] }
+
+  const byOrder = entries[image.index]
+  return byOrder ? { name: byOrder[0], content: byOrder[1] } : null
+}
