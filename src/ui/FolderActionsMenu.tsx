@@ -6,6 +6,7 @@ import { useClient } from 'cozy-client'
 import { CozyIcon } from '@/ui/icons/CozyIcon'
 import { useIsOnline } from '@/network/useIsOnline'
 import { useOfflineFolderState } from '@/offline/useOfflineState'
+import { isKeepOfflineEnabled } from '@/offline/keepOfflineFlag'
 import { isFavorite, toggleFavorite } from '@/files/favorites'
 import { triggerPouchReplication } from '@/pouchdb/triggerReplication'
 import type { FolderItem } from './FolderRow'
@@ -58,7 +59,7 @@ export const FolderActionsMenu = ({
         />
       }
     >
-      {onTogglePin ? (
+      {onTogglePin && isKeepOfflineEnabled() ? (
         <Menu.Item
           leadingIcon={() => <CozyIcon name="cloud2" size={24} color={theme.colors.onSurface} />}
           title={t(isPinned ? 'drive.offline.unpin' : 'drive.offline.pin')}
@@ -162,5 +163,5 @@ export const hasFolderActions = (props: Omit<Props, 'folder' | 'testID'>): boole
   !!props.onRename ||
   !!props.onRestore ||
   !!props.onDelete ||
-  !!props.onTogglePin ||
+  (!!props.onTogglePin && isKeepOfflineEnabled()) ||
   !!props.onMove

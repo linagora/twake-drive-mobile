@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native'
 import { useTheme } from 'react-native-paper'
 import { CozyIcon } from '@/ui/icons/CozyIcon'
 
+import { isKeepOfflineEnabled } from './keepOfflineFlag'
 import { OfflineFileEntry } from './types'
 
 interface Props {
@@ -28,7 +29,7 @@ const iconForState = (state: OfflineFileEntry['state']): string => {
 
 export const PinnedBadge = ({ entry, size = 12, testID }: Props): React.ReactElement | null => {
   const theme = useTheme()
-  if (!entry) return null
+  if (!entry || !isKeepOfflineEnabled()) return null
   const color =
     entry.state === 'failed'
       ? theme.colors.error

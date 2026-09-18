@@ -1,3 +1,9 @@
+const mockFlag = jest.fn()
+jest.mock('cozy-flags', () => ({
+  __esModule: true,
+  default: (name: string) => mockFlag(name)
+}))
+
 import React from 'react'
 import { render } from '@testing-library/react-native'
 import { PaperProvider } from 'react-native-paper'
@@ -22,6 +28,16 @@ const entry = (state: OfflineFileEntry['state']): OfflineFileEntry => ({
 })
 
 describe('PinnedBadge', () => {
+  beforeEach(() => mockFlag.mockReturnValue(undefined))
+
+  it('renders nothing when the instance turned keep-offline off', () => {
+    mockFlag.mockReturnValue(false)
+    const { queryByTestId } = wrap(
+      <PinnedBadge entry={entry('downloaded')} testID="pinned-badge" />
+    )
+    expect(queryByTestId('pinned-badge')).toBeNull()
+  })
+
   it('renders nothing when entry is undefined', () => {
     const { queryByTestId, root } = wrap(<PinnedBadge entry={undefined} testID="pinned-badge" />)
     expect(queryByTestId('pinned-badge')).toBeNull()

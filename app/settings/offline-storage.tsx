@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { ScrollView, View, StyleSheet } from 'react-native'
 import { Button, Switch } from 'react-native-paper'
-import { useRouter } from 'expo-router'
+import { Redirect, useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import { useClient } from 'cozy-client'
 
@@ -15,6 +15,7 @@ import { OfflineFilesStore } from '@/offline/OfflineFilesStore'
 import { FileSystemRepo } from '@/offline/FileSystemRepo'
 import { Downloader } from '@/offline/Downloader'
 import { OfflineSettingsAPI } from '@/offline/offlineSettings'
+import { isKeepOfflineEnabled } from '@/offline/keepOfflineFlag'
 import { reconcileFolderPins } from '@/offline/reconcileFolderPins'
 import { formatFileSize } from '@/utils/formatters'
 import { cozyTokens } from '@/ui/theme'
@@ -84,6 +85,8 @@ export default function OfflineStorageScreen() {
     OfflineFilesStore.update(fileId, e => ({ ...e, retryCount: 0, state: 'pending' }))
     Downloader.enqueue(fileId)
   }
+
+  if (!isKeepOfflineEnabled()) return <Redirect href="/settings" />
 
   return (
     <ScreenContainer>

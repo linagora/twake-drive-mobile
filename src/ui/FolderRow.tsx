@@ -13,7 +13,7 @@ import { PinnedBadge } from '@/offline/PinnedBadge'
 import { folderBadgeEntry } from '@/offline/folderBadgeEntry'
 import { isFavorite, toggleFavorite } from '@/files/favorites'
 import { triggerPouchReplication } from '@/pouchdb/triggerReplication'
-import { FolderActionsMenu } from './FolderActionsMenu'
+import { FolderActionsMenu, hasFolderActions } from './FolderActionsMenu'
 import { SharedBadge } from './SharedBadge'
 
 export interface FolderItem {
@@ -75,7 +75,7 @@ export const FolderRow = ({
   const folderOfflineState = useOfflineFolderState(folder._id)
   const isPinned = folderOfflineState.pinned
   const hasMenu =
-    (!!onShare || !!onRename || !!onRestore || !!onDelete || !!onTogglePin || !!onMove) && !selected
+    hasFolderActions({ onShare, onRename, onRestore, onDelete, onTogglePin, onMove }) && !selected
 
   const description =
     isPinned && folderOfflineState.downloading > 0
