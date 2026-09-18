@@ -252,7 +252,10 @@
       "edit": "Chỉnh sửa",
       "unavailableOffline": "Tài liệu này không khả dụng khi ngoại tuyến",
       "openedWithSystem": "Đã mở trong một ứng dụng trên thiết bị của bạn.",
-      "openAgain": "Mở lại"
+      "openAgain": "Mở lại",
+      "saving": "Đang lưu…",
+      "saved": "Đã lưu",
+      "savedLocally": "Đã lưu trên thiết bị này, sẽ gửi khi có mạng"
     }
   },
   "a11y": {

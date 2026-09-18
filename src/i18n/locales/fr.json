@@ -270,7 +270,10 @@
       "edit": "Modifier",
       "unavailableOffline": "Ce document n'est pas disponible hors-ligne",
       "openedWithSystem": "Ouvert dans une application de votre appareil.",
-      "openAgain": "Ouvrir à nouveau"
+      "openAgain": "Ouvrir à nouveau",
+      "saving": "Enregistrement…",
+      "saved": "Enregistré",
+      "savedLocally": "Enregistré sur cet appareil, envoi dès le retour du réseau"
     }
   },
   "a11y": {

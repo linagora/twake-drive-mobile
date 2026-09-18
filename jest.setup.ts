@@ -63,6 +63,17 @@ jest.mock('expo-clipboard', () => ({
 
 jest.mock('@/pouchdb/pouchdb', () => ({ __esModule: true, default: {} }))
 
+// react-native-blob-util opens a NativeEventEmitter at import time, which has
+// no native module under jest; a suite that only reaches it through an import
+// would fail before running a single test.
+jest.mock('react-native-blob-util', () => ({
+  __esModule: true,
+  default: {
+    fetch: jest.fn().mockResolvedValue({ info: () => ({ status: 200 }), json: () => ({}) }),
+    wrap: (path: string) => `wrapped:${path}`
+  }
+}))
+
 jest.mock('@op-engineering/op-sqlite', () => ({}))
 jest.mock('react-native-quick-crypto', () => ({}))
 jest.mock('@craftzdog/react-native-buffer', () => ({}))

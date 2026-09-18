@@ -270,7 +270,10 @@
       "edit": "Modifica",
       "unavailableOffline": "Questo documento non è disponibile offline",
       "openedWithSystem": "Aperto in un’app del tuo dispositivo.",
-      "openAgain": "Apri di nuovo"
+      "openAgain": "Apri di nuovo",
+      "saving": "Salvataggio…",
+      "saved": "Salvato",
+      "savedLocally": "Salvato su questo dispositivo, inviato al ritorno della rete"
     }
   },
   "a11y": {

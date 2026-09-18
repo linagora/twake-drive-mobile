@@ -270,7 +270,10 @@
       "edit": "Editar",
       "unavailableOffline": "Este documento no está disponible sin conexión",
       "openedWithSystem": "Abierto en una aplicación de tu dispositivo.",
-      "openAgain": "Abrir de nuevo"
+      "openAgain": "Abrir de nuevo",
+      "saving": "Guardando…",
+      "saved": "Guardado",
+      "savedLocally": "Guardado en este dispositivo, se enviará al recuperar la red"
     }
   },
   "a11y": {

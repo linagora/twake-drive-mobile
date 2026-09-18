@@ -9,6 +9,7 @@ import { OfflineBanner } from '@/ui/OfflineBanner'
 import { useForegroundSync } from '@/pouchdb/useForegroundSync'
 import { useFlagsRefresh } from '@/client/useFlagsRefresh'
 import { useSharedDriveReplication } from '@/files/useSharedDriveReplication'
+import { useFlushPendingEdits } from '@/viewer/useFlushPendingEdits'
 import { useSyncInstanceLocale } from '@/i18n/useSyncInstanceLocale'
 import { initOfflineSubsystem } from '@/offline/initOffline'
 import { useAuth } from '@/auth/useAuth'
@@ -33,6 +34,7 @@ function DriveTabs() {
   useForegroundSync()
   useFlagsRefresh()
   useSharedDriveReplication()
+  useFlushPendingEdits()
   useSyncInstanceLocale()
   useEffect(() => {
     if (!client) return

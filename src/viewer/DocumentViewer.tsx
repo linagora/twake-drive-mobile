@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { StyleSheet, View } from 'react-native'
 import { Button, Text } from 'react-native-paper'
 import { useRouter } from 'expo-router'
@@ -14,7 +14,8 @@ import { MarkdownView } from './markdown/MarkdownView'
 import { OFFLINE_ERROR, readDocumentBytes } from './documentBytes'
 import { readNoteContent, resolveNoteImage } from './noteBlob'
 import { hasWebEditor, isMarkdownKind, rendersInApp, viewerKindOf } from './documentKind'
-import { ExcalidrawView } from './excalidraw/ExcalidrawView'
+import { ExcalidrawEditor } from './excalidraw/ExcalidrawEditor'
+import { saveDocument, SaveOutcome } from './saveDocument'
 import { readDocumentPathWithName } from './documentBytes'
 import { openInViewer } from '@/files/openFile'
 
@@ -65,6 +66,8 @@ export const DocumentViewer = ({ file, driveId }: Props): React.ReactElement => 
   const [markdown, setMarkdown] = useState<string | null>(null)
   const [images, setImages] = useState<Map<string, Uint8Array>>(new Map())
   const [drawing, setDrawing] = useState<string | null>(null)
+  const [saveState, setSaveState] = useState<SaveOutcome | 'saving' | null>(null)
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [nativePath, setNativePath] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [reloadTick, setReloadTick] = useState(0)
@@ -112,6 +115,29 @@ export const DocumentViewer = ({ file, driveId }: Props): React.ReactElement => 
     }
   }, [client, driveId, file, kind, nativeOnly, reloadTick, t])
 
+  // The editor fires on every stroke; the file is written once the drawing
+  // settles, and the local copy is what the viewer reads next time.
+  const onDrawingChange = useCallback(
+    (scene: string) => {
+      if (!client) return
+      if (saveTimer.current) clearTimeout(saveTimer.current)
+      setSaveState('saving')
+      saveTimer.current = setTimeout(() => {
+        void saveDocument(client, file, scene, driveId)
+          .then(setSaveState)
+          .catch(() => setSaveState('queued'))
+      }, 1200)
+    },
+    [client, driveId, file]
+  )
+
+  useEffect(
+    () => () => {
+      if (saveTimer.current) clearTimeout(saveTimer.current)
+    },
+    []
+  )
+
   const route = editorRoute(file)
 
   if (error) {
@@ -158,18 +184,22 @@ export const DocumentViewer = ({ file, driveId }: Props): React.ReactElement => 
   if (drawing !== null) {
     return (
       <View style={styles.container}>
-        <ExcalidrawView content={drawing} testID="document-viewer" />
-        {route && hasWebEditor(file) ? (
-          <Button
-            mode="contained-tonal"
-            icon="pencil"
-            testID="document-viewer-edit"
-            style={styles.edit}
-            disabled={!isOnline}
-            onPress={() => router.push(route as Parameters<typeof router.push>[0])}
-          >
-            {t('drive.viewer.edit')}
-          </Button>
+        <ExcalidrawEditor
+          content={drawing}
+          editable
+          onChange={onDrawingChange}
+          testID="document-viewer"
+        />
+        {saveState ? (
+          <Text variant="labelSmall" style={styles.saveState}>
+            {t(
+              saveState === 'saving'
+                ? 'drive.viewer.saving'
+                : saveState === 'queued'
+                  ? 'drive.viewer.savedLocally'
+                  : 'drive.viewer.saved'
+            )}
+          </Text>
         ) : null}
       </View>
     )
@@ -213,6 +243,12 @@ const styles = StyleSheet.create({
     padding: cozyTokens.spacing.xl
   },
   nativeText: { textAlign: 'center', marginBottom: cozyTokens.spacing.sm },
+  saveState: {
+    position: 'absolute',
+    left: cozyTokens.spacing.md,
+    bottom: cozyTokens.spacing.sm,
+    opacity: 0.7
+  },
   edit: {
     position: 'absolute',
     right: cozyTokens.spacing.md,

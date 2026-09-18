@@ -261,7 +261,10 @@
       "edit": "Bearbeiten",
       "unavailableOffline": "Dieses Dokument ist offline nicht verfügbar",
       "openedWithSystem": "In einer App auf Ihrem Gerät geöffnet.",
-      "openAgain": "Erneut öffnen"
+      "openAgain": "Erneut öffnen",
+      "saving": "Wird gespeichert…",
+      "saved": "Gespeichert",
+      "savedLocally": "Auf diesem Gerät gespeichert, wird bei Netz gesendet"
     }
   },
   "a11y": {

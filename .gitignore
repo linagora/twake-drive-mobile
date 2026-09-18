@@ -57,3 +57,6 @@ gcp-service-account*.json
 # TODOs are kept local; only the public end-to-end testing guide is tracked.
 /docs/*
 !/docs/e2e-testing.md
+
+# Built by scripts/build-excalidraw.mjs from the pinned @excalidraw/excalidraw
+assets/webviewer/

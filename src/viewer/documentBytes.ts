@@ -69,6 +69,17 @@ interface MinimalStackClient {
 }
 
 /**
+ * Replaces the local copy of a document with what the editor produced, so the
+ * change is on screen and survives a restart even before it reaches the stack.
+ */
+export const writeDocumentCache = async (file: ViewableFile, content: string): Promise<string> => {
+  const path = cachePath(file)
+  await FileSystem.makeDirectoryAsync(viewerCacheDir(), { intermediates: true })
+  await FileSystem.writeAsStringAsync(path, content)
+  return path
+}
+
+/**
  * Where the document is on disk, downloading it once if it is nowhere yet.
  *
  * A pinned file is read from what the pin keeps up to date. Anything else is

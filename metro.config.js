@@ -3,8 +3,11 @@ const { getDefaultConfig } = require('expo/metro-config')
 
 const config = getDefaultConfig(__dirname)
 
-// Allow bundling OnlyOffice templates as binary assets via require()
-config.resolver.assetExts = [...new Set([...config.resolver.assetExts, 'docx', 'xlsx', 'pptx'])]
+// Allow bundling OnlyOffice templates as binary assets via require(), and the
+// editors the app embeds as a single HTML file each (see scripts/build-*.mjs).
+config.resolver.assetExts = [
+  ...new Set([...config.resolver.assetExts, 'docx', 'xlsx', 'pptx', 'html'])
+]
 
 // Keep test files out of the runtime bundle: expo-router otherwise picks up
 // app/**/*.test.tsx as routes and crashes on `jest.fn()` at evaluation time.
