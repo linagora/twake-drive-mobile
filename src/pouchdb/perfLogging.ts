@@ -143,11 +143,16 @@ const wrapExecuteQuery = (
   source: string
 ): void => {
   if (!target || target.__perfWrapped || typeof target.executeQuery !== 'function') return
-  const original = target.executeQuery.bind(target) as (op: QueryOperation) => Promise<unknown>
-  target.executeQuery = async (op: QueryOperation): Promise<unknown> => {
+  const original = target.executeQuery.bind(target) as (
+    op: QueryOperation,
+    ...rest: unknown[]
+  ) => Promise<unknown>
+  // Every argument is passed on: the second one carries the query options, and
+  // dropping it takes the shared drive scope with it.
+  target.executeQuery = async (op: QueryOperation, ...rest: unknown[]): Promise<unknown> => {
     const t0 = now()
     try {
-      return await original(op)
+      return await original(op, ...rest)
     } finally {
       const ms = now() - t0
       log(`${source} ${describeQuery(op)}`, ms)
