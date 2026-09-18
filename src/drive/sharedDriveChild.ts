@@ -1,6 +1,11 @@
 // Documents of a shared drive reach the screen from two places: the drive's
-// own replica, where the fields sit at the top level, and the stack, where they
-// sit under `attributes`. This normalises both into one shape.
+// own replica, where the fields sit at the top level, and the stack, where a
+// document also carries them under `attributes`. Reading both is what keeps a
+// file's size on screen wherever it came from — the rest of the app reads the
+// top level only, which is why only this screen ever lost it.
+//
+// TODO(linagora/cozy-client#1724): drop the `attributes` half once the links
+// agree on one shape.
 
 export interface DriveChild {
   _id: string
