@@ -14,9 +14,10 @@ export const OfflineBanner = (): React.ReactElement | null => {
   const online = useIsOnline()
   if (online) return null
   return (
-    // Below the app bar, not over it: at insets.top the pill landed on the
-    // screen title.
-    <View pointerEvents="none" style={[styles.wrap, { top: insets.top + APP_BAR_HEIGHT + 8 }]}>
+    <View
+      pointerEvents="none"
+      style={[styles.wrap, { top: insets.top + cozyTokens.appBarHeight + cozyTokens.spacing.sm }]}
+    >
       <View
         style={[
           styles.pill,
@@ -33,9 +34,6 @@ export const OfflineBanner = (): React.ReactElement | null => {
     </View>
   )
 }
-
-// Height of the Paper Appbar the banner has to clear.
-const APP_BAR_HEIGHT = 56
 
 const styles = StyleSheet.create({
   wrap: {
