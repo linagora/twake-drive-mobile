@@ -65,7 +65,13 @@ const normalizeChild = (raw: Record<string, unknown>): DriveChild => {
   }
 }
 
-export default function SharedDrivesScreen() {
+interface Props {
+  /** Route prefix of the tab this screen is mounted in, so its own pushes stay
+   *  inside that tab's stack. */
+  basePath: string
+}
+
+export const SharedDriveScreen = ({ basePath }: Props): React.ReactElement => {
   const router = useRouter()
   const guardedPush = useGuardedPush()
   const { t } = useTranslation()
@@ -181,7 +187,7 @@ export default function SharedDrivesScreen() {
         setResolveError(t('errors.generic'))
         return
       }
-      guardedPush(`/(drive)/shareddrives/${entry.driveId}/${entry.rootFolderId}`)
+      guardedPush(`${basePath}/${entry.driveId}/${entry.rootFolderId}`)
     },
     [guardedPush, t]
   )
@@ -195,9 +201,7 @@ export default function SharedDrivesScreen() {
       return (
         <FolderRow
           folder={{ _id: item._id, name: item.name }}
-          onPress={folderItem =>
-            guardedPush(`/(drive)/shareddrives/${[...path, folderItem._id].join('/')}`)
-          }
+          onPress={folderItem => guardedPush(`${basePath}/${[...path, folderItem._id].join('/')}`)}
           onShare={folderItem => router.push(`/share/${folderItem._id}`)}
           onMove={folderItem => router.push(`/move/${folderItem._id}`)}
           onTogglePin={onToggleFolderPin}

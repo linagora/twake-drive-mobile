@@ -87,7 +87,6 @@ function DriveTabs() {
             tabBarIcon: ({ color, size }) => <CozyIcon name="trash" color={color} size={size} />
           }}
         />
-        <Tabs.Screen name="shareddrives" options={{ href: null }} />
         <Tabs.Screen name="search" options={{ href: null }} />
       </Tabs>
     </>

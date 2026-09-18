@@ -85,6 +85,19 @@ export default function SharedScreen() {
     enabled: isRoot && tab !== 'drives' && sharedIds.status === 'loaded' && sharedIds.ids.length > 0
   })
 
+  // The drive listing knows a drive's name and nothing else (see
+  // linagora/cozy-stack#4930). When its root document is in the replica — a
+  // drive the user owns, or one whose root was shared with them as a document
+  // — that document is what carries the size, the date and the thumbnail.
+  const driveRootIds = useMemo(
+    () => drives.map(drive => drive.rootFolderId).filter((id): id is string => !!id),
+    [drives]
+  )
+  const driveRootsQuery = useQuery(filesByIdsQuery(driveRootIds), {
+    as: filesByIdsQueryAs(driveRootIds),
+    enabled: isRoot && driveRootIds.length > 0
+  })
+
   const subfoldersQuery = useQuery(folderSubfoldersQuery(safeCurrentDirId, sort), {
     as: folderSubfoldersQueryAs(safeCurrentDirId, sort),
     enabled: !isRoot
@@ -202,7 +215,7 @@ export default function SharedScreen() {
       setSnackbar(t('errors.generic'))
       return
     }
-    guardedPush(`/(drive)/shareddrives/${drive.driveId}/${drive.rootFolderId}`)
+    guardedPush(`/(drive)/shared/drive/${drive.driveId}/${drive.rootFolderId}`)
   }
 
   const renderRow = ({
@@ -259,14 +272,14 @@ export default function SharedScreen() {
   const rows = useMemo<SharingRow<FileQueryResult>[]>(
     () =>
       buildSharingRows({
-        files: data,
+        files: [...data, ...((driveRootsQuery.data as FileQueryResult[] | null | undefined) ?? [])],
         drives: isRoot ? drives : [],
         tab,
         sortAttr: sort.attr,
         sortDir: sort.dir,
         getFileDate: file => sharedFileLastUpdatedAt(file, sharingContext.byId.get(file._id))
       }),
-    [data, drives, isRoot, sharingContext.byId, sort.attr, sort.dir, tab]
+    [data, driveRootsQuery.data, drives, isRoot, sharingContext.byId, sort.attr, sort.dir, tab]
   )
 
   const showsDrives = isRoot && tab === 'drives'
