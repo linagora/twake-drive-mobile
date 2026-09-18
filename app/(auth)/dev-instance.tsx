@@ -77,7 +77,7 @@ export default function DevInstanceScreen() {
           style={[styles.subtitle, { color: theme.colors.onSurfaceVariant }]}
         >
           Development only. Runs the stack OAuth flow against the address below, skipping the
-          cloudery. The passphrase is typed on the stack own page, in the system browser.
+          cloudery. The passphrase is typed on the stack's own page, in the system browser.
         </Text>
 
         <TextInput
@@ -99,8 +99,6 @@ export default function DevInstanceScreen() {
         <HelperText type="error" visible={!!error}>
           {error ?? ''}
         </HelperText>
-
-        <View style={styles.spacer} />
 
         <Button
           testID="dev-instance-submit"
@@ -125,7 +123,6 @@ const styles = StyleSheet.create({
   title: { marginTop: 16, fontWeight: '800' },
   subtitle: { marginTop: 8, lineHeight: 20 },
   field: { marginTop: 20 },
-  spacer: { flex: 1 },
   btn: { borderRadius: 14 },
   btnContent: { height: 50 }
 })
