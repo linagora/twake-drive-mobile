@@ -131,10 +131,18 @@ describe('FolderPicker', () => {
     expect(onCancel).toHaveBeenCalled()
   })
 
-  it('renders disabled files in the list', () => {
+  it('lists the files of the folder, so the user can tell where they are', () => {
     setupQueries('Work', [subfolder('a', 'Q1'), file('f', 'budget.xlsx')])
     render(wrap(<FolderPicker {...defaultProps} currentFolderId="src" />))
     expect(screen.getByText('budget.xlsx')).toBeOnTheScreen()
+  })
+
+  it('does not walk into a file: only a folder can receive the move', () => {
+    setupQueries('Work', [file('f', 'budget.xlsx')])
+    const onDrillIn = jest.fn()
+    render(wrap(<FolderPicker {...defaultProps} currentFolderId="src" onDrillIn={onDrillIn} />))
+    fireEvent.press(screen.getByText('budget.xlsx'))
+    expect(onDrillIn).not.toHaveBeenCalled()
   })
 
   it('calls onDrillIn when a folder row is tapped', () => {

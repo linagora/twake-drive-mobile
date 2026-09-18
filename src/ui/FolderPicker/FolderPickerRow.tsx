@@ -28,7 +28,7 @@ export const FolderPickerRow = ({ item, disabled, onPress, testID }: Props) => {
       title={item.name}
       titleStyle={disabled ? { color: theme.colors.outline } : undefined}
       left={props => (
-        <View style={[props.style, styles.leftSlot]}>
+        <View style={[props.style, styles.leftSlot, disabled && styles.dimmed]}>
           <FileTypeIcon icon={isFolder ? 'folder' : 'files'} size={32} />
         </View>
       )}
@@ -48,5 +48,6 @@ export const FolderPickerRow = ({ item, disabled, onPress, testID }: Props) => {
 
 const styles = StyleSheet.create({
   row: { paddingVertical: 4 },
+  dimmed: { opacity: 0.4 },
   leftSlot: { justifyContent: 'center', alignItems: 'center', width: 32, height: 32 }
 })
