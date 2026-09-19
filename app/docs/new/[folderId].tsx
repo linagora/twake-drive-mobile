@@ -3,8 +3,7 @@ import * as WebBrowser from 'expo-web-browser'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useClient } from 'cozy-client'
 
-import { ScreenContainer } from '@/ui/ScreenContainer'
-import { EditorHeader } from '@/ui/EditorHeader'
+import { DocumentScreen } from '@/ui/DocumentScreen'
 import { ErrorState } from '@/ui/ErrorState'
 import { LoadingState } from '@/ui/LoadingState'
 import { buildCozyAppUrl } from '@/files/cozyAppLink'
@@ -50,9 +49,8 @@ export default function DocsNewScreen() {
   }
 
   return (
-    <ScreenContainer>
-      <EditorHeader onBack={() => router.back()} />
+    <DocumentScreen onBack={() => router.back()} chrome="editor">
       {error ? <ErrorState message={error} onRetry={retry} /> : <LoadingState />}
-    </ScreenContainer>
+    </DocumentScreen>
   )
 }

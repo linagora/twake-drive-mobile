@@ -4,8 +4,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import { useClient, useQuery } from 'cozy-client'
 
-import { ScreenContainer } from '@/ui/ScreenContainer'
-import { EditorHeader } from '@/ui/EditorHeader'
+import { DocumentScreen } from '@/ui/DocumentScreen'
 import { ErrorState } from '@/ui/ErrorState'
 import { LoadingState } from '@/ui/LoadingState'
 import { fileByIdQuery, fileByIdQueryAs } from '@/client/queries'
@@ -64,8 +63,7 @@ export default function DocsScreen() {
   }
 
   return (
-    <ScreenContainer>
-      <EditorHeader onBack={() => router.back()} />
+    <DocumentScreen onBack={() => router.back()} chrome="editor">
       {error ? (
         <ErrorState message={error} onRetry={retry} />
       ) : missingExternalId ? (
@@ -73,6 +71,6 @@ export default function DocsScreen() {
       ) : (
         <LoadingState />
       )}
-    </ScreenContainer>
+    </DocumentScreen>
   )
 }
