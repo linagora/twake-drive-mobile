@@ -40,11 +40,12 @@ export const openInViewer = async (path: string): Promise<void> => {
   }
 }
 
-export const openFileNatively = async (
+/** Puts the file's bytes in the app cache and returns the path they landed on. */
+export const ensureLocalCopy = async (
   client: CozyClient,
   file: OpenableFile,
   driveId?: string
-): Promise<void> => {
+): Promise<string> => {
   const cacheDir = FileSystem.cacheDirectory
   if (!cacheDir) throw new Error('Cache directory unavailable')
   const aliasPath = cacheAliasPath(cacheDir, file)
@@ -65,8 +66,7 @@ export const openFileNatively = async (
     if (!aliasInfo.exists) {
       await FileSystem.copyAsync({ from: blobPath, to: aliasPath })
     }
-    await openInViewer(aliasPath)
-    return
+    return aliasPath
   }
 
   const stackClient = client.getStackClient() as unknown as MinimalStackClient
@@ -83,5 +83,13 @@ export const openFileNatively = async (
     throw new Error(`Download failed (HTTP ${result.status})`)
   }
 
-  await openInViewer(result.uri)
+  return result.uri
+}
+
+export const openFileNatively = async (
+  client: CozyClient,
+  file: OpenableFile,
+  driveId?: string
+): Promise<void> => {
+  await openInViewer(await ensureLocalCopy(client, file, driveId))
 }
