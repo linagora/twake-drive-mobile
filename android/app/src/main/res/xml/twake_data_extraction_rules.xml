@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Auto Backup configuration for Android 12 and higher. Keeps the
+     expo-secure-store exclusion and adds the file provider's own encrypted
+     preferences: their key lives in the Keystore, which never leaves the
+     device, so a restored or transferred copy can only fail to decrypt. -->
+<data-extraction-rules>
+  <cloud-backup>
+    <include domain="sharedpref" path="."/>
+    <exclude domain="sharedpref" path="SecureStore"/>
+    <exclude domain="sharedpref" path="twake_fileprovider_session.xml"/>
+  </cloud-backup>
+  <device-transfer>
+    <include domain="sharedpref" path="."/>
+    <exclude domain="sharedpref" path="SecureStore"/>
+    <exclude domain="sharedpref" path="twake_fileprovider_session.xml"/>
+  </device-transfer>
+</data-extraction-rules>
