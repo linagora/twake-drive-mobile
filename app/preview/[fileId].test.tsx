@@ -3,10 +3,11 @@ import { Provider as PaperProvider } from 'react-native-paper'
 import { fireEvent, render, screen } from '@testing-library/react-native'
 
 const mockBack = jest.fn()
+const mockPush = jest.fn()
 
 jest.mock('expo-router', () => ({
   __esModule: true,
-  useRouter: () => ({ back: mockBack, push: jest.fn(), replace: jest.fn(), canGoBack: () => true }),
+  useRouter: () => ({ back: mockBack, push: mockPush, replace: jest.fn(), canGoBack: () => true }),
   useLocalSearchParams: () => ({ fileId: 'f1' })
 }))
 
@@ -111,6 +112,7 @@ const wrap = (ui: React.ReactElement) => <PaperProvider>{ui}</PaperProvider>
 describe('PreviewScreen', () => {
   beforeEach(() => {
     mockBack.mockReset()
+    mockPush.mockReset()
     mockFetch.mockReset()
     mockKind = 'pdf'
     mockLookup = { data: pdfFile, fetchStatus: 'loaded' }
@@ -121,6 +123,15 @@ describe('PreviewScreen', () => {
     expect(screen.getByText('demande.pdf')).toBeOnTheScreen()
     fireEvent.press(screen.getByTestId('document-back-button'))
     expect(mockBack).toHaveBeenCalledTimes(1)
+  })
+
+  it('offers share, download and details over an image', () => {
+    mockKind = 'image'
+    render(wrap(<PreviewScreen />))
+    expect(screen.getByTestId('document-share')).toBeOnTheScreen()
+    expect(screen.getByTestId('document-download')).toBeOnTheScreen()
+    fireEvent.press(screen.getByTestId('document-info'))
+    expect(mockPush).toHaveBeenCalledWith('/metadata/f1')
   })
 
   it('keeps the name and the way back on an image too', () => {
