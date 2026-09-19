@@ -2,9 +2,11 @@
 // even when the codec inside is Opus — which iOS would otherwise decode
 // natively. Same for Vorbis. This helper flags those files so the preview
 // route can render an "open externally" fallback instead of an audio player
-// that never starts.
+// that never starts. Android's ExoPlayer has no such limit and plays them.
 //
 // Long-term fix is a server-side remux (Ogg → CAF/m4a).
+
+import { Platform } from 'react-native'
 
 const UNSUPPORTED_MIMES = new Set([
   'audio/ogg',
@@ -21,6 +23,7 @@ export const isUnsupportedAudio = (
   mime: string | null | undefined,
   name: string | null | undefined
 ): boolean => {
+  if (Platform.OS !== 'ios') return false
   if (mime && UNSUPPORTED_MIMES.has(mime.toLowerCase())) return true
   if (name) {
     const lower = name.toLowerCase()
