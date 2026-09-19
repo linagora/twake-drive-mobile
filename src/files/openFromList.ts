@@ -2,7 +2,8 @@ import { Linking } from 'react-native'
 import type CozyClient from 'cozy-client'
 import type { Router } from 'expo-router'
 
-import { isCozyNoteFile, isDocsNoteFile, isOfficeFile, isShortcutFile } from './fileTypes'
+import { isShortcutFile } from './fileTypes'
+import { openWebEditor, webEditorKindOf } from '@/viewer/webEditor'
 import { canPreviewInApp } from './streamUrl'
 import { fetchShortcutUrl } from './shortcuts'
 import { openFileNatively } from './openFile'
@@ -40,16 +41,8 @@ export const openFileFromList = async (
     router.push(`/preview/${file._id}${scope}`)
     return
   }
-  if (isCozyNoteFile(file.name)) {
-    router.push(`/note/${file._id}${scope}`)
-    return
-  }
-  if (isDocsNoteFile(file.name)) {
-    router.push(`/docs/${file._id}${scope}`)
-    return
-  }
-  if (isOfficeFile(file.mime)) {
-    router.push(`/onlyoffice/${file._id}${scope}`)
+  if (webEditorKindOf(file)) {
+    await openWebEditor(client, { _id: file._id, name: file.name, mime: file.mime }, driveId)
     return
   }
   if (canPreviewInApp(file)) {

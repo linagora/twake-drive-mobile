@@ -1,5 +1,6 @@
 import React, { useCallback, useMemo, useState } from 'react'
-import { FlatList, Linking, RefreshControl, StyleSheet, View } from 'react-native'
+import { FlatList, RefreshControl, StyleSheet, View } from 'react-native'
+import * as WebBrowser from 'expo-web-browser'
 import { FAB, Snackbar } from 'react-native-paper'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useClient, useQuery } from 'cozy-client'
@@ -24,7 +25,7 @@ import { SortControl } from '@/ui/SortControl'
 import { useFolderSort } from '@/ui/useFolderSort'
 import { CreateFolderDialog } from '@/ui/CreateFolderDialog'
 import { SyncBanner } from '@/ui/SyncBanner'
-import { CreateOfficeFileDialog } from '@/ui/CreateOfficeFileDialog'
+import { CreatableFileClass, CreateOfficeFileDialog } from '@/ui/CreateOfficeFileDialog'
 import { CreateShortcutDialog } from '@/ui/CreateShortcutDialog'
 import { CozyIcon } from '@/ui/icons/CozyIcon'
 import { ConfirmDeleteDialog } from '@/ui/ConfirmDeleteDialog'
@@ -34,10 +35,12 @@ import { useAuth } from '@/auth/useAuth'
 import { getErrorMessageKey } from '@/utils/errorMessages'
 import { createFolder } from '@/files/createFolder'
 import { createCozyNote } from '@/files/createCozyNote'
-import { createOfficeFile, OfficeFileClass } from '@/files/createOfficeFile'
+import { createOfficeFile } from '@/files/createOfficeFile'
 import { createShortcut } from '@/files/createShortcut'
 import { buildCozyAppUrl } from '@/files/cozyAppLink'
-import { useSessionCode } from '@/auth/useSessionCode'
+import { createExcalidrawFile } from '@/files/createExcalidrawFile'
+import { triggerPouchReplication } from '@/pouchdb/triggerReplication'
+import { openWebEditor } from '@/viewer/webEditor'
 import { softDeleteEntry } from '@/files/deleteFile'
 import { optimisticFiles } from '@/files/optimisticFiles'
 import { renameEntry } from '@/files/renameEntry'
@@ -73,7 +76,6 @@ export const FilesScreen = ({ basePath }: FilesScreenProps): React.ReactElement 
   const goBack = useTabBack(basePath)
   const { t } = useTranslation()
   const { logout } = useAuth()
-  const fetchSessionCode = useSessionCode()
   const params = useLocalSearchParams<{ path?: string | string[] }>()
   const rawPath = params.path
   const path: string[] | undefined =
@@ -86,7 +88,7 @@ export const FilesScreen = ({ basePath }: FilesScreenProps): React.ReactElement 
           : undefined
   const [refreshing, setRefreshing] = useState(false)
   const [createFolderVisible, setCreateFolderVisible] = useState(false)
-  const [creatingClass, setCreatingClass] = useState<OfficeFileClass | null>(null)
+  const [creatingClass, setCreatingClass] = useState<CreatableFileClass | null>(null)
   const [createShortcutVisible, setCreateShortcutVisible] = useState(false)
   const [fabOpen, setFabOpen] = useState(false)
   const [bulkConfirmVisible, setBulkConfirmVisible] = useState(false)
@@ -169,7 +171,10 @@ export const FilesScreen = ({ basePath }: FilesScreenProps): React.ReactElement 
     if (!requireOnline(isOnline, actions.notify, t)) return
     if (!client || !creatingClass) throw new Error('No client or class')
     const cls = creatingClass
-    const created = await createOfficeFile(client, cls, name, currentDirId)
+    const created =
+      cls === 'excalidraw'
+        ? await createExcalidrawFile(client, name, currentDirId)
+        : await createOfficeFile(client, cls, name, currentDirId)
     optimisticFiles(client, [
       {
         _id: created._id,
@@ -180,7 +185,8 @@ export const FilesScreen = ({ basePath }: FilesScreenProps): React.ReactElement 
       }
     ])
     setCreatingClass(null)
-    router.push(`/onlyoffice/${created._id}`)
+    if (cls === 'excalidraw') return
+    void openWebEditor(client, { _id: created._id, name: created.name })
   }
 
   const handleCreateNote = async (): Promise<void> => {
@@ -197,29 +203,24 @@ export const FilesScreen = ({ basePath }: FilesScreenProps): React.ReactElement 
           _type: 'io.cozy.files'
         }
       ])
-      router.push(`/note/${created._id}`)
+      await openWebEditor(client, { _id: created._id, name: created.name ?? '' })
     } catch (e) {
       console.error('[FilesScreen] note creation failed', e)
     }
   }
 
-  const handleCreateDocs = (): void => {
-    router.push(`/docs/new/${currentDirId}`)
-  }
-
-  const handleCreateExcalidraw = async (): Promise<void> => {
+  const handleCreateDocs = async (): Promise<void> => {
     if (!requireOnline(isOnline, actions.notify, t)) return
     if (!client) return
     try {
-      const sessionCode = await fetchSessionCode()
-      const stackUri = (client.getStackClient() as unknown as { uri: string }).uri
-      // Open the Cozy excalidraw web app; it handles file creation and
-      // saves into dirId via its own UI. Pragmatic approach: no server-side
-      // file is pre-created — the excalidraw app owns the create flow.
-      const url = buildCozyAppUrl(stackUri, 'excalidraw', sessionCode, '/')
-      await Linking.openURL(url)
+      const stackUri = client.getStackClient().uri as string
+      // Docs documents are created by the Docs frontend on its own backend,
+      // which a Drive token cannot reach; its bridge route owns the creation.
+      const url = buildCozyAppUrl(stackUri, 'docs', `/bridge/docs/new/${currentDirId}`)
+      await WebBrowser.openBrowserAsync(url)
+      triggerPouchReplication(client, 'io.cozy.files')
     } catch (e) {
-      console.error('[FilesScreen] excalidraw open failed', e)
+      console.error('[FilesScreen] docs creation failed', e)
     }
   }
 
@@ -386,7 +387,7 @@ export const FilesScreen = ({ basePath }: FilesScreenProps): React.ReactElement 
           {
             icon: 'file-document-edit',
             label: t('drive.createMenu.docs'),
-            onPress: () => handleCreateDocs()
+            onPress: () => void handleCreateDocs()
           }
         ]
       : []),
@@ -416,7 +417,7 @@ export const FilesScreen = ({ basePath }: FilesScreenProps): React.ReactElement 
               <CozyIcon name="excalidraw" size={p.size} color={p.color} />
             ),
             label: t('drive.createMenu.excalidraw'),
-            onPress: () => void handleCreateExcalidraw()
+            onPress: () => setCreatingClass('excalidraw')
           }
         ]
       : []),

@@ -1,14 +1,23 @@
-const mockPush = jest.fn()
-jest.mock('expo-router', () => ({ useRouter: () => ({ push: mockPush }) }))
-
 let mockOnline = true
 jest.mock('@/network/useIsOnline', () => ({ useIsOnline: () => mockOnline }))
 
+const mockOpenWebEditor = jest.fn()
+jest.mock('./webEditor', () => {
+  const actual = jest.requireActual('./webEditor')
+  return {
+    ...actual,
+    openWebEditor: (...args: unknown[]) => mockOpenWebEditor(...args)
+  }
+})
+
+const client = { id: 'client' }
+jest.mock('cozy-client', () => ({ __esModule: true, useClient: () => client }))
+
 import React from 'react'
-import { fireEvent, render, screen } from '@testing-library/react-native'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react-native'
 import { PaperProvider } from 'react-native-paper'
 
-import { EditDocumentButton, editorRouteFor } from './EditDocumentButton'
+import { EditDocumentButton } from './EditDocumentButton'
 
 const show = (file: { _id: string; name: string; mime?: string }, driveId?: string) =>
   render(
@@ -18,39 +27,24 @@ const show = (file: { _id: string; name: string; mime?: string }, driveId?: stri
   )
 
 const note = { _id: 'f1', name: 'réunion.cozy-note' }
-const docx = {
-  _id: 'f2',
-  name: 'rapport.docx',
-  mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-}
-
-describe('editorRouteFor', () => {
-  it('sends each type to its own editor', () => {
-    expect(editorRouteFor(note)).toBe('/note/f1')
-    expect(editorRouteFor({ _id: 'f3', name: 'a.docs-note' })).toBe('/docs/f3')
-    expect(editorRouteFor(docx)).toBe('/onlyoffice/f2')
-    expect(editorRouteFor({ _id: 'f4', name: 'schéma.excalidraw' })).toBe('/excalidraw/f4')
-  })
-
-  it('carries the drive a document belongs to', () => {
-    expect(editorRouteFor(note, 'drive-1')).toBe('/note/f1?driveId=drive-1')
-  })
-
-  it('has no editor to offer for a plain file', () => {
-    expect(editorRouteFor({ _id: 'f5', name: 'photo.jpg', mime: 'image/jpeg' })).toBeNull()
-  })
-})
 
 describe('EditDocumentButton', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     mockOnline = true
+    mockOpenWebEditor.mockResolvedValue(undefined)
   })
 
-  it('opens the editor of the document', () => {
+  it('opens the document in its web editor', async () => {
     show(note)
     fireEvent.press(screen.getByTestId('document-viewer-edit'))
-    expect(mockPush).toHaveBeenCalledWith('/note/f1')
+    await waitFor(() => expect(mockOpenWebEditor).toHaveBeenCalledWith(client, note, undefined))
+  })
+
+  it('carries the drive a document belongs to', async () => {
+    show(note, 'drive-1')
+    fireEvent.press(screen.getByTestId('document-viewer-edit'))
+    await waitFor(() => expect(mockOpenWebEditor).toHaveBeenCalledWith(client, note, 'drive-1'))
   })
 
   it('stays on screen offline, out of reach rather than gone', () => {
@@ -58,7 +52,7 @@ describe('EditDocumentButton', () => {
     show(note)
     expect(screen.getByTestId('document-viewer-edit')).toBeOnTheScreen()
     fireEvent.press(screen.getByTestId('document-viewer-edit'))
-    expect(mockPush).not.toHaveBeenCalled()
+    expect(mockOpenWebEditor).not.toHaveBeenCalled()
   })
 
   it('renders nothing for a document no editor claims', () => {
