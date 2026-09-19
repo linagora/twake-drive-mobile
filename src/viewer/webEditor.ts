@@ -53,13 +53,17 @@ export const webEditorUrl = async (
   const kind = webEditorKindOf(file)
   switch (kind) {
     case 'note':
-      // The stack answers with the notes app URL, and with a sharecode when the
-      // note belongs to a shared drive.
-      return (models as unknown as NoteModels).note.fetchURL(
-        client,
-        { id: file._id },
-        driveId ? { driveId } : {}
-      )
+      // A note of a shared drive is served by the owner instance, which hands
+      // back its own URL with a sharecode; a note of this instance is simply
+      // the notes app, opened on it.
+      if (driveId) {
+        return (models as unknown as NoteModels).note.fetchURL(
+          client,
+          { id: file._id },
+          { driveId }
+        )
+      }
+      return buildCozyAppUrl(stackUri, 'notes', `/n/${encodeURIComponent(file._id)}`)
     case 'docs': {
       const externalId = file.metadata?.externalId
       if (!externalId) throw new Error('This document has no Docs id')

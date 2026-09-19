@@ -66,12 +66,19 @@ describe('webEditorUrl', () => {
     )
   })
 
-  it('asks the stack where a note lives, which knows about shared drives', async () => {
-    mockFetchURL.mockResolvedValue('https://mine-notes.twake.test/#/n/note-1')
+  it('opens a note of this instance in the notes app', async () => {
+    await expect(webEditorUrl(client, { _id: 'note-1', name: 'a.cozy-note' })).resolves.toBe(
+      'https://mine-notes.twake.test/#/n/note-1'
+    )
+    expect(mockFetchURL).not.toHaveBeenCalled()
+  })
+
+  it('asks the stack for a note of a shared drive, which answers with a sharecode', async () => {
+    mockFetchURL.mockResolvedValue('https://owner-notes.twake.test/public/?sharecode=abc')
 
     await expect(
       webEditorUrl(client, { _id: 'note-1', name: 'a.cozy-note' }, 'drive-7')
-    ).resolves.toBe('https://mine-notes.twake.test/#/n/note-1')
+    ).resolves.toBe('https://owner-notes.twake.test/public/?sharecode=abc')
     expect(mockFetchURL).toHaveBeenCalledWith(client, { id: 'note-1' }, { driveId: 'drive-7' })
   })
 
