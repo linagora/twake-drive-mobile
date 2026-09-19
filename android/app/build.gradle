@@ -81,6 +81,10 @@ def enableMinifyInReleaseBuilds = (findProperty('android.enableMinifyInReleaseBu
  */
 def jscFlavor = 'io.github.react-native-community:jsc-android:2026004.+'
 
+def appJson = new groovy.json.JsonSlurper().parseText(file("../../app.json").text)
+def appJsonVersion = appJson.expo.version
+def appJsonVersionCode = appJson.expo.android?.versionCode ?: appJsonVersion.split("\\.").inject(0) { acc, part -> acc * 100 + part.toInteger() }
+
 android {
     ndkVersion rootProject.ext.ndkVersion
 
@@ -93,10 +97,11 @@ android {
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         // Signed release builds override these via env (VERSION_CODE = CI run
-        // number, VERSION_NAME = the vX.Y.Z tag). Local/PR builds keep the
-        // committed defaults so the secret-free test-APK build still works.
-        versionCode System.getenv("VERSION_CODE") ? System.getenv("VERSION_CODE").toInteger() : 1
-        versionName System.getenv("VERSION_NAME") ?: "0.1.0"
+        // number, VERSION_NAME = the vX.Y.Z tag). Every other build takes the
+        // version the app itself displays, which app.json owns, so a package
+        // manager and the Settings screen never disagree.
+        versionCode System.getenv("VERSION_CODE") ? System.getenv("VERSION_CODE").toInteger() : appJsonVersionCode
+        versionName System.getenv("VERSION_NAME") ?: appJsonVersion
 
         buildConfigField "String", "REACT_NATIVE_RELEASE_LEVEL", "\"${findProperty('reactNativeReleaseLevel') ?: 'stable'}\""
     }
