@@ -116,17 +116,18 @@ describe('PreviewScreen', () => {
     mockLookup = { data: pdfFile, fetchStatus: 'loaded' }
   })
 
-  it('renders a close button on a chromeless PDF preview and goes back when tapped', () => {
+  it('names a PDF and takes the user back from the floating chrome', () => {
     render(wrap(<PreviewScreen />))
-    const closeBtn = screen.getByTestId('preview-close-button')
-    fireEvent.press(closeBtn)
+    expect(screen.getByText('demande.pdf')).toBeOnTheScreen()
+    fireEvent.press(screen.getByTestId('document-back-button'))
     expect(mockBack).toHaveBeenCalledTimes(1)
   })
 
-  it('also exposes the close button on image previews', () => {
+  it('keeps the name and the way back on an image too', () => {
     mockKind = 'image'
     render(wrap(<PreviewScreen />))
-    expect(screen.getByTestId('preview-close-button')).toBeOnTheScreen()
+    expect(screen.getByText('demande.pdf')).toBeOnTheScreen()
+    expect(screen.getByTestId('document-back-button')).toBeOnTheScreen()
   })
 
   // Regression: a lookup that ends without a document used to leave the screen
