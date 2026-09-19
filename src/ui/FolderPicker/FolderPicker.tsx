@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { FlatList, StyleSheet, View } from 'react-native'
+import { FlatList, Platform, StatusBar, StyleSheet, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Appbar, Button, Portal, useTheme } from 'react-native-paper'
 import { useTranslation } from 'react-i18next'
@@ -55,6 +55,7 @@ export const FolderPicker = ({
   const { t } = useTranslation()
   const theme = useTheme()
   const insets = useSafeAreaInsets()
+  const headerTopInset = Platform.OS === 'ios' ? 0 : insets.top || StatusBar.currentHeight || 0
   const client = useClient()
   const [creatingFolder, setCreatingFolder] = useState(false)
 
@@ -109,10 +110,7 @@ export const FolderPicker = ({
     // dimmed backdrop without the dialog itself.
     <Portal.Host>
       <ScreenContainer>
-        {/* statusBarHeight={0}: inside a pageSheet the modal already starts
-            below the system status bar, so Paper's default top inset
-            doubles up the spacing. */}
-        <Appbar.Header statusBarHeight={0}>
+        <Appbar.Header statusBarHeight={headerTopInset}>
           {isAtRoot ? null : (
             <Appbar.Action
               isLeading

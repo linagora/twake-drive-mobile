@@ -1,3 +1,5 @@
+import { Appbar } from 'react-native-paper'
+import { Platform, StatusBar } from 'react-native'
 import React from 'react'
 import { Provider as PaperProvider } from 'react-native-paper'
 import { fireEvent, render, screen } from '@testing-library/react-native'
@@ -165,5 +167,25 @@ describe('FolderPicker', () => {
     fireEvent.press(screen.getByLabelText('drive.move.newFolder'))
     // CreateFolderDialog renders a title whose translation key is returned as-is.
     expect(screen.getByText('drive.createFolder.title')).toBeOnTheScreen()
+  })
+
+  describe('the header and the status bar', () => {
+    afterEach(() => {
+      Platform.OS = 'ios'
+    })
+
+    it('leaves the top inset to the pageSheet on iOS', () => {
+      setupQueries('Work', [])
+      render(wrap(<FolderPicker {...defaultProps} currentFolderId="src" />))
+      expect(screen.UNSAFE_getByType(Appbar.Header).props.statusBarHeight).toBe(0)
+    })
+
+    it('keeps the header clear of the status bar on Android, which draws edge to edge', () => {
+      Platform.OS = 'android'
+      StatusBar.currentHeight = 24
+      setupQueries('Work', [])
+      render(wrap(<FolderPicker {...defaultProps} currentFolderId="src" />))
+      expect(screen.UNSAFE_getByType(Appbar.Header).props.statusBarHeight).toBeGreaterThan(0)
+    })
   })
 })
