@@ -8,6 +8,7 @@ import { DocumentScreen } from '@/ui/DocumentScreen'
 import { ErrorState } from '@/ui/ErrorState'
 import { LoadingState } from '@/ui/LoadingState'
 import { useSessionCode } from '@/auth/useSessionCode'
+import { useRefreshOnLeave } from '@/viewer/useRefreshOnLeave'
 
 // Reading a drawing is done by the app itself (src/viewer/excalidraw); editing
 // is the drive web app's own excalidraw route, loaded with a session_code the
@@ -32,6 +33,7 @@ export const buildDriveExcalidrawUrl = (
 
 export default function ExcalidrawScreen() {
   const { fileId, driveId } = useLocalSearchParams<{ fileId: string; driveId?: string }>()
+  useRefreshOnLeave(fileId, driveId)
   const client = useClient()
   const router = useRouter()
   const fetchSessionCode = useSessionCode()

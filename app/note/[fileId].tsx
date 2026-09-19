@@ -9,6 +9,7 @@ import { ErrorState } from '@/ui/ErrorState'
 import { LoadingState } from '@/ui/LoadingState'
 import { buildCozyAppUrl } from '@/files/cozyAppLink'
 import { useSessionCode } from '@/auth/useSessionCode'
+import { useRefreshOnLeave } from '@/viewer/useRefreshOnLeave'
 
 // Mirrors twake-drive web's "note" file-type routing: open the cozy `notes`
 // web app inside a WebView with a session_code so the notes editor renders
@@ -17,6 +18,7 @@ import { useSessionCode } from '@/auth/useSessionCode'
 
 export default function CozyNoteScreen() {
   const { fileId, driveId } = useLocalSearchParams<{ fileId: string; driveId?: string }>()
+  useRefreshOnLeave(fileId, driveId)
   const client = useClient()
   const router = useRouter()
   const fetchSessionCode = useSessionCode()
