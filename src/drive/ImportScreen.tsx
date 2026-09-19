@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 
 import { FolderPicker } from '@/ui/FolderPicker'
+import { previousFolderId } from '@/ui/FolderPicker/upNavigation'
 import { ROOT_DIR_ID } from '@/client/queries'
 
 import { useImportContext } from '@/drive/importContext'
@@ -24,9 +25,16 @@ export const ImportScreen = ({ pathSegments }: Props): React.ReactElement => {
     [pathSegments, router]
   )
 
-  const onBack = useCallback(() => {
-    if (router.canGoBack()) router.back()
-  }, [router])
+  const onNavigateUp = useCallback(
+    (parentId: string) => {
+      if (previousFolderId(pathSegments, ROOT_DIR_ID) === parentId && router.canGoBack()) {
+        router.back()
+        return
+      }
+      router.push(`/import/${[...pathSegments, parentId].join('/')}`)
+    },
+    [pathSegments, router]
+  )
 
   const currentFolderId =
     pathSegments.length > 0 ? pathSegments[pathSegments.length - 1] : ROOT_DIR_ID
@@ -37,9 +45,8 @@ export const ImportScreen = ({ pathSegments }: Props): React.ReactElement => {
       excludeIds={new Set<string>()}
       confirmLabel={t('drive.import.confirm')}
       isBusy={ctx.isBusy}
-      isAtRoot={pathSegments.length === 0}
       onDrillIn={onDrillIn}
-      onBack={onBack}
+      onNavigateUp={onNavigateUp}
       onConfirm={ctx.onConfirm}
       onCancel={ctx.onCancel}
     />
