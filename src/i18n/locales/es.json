@@ -171,7 +171,9 @@
       "emptyConfirmBody": "Todos los elementos de la papelera se eliminarán de forma permanente. Esta acción no se puede deshacer.",
       "emptyConfirm": "Vaciar",
       "emptySuccess": "Papelera vaciada",
-      "emptyError": "No se pudo vaciar la papelera"
+      "emptyError": "No se pudo vaciar la papelera",
+      "filterPlaceholder": "Filtrar la papelera",
+      "filterEmpty": "Ningún elemento coincide"
     },
     "createMenu": {
       "folder": "Nueva carpeta",
