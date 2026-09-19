@@ -1,3 +1,4 @@
+import { Platform } from 'react-native'
 import { isUnsupportedAudio } from './audioSupport'
 
 describe('isUnsupportedAudio', () => {
@@ -40,5 +41,11 @@ describe('isUnsupportedAudio', () => {
     // filename will trigger the fallback UI. That's safer than silently
     // playing nothing if the MIME was actually wrong.
     expect(isUnsupportedAudio('audio/mpeg', 'weird.ogg')).toBe(true)
+  })
+
+  it('leaves the file to the player on Android, which decodes Ogg itself', () => {
+    Platform.OS = 'android'
+    expect(isUnsupportedAudio('audio/ogg', 'voice.ogg')).toBe(false)
+    Platform.OS = 'ios'
   })
 })
