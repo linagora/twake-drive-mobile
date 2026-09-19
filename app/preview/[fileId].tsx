@@ -5,7 +5,9 @@ import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useClient, useQuery } from 'cozy-client'
 import { useTranslation } from 'react-i18next'
 
-import { DocumentScreen } from '@/ui/DocumentScreen'
+import { DocumentAction, DocumentScreen } from '@/ui/DocumentScreen'
+import { download } from '@/files/download'
+import { useIsOnline } from '@/network/useIsOnline'
 import { ErrorState } from '@/ui/ErrorState'
 import { LoadingState } from '@/ui/LoadingState'
 import { fileByIdQuery, fileByIdQueryAs, FileQueryResult } from '@/client/queries'
@@ -34,6 +36,7 @@ export default function PreviewScreen() {
   const client = useClient()
   const { fileId, driveId } = useLocalSearchParams<{ fileId: string; driveId?: string }>()
   const [externalError, setExternalError] = useState<string | null>(null)
+  const isOnline = useIsOnline()
   const fallbackTriggered = useRef(false)
 
   // A file from a shared drive lives in that drive's own database, which the
@@ -199,11 +202,47 @@ export default function PreviewScreen() {
   // other kind is a page, and reads better under the app bar.
   const isImmersive = kind === 'image' || kind === 'video' || kind === 'pdf'
 
+  const actions: DocumentAction[] = !file
+    ? []
+    : [
+        {
+          icon: 'shareExternal',
+          label: t('drive.fileMeta.share'),
+          disabled: !isOnline,
+          testID: 'document-share',
+          onPress: () => router.push(`/share/${file._id}`)
+        },
+        {
+          icon: 'download',
+          label: t('drive.fileMeta.download'),
+          disabled: !isOnline || !client,
+          testID: 'document-download',
+          onPress: () => {
+            if (!client) return
+            void download(
+              client,
+              { _id: file._id, name: file.name, mime: file.mime },
+              driveId
+            ).catch(e => {
+              if ((e as Error).name === 'DownloadCancelledError') return
+              setExternalError((e as Error).message ?? t('drive.preview.loadFailed'))
+            })
+          }
+        },
+        {
+          icon: 'info',
+          label: t('drive.fileMeta.info'),
+          testID: 'document-info',
+          onPress: () => router.push(`/metadata/${file._id}`)
+        }
+      ]
+
   return (
     <DocumentScreen
       title={title}
       onBack={() => router.back()}
       chrome={isImmersive ? 'immersive' : 'bar'}
+      actions={actions}
     >
       {isLoadingFile ? (
         <LoadingState />

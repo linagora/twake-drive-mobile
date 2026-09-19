@@ -19,9 +19,19 @@ import { cozyTokens } from '@/ui/theme'
  */
 export type DocumentChrome = 'bar' | 'immersive' | 'editor'
 
+export interface DocumentAction {
+  icon: string
+  label: string
+  onPress: () => void
+  disabled?: boolean
+  testID?: string
+}
+
 interface CommonProps {
   onBack: () => void
   children: React.ReactNode
+  /** Shown next to the name, on the chromes that have room for them. */
+  actions?: DocumentAction[]
 }
 
 /** The editor chrome shows no title, so those routes do not have to know one. */
@@ -35,6 +45,7 @@ export const DocumentScreen = ({
   title,
   onBack,
   chrome = 'bar',
+  actions,
   children
 }: Props): React.ReactElement => {
   const theme = useTheme()
@@ -62,6 +73,25 @@ export const DocumentScreen = ({
           <Text style={styles.floatingTitle} numberOfLines={1}>
             {title}
           </Text>
+          {(actions ?? []).map(action => (
+            <Pressable
+              key={action.icon}
+              onPress={action.onPress}
+              disabled={action.disabled}
+              accessibilityRole="button"
+              accessibilityLabel={action.label}
+              accessibilityState={{ disabled: !!action.disabled }}
+              testID={action.testID}
+              hitSlop={cozyTokens.spacing.sm}
+              style={[styles.floatingControl, action.disabled && styles.disabled]}
+            >
+              <CozyIcon
+                name={action.icon}
+                size={cozyTokens.iconSize.md}
+                color={cozyTokens.canvas.on}
+              />
+            </Pressable>
+          ))}
         </View>
       </View>
     )
@@ -118,6 +148,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: cozyTokens.canvas.control
   },
+  disabled: { opacity: 0.4 },
   floatingTitle: {
     flex: 1,
     color: cozyTokens.canvas.on,
