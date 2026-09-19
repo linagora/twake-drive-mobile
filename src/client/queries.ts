@@ -28,7 +28,8 @@ export interface FileQueryResult {
   updated_at?: string
   path?: string
   cozyMetadata?: {
-    createdBy?: { account?: string }
+    /** Instance the document was created on, which tells a shared one apart. */
+    createdOn?: string
     favorite?: boolean
   }
   links?: {

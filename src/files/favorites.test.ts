@@ -103,13 +103,13 @@ describe('toggleFavorite', () => {
       _type: 'io.cozy.files',
       name: 'doc.txt',
       type: 'file',
-      cozyMetadata: { createdBy: { account: 'acct-1' }, favorite: false }
+      cozyMetadata: { createdOn: 'https://mine.twake.test/', favorite: false }
     }
     await toggleFavorite(client, file, true)
     const attributes = updateAttributes.mock.calls[0][1] as {
       cozyMetadata: Record<string, unknown>
     }
-    expect(attributes.cozyMetadata.createdBy).toEqual({ account: 'acct-1' })
+    expect(attributes.cozyMetadata.createdOn).toBe('https://mine.twake.test/')
     expect(attributes.cozyMetadata.favorite).toBe(true)
   })
 

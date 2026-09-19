@@ -41,6 +41,9 @@ jest.mock('@/offline/useOfflineActions', () => ({
 
 jest.mock('@/offline/useOfflineState', () => ({ useOfflineState: () => undefined }))
 jest.mock('@/network/useIsOnline', () => ({ useIsOnline: () => true }))
+jest.mock('@/account/useCurrentUser', () => ({
+  useCurrentUser: () => ({ name: 'Quentin V', initials: 'QV', loading: false })
+}))
 
 jest.mock('@/files/openFile', () => ({ openFileNatively: jest.fn() }))
 jest.mock('@/files/shortcuts', () => ({ fetchShortcutUrl: jest.fn() }))

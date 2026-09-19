@@ -26,6 +26,8 @@ import { useOfflineState } from '@/offline/useOfflineState'
 import { useOfflineActions } from '@/offline/useOfflineActions'
 import { isKeepOfflineEnabled } from '@/offline/keepOfflineFlag'
 import { FileSystemRepo } from '@/offline/FileSystemRepo'
+import { fileOwnerLabel } from '@/files/fileOwner'
+import { useCurrentUser } from '@/account/useCurrentUser'
 
 // Brief delay so the success snackbar is visible before the modal dismisses.
 const SNACKBAR_DISMISS_DELAY_MS = 600
@@ -47,6 +49,7 @@ export default function MetadataRoute() {
   const theme = useTheme()
   const client = useClient()
   const isOnline = useIsOnline()
+  const currentUser = useCurrentUser()
   const { fileId } = useLocalSearchParams<{ fileId: string }>()
 
   const fileLookup = useQuery(fileByIdQuery(fileId ?? ''), {
@@ -240,7 +243,7 @@ export default function MetadataRoute() {
           <Row label={t('drive.fileMeta.path')} value={file.path ?? '—'} />
           <Row
             label={t('drive.fileMeta.owner')}
-            value={file.cozyMetadata?.createdBy?.account ?? '—'}
+            value={fileOwnerLabel(file, currentUser, client?.getStackClient?.()?.uri) ?? '—'}
           />
           <View style={styles.footer}>
             <Button
