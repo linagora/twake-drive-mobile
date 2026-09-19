@@ -6,6 +6,7 @@ import { ScreenContainer } from '@/ui/ScreenContainer'
 import { LoadingState } from '@/ui/LoadingState'
 import { ErrorState } from '@/ui/ErrorState'
 import { FolderPicker } from '@/ui/FolderPicker'
+import { previousFolderId } from '@/ui/FolderPicker/upNavigation'
 
 import { useMoveContext } from '@/drive/moveContext'
 
@@ -27,9 +28,19 @@ export const MoveScreen = ({ pathSegments }: Props): React.ReactElement => {
     [pathSegments, ctx.idList, router]
   )
 
-  const onBack = useCallback(() => {
-    if (router.canGoBack()) router.back()
-  }, [router])
+  const sourceDirId = ctx.firstDoc?.dir_id ?? ''
+
+  const onNavigateUp = useCallback(
+    (parentId: string) => {
+      if (previousFolderId(pathSegments, sourceDirId) === parentId && router.canGoBack()) {
+        router.back()
+        return
+      }
+      const ids = ctx.idList.join(',')
+      router.push(`/move/${ids}/${[...pathSegments, parentId].join('/')}`)
+    },
+    [pathSegments, sourceDirId, ctx.idList, router]
+  )
 
   if (ctx.isLoading) {
     return (
@@ -46,7 +57,6 @@ export const MoveScreen = ({ pathSegments }: Props): React.ReactElement => {
     )
   }
 
-  const sourceDirId = ctx.firstDoc.dir_id ?? ''
   const currentFolderId =
     pathSegments.length > 0 ? pathSegments[pathSegments.length - 1] : sourceDirId
   const excludeIds = new Set<string>([...ctx.idList, sourceDirId].filter(Boolean))
@@ -57,9 +67,8 @@ export const MoveScreen = ({ pathSegments }: Props): React.ReactElement => {
       excludeIds={excludeIds}
       confirmLabel={t('drive.move.action')}
       isBusy={ctx.isBusy}
-      isAtRoot={pathSegments.length === 0}
       onDrillIn={onDrillIn}
-      onBack={onBack}
+      onNavigateUp={onNavigateUp}
       onConfirm={ctx.onConfirm}
       onCancel={ctx.onCancel}
     />

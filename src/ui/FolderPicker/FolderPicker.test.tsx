@@ -31,6 +31,7 @@ jest.mock('@/files/createFolder', () => ({
 }))
 
 import { createFolder } from '@/files/createFolder'
+import { ROOT_DIR_ID } from '@/client/queries'
 import { FolderPicker } from './FolderPicker'
 
 const wrap = (ui: React.ReactElement) => <PaperProvider>{ui}</PaperProvider>
@@ -53,7 +54,13 @@ const setupQueries = (folderName: string, children: ReadonlyArray<unknown>): voi
   // 3rd call: folderFilesQuery (we still show them disabled)
   const sequence = [
     {
-      data: { _id: 'src', name: folderName, type: 'directory', path: '/' + folderName },
+      data: {
+        _id: 'src',
+        name: folderName,
+        type: 'directory',
+        dir_id: 'parent-of-src',
+        path: '/' + folderName
+      },
       fetchStatus: 'loaded',
       fetch: jest.fn()
     },
@@ -77,9 +84,8 @@ const defaultProps = {
   excludeIds: new Set<string>(),
   confirmLabel: 'Move here',
   isBusy: false,
-  isAtRoot: true,
   onDrillIn: jest.fn(),
-  onBack: jest.fn(),
+  onNavigateUp: jest.fn(),
   onConfirm: jest.fn(),
   onCancel: jest.fn()
 }
@@ -89,7 +95,7 @@ describe('FolderPicker', () => {
     mockUseQuery.mockReset()
     ;(createFolder as jest.Mock).mockClear()
     defaultProps.onDrillIn.mockReset()
-    defaultProps.onBack.mockReset()
+    defaultProps.onNavigateUp.mockReset()
     defaultProps.onConfirm.mockReset()
     defaultProps.onCancel.mockReset()
   })
@@ -155,18 +161,19 @@ describe('FolderPicker', () => {
     expect(onDrillIn).toHaveBeenCalledWith({ _id: 'a', name: 'Q1', type: 'directory' })
   })
 
-  it('does not render the back arrow when isAtRoot=true', () => {
+  it('offers no way up from the root of the drive, and names it', () => {
     setupQueries('Work', [])
-    render(wrap(<FolderPicker {...defaultProps} isAtRoot={true} />))
-    expect(screen.queryByLabelText('common.back')).toBeNull()
+    render(wrap(<FolderPicker {...defaultProps} currentFolderId={ROOT_DIR_ID} />))
+    expect(screen.queryByTestId('folder-picker-up')).toBeNull()
+    expect(screen.getByText('drive.myDrive')).toBeOnTheScreen()
   })
 
-  it('calls onBack when the back arrow is tapped (isAtRoot=false)', () => {
+  it('climbs to the folder holding this one, wherever the picker opened', () => {
     setupQueries('Work', [])
-    const onBack = jest.fn()
-    render(wrap(<FolderPicker {...defaultProps} isAtRoot={false} onBack={onBack} />))
-    fireEvent.press(screen.getByLabelText('common.back'))
-    expect(onBack).toHaveBeenCalled()
+    const onNavigateUp = jest.fn()
+    render(wrap(<FolderPicker {...defaultProps} onNavigateUp={onNavigateUp} />))
+    fireEvent.press(screen.getByTestId('folder-picker-up'))
+    expect(onNavigateUp).toHaveBeenCalledWith('parent-of-src')
   })
 
   it('opens the create-folder dialog when the "+ New folder" button is tapped', () => {

@@ -14,6 +14,7 @@ import { CreateFolderDialog } from '@/ui/CreateFolderDialog'
 import { createFolder } from '@/files/createFolder'
 import {
   FileQueryResult,
+  ROOT_DIR_ID,
   fileByIdQuery,
   fileByIdQueryAs,
   folderFilesQuery,
@@ -34,9 +35,9 @@ export interface FolderPickerProps {
   excludeIds: Set<string>
   confirmLabel: string
   isBusy: boolean
-  isAtRoot: boolean
   onDrillIn: (item: FolderPickerRowItem) => void
-  onBack: () => void
+  /** Takes the picker to the folder holding the one it is showing. */
+  onNavigateUp: (parentId: string) => void
   onConfirm: (folder: FolderPickerSelection) => void
   onCancel: () => void
 }
@@ -46,9 +47,8 @@ export const FolderPicker = ({
   excludeIds,
   confirmLabel,
   isBusy,
-  isAtRoot,
   onDrillIn,
-  onBack,
+  onNavigateUp,
   onConfirm,
   onCancel
 }: FolderPickerProps) => {
@@ -85,7 +85,8 @@ export const FolderPicker = ({
     (subfoldersQuery.fetchStatus === 'loading' && subfolders.length === 0)
   const hasError = folderLookup.fetchStatus === 'failed' || subfoldersQuery.fetchStatus === 'failed'
 
-  const title = folderDoc?.name ?? ''
+  const title = currentFolderId === ROOT_DIR_ID ? t('drive.myDrive') : (folderDoc?.name ?? '')
+  const canNavigateUp = currentFolderId !== ROOT_DIR_ID
 
   const handleDrillIn = (item: FolderPickerRowItem): void => {
     if (item.type !== 'directory') return
@@ -111,17 +112,18 @@ export const FolderPicker = ({
     <Portal.Host>
       <ScreenContainer>
         <Appbar.Header statusBarHeight={headerTopInset}>
-          {isAtRoot ? null : (
+          {canNavigateUp ? (
             <Appbar.Action
               isLeading
               animated={false}
               icon={p => (
                 <CozyIcon name="previous" size={p?.size ?? 24} color={theme.colors.onSurface} />
               )}
-              onPress={onBack}
+              onPress={() => onNavigateUp(folderDoc?.dir_id ?? ROOT_DIR_ID)}
               accessibilityLabel={t('common.back')}
+              testID="folder-picker-up"
             />
-          )}
+          ) : null}
           <Appbar.Content title={title} />
           <Appbar.Action
             icon={p => <CozyIcon name="folderAdd" size={p?.size ?? 24} color={p?.color} />}
