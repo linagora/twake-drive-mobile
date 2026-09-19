@@ -8,7 +8,7 @@ import { useIsOnline } from '@/network/useIsOnline'
 import { useOfflineState } from '@/offline/useOfflineState'
 import { isKeepOfflineEnabled } from '@/offline/keepOfflineFlag'
 import { isFavorite, toggleFavorite } from '@/files/favorites'
-import { download } from '@/files/download'
+import { download, DownloadCancelledError } from '@/files/download'
 import { triggerPouchReplication } from '@/pouchdb/triggerReplication'
 import type { FileItem } from './FileRow'
 
@@ -178,7 +178,10 @@ export const FileActionsMenu = ({
         onPress={() => {
           setMenuVisible(false)
           if (!client) return
-          void download(client, file, driveId)
+          void download(client, file, driveId).catch(e => {
+            if (e instanceof DownloadCancelledError) return
+            console.error('[FileActionsMenu] download failed', e)
+          })
         }}
       />
     </Menu>
