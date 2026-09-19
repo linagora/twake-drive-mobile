@@ -11,10 +11,12 @@ import { LoadingState } from '@/ui/LoadingState'
 import { fileByIdQuery, fileByIdQueryAs } from '@/client/queries'
 import { buildCozyAppUrl } from '@/files/cozyAppLink'
 import { useSessionCode } from '@/auth/useSessionCode'
+import { useRefreshOnLeave } from '@/viewer/useRefreshOnLeave'
 
 export default function DocsScreen() {
   const { t } = useTranslation()
   const { fileId } = useLocalSearchParams<{ fileId: string }>()
+  useRefreshOnLeave(fileId)
   const client = useClient()
   const router = useRouter()
   const fetchSessionCode = useSessionCode()

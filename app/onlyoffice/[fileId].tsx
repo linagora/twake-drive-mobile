@@ -9,6 +9,7 @@ import { EditorHeader } from '@/ui/EditorHeader'
 import { ErrorState } from '@/ui/ErrorState'
 import { LoadingState } from '@/ui/LoadingState'
 import { useSessionCode } from '@/auth/useSessionCode'
+import { useRefreshOnLeave } from '@/viewer/useRefreshOnLeave'
 
 // TODO(backend): cozy-stack returns 403 Forbidden on `GET /office/{id}/open`
 // for OAuth clients of kind=mobile. The endpoint is currently restricted to the
@@ -43,6 +44,7 @@ const buildDriveOnlyOfficeUrl = (
 
 export default function OnlyOfficeScreen() {
   const { fileId, driveId } = useLocalSearchParams<{ fileId: string; driveId?: string }>()
+  useRefreshOnLeave(fileId, driveId)
   const client = useClient()
   const router = useRouter()
   const fetchSessionCode = useSessionCode()
