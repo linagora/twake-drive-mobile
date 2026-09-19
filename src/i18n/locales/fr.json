@@ -164,7 +164,9 @@
       "emptyConfirmBody": "Tous les éléments de la corbeille seront supprimés définitivement. Cette action est irréversible.",
       "emptyConfirm": "Vider",
       "emptySuccess": "Corbeille vidée",
-      "emptyError": "Impossible de vider la corbeille"
+      "emptyError": "Impossible de vider la corbeille",
+      "filterPlaceholder": "Filtrer la corbeille",
+      "filterEmpty": "Aucun élément ne correspond"
     },
     "createFolder": {
       "title": "Nouveau dossier",

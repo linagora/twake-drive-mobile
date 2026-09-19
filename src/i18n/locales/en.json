@@ -165,7 +165,9 @@
       "emptyConfirmBody": "All items in the trash will be permanently deleted. This cannot be undone.",
       "emptyConfirm": "Empty",
       "emptySuccess": "Trash emptied",
-      "emptyError": "Could not empty the trash"
+      "emptyError": "Could not empty the trash",
+      "filterPlaceholder": "Filter the trash",
+      "filterEmpty": "No item matches"
     },
     "createMenu": {
       "folder": "New folder",

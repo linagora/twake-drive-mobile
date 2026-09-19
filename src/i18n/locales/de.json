@@ -165,7 +165,9 @@
       "emptyConfirmBody": "Alle Elemente im Papierkorb werden dauerhaft gelöscht. Dies kann nicht rückgängig gemacht werden.",
       "emptyConfirm": "Leeren",
       "emptySuccess": "Papierkorb geleert",
-      "emptyError": "Papierkorb konnte nicht geleert werden"
+      "emptyError": "Papierkorb konnte nicht geleert werden",
+      "filterPlaceholder": "Papierkorb filtern",
+      "filterEmpty": "Kein Element passt"
     },
     "createMenu": {
       "folder": "Neuer Ordner",

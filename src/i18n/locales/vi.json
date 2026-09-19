@@ -159,7 +159,9 @@
       "emptyConfirmBody": "Tất cả các mục trong thùng rác sẽ bị xóa vĩnh viễn. Không thể hoàn tác.",
       "emptyConfirm": "Dọn sạch",
       "emptySuccess": "Đã dọn thùng rác",
-      "emptyError": "Không thể dọn thùng rác"
+      "emptyError": "Không thể dọn thùng rác",
+      "filterPlaceholder": "Lọc thùng rác",
+      "filterEmpty": "Không có mục nào khớp"
     },
     "createMenu": {
       "folder": "Thư mục mới",
