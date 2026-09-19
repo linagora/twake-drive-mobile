@@ -30,6 +30,7 @@ type Props =
   | (CommonProps & { chrome: 'editor'; title?: string })
 
 export const DOCUMENT_BACK_TEST_ID = 'document-back-button'
+export const DOCUMENT_CONTENT_TEST_ID = 'document-content'
 
 export const DocumentScreen = ({
   title,
@@ -40,11 +41,17 @@ export const DocumentScreen = ({
   const theme = useTheme()
   const insets = useSafeAreaInsets()
   const { t } = useTranslation()
+  const androidTopInset = Platform.OS === 'ios' ? 0 : insets.top || StatusBar.currentHeight || 0
 
   if (chrome === 'immersive') {
     return (
       <View style={[styles.screen, styles.canvas]}>
-        {children}
+        <View
+          testID={DOCUMENT_CONTENT_TEST_ID}
+          style={[styles.screen, { paddingTop: androidTopInset }]}
+        >
+          {children}
+        </View>
         <View
           style={[styles.floatingBar, { top: insets.top + cozyTokens.spacing.sm }]}
           pointerEvents="box-none"
@@ -70,11 +77,7 @@ export const DocumentScreen = ({
   return (
     <View style={[styles.screen, { backgroundColor: theme.colors.background }]}>
       {chrome === 'editor' ? (
-        <Appbar.Header
-          statusBarHeight={Platform.OS === 'ios' ? 0 : insets.top || StatusBar.currentHeight || 0}
-          elevated={false}
-          mode="small"
-        >
+        <Appbar.Header statusBarHeight={androidTopInset} elevated={false} mode="small">
           <Appbar.Action
             isLeading
             animated={false}

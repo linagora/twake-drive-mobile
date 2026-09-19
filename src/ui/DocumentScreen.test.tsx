@@ -1,5 +1,5 @@
 import React from 'react'
-import { Text } from 'react-native'
+import { Platform, StatusBar, Text } from 'react-native'
 import { Provider as PaperProvider } from 'react-native-paper'
 import { fireEvent, render, screen } from '@testing-library/react-native'
 
@@ -13,7 +13,7 @@ jest.mock('@/account/useCurrentUser', () => ({
   useCurrentUser: () => ({ initials: 'QV', avatarUrl: null })
 }))
 
-import { DocumentScreen } from './DocumentScreen'
+import { DOCUMENT_CONTENT_TEST_ID, DocumentScreen } from './DocumentScreen'
 
 const wrap = (ui: React.ReactElement) => <PaperProvider>{ui}</PaperProvider>
 
@@ -56,5 +56,20 @@ describe('DocumentScreen', () => {
     expect(screen.queryByText('rapport.pdf')).not.toBeOnTheScreen()
     fireEvent.press(screen.getByTestId('document-back-button'))
     expect(onBack).toHaveBeenCalledTimes(1)
+  })
+
+  it('keeps the immersive content clear of the status bar on Android', () => {
+    Platform.OS = 'android'
+    StatusBar.currentHeight = 24
+    render(
+      wrap(
+        <DocumentScreen title="rapport.pdf" onBack={jest.fn()} chrome="immersive">
+          <Text>content</Text>
+        </DocumentScreen>
+      )
+    )
+    const content = screen.getByTestId(DOCUMENT_CONTENT_TEST_ID)
+    expect(JSON.stringify(content.props.style)).toContain('"paddingTop":24')
+    Platform.OS = 'ios'
   })
 })
