@@ -54,6 +54,21 @@ export const cozyTokens = {
     /** Development-only affordances, always on top. */
     devTools: 9999
   },
+  /**
+   * Full-bleed media canvas. A photo, a video or a PDF is read against a dark
+   * ground whatever the app theme is, so these few colours are deliberately
+   * outside the palette; every surface drawn over that canvas takes them from
+   * here rather than writing its own literal.
+   */
+  canvas: {
+    background: '#000000',
+    on: '#FFFFFF',
+    /** Dim over the canvas while a viewer loads or fails. */
+    scrim: 'rgba(0,0,0,0.4)',
+    /** Behind a floating control, so it stays legible over any content. */
+    control: 'rgba(0,0,0,0.55)',
+    error: '#FF6B6B'
+  },
   shadowColor: '#0A1F44'
 }
 
