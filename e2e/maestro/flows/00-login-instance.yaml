@@ -28,6 +28,13 @@ env:
       visible: 'Continue'
     commands:
       - tapOn: 'Continue'
+# The emulator action sends KEYCODE_MENU after boot, which is what opens the
+# development menu of a debug build.
+- runFlow:
+    when:
+      visible: 'Runtime version'
+    commands:
+      - pressKey: Back
 - extendedWaitUntil:
     visible:
       id: 'welcome-dev-instance-link'
