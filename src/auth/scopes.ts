@@ -40,7 +40,8 @@ export const APP_SCOPES: readonly string[] = [
   // Drive-specific settings (e.g. offline storage quota, feature flags
   // scoped to the drive app).
   'io.cozy.drive.settings',
-  // Notes: the app creates one through this doctype, the way the web does.
+  // Notes: the app creates one through this doctype, the way the web does,
+  // and asks the stack where a note of a shared drive opens.
   'io.cozy.notes'
 ] as const
 

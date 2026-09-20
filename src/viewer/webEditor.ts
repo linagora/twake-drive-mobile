@@ -1,4 +1,4 @@
-import type CozyClient from 'cozy-client'
+import CozyClient, { models } from 'cozy-client'
 import * as WebBrowser from 'expo-web-browser'
 
 import { buildCozyAppUrl } from '@/files/cozyAppLink'
@@ -24,6 +24,16 @@ export const webEditorKindOf = (file: EditableDocument): WebEditorKind | null =>
   return null
 }
 
+interface NoteModels {
+  note: {
+    fetchURL: (
+      client: CozyClient,
+      file: { id: string },
+      options?: { driveId?: string }
+    ) => Promise<string>
+  }
+}
+
 const drivePath = (route: string, fileId: string, driveId?: string): string =>
   driveId
     ? `/${route}/${encodeURIComponent(driveId)}/${encodeURIComponent(fileId)}`
@@ -43,6 +53,15 @@ export const webEditorUrl = async (
   const kind = webEditorKindOf(file)
   switch (kind) {
     case 'note':
+      // A note of a shared drive lives on the owner's instance, which the
+      // stack answers for with its URL and a sharecode.
+      if (driveId) {
+        return (models as unknown as NoteModels).note.fetchURL(
+          client,
+          { id: file._id },
+          { driveId }
+        )
+      }
       return buildCozyAppUrl(stackUri, 'notes', `/n/${encodeURIComponent(file._id)}`)
     case 'docs': {
       const externalId = file.metadata?.externalId
