@@ -1,5 +1,11 @@
 import type CozyClient from 'cozy-client'
 
+const mockFetchURL = jest.fn()
+jest.mock('cozy-client', () => ({
+  __esModule: true,
+  models: { note: { fetchURL: (...args: unknown[]) => mockFetchURL(...args) } }
+}))
+
 const mockOpenBrowser = jest.fn()
 jest.mock('expo-web-browser', () => ({
   openBrowserAsync: (...args: unknown[]) => mockOpenBrowser(...args)
@@ -64,6 +70,16 @@ describe('webEditorUrl', () => {
     await expect(webEditorUrl(client, { _id: 'note-1', name: 'a.cozy-note' })).resolves.toBe(
       'https://mine-notes.twake.test/#/n/note-1'
     )
+    expect(mockFetchURL).not.toHaveBeenCalled()
+  })
+
+  it('asks the stack for a note of a shared drive, which answers with a sharecode', async () => {
+    mockFetchURL.mockResolvedValue('https://owner-notes.twake.test/public/?sharecode=abc')
+
+    await expect(
+      webEditorUrl(client, { _id: 'note-1', name: 'a.cozy-note' }, 'drive-7')
+    ).resolves.toBe('https://owner-notes.twake.test/public/?sharecode=abc')
+    expect(mockFetchURL).toHaveBeenCalledWith(client, { id: 'note-1' }, { driveId: 'drive-7' })
   })
 
   it('sends a Docs document to its bridge', async () => {
