@@ -2,10 +2,6 @@ import React from 'react'
 import { Text, Pressable } from 'react-native'
 import { render, screen, waitFor, act, fireEvent } from '@testing-library/react-native'
 
-jest.mock('./certifyFlagship', () => ({
-  certifyFlagship: jest.fn()
-}))
-
 jest.mock('cozy-client', () => ({
   __esModule: true,
   default: jest.fn().mockImplementation(() => ({
@@ -54,7 +50,6 @@ import * as tokenStorage from './tokenStorage'
 import * as oidcFlow from './oidcFlow'
 import * as autodiscovery from './autodiscovery'
 import * as registerSessionMod from './registerSession'
-import * as certifyFlagshipMod from './certifyFlagship'
 import { useAuth, AuthProvider } from './useAuth'
 
 const mockSession = {
@@ -80,20 +75,6 @@ const Probe = () => {
       <Pressable testID="login" onPress={() => login('user@example.com').catch(() => {})} />
       <Pressable testID="logout" onPress={() => logout()} />
     </>
-  )
-}
-
-const CertifyProbe = ({ onResult }: { onResult: (c: import('cozy-client').default) => void }) => {
-  const { certifyFlagship } = useAuth()
-  return (
-    <Pressable
-      testID="certify"
-      onPress={() =>
-        certifyFlagship()
-          .then(onResult)
-          .catch(() => {})
-      }
-    />
   )
 }
 
@@ -176,35 +157,5 @@ describe('useAuth', () => {
     // login screen returns to the device language, dropping the instance locale
     expect(resolveDeviceLanguage).toHaveBeenCalled()
     expect(i18n.changeLanguage).toHaveBeenCalledWith('en')
-  })
-
-  it('certifyFlagship calls the certifyFlagship module and saves the new session', async () => {
-    const newSession = {
-      ...mockSession,
-      token: { accessToken: 'new-a', refreshToken: 'new-r', tokenType: 'bearer', scope: '*' }
-    }
-    jest.spyOn(tokenStorage, 'getSession').mockResolvedValue(mockSession)
-    const certifySpy = jest
-      .spyOn(certifyFlagshipMod, 'certifyFlagship')
-      .mockResolvedValue(newSession)
-    const saveSpy = jest.spyOn(tokenStorage, 'saveSession').mockResolvedValue()
-
-    const onResult = jest.fn()
-    render(
-      <AuthProvider>
-        <Probe />
-        <CertifyProbe onResult={onResult} />
-      </AuthProvider>
-    )
-    await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('authenticated'))
-
-    await act(async () => {
-      fireEvent.press(screen.getByTestId('certify'))
-    })
-
-    await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('authenticated'))
-    expect(certifySpy).toHaveBeenCalledWith(mockSession)
-    expect(saveSpy).toHaveBeenCalledWith(newSession)
-    expect(onResult).toHaveBeenCalled()
   })
 })

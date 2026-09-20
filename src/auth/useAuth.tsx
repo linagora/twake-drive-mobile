@@ -18,7 +18,6 @@ import { startOidcFlow } from './oidcFlow'
 import { registerSession } from './registerSession'
 import { registerDirectSession } from './registerDirectSession'
 import { getLoginUri, getTwakeWorkplaceLoginUri } from './autodiscovery'
-import { certifyFlagship as certifyFlagshipModule } from './certifyFlagship'
 
 interface AuthState {
   status: 'loading' | 'authenticated' | 'unauthenticated'
@@ -39,7 +38,6 @@ interface AuthContextValue extends AuthState {
   /** Development only: sign in against a stack instance, no cloudery. */
   loginWithInstance: (instanceUri: string) => Promise<void>
   logout: () => Promise<void>
-  certifyFlagship: () => Promise<CozyClient>
   devResetAndResync: () => Promise<void>
 }
 
@@ -154,16 +152,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     void i18n.changeLanguage(resolveDeviceLanguage())
   }, [])
 
-  const certifyFlagship = useCallback(async (): Promise<CozyClient> => {
-    const session = await getSession()
-    if (!session) throw new Error('certifyFlagship: no session stored')
-    const newSession = await certifyFlagshipModule(session)
-    await saveSession(newSession)
-    const client = await createClient(newSession)
-    setState({ status: 'authenticated', client })
-    return client
-  }, [])
-
   const devResetAndResync = useCallback(async (): Promise<void> => {
     if (devResyncInFlight) return
     devResyncInFlight = true
@@ -192,7 +180,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       loginWithTwakeWorkplace,
       loginWithInstance,
       logout,
-      certifyFlagship,
       devResetAndResync
     }),
     [
@@ -204,7 +191,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       loginWithTwakeWorkplace,
       loginWithInstance,
       logout,
-      certifyFlagship,
       devResetAndResync
     ]
   )
