@@ -27,6 +27,7 @@ import { useOfflineActions } from '@/offline/useOfflineActions'
 import { isKeepOfflineEnabled } from '@/offline/keepOfflineFlag'
 import { FileSystemRepo } from '@/offline/FileSystemRepo'
 import { fileOwnerLabel } from '@/files/fileOwner'
+import { openWebEditor, webEditorKindOf } from '@/viewer/webEditor'
 import { useCurrentUser } from '@/account/useCurrentUser'
 
 // Brief delay so the success snackbar is visible before the modal dismisses.
@@ -85,19 +86,9 @@ export default function MetadataRoute() {
 
   const onOpen = async (): Promise<void> => {
     if (!client || !file) return
-    if (isCozyNoteFile(file.name)) {
+    if (webEditorKindOf(file)) {
       close()
-      router.push(`/note/${file._id}`)
-      return
-    }
-    if (isDocsNoteFile(file.name)) {
-      close()
-      router.push(`/docs/${file._id}`)
-      return
-    }
-    if (isOfficeFile(file.mime)) {
-      close()
-      router.push(`/onlyoffice/${file._id}`)
+      await openWebEditor(client, { _id: file._id, name: file.name, mime: file.mime })
       return
     }
     if (canPreviewInApp(file)) {
