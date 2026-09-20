@@ -1,0 +1,130 @@
+name: E2E (Android, disposable instance)
+
+# Runs the Maestro flows against an emulator and a cozy-stack created for the
+# run, so nothing touches a real account. Manual for now; the point is to have
+# the loop somewhere other than a laptop. See e2e/README.md.
+on:
+  # Temporary while the pipeline is being brought up: a dispatch-only workflow
+  # cannot be run from a branch until it sits on the default one.
+  push:
+    branches:
+      - ci/e2e-android-disposable-instance
+  workflow_dispatch:
+    inputs:
+      flows:
+        description: 'Maestro path to run (default: the CI flows)'
+        required: false
+        default: 'e2e/maestro/flows/00-login-instance.yaml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  INSTANCE_DOMAIN: alice.10-0-2-2.nip.io
+  INSTANCE_PASSPHRASE: cozycozy
+
+jobs:
+  e2e:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Start the stack
+        run: |
+          docker compose -f e2e/stack/docker-compose.yml up -d
+          docker compose -f e2e/stack/docker-compose.yml ps
+
+      - name: Create the disposable instance
+        run: |
+          STACK_CONTAINER="$(docker compose -f e2e/stack/docker-compose.yml ps -q stack)" \
+            e2e/stack/setup.sh "$INSTANCE_DOMAIN" "$INSTANCE_PASSPHRASE"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install JS dependencies
+        run: npm ci
+
+      - uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Cache Gradle
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-e2e-${{ hashFiles('android/**/*.gradle*', 'android/gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: ${{ runner.os }}-gradle-e2e-
+
+      # A debug build, because the e2e entry point (the instance address screen)
+      # and cleartext HTTP to the stack are both debug-only.
+      - name: Build the debug APK
+        run: ./gradlew assembleDebug --no-daemon
+        working-directory: android
+
+      - name: Serve the JS bundle
+        run: |
+          nohup npx expo start --dev-client --port 8081 > /tmp/metro.log 2>&1 &
+          for _ in $(seq 1 60); do
+            curl -fsS http://localhost:8081/status >/dev/null 2>&1 && break
+            sleep 2
+          done
+          tail -3 /tmp/metro.log
+
+      - name: Install Maestro
+        run: |
+          curl -fsSL https://get.maestro.mobile.dev | bash
+          echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+
+      - name: Let the runner use KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Run the flows
+        env:
+          FLOWS: ${{ inputs.flows || 'e2e/maestro/flows/00-login-instance.yaml' }}
+        uses: ReactiveCircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          disable-animations: true
+          script: |
+            adb install -r android/app/build/outputs/apk/debug/app-debug.apk
+            adb shell pm clear com.linagora.twakedrive || true
+            maestro test --env INSTANCE_URL="http://$INSTANCE_DOMAIN" \
+                         --env INSTANCE_PASSPHRASE="$INSTANCE_PASSPHRASE" \
+                         --format junit --output /tmp/maestro-report.xml \
+                         "${FLOWS}"
+
+      - name: Collect what the run left behind
+        if: always()
+        run: |
+          mkdir -p /tmp/e2e-artifacts
+          cp /tmp/maestro-report.xml /tmp/e2e-artifacts/ 2>/dev/null || true
+          cp -r ~/.maestro/tests /tmp/e2e-artifacts/maestro-tests 2>/dev/null || true
+          cp /tmp/metro.log /tmp/e2e-artifacts/ 2>/dev/null || true
+          docker compose -f e2e/stack/docker-compose.yml logs --no-color > /tmp/e2e-artifacts/stack.log 2>&1 || true
+
+      - name: Upload them
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: e2e-android
+          path: /tmp/e2e-artifacts
+          retention-days: 7
