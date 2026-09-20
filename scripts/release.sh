@@ -7,10 +7,10 @@ set -euo pipefail
 # See docs/ci-cd-signed-release.md.
 #
 # Usage: scripts/release.sh <X.Y.Z> [remote]
-#   remote defaults to "fork" (mmaudet/twake-drive-mobile).
+#   remote defaults to "linagora" (linagora/twake-drive-mobile).
 
 VERSION="${1:-}"
-REMOTE="${2:-fork}"
+REMOTE="${2:-linagora}"
 
 if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
   echo "Usage: $0 <X.Y.Z> [remote]   (e.g. $0 0.2.0)" >&2
@@ -59,7 +59,7 @@ read -r -p "Push '$TAG' (+ the bump commit) to '$REMOTE' now? [y/N] " reply
 if [[ "$reply" =~ ^[Yy]$ ]]; then
   git push "$REMOTE" HEAD
   git push "$REMOTE" "$TAG"
-  echo "Pushed. Watch: gh run list --repo mmaudet/twake-drive-mobile"
+  echo "Pushed. Watch: gh run list --repo $(git remote get-url "$REMOTE" | sed -E 's#.*github.com[:/]([^/]+/[^/.]+)(\.git)?#\1#')"
 else
   echo "Not pushed. When ready:"
   echo "  git push $REMOTE HEAD && git push $REMOTE $TAG"

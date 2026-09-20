@@ -12,9 +12,9 @@ set -euo pipefail
 # values pass straight from your machine to GitHub, never through anyone else.
 #
 # Usage: scripts/setup-release-secrets.sh [repo]
-#   repo defaults to mmaudet/twake-drive-mobile.
+#   repo defaults to linagora/twake-drive-mobile.
 
-REPO="${1:-mmaudet/twake-drive-mobile}"
+REPO="${1:-linagora/twake-drive-mobile}"
 ROOT="$(git rev-parse --show-toplevel)"
 ENV_FILE="$ROOT/.release-secrets.env"
 

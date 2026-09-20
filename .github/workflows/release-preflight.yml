@@ -1,0 +1,56 @@
+name: Release preflight (which secrets are set)
+
+# Says whether this repository holds the credentials the release workflows
+# need, without revealing any of them: each line is a name and "set" or
+# "MISSING". See docs/ci-cd-signed-release.md.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  preflight:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Report the release secrets
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          FIREBASE_APP_ID: ${{ secrets.FIREBASE_APP_ID }}
+          FIREBASE_SERVICE_ACCOUNT_BASE64: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_BASE64 }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          APP_STORE_CONNECT_API_KEY_CONTENT: ${{ secrets.APP_STORE_CONNECT_API_KEY_CONTENT }}
+          MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+          MATCH_DEPLOY_KEY: ${{ secrets.MATCH_DEPLOY_KEY }}
+        run: |
+          android=(ANDROID_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD FIREBASE_APP_ID FIREBASE_SERVICE_ACCOUNT_BASE64)
+          ios=(APPLE_TEAM_ID APP_STORE_CONNECT_API_KEY_ID APP_STORE_CONNECT_ISSUER_ID APP_STORE_CONNECT_API_KEY_CONTENT MATCH_GIT_URL MATCH_PASSWORD MATCH_DEPLOY_KEY)
+          missing=0
+          report() {
+            echo "### $1" >> "$GITHUB_STEP_SUMMARY"
+            shift
+            for name in "$@"; do
+              if [ -n "${!name:-}" ]; then
+                echo "- \`$name\` — set" >> "$GITHUB_STEP_SUMMARY"
+              else
+                echo "- \`$name\` — **MISSING**" >> "$GITHUB_STEP_SUMMARY"
+                missing=$((missing + 1))
+              fi
+            done
+          }
+          echo "## Release secrets" >> "$GITHUB_STEP_SUMMARY"
+          report "Android" "${android[@]}"
+          report "iOS" "${ios[@]}"
+          echo >> "$GITHUB_STEP_SUMMARY"
+          if [ "$missing" -gt 0 ]; then
+            echo "$missing missing — see docs/ci-cd-signed-release.md." >> "$GITHUB_STEP_SUMMARY"
+            echo "::warning::$missing release secret(s) missing; this repository cannot release on its own yet"
+          else
+            echo "Every release secret is set." >> "$GITHUB_STEP_SUMMARY"
+          fi
