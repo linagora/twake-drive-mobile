@@ -6,17 +6,21 @@ import { useKeyboardOffset } from './useKeyboardOffset'
 
 import type { OfficeFileClass } from '@/files/createOfficeFile'
 
+/** What the dialog can name: an office document, or a drawing. */
+export type CreatableFileClass = OfficeFileClass | 'excalidraw'
+
 interface Props {
   visible: boolean
-  fileClass: OfficeFileClass | null
+  fileClass: CreatableFileClass | null
   onDismiss: () => void
   onSubmit: (name: string) => Promise<void>
 }
 
-const CLASS_LABEL_KEY: Record<OfficeFileClass, string> = {
+const CLASS_LABEL_KEY: Record<CreatableFileClass, string> = {
   text: 'drive.createMenu.text',
   sheet: 'drive.createMenu.sheet',
-  slide: 'drive.createMenu.slide'
+  slide: 'drive.createMenu.slide',
+  excalidraw: 'drive.createMenu.excalidraw'
 }
 
 export const CreateOfficeFileDialog = ({ visible, fileClass, onDismiss, onSubmit }: Props) => {
