@@ -19,6 +19,12 @@ const offlineError = (): Error => {
 
 const mockPush = jest.fn()
 jest.mock('expo-router', () => ({ useRouter: () => ({ push: mockPush }) }))
+
+const mockOpenWebEditor = jest.fn()
+jest.mock('./webEditor', () => {
+  const actual = jest.requireActual('./webEditor')
+  return { ...actual, openWebEditor: (...args: unknown[]) => mockOpenWebEditor(...args) }
+})
 jest.mock('cozy-client', () => ({ useClient: () => ({}) }))
 
 let mockOnline = true
@@ -72,7 +78,13 @@ describe('DocumentViewer', () => {
     show({ _id: 'f1', name: 'note.cozy-note' })
     await waitFor(() => expect(screen.getByTestId('document-viewer-edit')).toBeOnTheScreen())
     fireEvent.press(screen.getByTestId('document-viewer-edit'))
-    expect(mockPush).toHaveBeenCalledWith('/note/f1')
+    await waitFor(() =>
+      expect(mockOpenWebEditor).toHaveBeenCalledWith(
+        {},
+        { _id: 'f1', name: 'note.cozy-note' },
+        undefined
+      )
+    )
   })
 
   it('does not offer to edit a plain markdown file, which has no editor', async () => {
@@ -105,7 +117,7 @@ describe('DocumentViewer', () => {
     })
     await waitFor(() => expect(screen.getByTestId('document-viewer-edit')).toBeOnTheScreen())
     fireEvent.press(screen.getByTestId('document-viewer-edit'))
-    expect(mockPush).toHaveBeenCalledWith('/onlyoffice/f3')
+    await waitFor(() => expect(mockOpenWebEditor).toHaveBeenCalled())
   })
 
   it('leaves the edit button out of reach offline', async () => {
@@ -114,6 +126,6 @@ describe('DocumentViewer', () => {
     show({ _id: 'f1', name: 'note.cozy-note' })
     await waitFor(() => expect(screen.getByTestId('document-viewer-edit')).toBeOnTheScreen())
     fireEvent.press(screen.getByTestId('document-viewer-edit'))
-    expect(mockPush).not.toHaveBeenCalled()
+    expect(mockOpenWebEditor).not.toHaveBeenCalled()
   })
 })

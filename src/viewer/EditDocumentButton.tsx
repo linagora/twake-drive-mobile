@@ -1,33 +1,15 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { StyleProp, ViewStyle } from 'react-native'
 import { Button } from 'react-native-paper'
-import { useRouter } from 'expo-router'
+import { useClient } from 'cozy-client'
 import { useTranslation } from 'react-i18next'
 
 import { useIsOnline } from '@/network/useIsOnline'
-import { isCozyNoteFile, isDocsNoteFile, isOfficeFile } from '@/files/fileTypes'
 import { hasWebEditor } from './documentKind'
+import { EditableDocument, openWebEditor, webEditorKindOf } from './webEditor'
 
-export interface EditableDocument {
-  _id: string
-  name: string
-  mime?: string
-}
-
-/**
- * The editor a document opens in when the user asks to change it.
- *
- * Every type is edited in its own web editor; the app only reads. One place to
- * change if that ever moves.
- */
-export const editorRouteFor = (file: EditableDocument, driveId?: string): string | null => {
-  const scope = driveId ? `?driveId=${encodeURIComponent(driveId)}` : ''
-  if (isCozyNoteFile(file.name)) return `/note/${file._id}${scope}`
-  if (isDocsNoteFile(file.name)) return `/docs/${file._id}${scope}`
-  if (isOfficeFile(file.mime)) return `/onlyoffice/${file._id}${scope}`
-  if (/\.excalidraw$/i.test(file.name)) return `/excalidraw/${file._id}${scope}`
-  return null
-}
+export type { EditableDocument } from './webEditor'
+export { webEditorKindOf as editorKindFor } from './webEditor'
 
 interface Props {
   file: EditableDocument
@@ -51,11 +33,23 @@ export const EditDocumentButton = ({
   style
 }: Props): React.ReactElement | null => {
   const { t } = useTranslation()
-  const router = useRouter()
+  const client = useClient()
   const isOnline = useIsOnline()
+  const [opening, setOpening] = useState(false)
 
-  const route = editorRouteFor(file, driveId)
-  if (!route || !hasWebEditor(file)) return null
+  if (!webEditorKindOf(file) || !hasWebEditor(file)) return null
+
+  const onPress = async (): Promise<void> => {
+    if (!client || opening) return
+    setOpening(true)
+    try {
+      await openWebEditor(client, file, driveId)
+    } catch (e) {
+      console.error('[EditDocumentButton] could not open the editor', e)
+    } finally {
+      setOpening(false)
+    }
+  }
 
   return (
     <Button
@@ -63,10 +57,11 @@ export const EditDocumentButton = ({
       icon="pencil"
       testID="document-viewer-edit"
       style={style}
+      loading={opening}
       // The editors are web ones: shown offline, but out of reach, rather than
       // disappearing and leaving the user wondering where editing went.
-      disabled={!isOnline}
-      onPress={() => router.push(route as Parameters<typeof router.push>[0])}
+      disabled={!isOnline || !client}
+      onPress={() => void onPress()}
     >
       {t('drive.viewer.edit')}
     </Button>
