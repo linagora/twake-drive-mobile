@@ -1,0 +1,40 @@
+appId: com.linagora.twakedrive
+tags:
+  - ci-login
+env:
+  INSTANCE_URL: 'http://alice.10-0-2-2.nip.io'
+  INSTANCE_PASSPHRASE: 'cozycozy'
+  DEV_CLIENT_URL: 'twakedrive://expo-development-client/?url=http%3A%2F%2F10.0.2.2%3A8081'
+---
+# Signs the app into the disposable instance the e2e stack serves, through the
+# development-only "instance address" entry point: the app runs the stack's own
+# OAuth dance, and the stack's login page is answered in the system browser.
+# Debug builds only, which is what the e2e workflow installs.
+# The debug build is an expo-dev-client: the link tells it which bundle to
+# load, which is how `expo run:android` starts it too.
+- openLink: '${DEV_CLIENT_URL}'
+- extendedWaitUntil:
+    visible:
+      id: 'welcome-dev-instance-link'
+    timeout: 180000
+- assertVisible:
+    id: 'welcome-dev-instance-link'
+- tapOn:
+    id: 'welcome-dev-instance-link'
+- tapOn:
+    id: 'dev-instance-uri-input'
+- inputText: '${INSTANCE_URL}'
+- tapOn:
+    id: 'dev-instance-submit'
+# The stack's own login page, in the system browser.
+- extendedWaitUntil:
+    visible: 'Mot de passe'
+    timeout: 60000
+- tapOn: 'Mot de passe'
+- inputText: '${INSTANCE_PASSPHRASE}'
+- pressKey: Enter
+# Back in the app, on the drive.
+- extendedWaitUntil:
+    visible:
+      id: 'drive-fab'
+    timeout: 120000

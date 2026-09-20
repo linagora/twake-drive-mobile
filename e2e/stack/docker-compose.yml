@@ -1,0 +1,24 @@
+# A cozy-stack and its CouchDB, for end-to-end runs against a disposable
+# instance. Published on port 80 so instance domains carry no port: the
+# emulator reaches the host through 10.0.2.2, and nip.io resolves
+# `<anything>.10-0-2-2.nip.io` to it.
+services:
+  couchdb:
+    image: couchdb:3
+    environment:
+      COUCHDB_USER: cozy
+      COUCHDB_PASSWORD: cozy
+    ports:
+      - '5984:5984'
+
+  stack:
+    image: cozy/cozy-stack:latest
+    depends_on:
+      - couchdb
+    environment:
+      COZY_COUCHDB_URL: http://cozy:cozy@couchdb:5984/
+    volumes:
+      - ./cozy.yml:/etc/cozy/cozy.yml:ro
+    ports:
+      - '80:8080'
+      - '6060:6060'
