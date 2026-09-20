@@ -13,10 +13,19 @@ env:
 # The debug build is an expo-dev-client: the link tells it which bundle to
 # load, which is how `expo run:android` starts it too.
 - openLink: '${DEV_CLIENT_URL}'
+# A freshly installed development build greets with the developer menu.
+- extendedWaitUntil:
+    visible: 'Twake Drive'
+    timeout: 180000
+- runFlow:
+    when:
+      visible: 'Continue'
+    commands:
+      - tapOn: 'Continue'
 - extendedWaitUntil:
     visible:
       id: 'welcome-dev-instance-link'
-    timeout: 180000
+    timeout: 120000
 - assertVisible:
     id: 'welcome-dev-instance-link'
 - tapOn:
@@ -28,9 +37,9 @@ env:
     id: 'dev-instance-submit'
 # The stack's own login page, in the system browser.
 - extendedWaitUntil:
-    visible: 'Mot de passe'
+    visible: 'Mot de passe|Password'
     timeout: 60000
-- tapOn: 'Mot de passe'
+- tapOn: 'Mot de passe|Password'
 - inputText: '${INSTANCE_PASSPHRASE}'
 - pressKey: Enter
 # Back in the app, on the drive.
