@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { createMMKV } from 'react-native-mmkv'
 
 import { useAuth } from '@/auth/useAuth'
+import { isDevInstanceLoginEnabled } from '@/auth/devInstanceLogin'
 import { UserCancelledError } from '@/auth/types'
 
 const STORAGE_KEY = 'devInstanceUri'
@@ -32,7 +33,7 @@ export default function DevInstanceScreen() {
   const [error, setError] = useState<string | null>(null)
   const inFlight = useRef(false)
 
-  if (!__DEV__) return <Redirect href="/(auth)/welcome" />
+  if (!isDevInstanceLoginEnabled()) return <Redirect href="/(auth)/welcome" />
 
   const goBack = (): void => {
     if (router.canGoBack()) router.back()

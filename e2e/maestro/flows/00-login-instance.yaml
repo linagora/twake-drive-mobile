@@ -4,37 +4,23 @@ tags:
 env:
   INSTANCE_URL: 'http://alice.10-0-2-2.nip.io'
   INSTANCE_PASSPHRASE: 'cozycozy'
-  DEV_CLIENT_URL: 'twakedrive://expo-development-client/?url=http%3A%2F%2F10.0.2.2%3A8081'
 ---
 # Signs the app into the disposable instance the e2e stack serves, through the
 # development-only "instance address" entry point: the app runs the stack's own
 # OAuth dance, and the stack's login page is answered in the system browser.
-# Debug builds only, which is what the e2e workflow installs.
-# The debug build is an expo-dev-client: the link tells it which bundle to
-# load, which is how `expo run:android` starts it too.
-- openLink: '${DEV_CLIENT_URL}'
-# The app is loading its bundle on a software-rendered emulator: Android
-# raises "isn't responding" over the screen, a fresh development build shows
-# its menu, and the emulator action's KEYCODE_MENU opens the developer one.
-# Step past whichever is there until the welcome screen is.
+# The workflow installs a build made for this: the screen is compiled in and
+# the stack is reachable over plain HTTP.
+- launchApp:
+    clearState: true
+# An emulator under load can raise "isn't responding" over the screen.
 - repeat:
-    times: 40
+    times: 12
     commands:
       - runFlow:
           when:
             visible: 'Wait'
           commands:
             - tapOn: 'Wait'
-      - runFlow:
-          when:
-            visible: 'Continue'
-          commands:
-            - tapOn: 'Continue'
-      - runFlow:
-          when:
-            visible: 'Runtime version'
-          commands:
-            - pressKey: Back
       - waitForAnimationToEnd:
           timeout: 5000
 - extendedWaitUntil:
