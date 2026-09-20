@@ -39,7 +39,9 @@ export const APP_SCOPES: readonly string[] = [
   'io.cozy.oauth.clients:GET',
   // Drive-specific settings (e.g. offline storage quota, feature flags
   // scoped to the drive app).
-  'io.cozy.drive.settings'
+  'io.cozy.drive.settings',
+  // Notes: the app creates one through this doctype, the way the web does.
+  'io.cozy.notes'
 ] as const
 
 /**
@@ -47,7 +49,3 @@ export const APP_SCOPES: readonly string[] = [
  * single string rather than an array.
  */
 export const APP_SCOPE_STRING: string = APP_SCOPES.join(' ')
-
-/** Scope requested during flagship certification: full access so the stack
- *  grants the `flagship` flag and session_code requests succeed. */
-export const FLAGSHIP_SCOPES: readonly string[] = ['*'] as const
