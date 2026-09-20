@@ -3,7 +3,7 @@ import { ScrollView, View, StyleSheet } from 'react-native'
 import { Button, Switch } from 'react-native-paper'
 import { Redirect, useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
-import { useClient } from 'cozy-client'
+import { useClient, useQuery } from 'cozy-client'
 
 import { AppBar } from '@/ui/AppBar'
 import { ScreenContainer } from '@/ui/ScreenContainer'
@@ -17,6 +17,8 @@ import { Downloader } from '@/offline/Downloader'
 import { OfflineSettingsAPI } from '@/offline/offlineSettings'
 import { isKeepOfflineEnabled } from '@/offline/keepOfflineFlag'
 import { reconcileFolderPins } from '@/offline/reconcileFolderPins'
+import { offlineDisplayName } from '@/offline/displayName'
+import { filesByIdsQuery, filesByIdsQueryAs, FileQueryResult } from '@/client/queries'
 import { formatFileSize } from '@/utils/formatters'
 import { cozyTokens } from '@/ui/theme'
 import type { OfflineFileEntry, OfflineFolderEntry } from '@/offline/types'
@@ -58,6 +60,21 @@ export default function OfflineStorageScreen() {
 
   // Show every pinned file, regardless of how it was pinned (direct vs via folder).
   // The user expects to see what's actually cached, not just direct pins.
+  // The names in the store are copies made when each item was pinned; the
+  // documents carry the current ones.
+  const pinnedIds = useMemo(
+    () => [...files.map(f => f.fileId), ...folders.map(f => f.dirId)].sort(),
+    [files, folders]
+  )
+  const pinnedDocs = useQuery(filesByIdsQuery(pinnedIds), {
+    as: filesByIdsQueryAs(pinnedIds),
+    enabled: pinnedIds.length > 0
+  })
+  const nameById = useMemo(() => {
+    const docs = (pinnedDocs.data as FileQueryResult[] | null | undefined) ?? []
+    return new Map(docs.map(d => [d._id, d.name]))
+  }, [pinnedDocs.data])
+
   const inProgress = useMemo(() => files.filter(f => f.state === 'downloading'), [files])
   const failed = useMemo(() => files.filter(f => f.state === 'failed'), [files])
   const isEmpty = files.length === 0 && folders.length === 0
@@ -133,7 +150,7 @@ export default function OfflineStorageScreen() {
             {failed.map(f => (
               <SettingsRow
                 key={f.fileId}
-                title={f.name || f.fileId}
+                title={offlineDisplayName(f, nameById.get(f.fileId))}
                 description={f.lastError ?? t('drive.offline.failed')}
                 accessory={
                   <Button mode="text" onPress={() => retryDownload(f.fileId)}>
@@ -158,7 +175,10 @@ export default function OfflineStorageScreen() {
                 return (
                   <SettingsRow
                     key={f.dirId}
-                    title={f.name}
+                    title={offlineDisplayName(
+                      { fileId: f.dirId, name: f.name },
+                      nameById.get(f.dirId)
+                    )}
                     description={t('drive.offline.folderSummary', {
                       count: childEntries.length,
                       size: formatFileSize(childBytes)
@@ -195,7 +215,7 @@ export default function OfflineStorageScreen() {
                 return (
                   <SettingsRow
                     key={f.fileId}
-                    title={f.name || f.fileId}
+                    title={offlineDisplayName(f, nameById.get(f.fileId))}
                     description={
                       isSuspect
                         ? t('drive.offline.truncated', {
