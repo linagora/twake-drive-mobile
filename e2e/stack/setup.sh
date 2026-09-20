@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Creates the disposable instance the e2e run signs into, and seeds enough for
-# the flows to have something to look at. Idempotent: an existing instance is
-# destroyed first, so a re-run starts from the same state.
+# Waits for the instance the run signs into, and seeds enough for the flows to
+# have something to look at.
 #
 # Usage: e2e/stack/setup.sh [domain] [passphrase]
 
@@ -11,13 +10,7 @@ DOMAIN="${1:-alice.10-0-2-2.nip.io}"
 PASSPHRASE="${2:-cozycozy}"
 STACK="${STACK_CONTAINER:-e2e-stack-1}"
 
-# The admin API of the stack is behind a passphrase; the same one the
-# container was started with.
-run() { docker exec -e COZY_ADMIN_PASSPHRASE="${COZY_ADMIN_PASSPHRASE:-cozyadmin}" "$STACK" cozy-stack "$@"; }
-
-# From the runner the stack is on localhost; the nip.io name is what the
-# emulator uses, so it travels as a Host header rather than through DNS.
-stack_curl() { curl -fsS -H "Host: $DOMAIN" "http://localhost$@"; }
+run() { docker exec "$STACK" cozy-stack "$@"; }
 
 echo "Waiting for the stack to answer…"
 for _ in $(seq 1 60); do
@@ -26,18 +19,20 @@ for _ in $(seq 1 60); do
 done
 curl -fsS "http://localhost/version" | head -1
 
-if run instances show "$DOMAIN" >/dev/null 2>&1; then
-  echo "Removing the previous $DOMAIN"
-  run instances destroy "$DOMAIN" --force
+# The image creates the instance named by COZY_STACK_HOST on startup; this
+# only has to wait for it, and create it when the domain differs.
+for _ in $(seq 1 60); do
+  run instances show "$DOMAIN" >/dev/null 2>&1 && break
+  sleep 2
+done
+if ! run instances show "$DOMAIN" >/dev/null 2>&1; then
+  echo "Creating $DOMAIN"
+  run instances add "$DOMAIN" \
+    --passphrase "$PASSPHRASE" \
+    --locale fr \
+    --email e2e@example.com \
+    --public-name "E2E"
 fi
-
-echo "Creating $DOMAIN"
-run instances add "$DOMAIN" \
-  --passphrase "$PASSPHRASE" \
-  --locale fr \
-  --email e2e@example.com \
-  --public-name "E2E" \
-  --apps drive
 
 echo "Seeding a folder and a file"
 TOKEN="$(run instances token-cli "$DOMAIN" io.cozy.files | tr -d '\r\n')"

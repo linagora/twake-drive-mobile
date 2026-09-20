@@ -1,36 +1,20 @@
-# A cozy-stack and its CouchDB, for end-to-end runs against a disposable
-# instance. Published on port 80 so instance domains carry no port: the
-# emulator reaches the host through 10.0.2.2, and nip.io resolves
-# `<anything>.10-0-2-2.nip.io` to it.
+# The cozy-stack an end-to-end run talks to, with its CouchDB inside.
+#
+# The development image on purpose: a production build of the stack writes
+# every URL it generates with https, which a run with no certificate cannot
+# answer, and it asks for an admin passphrase on every CLI call.
+#
+# Published on port 80 so instance domains carry no port: the emulator reaches
+# the host through 10.0.2.2, and nip.io resolves `<anything>.10-0-2-2.nip.io`
+# to it.
 services:
-  couchdb:
-    image: couchdb:3
-    environment:
-      COUCHDB_USER: cozy
-      COUCHDB_PASSWORD: cozy
-    ports:
-      - '5984:5984'
-
   stack:
-    image: cozy/cozy-stack:latest
-    depends_on:
-      - couchdb
+    image: cozy/cozy-app-dev:latest
     environment:
-      # Read by the image's entrypoint, which waits for CouchDB, creates its
-      # system databases and writes the admin passphrase file on first start.
-      COUCHDB_HOST: couchdb
-      COUCHDB_PORT: '5984'
-      COUCHDB_USER: cozy
-      COUCHDB_PASSWORD: cozy
-      COZY_ADMIN_PASSPHRASE: cozyadmin
-      # Read by the stack itself.
-      COZY_HOST: 0.0.0.0
-      COZY_PORT: '8080'
-      COZY_ADMIN_HOST: 0.0.0.0
-      COZY_ADMIN_PORT: '6060'
-      COZY_COUCHDB_URL: http://cozy:cozy@couchdb:5984/
-      COZY_FS_URL: file:///var/lib/cozy
-      COZY_SUBDOMAINS: flat
+      COZY_STACK_HOST: alice.10-0-2-2.nip.io
+      COZY_STACK_PORT: '8080'
+      COZY_STACK_PASS: cozycozy
     ports:
       - '80:8080'
+      - '5984:5984'
       - '6060:6060'
