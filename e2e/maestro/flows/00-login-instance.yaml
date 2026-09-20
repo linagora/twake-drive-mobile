@@ -13,6 +13,12 @@ env:
 # The debug build is an expo-dev-client: the link tells it which bundle to
 # load, which is how `expo run:android` starts it too.
 - openLink: '${DEV_CLIENT_URL}'
+# An emulator under load raises "isn't responding" over whatever is on screen.
+- runFlow:
+    when:
+      visible: 'Wait'
+    commands:
+      - tapOn: 'Wait'
 # A freshly installed development build greets with the developer menu.
 - extendedWaitUntil:
     visible: 'Twake Drive'
@@ -35,6 +41,11 @@ env:
 - inputText: '${INSTANCE_URL}'
 - tapOn:
     id: 'dev-instance-submit'
+- runFlow:
+    when:
+      visible: 'Wait'
+    commands:
+      - tapOn: 'Wait'
 # The stack's own login page, in the system browser.
 - extendedWaitUntil:
     visible: 'Mot de passe|Password'
