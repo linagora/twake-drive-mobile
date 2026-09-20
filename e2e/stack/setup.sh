@@ -11,7 +11,9 @@ DOMAIN="${1:-alice.10-0-2-2.nip.io}"
 PASSPHRASE="${2:-cozycozy}"
 STACK="${STACK_CONTAINER:-e2e-stack-1}"
 
-run() { docker exec "$STACK" cozy-stack "$@"; }
+# The admin API of the stack is behind a passphrase; the same one the
+# container was started with.
+run() { docker exec -e COZY_ADMIN_PASSPHRASE="${COZY_ADMIN_PASSPHRASE:-cozyadmin}" "$STACK" cozy-stack "$@"; }
 
 # From the runner the stack is on localhost; the nip.io name is what the
 # emulator uses, so it travels as a Host header rather than through DNS.
