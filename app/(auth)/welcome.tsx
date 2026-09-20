@@ -8,6 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { TwakeLogo } from '@/ui/icons/TwakeLogo'
 import { useAuth } from '@/auth/useAuth'
 import { UserCancelledError } from '@/auth/types'
+import { isDevInstanceLoginEnabled } from '@/auth/devInstanceLogin'
 
 export default function WelcomeScreen() {
   const { t } = useTranslation()
@@ -121,7 +122,7 @@ export default function WelcomeScreen() {
               {t('auth.orgServerLink')}
             </Text>
           </Pressable>
-          {__DEV__ ? (
+          {isDevInstanceLoginEnabled() ? (
             <Pressable
               testID="welcome-dev-instance-link"
               onPress={() => router.push('/(auth)/dev-instance')}

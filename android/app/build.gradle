@@ -154,6 +154,16 @@ android {
     androidResources {
         ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:!CVS:!thumbs.db:!picasa.ini:!*~'
     }
+    // The end-to-end runs talk to a stack served over plain HTTP on the machine
+    // running them. React Native's gradle plugin sets this placeholder from the
+    // variant's debuggability, so the override has to come after it.
+    androidComponents {
+        onVariants(selector().all()) { variant ->
+            if (findProperty('usesCleartextTraffic') == 'true') {
+                variant.manifestPlaceholders.put('usesCleartextTraffic', 'true')
+            }
+        }
+    }
     testOptions {
         unitTests {
             includeAndroidResources = true

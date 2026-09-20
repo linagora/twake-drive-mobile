@@ -67,24 +67,15 @@ jobs:
           key: ${{ runner.os }}-gradle-e2e-${{ hashFiles('android/**/*.gradle*', 'android/gradle/wrapper/gradle-wrapper.properties') }}
           restore-keys: ${{ runner.os }}-gradle-e2e-
 
-      # A debug build, because the e2e entry point (the instance address screen)
-      # and cleartext HTTP to the stack are both debug-only.
-      - name: Build the debug APK
-        run: ./gradlew assembleDebug --no-daemon
+      # A release build with the bundle inside: no Metro to serve it, no
+      # development menu over the screen, and the app starts in seconds.
+      # EXPO_PUBLIC_E2E opens the instance address screen, and the property
+      # lets this build alone talk to the stack over plain HTTP.
+      - name: Build the APK
+        env:
+          EXPO_PUBLIC_E2E: '1'
+        run: ./gradlew assembleRelease -PusesCleartextTraffic=true --no-daemon
         working-directory: android
-
-      - name: Serve the JS bundle
-        run: |
-          nohup npx expo start --dev-client --port 8081 > /tmp/metro.log 2>&1 &
-          for _ in $(seq 1 60); do
-            curl -fsS http://localhost:8081/status >/dev/null 2>&1 && break
-            sleep 2
-          done
-          # Bundle now rather than while the emulator boots: doing both at once
-          # starves the runner enough for Android to raise "isn't responding".
-          curl -fsS -o /dev/null --max-time 900 \
-            'http://localhost:8081/index.bundle?platform=android&dev=true&minify=false'
-          tail -3 /tmp/metro.log
 
       - name: Install Maestro
         run: |
@@ -112,7 +103,7 @@ jobs:
           disable-animations: true
           emulator-options: -no-snapshot -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           script: |
-            adb install -r android/app/build/outputs/apk/debug/app-debug.apk
+            adb install -r android/app/build/outputs/apk/release/app-release.apk
             adb shell pm clear com.linagora.twakedrive || true
             maestro test --env INSTANCE_URL="http://$INSTANCE_DOMAIN" --env INSTANCE_PASSPHRASE="$INSTANCE_PASSPHRASE" --format junit --output /tmp/maestro-report.xml "$FLOWS"
 
@@ -122,7 +113,6 @@ jobs:
           mkdir -p /tmp/e2e-artifacts
           cp /tmp/maestro-report.xml /tmp/e2e-artifacts/ 2>/dev/null || true
           cp -r ~/.maestro/tests /tmp/e2e-artifacts/maestro-tests 2>/dev/null || true
-          cp /tmp/metro.log /tmp/e2e-artifacts/ 2>/dev/null || true
           docker compose -f e2e/stack/docker-compose.yml logs --no-color > /tmp/e2e-artifacts/stack.log 2>&1 || true
 
       - name: Upload them
