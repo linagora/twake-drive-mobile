@@ -103,8 +103,8 @@ jobs:
           FLOWS: ${{ inputs.flows || 'e2e/maestro/flows/00-login-instance.yaml' }}
         uses: ReactiveCircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
         with:
-          api-level: 34
-          target: google_apis
+          api-level: 30
+          target: default
           arch: x86_64
           profile: pixel_6
           cores: 4

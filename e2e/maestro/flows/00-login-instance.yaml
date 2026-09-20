@@ -13,28 +13,30 @@ env:
 # The debug build is an expo-dev-client: the link tells it which bundle to
 # load, which is how `expo run:android` starts it too.
 - openLink: '${DEV_CLIENT_URL}'
-# An emulator under load raises "isn't responding" over whatever is on screen.
-- runFlow:
-    when:
-      visible: 'Wait'
+# The app is loading its bundle on a software-rendered emulator: Android
+# raises "isn't responding" over the screen, a fresh development build shows
+# its menu, and the emulator action's KEYCODE_MENU opens the developer one.
+# Step past whichever is there until the welcome screen is.
+- repeat:
+    times: 40
     commands:
-      - tapOn: 'Wait'
-# A freshly installed development build greets with the developer menu.
-- extendedWaitUntil:
-    visible: 'Twake Drive'
-    timeout: 180000
-- runFlow:
-    when:
-      visible: 'Continue'
-    commands:
-      - tapOn: 'Continue'
-# The emulator action sends KEYCODE_MENU after boot, which is what opens the
-# development menu of a debug build.
-- runFlow:
-    when:
-      visible: 'Runtime version'
-    commands:
-      - pressKey: Back
+      - runFlow:
+          when:
+            visible: 'Wait'
+          commands:
+            - tapOn: 'Wait'
+      - runFlow:
+          when:
+            visible: 'Continue'
+          commands:
+            - tapOn: 'Continue'
+      - runFlow:
+          when:
+            visible: 'Runtime version'
+          commands:
+            - pressKey: Back
+      - waitForAnimationToEnd:
+          timeout: 5000
 - extendedWaitUntil:
     visible:
       id: 'welcome-dev-instance-link'
