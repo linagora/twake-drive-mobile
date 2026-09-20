@@ -82,19 +82,6 @@ app to them:
 Everything else can be reissued on your own account: a new App Store Connect
 API key, a new Firebase service account, a new deploy key.
 
-## What is still shared
-
-The credentials in place were not minted for this app alone, which is worth
-knowing before treating the takeover as finished:
-
-- the Firebase and Play service account is visio-mobile's;
-- the match passphrase decrypts a certificates repository shared with
-  visio-mobile, hosted on a personal account rather than the organisation.
-
-So iOS releases depend on a repository nobody here owns. Moving to credentials
-issued for Twake Drive and a certificates repository under the organisation is
-tracked separately.
-
 ## Cutting a release
 
 ```bash
