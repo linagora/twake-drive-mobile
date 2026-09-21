@@ -1,6 +1,6 @@
 import CozyClient from 'cozy-client'
 
-import { APP_SCOPES, APP_SCOPE_STRING } from './scopes'
+import { APP_SCOPES, APP_SCOPE_STRING, FLAGSHIP_SCOPES } from './scopes'
 import { OidcCallback, Session, OAuthOptions, OAuthToken } from './types'
 import { generatePkce, openAuthorizeUrl } from './pkce'
 
@@ -43,10 +43,11 @@ export const registerSession = async (
   const client = new CozyClient({
     uri,
     oauth: existing ?? buildOauthOptions(),
-    // Request the doctypes the app uses, the way twake-drive-web does. This
-    // sets stackClient.scope, which getAuthCodeURL uses for the /auth/authorize
-    // dance below.
-    scope: [...APP_SCOPES],
+    // Request the flagship scope. It sets stackClient.scope, which
+    // getAuthCodeURL uses for the /auth/authorize dance below, so the token
+    // minted here can ask the stack for the session codes the editors open
+    // with — at the cost of the email-code certification on a first sign-in.
+    scope: [...FLAGSHIP_SCOPES],
     appMetadata: { slug: 'twake-drive-mobile', version: '0.1.0' }
   } as ConstructorParameters<typeof CozyClient>[0] & { scope: string[] })
 
@@ -78,7 +79,7 @@ export const registerSession = async (
       code: callback.code,
       client_id: oauthOptions.clientID,
       client_secret: oauthOptions.clientSecret,
-      scope: APP_SCOPE_STRING
+      scope: '*'
     })) as OidcResponse
   } catch (e) {
     const msg = (e as Error).message ?? ''
