@@ -62,6 +62,9 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "playIntegrityCloudProjectNumber": ""
     }
   }
 }
