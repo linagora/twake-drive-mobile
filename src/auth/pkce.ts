@@ -4,8 +4,12 @@ import * as Crypto from 'expo-crypto'
 import * as Linking from 'expo-linking'
 
 import { UserCancelledError } from './types'
+import { isOurRedirect, normalizeRedirectUrl as normalize, redirectUri } from './redirectUri'
 
-export const REDIRECT_URL = 'twakedrive://'
+export { normalizeRedirectUrl } from './redirectUri'
+
+/** Kept as a named export: the callers ask for "the redirect" of this build. */
+export const REDIRECT_URL = redirectUri()
 
 const base64UrlEncode = (bytes: Uint8Array): string => {
   let binary = ''
@@ -23,13 +27,6 @@ export const generatePkce = async (): Promise<{ codeVerifier: string; codeChalle
   )
   const codeChallenge = challengeB64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '')
   return { codeVerifier, codeChallenge }
-}
-
-export const normalizeRedirectUrl = (raw: string): string => {
-  let url = raw
-  if (url.startsWith('twakedrive:?')) url = url.replace('twakedrive:?', 'twakedrive://?')
-  url = url.replace(/%23$/i, '').replace(/#$/, '')
-  return url
 }
 
 const CANCEL_GRACE_MS = 400
@@ -76,9 +73,9 @@ const openViaSystemBrowser = (url: string): Promise<string> =>
     abortActiveBrowserFlow = abort
 
     sub = Linking.addEventListener('url', ({ url: incoming }) => {
-      if (incoming?.startsWith('twakedrive:')) {
-        console.log('[auth] captured twakedrive:// redirect via deep link')
-        finish(() => resolve(normalizeRedirectUrl(incoming)))
+      if (isOurRedirect(incoming)) {
+        console.log('[auth] captured the redirect via deep link')
+        finish(() => resolve(normalize(incoming)))
       }
     })
     WebBrowser.openBrowserAsync(url, { showInRecents: true }).then(
@@ -106,7 +103,7 @@ export const openAuthorizeUrl = async (url: string): Promise<string> => {
   // (openLoginUrl / SFSafariViewController), not here.
   const result = await WebBrowser.openAuthSessionAsync(url, REDIRECT_URL, { showInRecents: false })
   if (result.type === 'success' && result.url) {
-    return normalizeRedirectUrl(result.url)
+    return normalize(result.url)
   }
   // An uncertified client shows the email-code form instead of redirecting; the
   // user leaves to read the code, which aborts openAuthSessionAsync on refocus.

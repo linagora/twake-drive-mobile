@@ -42,7 +42,9 @@ export const fetchTwakeConfiguration = async (
   }
 }
 
-const REDIRECT_SCHEME = 'twakedrive://'
+import { redirectUri } from './redirectUri'
+
+const REDIRECT_SCHEME = redirectUri()
 
 // The Twake consumer sign-in / sign-up goes through the Cozy cloudery (manager),
 // which orchestrates the sign-up.twake.app login (including the already-signed-in

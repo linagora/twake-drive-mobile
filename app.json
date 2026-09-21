@@ -25,14 +25,29 @@
       },
       "infoPlist": {
         "UIBackgroundModes": ["audio"]
-      }
+      },
+      "associatedDomains": ["applinks:links.twake.app"]
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.linagora.twakedrive"
+      "package": "com.linagora.twakedrive",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "links.twake.app",
+              "pathPrefix": "/drive"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ]
     },
     "plugins": [
       "expo-dev-client",
