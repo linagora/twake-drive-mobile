@@ -18,21 +18,11 @@ import { DOCUMENT_CONTENT_TEST_ID, DocumentScreen } from './DocumentScreen'
 const wrap = (ui: React.ReactElement) => <PaperProvider>{ui}</PaperProvider>
 
 describe('DocumentScreen', () => {
-  it('names the document and takes the user back, whatever the chrome', () => {
+  it('frames a document on the canvas by default', () => {
     const onBack = jest.fn()
-    const { rerender } = render(
+    render(
       wrap(
         <DocumentScreen title="rapport.pdf" onBack={onBack}>
-          <Text>content</Text>
-        </DocumentScreen>
-      )
-    )
-    expect(screen.getByText('rapport.pdf')).toBeOnTheScreen()
-    fireEvent.press(screen.getByTestId('appbar-back-button'))
-
-    rerender(
-      wrap(
-        <DocumentScreen title="rapport.pdf" onBack={onBack} chrome="immersive">
           <Text>content</Text>
         </DocumentScreen>
       )
@@ -41,7 +31,7 @@ describe('DocumentScreen', () => {
     expect(screen.getByText('content')).toBeOnTheScreen()
     fireEvent.press(screen.getByTestId('document-back-button'))
 
-    expect(onBack).toHaveBeenCalledTimes(2)
+    expect(onBack).toHaveBeenCalledTimes(1)
   })
 
   it('leaves the title to the web editor on an editor screen', () => {
