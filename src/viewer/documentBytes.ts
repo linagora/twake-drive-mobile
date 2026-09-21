@@ -4,7 +4,7 @@ import type CozyClient from 'cozy-client'
 import { FileSystemRepo } from '@/offline/FileSystemRepo'
 import { OfflineFilesStore } from '@/offline/OfflineFilesStore'
 import { getOnlineMonitor } from '@/network/OnlineMonitor'
-import { buildDownloadUrl } from '@/files/streamUrl'
+import { buildFreshDownloadUrl } from '@/files/streamUrl'
 
 export const OFFLINE_ERROR = 'DocumentUnavailableOfflineError'
 
@@ -38,7 +38,7 @@ export const readDocumentPathWithName = async (
   const source = await readDocumentPath(client, file, driveId)
   // One directory per document, so the copy can carry the file's own name: the
   // OS viewer puts that name in its title bar.
-  const directory = `${viewerCacheDir()}open/${file._id}/`
+  const directory = `${viewerCacheDir()}open/${file._id}-${file._rev ?? 'norev'}/`
   const named = `${directory}${sanitize(file.name)}`
   const existing = await FileSystem.getInfoAsync(named)
   if (!existing.exists) {
@@ -96,7 +96,7 @@ export const readDocumentPath = async (
 
   await FileSystem.makeDirectoryAsync(viewerCacheDir(), { intermediates: true })
   const result = await FileSystem.downloadAsync(
-    buildDownloadUrl(stackClient.uri, file._id, driveId),
+    buildFreshDownloadUrl(stackClient.uri, file._id, driveId),
     path,
     { headers: { Authorization: `Bearer ${token}` } }
   )

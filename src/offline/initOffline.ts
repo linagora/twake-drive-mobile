@@ -7,6 +7,7 @@ import { Downloader } from './Downloader'
 import { startPinReactor } from './pinReactor'
 import { reconcileFolderPins } from './reconcileFolderPins'
 import { getPouchLink } from '@/pouchdb/triggerReplication'
+import { buildRevisionDownloadUrl } from '@/files/streamUrl'
 
 let pinReactorStop: (() => void) | undefined
 let initialized = false
@@ -35,7 +36,7 @@ export const initOfflineSubsystem = async (client: CozyClient): Promise<void> =>
   Downloader.init({
     buildUrl: fileId => {
       const stack = client.getStackClient() as { uri: string }
-      return `${stack.uri}/files/download/${encodeURIComponent(fileId)}`
+      return buildRevisionDownloadUrl(stack.uri, fileId, OfflineFilesStore.get(fileId)?.rev)
     },
     getAuthHeaders: (): Record<string, string> => {
       const stack = client.getStackClient() as { getAccessToken: () => string | null | undefined }

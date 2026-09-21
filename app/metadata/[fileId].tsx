@@ -116,7 +116,12 @@ export default function MetadataRoute() {
     setOpening(true)
     setOpenError(null)
     try {
-      await openFileNatively(client, { _id: file._id, name: file.name, mime: file.mime })
+      await openFileNatively(client, {
+        _id: file._id,
+        _rev: file._rev,
+        name: file.name,
+        mime: file.mime
+      })
     } catch (e) {
       setOpenError((e as Error).message ?? 'open failed')
     } finally {

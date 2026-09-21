@@ -11,6 +11,7 @@ import { localViewerFor } from '@/viewer/documentKind'
 
 interface FileLike {
   _id: string
+  _rev?: string
   name: string
   mime?: string
   class?: string
@@ -56,5 +57,9 @@ export const openFileFromList = async (
     await Linking.openURL(url)
     return
   }
-  await openFileNatively(client, { _id: file._id, name: file.name, mime: file.mime }, driveId)
+  await openFileNatively(
+    client,
+    { _id: file._id, _rev: file._rev, name: file.name, mime: file.mime },
+    driveId
+  )
 }

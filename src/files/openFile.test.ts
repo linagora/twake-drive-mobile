@@ -49,18 +49,23 @@ describe('openFileNatively', () => {
   it('downloads to cache and opens via FileViewer', async () => {
     ;(FileSystem.downloadAsync as jest.Mock).mockResolvedValueOnce({
       status: 200,
-      uri: 'file:///cache/twake-drive/abc-test.pdf'
+      uri: 'file:///cache/twake-drive/abc-2-aaa-test.pdf'
     })
-    await openFileNatively(makeClient(), { _id: 'abc', name: 'test.pdf', mime: 'application/pdf' })
+    await openFileNatively(makeClient(), {
+      _id: 'abc',
+      _rev: '2-aaa',
+      name: 'test.pdf',
+      mime: 'application/pdf'
+    })
     expect(FileSystem.makeDirectoryAsync).toHaveBeenCalledWith('file:///cache/twake-drive/', {
       intermediates: true
     })
     expect(FileSystem.downloadAsync).toHaveBeenCalledWith(
-      'https://alice.example.com/files/download/abc',
-      'file:///cache/twake-drive/abc-test.pdf',
+      expect.stringMatching(/^https:\/\/alice\.example\.com\/files\/download\/abc\?fresh=/),
+      'file:///cache/twake-drive/abc-2-aaa-test.pdf',
       { headers: { Authorization: 'Bearer tok-1' } }
     )
-    expect(FileViewer.open).toHaveBeenCalledWith('file:///cache/twake-drive/abc-test.pdf', {
+    expect(FileViewer.open).toHaveBeenCalledWith('file:///cache/twake-drive/abc-2-aaa-test.pdf', {
       showOpenWithDialog: true,
       showAppsSuggestions: true
     })
@@ -75,11 +80,11 @@ describe('openFileNatively', () => {
   it('throws when download status is non-2xx', async () => {
     ;(FileSystem.downloadAsync as jest.Mock).mockResolvedValueOnce({
       status: 404,
-      uri: 'file:///cache/twake-drive/abc-test.pdf'
+      uri: 'file:///cache/twake-drive/abc-2-aaa-test.pdf'
     })
-    await expect(openFileNatively(makeClient(), { _id: 'abc', name: 't.pdf' })).rejects.toThrow(
-      /HTTP 404/
-    )
+    await expect(
+      openFileNatively(makeClient(), { _id: 'abc', _rev: '2-aaa', name: 't.pdf' })
+    ).rejects.toThrow(/HTTP 404/)
   })
 
   it('copies the pinned blob to cache (with extension) then opens it', async () => {
@@ -88,14 +93,14 @@ describe('openFileNatively', () => {
       .mockResolvedValueOnce({ exists: true, size: 1024 }) // blob check
       .mockResolvedValueOnce({ exists: false }) // alias check (missing)
       .mockResolvedValueOnce({ exists: true, size: 1024 }) // alias post-copy
-    await openFileNatively(makeClient(), { _id: 'abc', name: 't.pdf' })
+    await openFileNatively(makeClient(), { _id: 'abc', _rev: '2-aaa', name: 't.pdf' })
     expect(FileSystem.downloadAsync).not.toHaveBeenCalled()
     expect(FileSystem.copyAsync).toHaveBeenCalledWith({
       from: 'file:///offline/abc',
-      to: 'file:///cache/twake-drive/abc-t.pdf'
+      to: 'file:///cache/twake-drive/abc-2-aaa-t.pdf'
     })
     expect(FileViewer.open).toHaveBeenCalledWith(
-      'file:///cache/twake-drive/abc-t.pdf',
+      'file:///cache/twake-drive/abc-2-aaa-t.pdf',
       expect.any(Object)
     )
   })
@@ -106,10 +111,10 @@ describe('openFileNatively', () => {
       .mockResolvedValueOnce({ exists: true, size: 1024 }) // blob check
       .mockResolvedValueOnce({ exists: true, size: 1024 }) // alias check (exists)
       .mockResolvedValueOnce({ exists: true, size: 1024 }) // alias re-check
-    await openFileNatively(makeClient(), { _id: 'abc', name: 't.pdf' })
+    await openFileNatively(makeClient(), { _id: 'abc', _rev: '2-aaa', name: 't.pdf' })
     expect(FileSystem.copyAsync).not.toHaveBeenCalled()
     expect(FileViewer.open).toHaveBeenCalledWith(
-      'file:///cache/twake-drive/abc-t.pdf',
+      'file:///cache/twake-drive/abc-2-aaa-t.pdf',
       expect.any(Object)
     )
   })
@@ -117,9 +122,9 @@ describe('openFileNatively', () => {
   it('throws when the pinned blob is missing on disk', async () => {
     mockIsPinnedAndDownloaded.mockReturnValueOnce(true)
     ;(FileSystem.getInfoAsync as jest.Mock).mockResolvedValueOnce({ exists: false })
-    await expect(openFileNatively(makeClient(), { _id: 'abc', name: 't.pdf' })).rejects.toThrow(
-      /missing on disk/
-    )
+    await expect(
+      openFileNatively(makeClient(), { _id: 'abc', _rev: '2-aaa', name: 't.pdf' })
+    ).rejects.toThrow(/missing on disk/)
   })
 
   it('translates FileViewer "no app associated" rejection into NoCompatibleAppError', async () => {
@@ -149,12 +154,12 @@ describe('openFileNatively', () => {
   it('sanitizes filename slashes', async () => {
     ;(FileSystem.downloadAsync as jest.Mock).mockResolvedValueOnce({
       status: 200,
-      uri: 'file:///cache/twake-drive/abc-weird_name'
+      uri: 'file:///cache/twake-drive/abc-2-aaa-weird_name'
     })
-    await openFileNatively(makeClient(), { _id: 'abc', name: 'weird/name' })
+    await openFileNatively(makeClient(), { _id: 'abc', _rev: '2-aaa', name: 'weird/name' })
     expect(FileSystem.downloadAsync).toHaveBeenCalledWith(
-      'https://alice.example.com/files/download/abc',
-      'file:///cache/twake-drive/abc-weird_name',
+      expect.stringMatching(/^https:\/\/alice\.example\.com\/files\/download\/abc\?fresh=/),
+      'file:///cache/twake-drive/abc-2-aaa-weird_name',
       expect.any(Object)
     )
   })
