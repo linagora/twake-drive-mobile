@@ -1,6 +1,6 @@
 import CozyClient from 'cozy-client'
 
-import { APP_SCOPES, APP_SCOPE_STRING } from './scopes'
+import { APP_SCOPES, APP_SCOPE_STRING, FLAGSHIP_SCOPES } from './scopes'
 import { Session, OAuthOptions, OAuthToken } from './types'
 import { generatePkce, openAuthorizeUrl } from './pkce'
 
@@ -32,7 +32,7 @@ export const registerDirectSession = async (instanceUri: string): Promise<Sessio
       clientURI: 'https://twake.app',
       scopes: [...APP_SCOPES]
     },
-    scope: [...APP_SCOPES],
+    scope: [...FLAGSHIP_SCOPES],
     appMetadata: { slug: 'twake-drive-mobile', version: '0.1.0' }
   } as ConstructorParameters<typeof CozyClient>[0] & { scope: string[] })
 
