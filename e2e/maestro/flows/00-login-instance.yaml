@@ -48,6 +48,13 @@ env:
 - tapOn: 'Mot de passe|Password'
 - inputText: '${INSTANCE_PASSPHRASE}'
 - pressKey: Enter
+# The stack's permission page. The e2e stack skips the flagship certification,
+# so this is the only thing between the password and the app.
+- runFlow:
+    when:
+      visible: 'Autoriser|Authorize'
+    commands:
+      - tapOn: 'Autoriser|Authorize'
 # Back in the app, on the drive.
 - extendedWaitUntil:
     visible:
