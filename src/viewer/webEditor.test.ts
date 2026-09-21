@@ -111,4 +111,9 @@ describe('openWebEditor', () => {
     )
     expect(mockRefresh).toHaveBeenCalledWith(client, 'f2', 'drive-7')
   })
+
+  it('signs the user into the web app with the session code it is given', async () => {
+    const url = await webEditorUrl(client, docx, undefined, 'code-42')
+    expect(url).toBe('https://mine-drive.twake.test/?session_code=code-42#/onlyoffice/f2')
+  })
 })

@@ -1,14 +1,8 @@
 let mockOnline = true
 jest.mock('@/network/useIsOnline', () => ({ useIsOnline: () => mockOnline }))
 
-const mockOpenWebEditor = jest.fn()
-jest.mock('./webEditor', () => {
-  const actual = jest.requireActual('./webEditor')
-  return {
-    ...actual,
-    openWebEditor: (...args: unknown[]) => mockOpenWebEditor(...args)
-  }
-})
+const mockOpenEditor = jest.fn()
+jest.mock('./useWebEditor', () => ({ useWebEditor: () => mockOpenEditor }))
 
 const client = { id: 'client' }
 jest.mock('cozy-client', () => ({ __esModule: true, useClient: () => client }))
@@ -32,19 +26,19 @@ describe('EditDocumentButton', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     mockOnline = true
-    mockOpenWebEditor.mockResolvedValue(undefined)
+    mockOpenEditor.mockResolvedValue(undefined)
   })
 
   it('opens the document in its web editor', async () => {
     show(note)
     fireEvent.press(screen.getByTestId('document-viewer-edit'))
-    await waitFor(() => expect(mockOpenWebEditor).toHaveBeenCalledWith(client, note, undefined))
+    await waitFor(() => expect(mockOpenEditor).toHaveBeenCalledWith(note, undefined))
   })
 
   it('carries the drive a document belongs to', async () => {
     show(note, 'drive-1')
     fireEvent.press(screen.getByTestId('document-viewer-edit'))
-    await waitFor(() => expect(mockOpenWebEditor).toHaveBeenCalledWith(client, note, 'drive-1'))
+    await waitFor(() => expect(mockOpenEditor).toHaveBeenCalledWith(note, 'drive-1'))
   })
 
   it('stays on screen offline, out of reach rather than gone', () => {
@@ -52,7 +46,7 @@ describe('EditDocumentButton', () => {
     show(note)
     expect(screen.getByTestId('document-viewer-edit')).toBeOnTheScreen()
     fireEvent.press(screen.getByTestId('document-viewer-edit'))
-    expect(mockOpenWebEditor).not.toHaveBeenCalled()
+    expect(mockOpenEditor).not.toHaveBeenCalled()
   })
 
   it('renders nothing for a document no editor claims', () => {

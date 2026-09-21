@@ -47,7 +47,8 @@ const drivePath = (route: string, fileId: string, driveId?: string): string =>
 export const webEditorUrl = async (
   client: CozyClient,
   file: EditableDocument,
-  driveId?: string
+  driveId?: string,
+  sessionCode?: string
 ): Promise<string> => {
   const stackUri = client.getStackClient().uri as string
   const kind = webEditorKindOf(file)
@@ -62,33 +63,54 @@ export const webEditorUrl = async (
           { driveId }
         )
       }
-      return buildCozyAppUrl(stackUri, 'notes', `/n/${encodeURIComponent(file._id)}`)
+      return buildCozyAppUrl(stackUri, 'notes', `/n/${encodeURIComponent(file._id)}`, sessionCode)
     case 'docs': {
       const externalId = file.metadata?.externalId
       if (!externalId) throw new Error('This document has no Docs id')
-      return buildCozyAppUrl(stackUri, 'docs', `/bridge/docs/${encodeURIComponent(externalId)}`)
+      return buildCozyAppUrl(
+        stackUri,
+        'docs',
+        `/bridge/docs/${encodeURIComponent(externalId)}`,
+        sessionCode
+      )
     }
     case 'office':
-      return buildCozyAppUrl(stackUri, 'drive', drivePath('onlyoffice', file._id, driveId))
+      return buildCozyAppUrl(
+        stackUri,
+        'drive',
+        drivePath('onlyoffice', file._id, driveId),
+        sessionCode
+      )
     case 'excalidraw':
-      return buildCozyAppUrl(stackUri, 'drive', drivePath('excalidraw', file._id, driveId))
+      return buildCozyAppUrl(
+        stackUri,
+        'drive',
+        drivePath('excalidraw', file._id, driveId),
+        sessionCode
+      )
     default:
       throw new Error(`No web editor for ${file.name}`)
   }
 }
 
 /**
- * Opens a document in its web editor, in the browser of the system: it holds
- * the session cookie, so the user is already signed in, and it never sees a
- * credential of ours. Closing it is what says the editing is over, so the
- * document is read back from the stack at that point.
+ * Opens a document in its web editor, in the in-app browser.
+ *
+ * `fetchSessionCode` is what signs the user into the web app: the stack only
+ * hands a session code to a flagship-certified client, so the first editor
+ * opened on a device is where the certification happens — not at login, where
+ * it used to greet every new sign-in. A note of a shared drive needs none: the
+ * stack answers for it with a sharecode of its own.
  */
 export const openWebEditor = async (
   client: CozyClient,
   file: EditableDocument,
-  driveId?: string
+  driveId?: string,
+  fetchSessionCode?: () => Promise<string>
 ): Promise<void> => {
-  const url = await webEditorUrl(client, file, driveId)
+  const needsSessionCode = !(webEditorKindOf(file) === 'note' && driveId)
+  const sessionCode = fetchSessionCode && needsSessionCode ? await fetchSessionCode() : undefined
+  const url = await webEditorUrl(client, file, driveId, sessionCode)
   await WebBrowser.openBrowserAsync(url)
   await refreshDocumentFromStack(client, file._id, driveId)
 }

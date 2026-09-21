@@ -40,7 +40,7 @@ import { createShortcut } from '@/files/createShortcut'
 import { buildCozyAppUrl } from '@/files/cozyAppLink'
 import { createExcalidrawFile } from '@/files/createExcalidrawFile'
 import { triggerPouchReplication } from '@/pouchdb/triggerReplication'
-import { openWebEditor } from '@/viewer/webEditor'
+import { useWebEditor } from '@/viewer/useWebEditor'
 import { softDeleteEntry } from '@/files/deleteFile'
 import { optimisticFiles } from '@/files/optimisticFiles'
 import { renameEntry } from '@/files/renameEntry'
@@ -88,6 +88,7 @@ export const FilesScreen = ({ basePath }: FilesScreenProps): React.ReactElement 
           : undefined
   const [refreshing, setRefreshing] = useState(false)
   const [createFolderVisible, setCreateFolderVisible] = useState(false)
+  const openEditor = useWebEditor()
   const [creatingClass, setCreatingClass] = useState<CreatableFileClass | null>(null)
   const [createShortcutVisible, setCreateShortcutVisible] = useState(false)
   const [fabOpen, setFabOpen] = useState(false)
@@ -186,7 +187,7 @@ export const FilesScreen = ({ basePath }: FilesScreenProps): React.ReactElement 
     ])
     setCreatingClass(null)
     if (cls === 'excalidraw') return
-    void openWebEditor(client, { _id: created._id, name: created.name })
+    void openEditor({ _id: created._id, name: created.name })
   }
 
   const handleCreateNote = async (): Promise<void> => {
@@ -203,7 +204,7 @@ export const FilesScreen = ({ basePath }: FilesScreenProps): React.ReactElement 
           _type: 'io.cozy.files'
         }
       ])
-      await openWebEditor(client, { _id: created._id, name: created.name ?? '' })
+      await openEditor({ _id: created._id, name: created.name ?? '' })
     } catch (e) {
       console.error('[FilesScreen] note creation failed', e)
     }

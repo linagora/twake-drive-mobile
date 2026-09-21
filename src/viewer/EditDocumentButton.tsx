@@ -6,7 +6,8 @@ import { useTranslation } from 'react-i18next'
 
 import { useIsOnline } from '@/network/useIsOnline'
 import { hasWebEditor } from './documentKind'
-import { EditableDocument, openWebEditor, webEditorKindOf } from './webEditor'
+import { EditableDocument, webEditorKindOf } from './webEditor'
+import { useWebEditor } from './useWebEditor'
 
 export type { EditableDocument } from './webEditor'
 export { webEditorKindOf as editorKindFor } from './webEditor'
@@ -34,6 +35,7 @@ export const EditDocumentButton = ({
 }: Props): React.ReactElement | null => {
   const { t } = useTranslation()
   const client = useClient()
+  const openEditor = useWebEditor()
   const isOnline = useIsOnline()
   const [opening, setOpening] = useState(false)
 
@@ -43,7 +45,7 @@ export const EditDocumentButton = ({
     if (!client || opening) return
     setOpening(true)
     try {
-      await openWebEditor(client, file, driveId)
+      await openEditor(file, driveId)
     } catch (e) {
       console.error('[EditDocumentButton] could not open the editor', e)
     } finally {
