@@ -37,6 +37,7 @@ import { surfaceOpenError } from '@/files/errors'
 import { cozyTokens } from '@/ui/theme'
 import { SortControl } from '@/ui/SortControl'
 import { useFolderSort } from '@/ui/useFolderSort'
+import { fetchNextPage } from '@/drive/paging'
 
 export default function SharedScreen() {
   const router = useRouter()
@@ -334,8 +335,8 @@ export default function SharedScreen() {
           isRoot
             ? undefined
             : () => {
-                void subfoldersQuery.fetchMore?.()
-                void folderFilesQ.fetchMore?.()
+                fetchNextPage(subfoldersQuery)
+                fetchNextPage(folderFilesQ)
               }
         }
         emptyMessage={

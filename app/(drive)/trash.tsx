@@ -16,6 +16,7 @@ import { useClient } from 'cozy-client'
 import { useTranslation } from 'react-i18next'
 
 import { AppBar } from '@/ui/AppBar'
+import { fetchNextPage } from '@/drive/paging'
 import { cozyTokens } from '@/ui/theme'
 import { ScreenContainer } from '@/ui/ScreenContainer'
 import { FileListView } from '@/ui/FileListView'
@@ -175,8 +176,8 @@ export default function TrashScreen() {
         refreshing={refreshing}
         onRefresh={onRefresh}
         onEndReached={() => {
-          void foldersQuery.fetchMore?.()
-          void filesQuery.fetchMore?.()
+          fetchNextPage(foldersQuery)
+          fetchNextPage(filesQuery)
         }}
         emptyMessage={filter ? 'drive.trashActions.filterEmpty' : 'drive.emptyTrash'}
         contentContainerStyle={styles.listContent}
