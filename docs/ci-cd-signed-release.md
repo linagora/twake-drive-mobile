@@ -29,7 +29,7 @@ next to each.
 
 | Secret                                                                   | What it is                     | Where it comes from                                                                                            |
 | ------------------------------------------------------------------------ | ------------------------------ | -------------------------------------------------------------------------------------------------------------- |
-| `ANDROID_KEYSTORE_BASE64`                                                | the upload keystore, base64    | **must be the keystore the published app already uses** — see "Taking the releases over"                       |
+| `ANDROID_KEYSTORE_BASE64`                                                | the upload keystore, base64    | the keystore the published app is signed with; Play refuses an update signed with another                      |
 | `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD` | its passwords and alias        | with the keystore                                                                                              |
 | `FIREBASE_APP_ID`                                                        | the Android app id in Firebase | Firebase console, project settings                                                                             |
 | `FIREBASE_SERVICE_ACCOUNT_BASE64`                                        | a service account JSON, base64 | Google Cloud console; needs Firebase App Distribution, and the Play Developer API if `android release` is used |
@@ -62,26 +62,6 @@ Then run `release-preflight.yml` from the Actions tab: it reports one line per
 secret, set or missing, which is the quickest way to know whether the
 repository can release on its own.
 
-## Taking the releases over from another repository
-
-Two of the credentials cannot simply be recreated, because the stores tie an
-app to them:
-
-- **The Android upload keystore.** Google Play accepts an update only if it is
-  signed with the key it already knows. Copy the keystore and its passwords
-  from whoever is building today. If it is lost, Play App Signing can reset the
-  upload key (Play console → Setup → App integrity), which takes a support
-  round-trip.
-- **The iOS certificates.** They live encrypted in the match repository, and
-  the App Store expects builds signed by that team. Either get read access to
-  the existing match repository (a deploy key on it, plus its passphrase), or
-  run `fastlane match init` against a repository you own and let it create new
-  certificates. Do not run `fastlane match nuke` while another CI still uses
-  them: it revokes the certificates for everyone on that team.
-
-Everything else can be reissued on your own account: a new App Store Connect
-API key, a new Firebase service account, a new deploy key.
-
 ## Cutting a release
 
 ```bash
@@ -110,7 +90,7 @@ how to test the pipeline without tagging.
 - `Invalid Signature` / the wrong team on upload — `APPLE_TEAM_ID` disagrees
   with the certificates in the match repository.
 - Play rejects the AAB with a signature error — the keystore is not the upload
-  key of the published app; see "Taking the releases over".
+  key of the published app.
 - Play rejects the version code, or a device refuses to install over what it
   has — the version being released is not above the published one. The code
   follows the version, so the fix is to release a higher version.
