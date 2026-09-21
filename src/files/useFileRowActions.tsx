@@ -15,6 +15,7 @@ import { softDeleteEntry } from './deleteFile'
 import { renameEntry } from './renameEntry'
 import { optimisticFiles } from './optimisticFiles'
 import { openFileFromList } from './openFromList'
+import { useWebEditor } from '@/viewer/useWebEditor'
 import { surfaceOpenError } from './errors'
 import { FileQueryResult, TRASH_DIR_ID } from '@/client/queries'
 
@@ -79,6 +80,7 @@ export const useFileRowActions = ({
   const { t } = useTranslation()
   const router = useRouter()
   const client = useClient()
+  const openEditor = useWebEditor()
   const isOnline = useIsOnline()
   const offlineActions = useOfflineActions()
   const [snackbar, setSnackbar] = useState<string | null>(null)
@@ -113,7 +115,7 @@ export const useFileRowActions = ({
 
   const open = (file: { _id: string; name: string; mime?: string; class?: string }): void => {
     if (!client) return
-    void openFileFromList(client, router, file, driveId).catch(e =>
+    void openFileFromList(client, router, file, driveId, openEditor).catch(e =>
       surfaceOpenError(e, setSnackbar, t, screen)
     )
   }

@@ -50,3 +50,11 @@ export const APP_SCOPES: readonly string[] = [
  * single string rather than an array.
  */
 export const APP_SCOPE_STRING: string = APP_SCOPES.join(' ')
+
+/**
+ * Scope of a flagship-certified client: full access, which is what the stack
+ * requires before it hands out a session code. Asked for on demand, when the
+ * user opens an editor — never at login, where it would force the email-code
+ * certification on the first sign-in.
+ */
+export const FLAGSHIP_SCOPES: readonly string[] = ['*'] as const

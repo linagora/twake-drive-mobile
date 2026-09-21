@@ -40,6 +40,8 @@ jest.mock('@/offline/useOfflineActions', () => ({
 }))
 
 jest.mock('@/offline/useOfflineState', () => ({ useOfflineState: () => undefined }))
+const mockOpenEditor = jest.fn()
+jest.mock('@/viewer/useWebEditor', () => ({ useWebEditor: () => mockOpenEditor }))
 jest.mock('@/network/useIsOnline', () => ({ useIsOnline: () => true }))
 jest.mock('@/account/useCurrentUser', () => ({
   useCurrentUser: () => ({ name: 'Quentin V', initials: 'QV', loading: false })

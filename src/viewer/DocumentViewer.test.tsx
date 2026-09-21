@@ -20,11 +20,8 @@ const offlineError = (): Error => {
 const mockPush = jest.fn()
 jest.mock('expo-router', () => ({ useRouter: () => ({ push: mockPush }) }))
 
-const mockOpenWebEditor = jest.fn()
-jest.mock('./webEditor', () => {
-  const actual = jest.requireActual('./webEditor')
-  return { ...actual, openWebEditor: (...args: unknown[]) => mockOpenWebEditor(...args) }
-})
+const mockOpenEditor = jest.fn()
+jest.mock('./useWebEditor', () => ({ useWebEditor: () => mockOpenEditor }))
 jest.mock('cozy-client', () => ({ useClient: () => ({}) }))
 
 let mockOnline = true
@@ -79,11 +76,7 @@ describe('DocumentViewer', () => {
     await waitFor(() => expect(screen.getByTestId('document-viewer-edit')).toBeOnTheScreen())
     fireEvent.press(screen.getByTestId('document-viewer-edit'))
     await waitFor(() =>
-      expect(mockOpenWebEditor).toHaveBeenCalledWith(
-        {},
-        { _id: 'f1', name: 'note.cozy-note' },
-        undefined
-      )
+      expect(mockOpenEditor).toHaveBeenCalledWith({ _id: 'f1', name: 'note.cozy-note' }, undefined)
     )
   })
 
@@ -117,7 +110,7 @@ describe('DocumentViewer', () => {
     })
     await waitFor(() => expect(screen.getByTestId('document-viewer-edit')).toBeOnTheScreen())
     fireEvent.press(screen.getByTestId('document-viewer-edit'))
-    await waitFor(() => expect(mockOpenWebEditor).toHaveBeenCalled())
+    await waitFor(() => expect(mockOpenEditor).toHaveBeenCalled())
   })
 
   it('leaves the edit button out of reach offline', async () => {
@@ -126,6 +119,6 @@ describe('DocumentViewer', () => {
     show({ _id: 'f1', name: 'note.cozy-note' })
     await waitFor(() => expect(screen.getByTestId('document-viewer-edit')).toBeOnTheScreen())
     fireEvent.press(screen.getByTestId('document-viewer-edit'))
-    expect(mockOpenWebEditor).not.toHaveBeenCalled()
+    expect(mockOpenEditor).not.toHaveBeenCalled()
   })
 })

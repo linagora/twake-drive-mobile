@@ -27,6 +27,8 @@ let mockKind = 'pdf'
 let mockLookup: { data: unknown; fetchStatus: string } = { data: null, fetchStatus: 'loaded' }
 const mockFetch = jest.fn()
 
+const mockOpenEditor = jest.fn()
+jest.mock('@/viewer/useWebEditor', () => ({ useWebEditor: () => mockOpenEditor }))
 jest.mock('@/files/streamUrl', () => ({
   __esModule: true,
   getPreviewKind: () => mockKind,

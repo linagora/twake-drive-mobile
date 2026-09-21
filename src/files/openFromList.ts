@@ -3,7 +3,7 @@ import type CozyClient from 'cozy-client'
 import type { Router } from 'expo-router'
 
 import { isShortcutFile } from './fileTypes'
-import { openWebEditor, webEditorKindOf } from '@/viewer/webEditor'
+import { EditableDocument, webEditorKindOf } from '@/viewer/webEditor'
 import { canPreviewInApp } from './streamUrl'
 import { fetchShortcutUrl } from './shortcuts'
 import { openFileNatively } from './openFile'
@@ -30,7 +30,8 @@ export const openFileFromList = async (
   client: CozyClient,
   router: Router,
   file: FileLike,
-  driveId?: string
+  driveId?: string,
+  openEditor?: (file: EditableDocument, driveId?: string) => Promise<void>
 ): Promise<void> => {
   // A file inside a shared drive is served by the owner instance through the
   // drive routes, so every viewer has to be told which drive it came from.
@@ -41,8 +42,8 @@ export const openFileFromList = async (
     router.push(`/preview/${file._id}${scope}`)
     return
   }
-  if (webEditorKindOf(file)) {
-    await openWebEditor(client, { _id: file._id, name: file.name, mime: file.mime }, driveId)
+  if (webEditorKindOf(file) && openEditor) {
+    await openEditor({ _id: file._id, name: file.name, mime: file.mime }, driveId)
     return
   }
   if (canPreviewInApp(file)) {

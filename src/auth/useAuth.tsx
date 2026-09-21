@@ -9,6 +9,7 @@ import React, {
 } from 'react'
 import CozyClient from 'cozy-client'
 
+import { certifyFlagship as certifyFlagshipModule } from './certifyFlagship'
 import { createClient } from '@/client/createClient'
 import i18n, { resolveDeviceLanguage } from '@/i18n'
 import { mirrorSessionToNative } from '@/native/twakeAuthBridge'
@@ -37,6 +38,8 @@ interface AuthContextValue extends AuthState {
   loginWithTwakeWorkplace: (mode: 'signin' | 'signup') => Promise<void>
   /** Development only: sign in against a stack instance, no cloudery. */
   loginWithInstance: (instanceUri: string) => Promise<void>
+  /** Certifies this client as flagship, so the stack grants session codes. */
+  certifyFlagship: () => Promise<CozyClient>
   logout: () => Promise<void>
   devResetAndResync: () => Promise<void>
 }
@@ -152,6 +155,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     void i18n.changeLanguage(resolveDeviceLanguage())
   }, [])
 
+  const certifyFlagship = useCallback(async (): Promise<CozyClient> => {
+    const session = await getSession()
+    if (!session) throw new Error('certifyFlagship: no session stored')
+    const newSession = await certifyFlagshipModule(session)
+    await saveSession(newSession)
+    const client = await createClient(newSession)
+    setState({ status: 'authenticated', client })
+    return client
+  }, [])
+
   const devResetAndResync = useCallback(async (): Promise<void> => {
     if (devResyncInFlight) return
     devResyncInFlight = true
@@ -179,6 +192,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       login,
       loginWithTwakeWorkplace,
       loginWithInstance,
+      certifyFlagship,
       logout,
       devResetAndResync
     }),
@@ -190,6 +204,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       login,
       loginWithTwakeWorkplace,
       loginWithInstance,
+      certifyFlagship,
       logout,
       devResetAndResync
     ]

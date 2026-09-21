@@ -1,3 +1,5 @@
+const mockOpenEditor = jest.fn()
+jest.mock('@/viewer/useWebEditor', () => ({ useWebEditor: () => mockOpenEditor }))
 const mockPush = jest.fn()
 jest.mock('expo-router', () => ({ useRouter: () => ({ push: mockPush }) }))
 
@@ -60,7 +62,8 @@ describe('useFileRowActions', () => {
       mockClient,
       expect.anything(),
       file,
-      undefined
+      undefined,
+      mockOpenEditor
     )
   })
 
@@ -70,7 +73,8 @@ describe('useFileRowActions', () => {
       mockClient,
       expect.anything(),
       file,
-      'drive-1'
+      'drive-1',
+      mockOpenEditor
     )
   })
 

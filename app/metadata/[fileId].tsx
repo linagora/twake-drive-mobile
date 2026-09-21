@@ -27,7 +27,8 @@ import { useOfflineActions } from '@/offline/useOfflineActions'
 import { isKeepOfflineEnabled } from '@/offline/keepOfflineFlag'
 import { FileSystemRepo } from '@/offline/FileSystemRepo'
 import { fileOwnerLabel } from '@/files/fileOwner'
-import { openWebEditor, webEditorKindOf } from '@/viewer/webEditor'
+import { webEditorKindOf } from '@/viewer/webEditor'
+import { useWebEditor } from '@/viewer/useWebEditor'
 import { useCurrentUser } from '@/account/useCurrentUser'
 
 // Brief delay so the success snackbar is visible before the modal dismisses.
@@ -51,6 +52,7 @@ export default function MetadataRoute() {
   const client = useClient()
   const isOnline = useIsOnline()
   const currentUser = useCurrentUser()
+  const openEditor = useWebEditor()
   const { fileId } = useLocalSearchParams<{ fileId: string }>()
 
   const fileLookup = useQuery(fileByIdQuery(fileId ?? ''), {
@@ -88,7 +90,7 @@ export default function MetadataRoute() {
     if (!client || !file) return
     if (webEditorKindOf(file)) {
       close()
-      await openWebEditor(client, { _id: file._id, name: file.name, mime: file.mime })
+      await openEditor({ _id: file._id, name: file.name, mime: file.mime })
       return
     }
     if (canPreviewInApp(file)) {
