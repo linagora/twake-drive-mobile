@@ -12,7 +12,9 @@ interface OidcResponse {
   scope?: string
 }
 
-const REDIRECT_URL = 'twakedrive://'
+import { redirectUri } from './redirectUri'
+
+const REDIRECT_URL = redirectUri()
 
 const buildOauthOptions = (): Omit<OAuthOptions, 'clientID' | 'clientSecret'> => ({
   clientName: 'Twake Drive Mobile',

@@ -29,6 +29,12 @@
         <data android:scheme="cozy"/>
         <data android:scheme="twakedrive"/>
       </intent-filter>
+      <intent-filter android:autoVerify="true">
+        <action android:name="android.intent.action.VIEW"/>
+        <category android:name="android.intent.category.DEFAULT"/>
+        <category android:name="android.intent.category.BROWSABLE"/>
+        <data android:scheme="https" android:host="links.twake.app" android:pathPrefix="/drive"/>
+      </intent-filter>
       <intent-filter>
         <action android:name="android.intent.action.SEND"/>
         <category android:name="android.intent.category.DEFAULT"/>

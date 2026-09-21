@@ -4,7 +4,9 @@ import { APP_SCOPES, APP_SCOPE_STRING, FLAGSHIP_SCOPES } from './scopes'
 import { Session, OAuthOptions, OAuthToken } from './types'
 import { generatePkce, openAuthorizeUrl } from './pkce'
 
-const REDIRECT_URL = 'twakedrive://'
+import { redirectUri } from './redirectUri'
+
+const REDIRECT_URL = redirectUri()
 
 /**
  * Signs in against a cozy-stack instance directly, without the cloudery.
