@@ -25,7 +25,7 @@ export const buildFileStreamSource = (
   if (!stackUri) throw new Error('Stack URI unavailable')
   if (!token) throw new Error('No access token available')
   return {
-    uri: buildDownloadUrl(stackUri, fileId, driveId),
+    uri: buildFreshDownloadUrl(stackUri, fileId, driveId),
     headers: { Authorization: `Bearer ${token}` }
   }
 }
@@ -36,6 +36,32 @@ export const buildDownloadUrl = (stackUri: string, fileId: string, driveId?: str
   return driveId
     ? `${base}/sharings/drives/${encodeURIComponent(driveId)}/download/${id}`
     : `${base}/files/download/${id}`
+}
+
+const withParam = (url: string, key: string, value: string): string =>
+  `${url}${url.includes('?') ? '&' : '?'}${key}=${encodeURIComponent(value)}`
+
+const nonce = (): string => `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`
+
+/**
+ * A download URL no HTTP cache can answer from a previous version of the file.
+ *
+ * The stack serves the download route with an ETag and a Last-Modified but no
+ * Cache-Control, so NSURLSession and OkHttp both apply heuristic freshness to
+ * it. React Native offers no cache policy on a download, hence the URL.
+ */
+export const buildFreshDownloadUrl = (stackUri: string, fileId: string, driveId?: string): string =>
+  withParam(buildDownloadUrl(stackUri, fileId, driveId), 'fresh', nonce())
+
+/** A download URL that changes with the revision, and only with it. */
+export const buildRevisionDownloadUrl = (
+  stackUri: string,
+  fileId: string,
+  rev?: string,
+  driveId?: string
+): string => {
+  const url = buildDownloadUrl(stackUri, fileId, driveId)
+  return rev ? withParam(url, 'rev', rev) : withParam(url, 'fresh', nonce())
 }
 
 export type ThumbnailSize = 'tiny' | 'small' | 'medium' | 'large'

@@ -130,7 +130,11 @@ export default function PreviewScreen() {
     fallbackTriggered.current = true
     void (async () => {
       try {
-        await openFileNatively(client, { _id: file._id, name: file.name, mime: file.mime }, driveId)
+        await openFileNatively(
+          client,
+          { _id: file._id, _rev: file._rev, name: file.name, mime: file.mime },
+          driveId
+        )
         router.back()
       } catch (e) {
         console.error('[PreviewScreen] native fallback failed', e)

@@ -1,5 +1,7 @@
 import {
   buildFileStreamSource,
+  buildFreshDownloadUrl,
+  buildRevisionDownloadUrl,
   buildThumbnailUrl,
   canPreviewInApp,
   getPreviewKind
@@ -17,25 +19,25 @@ describe('buildFileStreamSource', () => {
       'abc',
       'drive-1'
     )
-    expect(src.uri).toBe('https://alice.cozy.test/sharings/drives/drive-1/download/abc')
+    expect(src.uri).toMatch(
+      /^https:\/\/alice\.cozy\.test\/sharings\/drives\/drive-1\/download\/abc\?fresh=/
+    )
   })
 
   it('builds /files/download URL with bearer header', () => {
     const src = buildFileStreamSource(buildClient('https://alice.cozy.test', 'TOK'), 'abc')
-    expect(src).toEqual({
-      uri: 'https://alice.cozy.test/files/download/abc',
-      headers: { Authorization: 'Bearer TOK' }
-    })
+    expect(src.uri).toMatch(/^https:\/\/alice\.cozy\.test\/files\/download\/abc\?fresh=/)
+    expect(src.headers).toEqual({ Authorization: 'Bearer TOK' })
   })
 
   it('strips trailing slash from stack URI', () => {
     const src = buildFileStreamSource(buildClient('https://alice.cozy.test/', 'TOK'), 'abc')
-    expect(src.uri).toBe('https://alice.cozy.test/files/download/abc')
+    expect(src.uri).toMatch(/^https:\/\/alice\.cozy\.test\/files\/download\/abc\?fresh=/)
   })
 
   it('URL-encodes the file id', () => {
     const src = buildFileStreamSource(buildClient('https://x', 'TOK'), 'a/b c')
-    expect(src.uri).toBe('https://x/files/download/a%2Fb%20c')
+    expect(src.uri).toMatch(/^https:\/\/x\/files\/download\/a%2Fb%20c\?fresh=/)
   })
 
   it('throws when access token is missing', () => {
@@ -126,5 +128,26 @@ describe('canPreviewInApp', () => {
   it('returns false for unsupported types', () => {
     expect(canPreviewInApp({ class: 'document' })).toBe(false)
     expect(canPreviewInApp({})).toBe(false)
+  })
+})
+
+describe('download URLs and the HTTP caches', () => {
+  it('never hands the same URL to two fresh reads of a file', () => {
+    const first = buildFreshDownloadUrl('https://alice.cozy.test', 'abc')
+    const second = buildFreshDownloadUrl('https://alice.cozy.test', 'abc')
+    expect(first).not.toBe(second)
+    expect(first.split('?')[0]).toBe('https://alice.cozy.test/files/download/abc')
+  })
+
+  it('keeps one URL per revision, so a resumed download finds its bytes', () => {
+    const first = buildRevisionDownloadUrl('https://alice.cozy.test', 'abc', '3-aaa')
+    const second = buildRevisionDownloadUrl('https://alice.cozy.test', 'abc', '3-aaa')
+    expect(first).toBe(second)
+    expect(first).toBe('https://alice.cozy.test/files/download/abc?rev=3-aaa')
+  })
+
+  it('falls back to a fresh URL when the revision is unknown', () => {
+    const url = buildRevisionDownloadUrl('https://alice.cozy.test', 'abc', undefined)
+    expect(url).toMatch(/\?fresh=/)
   })
 })

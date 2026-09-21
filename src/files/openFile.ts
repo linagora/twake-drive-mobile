@@ -8,10 +8,11 @@ import type CozyClient from 'cozy-client'
 import { OfflineFilesStore } from '@/offline/OfflineFilesStore'
 import { FileSystemRepo } from '@/offline/FileSystemRepo'
 import { NoCompatibleAppError } from './errors'
-import { buildDownloadUrl } from './streamUrl'
+import { buildFreshDownloadUrl } from './streamUrl'
 
 export interface OpenableFile {
   _id: string
+  _rev?: string
   name: string
   mime?: string
 }
@@ -24,7 +25,7 @@ interface MinimalStackClient {
 }
 
 const cacheAliasPath = (cacheDir: string, file: OpenableFile): string =>
-  `${cacheDir}twake-drive/${file._id}-${sanitizeName(file.name)}`
+  `${cacheDir}twake-drive/${file._id}-${file._rev ?? 'norev'}-${sanitizeName(file.name)}`
 
 // Hand a local path to the OS viewer. Android's FileViewer rejects with
 // "No app associated with this mime type" when nothing can open it; translate
@@ -74,7 +75,7 @@ export const ensureLocalCopy = async (
   const token = stackClient.getAccessToken()
   if (!token) throw new Error('No access token available')
 
-  const downloadUrl = buildDownloadUrl(stackUri, file._id, driveId)
+  const downloadUrl = buildFreshDownloadUrl(stackUri, file._id, driveId)
 
   const result = await FileSystem.downloadAsync(downloadUrl, aliasPath, {
     headers: { Authorization: `Bearer ${token}` }
