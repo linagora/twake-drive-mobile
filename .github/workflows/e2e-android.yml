@@ -4,11 +4,6 @@ name: E2E (Android, disposable instance)
 # run, so nothing touches a real account. Manual for now; the point is to have
 # the loop somewhere other than a laptop. See e2e/README.md.
 on:
-  # Temporary while the pipeline is being brought up: a dispatch-only workflow
-  # cannot be run from a branch until it sits on the default one.
-  push:
-    branches:
-      - ci/e2e-android-disposable-instance
   workflow_dispatch:
     inputs:
       flows:
