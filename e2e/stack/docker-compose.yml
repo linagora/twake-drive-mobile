@@ -14,6 +14,8 @@ services:
       COZY_STACK_HOST: alice.10-0-2-2.nip.io
       COZY_STACK_PORT: '8080'
       COZY_STACK_PASS: cozycozy
+    volumes:
+      - ./cozy.yaml:/etc/cozy/cozy.yaml:ro
     ports:
       - '80:8080'
       - '5984:5984'

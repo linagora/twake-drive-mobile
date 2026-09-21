@@ -1,0 +1,12 @@
+# The stack reads /etc/cozy/cozy.yaml, and the dev image ships none: everything
+# it needs comes from the flags its entrypoint passes, so this file only has to
+# carry what a run cannot get otherwise.
+#
+# Store certification cannot happen here — Play Integrity vouches for an
+# installation that came from the Play Store, not for the APK a workflow just
+# built — and the fallback asks the user for a code received by mail. Skipping
+# the requirement is what lets a run reach the drive.
+flagship:
+  contexts:
+    default:
+      skip_certification: true
