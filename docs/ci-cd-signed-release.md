@@ -89,7 +89,10 @@ scripts/release.sh 0.3.0        # bumps package.json + app.json, commits, tags, 
 ```
 
 Pushing the tag starts both release workflows. The marketing version is the
-tag; the build number is the CI run number, so it always moves forward.
+tag. The Android version code is derived from it (`0.4.2` gives `402`), so it
+follows the releases rather than a CI counter, which restarts at 1 when the
+releases move to another repository. The iOS build number is the CI run
+number, which TestFlight only needs to be unique within a version.
 
 - iOS lands in TestFlight. `publish_to_app_store: true` on a manual run also
   pushes the App Store metadata.
@@ -108,5 +111,8 @@ how to test the pipeline without tagging.
   with the certificates in the match repository.
 - Play rejects the AAB with a signature error — the keystore is not the upload
   key of the published app; see "Taking the releases over".
+- Play rejects the version code, or a device refuses to install over what it
+  has — the version being released is not above the published one. The code
+  follows the version, so the fix is to release a higher version.
 - `mergeDexRelease` running out of memory — the Gradle daemon heap, in
   `android/gradle.properties`.
