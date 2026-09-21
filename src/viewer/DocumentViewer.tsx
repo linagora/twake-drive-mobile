@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { StyleSheet, View } from 'react-native'
-import { Button, Text } from 'react-native-paper'
+import { Button, Text, useTheme } from 'react-native-paper'
 import { useRouter } from 'expo-router'
 import { useClient } from 'cozy-client'
 import { useTranslation } from 'react-i18next'
@@ -48,6 +48,8 @@ export const DocumentViewer = ({ file, driveId }: Props): React.ReactElement => 
   const { t } = useTranslation()
   const client = useClient()
   const router = useRouter()
+  const theme = useTheme()
+  const page = { backgroundColor: theme.colors.background }
   const kind = viewerKindOf(file)
   const nativeOnly = !!kind && !rendersInApp(kind)
   const [markdown, setMarkdown] = useState<string | null>(null)
@@ -114,7 +116,7 @@ export const DocumentViewer = ({ file, driveId }: Props): React.ReactElement => 
 
   if (nativeOnly) {
     return (
-      <View style={styles.nativePanel}>
+      <View style={[styles.nativePanel, page]}>
         <Text variant="bodyMedium" style={styles.nativeText}>
           {t('drive.viewer.openedWithSystem')}
         </Text>
@@ -134,7 +136,7 @@ export const DocumentViewer = ({ file, driveId }: Props): React.ReactElement => 
 
   if (drawing !== null) {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, page]}>
         <ExcalidrawView content={drawing} testID="document-viewer" />
         <EditDocumentButton file={file} driveId={driveId} style={styles.edit} />
       </View>
@@ -144,7 +146,7 @@ export const DocumentViewer = ({ file, driveId }: Props): React.ReactElement => 
   if (markdown === null) return <LoadingState />
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, page]}>
       <MarkdownView
         markdown={markdown}
         testID="document-viewer"

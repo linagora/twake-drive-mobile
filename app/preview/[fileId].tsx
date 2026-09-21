@@ -202,10 +202,6 @@ export default function PreviewScreen() {
     }
   }
 
-  // A photo, a video or a PDF is read full-bleed on the dark canvas; every
-  // other kind is a page, and reads better under the app bar.
-  const isImmersive = kind === 'image' || kind === 'video' || kind === 'pdf'
-
   const actions: DocumentAction[] = !file
     ? []
     : [
@@ -242,12 +238,7 @@ export default function PreviewScreen() {
       ]
 
   return (
-    <DocumentScreen
-      title={title}
-      onBack={() => router.back()}
-      chrome={isImmersive ? 'immersive' : 'bar'}
-      actions={actions}
-    >
+    <DocumentScreen title={title} onBack={() => router.back()} chrome="immersive" actions={actions}>
       {isLoadingFile ? (
         <LoadingState />
       ) : lookupFailed ? (
@@ -264,7 +255,12 @@ export default function PreviewScreen() {
 }
 
 const styles = StyleSheet.create({
-  fallbackPanel: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  fallbackPanel: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: cozyTokens.canvas.background
+  },
   actionError: {
     color: cozyTokens.canvas.error,
     textAlign: 'center',
