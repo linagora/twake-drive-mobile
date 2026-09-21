@@ -32,11 +32,12 @@ import CozyClient from 'cozy-client'
 import { FLAGSHIP_SCOPES } from './scopes'
 import { Session, OAuthToken } from './types'
 import { generatePkce, openAuthorizeUrl } from './pkce'
+import { certificationOAuthOptions } from './storeCertification'
 
 export const certifyFlagship = async (session: Session): Promise<Session> => {
   const client = new CozyClient({
     uri: session.uri,
-    oauth: { ...session.oauthOptions, token: session.token },
+    oauth: { ...session.oauthOptions, ...certificationOAuthOptions(), token: session.token },
     // scope sets stackClient.scope; authorize() → getAuthCodeURL fallback uses it.
     scope: [...FLAGSHIP_SCOPES],
     appMetadata: { slug: 'twake-drive-mobile', version: '0.1.0' }
@@ -46,14 +47,15 @@ export const certifyFlagship = async (session: Session): Promise<Session> => {
   stackClient.setUri(session.uri)
   // Restore stored credentials so isRegistered() returns true and
   // getAuthCodeURL includes the correct client_id / redirect_uri.
-  stackClient.setOAuthOptions({ ...session.oauthOptions })
+  stackClient.setOAuthOptions({ ...session.oauthOptions, ...certificationOAuthOptions() })
 
-  // Attempt store attestation — expected to fail without native attestation
-  // module; the error is swallowed so the email-code path can continue.
+  // Play Integrity and App Attest only vouch for an installation that came
+  // from a store, so this is expected to fail on a development or a Firebase
+  // build. The email code below is the fallback the stack designed for it.
   try {
     await client.certifyFlagship()
-  } catch {
-    // no-op: expected on OIDC-only deployments without Play Integrity / AppAttest
+  } catch (err) {
+    console.log('[certifyFlagship] store attestation failed', (err as Error)?.message)
   }
 
   const pkceCodes = await generatePkce()

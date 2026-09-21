@@ -3,6 +3,7 @@ import CozyClient from 'cozy-client'
 import { APP_SCOPES, APP_SCOPE_STRING, FLAGSHIP_SCOPES } from './scopes'
 import { OidcCallback, Session, OAuthOptions, OAuthToken } from './types'
 import { generatePkce, openAuthorizeUrl } from './pkce'
+import { certificationOAuthOptions } from './storeCertification'
 
 interface OidcResponse {
   session_code?: string
@@ -20,7 +21,8 @@ const buildOauthOptions = (): Omit<OAuthOptions, 'clientID' | 'clientSecret'> =>
   redirectURI: REDIRECT_URL,
   clientKind: 'mobile',
   clientURI: 'https://twake.app',
-  scopes: [...APP_SCOPES]
+  scopes: [...APP_SCOPES],
+  ...certificationOAuthOptions()
 })
 
 interface RegisterSessionHooks {
