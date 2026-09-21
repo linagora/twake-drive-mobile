@@ -7,6 +7,7 @@ import { useClient, useQuery } from 'cozy-client'
 import { useTranslation } from 'react-i18next'
 
 import { AppBar } from '@/ui/AppBar'
+import { fetchNextPage } from '@/drive/paging'
 import { useGuardedPush } from '@/ui/useGuardedPush'
 import { FileListView } from '@/ui/FileListView'
 import { useFileRowActions } from '@/files/useFileRowActions'
@@ -493,8 +494,8 @@ export const FilesScreen = ({ basePath }: FilesScreenProps): React.ReactElement 
           refreshing={refreshing}
           onRefresh={() => void onRefresh()}
           onEndReached={() => {
-            void foldersQuery.fetchMore?.()
-            void filesQuery.fetchMore?.()
+            fetchNextPage(foldersQuery)
+            fetchNextPage(filesQuery)
           }}
           emptyMessage="drive.emptyFolder"
           // The FAB floats over the list, so the last rows need room to be

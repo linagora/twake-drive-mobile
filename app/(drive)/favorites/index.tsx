@@ -19,6 +19,7 @@ import { favoritesQuery, favoritesQueryAs, FileQueryResult, TRASH_DIR_ID } from 
 import { isFavorite } from '@/files/favorites'
 import { openFileFromList } from '@/files/openFromList'
 import { surfaceOpenError } from '@/files/errors'
+import { fetchNextPage } from '@/drive/paging'
 
 // A trashed folder keeps its cozyMetadata.favorite flag. cozy-stack does NOT
 // reliably set a top-level `trashed` boolean on it, but a trashed item always
@@ -140,7 +141,7 @@ export default function FavoritesScreen() {
           // the index. Keep pulling pages instead of stopping at the first cap.
           onEndReachedThreshold={0.5}
           onEndReached={() => {
-            void query.fetchMore?.()
+            fetchNextPage(query)
           }}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         />

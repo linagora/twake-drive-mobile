@@ -9,6 +9,7 @@ import { FileRow } from '@/ui/FileRow'
 import { useAuth } from '@/auth/useAuth'
 import { recentQuery, recentQueryAs, FileQueryResult, HIDDEN_ROOT_DIR_IDS } from '@/client/queries'
 import { useFileRowActions } from '@/files/useFileRowActions'
+import { fetchNextPage } from '@/drive/paging'
 
 export default function RecentScreen() {
   const { t } = useTranslation()
@@ -51,7 +52,7 @@ export default function RecentScreen() {
         // The filters above drop folders and trashed rows, so a page can yield
         // few usable items: keep paging rather than capping the list.
         onEndReached={() => {
-          void query.fetchMore?.()
+          fetchNextPage(query)
         }}
         emptyMessage="drive.emptyRecent"
       />
