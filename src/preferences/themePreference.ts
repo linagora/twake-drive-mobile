@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from 'react'
+import { useColorScheme } from 'react-native'
 import { createMMKV } from 'react-native-mmkv'
 
 export type ThemePref = 'system' | 'light' | 'dark'
@@ -40,4 +41,10 @@ export function setThemePreference(pref: ThemePref): void {
 export function useThemePreference(): { pref: ThemePref; setPref: (p: ThemePref) => void } {
   const pref = useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
   return { pref, setPref: setThemePreference }
+}
+
+export function useActiveColorScheme(): 'light' | 'dark' {
+  const systemScheme = useColorScheme()
+  const pref = useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
+  return (pref === 'system' ? systemScheme : pref) ?? 'light'
 }
