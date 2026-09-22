@@ -1,47 +1,59 @@
-const mockInitializeFromRemote = jest.fn()
-jest.mock('cozy-flags', () => ({
-  __esModule: true,
-  default: { initializeFromRemote: (c: unknown) => mockInitializeFromRemote(c) }
-}))
+import flag from 'cozy-flags'
+
+import { flagsFromDoc, refreshFlags } from './refreshFlags'
 
 let mockOnline = true
 jest.mock('@/network/OnlineMonitor', () => ({
   getOnlineMonitor: () => ({ getCurrent: () => mockOnline })
 }))
 
-import type CozyClient from 'cozy-client'
-import { refreshFlags } from './refreshFlags'
+describe('flagsFromDoc', () => {
+  it('reads the flags the stack puts under attributes', () => {
+    expect(flagsFromDoc({ attributes: { 'drive.onlyoffice.enabled': true } })).toEqual({
+      'drive.onlyoffice.enabled': true
+    })
+  })
 
-const client = {} as CozyClient
+  it('reads the flags a document from the local replica carries at its root', () => {
+    expect(
+      flagsFromDoc({
+        _id: 'io.cozy.settings.flags',
+        _rev: '4-abc',
+        _type: 'io.cozy.settings',
+        cozyMetadata: { doctypeVersion: '1' },
+        'drive.onlyoffice.enabled': true,
+        'drive.excalidraw.enabled': false
+      })
+    ).toEqual({ 'drive.onlyoffice.enabled': true, 'drive.excalidraw.enabled': false })
+  })
+
+  it('answers nothing for a document that is not there', () => {
+    expect(flagsFromDoc(null)).toEqual({})
+  })
+})
 
 describe('refreshFlags', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
     mockOnline = true
-    mockInitializeFromRemote.mockResolvedValue(undefined)
+    flag('drive.onlyoffice.enabled', null)
   })
 
-  it('reads the flags from the instance when online', async () => {
-    await refreshFlags(client)
-    expect(mockInitializeFromRemote).toHaveBeenCalledWith(client)
+  it('enables what a flattened document holds', async () => {
+    const client = {
+      query: jest.fn().mockResolvedValue({
+        data: { _id: 'io.cozy.settings.flags', 'drive.onlyoffice.enabled': true }
+      })
+    }
+    await refreshFlags(client as never)
+    expect(flag('drive.onlyoffice.enabled')).toBe(true)
   })
 
-  // Flags are kept for the session: refreshing offline could only fail, and a
-  // failure that cleared them would turn features off behind the user's back.
-  it('does not read them while offline', async () => {
+  it('leaves the flags in place rather than turning features off when offline', async () => {
+    flag('drive.onlyoffice.enabled', true)
     mockOnline = false
-    await refreshFlags(client)
-    expect(mockInitializeFromRemote).not.toHaveBeenCalled()
-  })
-
-  it('keeps the previous values when the read fails', async () => {
-    jest.spyOn(console, 'warn').mockImplementation(() => undefined)
-    mockInitializeFromRemote.mockRejectedValue(new Error('boom'))
-    await expect(refreshFlags(client)).resolves.toBeUndefined()
-  })
-
-  it('is a no-op without a client', async () => {
-    await refreshFlags(null)
-    expect(mockInitializeFromRemote).not.toHaveBeenCalled()
+    const client = { query: jest.fn() }
+    await refreshFlags(client as never)
+    expect(client.query).not.toHaveBeenCalled()
+    expect(flag('drive.onlyoffice.enabled')).toBe(true)
   })
 })
