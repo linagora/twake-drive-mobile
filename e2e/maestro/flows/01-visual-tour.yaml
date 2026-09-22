@@ -1,0 +1,58 @@
+appId: com.linagora.twakedrive
+tags:
+  - ci
+  - visual
+---
+# A screenshot at every stop of a short tour, so a run leaves a trace of what
+# the app looked like and a baseline can catch what an assertion cannot:
+# spacing, colours, truncation, a row that moved.
+#
+# It walks what e2e/stack/setup.sh seeds on the instance a workflow creates, so
+# it needs nothing of a real account. The names are written in rather than taken
+# from the environment: Maestro substitutes a variable in a text selector but
+# not in an `id:` one, and rows are addressed by id here because a row carries
+# its name as an accessibility label, which a text selector misses.
+#
+# Screenshot names are the baseline file names: renaming one orphans its
+# baseline, which the compare script reports rather than passing silently.
+- launchApp
+- extendedWaitUntil:
+    visible: 'Mon Drive.*'
+    timeout: 120000
+- runFlow: ../subflows/dismissDevWarnings.yaml
+- waitForAnimationToEnd
+- takeScreenshot: 01-tour-01-drive-root
+
+- tapOn:
+    id: 'folder-row:Documents'
+- extendedWaitUntil:
+    visible:
+      id: 'file-row:readme.txt'
+    timeout: 20000
+- waitForAnimationToEnd
+- takeScreenshot: 01-tour-02-folder
+
+- tapOn:
+    id: 'file-row:readme.txt'
+- waitForAnimationToEnd:
+    timeout: 20000
+- takeScreenshot: 01-tour-03-preview
+
+- tapOn:
+    id: 'document-back-button'
+- extendedWaitUntil:
+    visible:
+      id: 'file-row:readme.txt'
+    timeout: 20000
+- waitForAnimationToEnd
+- takeScreenshot: 01-tour-04-back-in-folder
+
+- tapOn:
+    id: 'drive-fab'
+- waitForAnimationToEnd
+- takeScreenshot: 01-tour-05-create-menu
+
+- tapOn:
+    id: 'drive-fab'
+- waitForAnimationToEnd
+- takeScreenshot: 01-tour-06-menu-dismissed

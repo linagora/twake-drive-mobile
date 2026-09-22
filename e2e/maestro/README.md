@@ -40,14 +40,30 @@ Maestro targets elements by **visible text** (`tapOn: 'Mon Drive'`) or by point
 ## Visual regression
 
 ```bash
-npm run e2e:ios:visual              # play the `visual` flows, diff vs baseline
-npm run e2e:ios:visual -- --update  # accept the current run as the new baseline
+npm run e2e:ios:visual                  # play the `visual` flows, diff vs baseline
+npm run e2e:android:visual              # the same on a connected Android device
+npm run e2e:ios:visual -- --update      # accept the current run as the new baseline
+CAPTURE_ONLY=1 npm run e2e:android:visual   # capture, do not compare
 ```
 
 Flows tagged `visual` take a screenshot at every stop. The runner collects them
-into `e2e/maestro/screenshots/current/` and diffs each against the committed
-`baseline/`; a mismatch writes an annotated PNG to `diff/` and fails the run.
-Only `baseline/` is tracked.
+into `e2e/maestro/screenshots/current/<platform>/` and diffs each against
+`baseline/<platform>/`; a mismatch writes an annotated PNG to `diff/<platform>/`
+and fails the run. Only `baseline/` is tracked.
+
+A baseline belongs to one platform: the two render at different sizes, so a run
+only ever compares against its own.
+
+The Android workflow plays `01-visual-tour.yaml` after the login flow and
+uploads what it captured with the rest of its artefacts. It captures without
+comparing: an Android baseline is committed once a run's captures have been
+eyeballed.
+
+Rows are addressed by id — `folder-row:<name>`, `file-row:<name>`,
+`folder-actions:<name>` — because a row carries its name as an accessibility
+label, which a text selector misses. Note that Maestro substitutes a variable in
+a text selector but **not** in an `id:` one, so a flow that addresses rows by id
+writes the names in.
 
 The top 120 device pixels are masked before comparing, because the status bar
 clock changes every minute. Tolerance is 0.5% of pixels, enough to absorb font

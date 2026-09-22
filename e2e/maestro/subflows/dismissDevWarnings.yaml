@@ -1,0 +1,13 @@
+appId: com.linagora.twakedrive
+---
+# A development build shows React Native's LogBox toast over the bottom of the
+# screen. It swallows what Maestro reaches for underneath, so a flow that runs
+# on such a build dismisses it first. On the release build a run installs in CI
+# there is no toast and this does nothing.
+- runFlow:
+    when:
+      visible: '.*legacy contextType.*'
+    commands:
+      - tapOn:
+          point: '92%,93%'
+      - waitForAnimationToEnd

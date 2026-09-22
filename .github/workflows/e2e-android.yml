@@ -101,6 +101,10 @@ jobs:
             adb install -r android/app/build/outputs/apk/release/app-release.apk
             adb shell pm clear com.linagora.twakedrive || true
             maestro test --env INSTANCE_URL="http://$INSTANCE_DOMAIN" --env INSTANCE_PASSPHRASE="$INSTANCE_PASSPHRASE" --format junit --output /tmp/maestro-report.xml "$FLOWS"
+            # The app is signed in by the flow above, so the tour can walk it and
+            # leave a screenshot at every stop. Captured, not compared: an
+            # Android baseline is committed once these are eyeballed.
+            CAPTURE_ONLY=1 FLOWS=e2e/maestro/flows/01-visual-tour.yaml EXCLUDE_EXTRA=none ./e2e/scripts/run-visual.sh android || true
 
       - name: Collect what the run left behind
         if: always()
@@ -108,6 +112,7 @@ jobs:
           mkdir -p /tmp/e2e-artifacts
           cp /tmp/maestro-report.xml /tmp/e2e-artifacts/ 2>/dev/null || true
           cp -r ~/.maestro/tests /tmp/e2e-artifacts/maestro-tests 2>/dev/null || true
+          cp -r e2e/maestro/screenshots/current /tmp/e2e-artifacts/screenshots 2>/dev/null || true
           docker compose -f e2e/stack/docker-compose.yml logs --no-color > /tmp/e2e-artifacts/stack.log 2>&1 || true
 
       - name: Upload them
