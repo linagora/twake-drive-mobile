@@ -7,17 +7,30 @@ type StoredDoc = { _id: string } & Record<string, unknown>
 // documented place instead of scattering `as any` at each call site.
 
 interface CozyClientEmitter {
-  on(event: string, listener: () => void): void
-  removeListener(event: string, listener: () => void): void
+  on(event: string, listener: (...args: unknown[]) => void): void
+  removeListener(event: string, listener: (...args: unknown[]) => void): void
 }
 
 interface CozyClientStore {
   setData(data: Record<string, StoredDoc[]>): void
   getDocumentFromState(doctype: string, id: string): StoredDoc | null | undefined
+  subscribe(listener: () => void): () => void
 }
 
 export const clientEmitter = (client: CozyClient): CozyClientEmitter =>
   client as unknown as CozyClientEmitter
 
-export const clientStore = (client: CozyClient): CozyClientStore =>
-  client as unknown as CozyClientStore
+export const clientStore = (client: CozyClient): CozyClientStore => {
+  const c = client as unknown as Omit<CozyClientStore, 'subscribe'> & {
+    ensureStore(): void
+    store: { subscribe(listener: () => void): () => void }
+  }
+  return {
+    setData: data => c.setData(data),
+    getDocumentFromState: (doctype, id) => c.getDocumentFromState(doctype, id),
+    subscribe: listener => {
+      c.ensureStore()
+      return c.store.subscribe(listener)
+    }
+  }
+}
