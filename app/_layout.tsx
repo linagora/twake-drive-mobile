@@ -1,7 +1,6 @@
 import 'react-native-url-polyfill/auto'
 
 import React, { useEffect } from 'react'
-import { useColorScheme } from 'react-native'
 import { Provider as PaperProvider } from 'react-native-paper'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
@@ -29,7 +28,7 @@ import { ErrorBoundary } from '@/ui/ErrorBoundary'
 import { AuthTransitionOverlay } from '@/ui/AuthTransitionOverlay'
 import { PiPSessionProvider } from '@/preview/PiPSession'
 import { SharingProvider } from '@/sharing/SharingProvider'
-import { useThemePreference } from '@/preferences/themePreference'
+import { useActiveColorScheme } from '@/preferences/themePreference'
 import { AppProviderTree } from './_AppProviderTree'
 
 // Hold the native launch screen until the app can actually paint its first
@@ -39,9 +38,7 @@ import { AppProviderTree } from './_AppProviderTree'
 void SplashScreen.preventAutoHideAsync()
 
 const InnerLayout = () => {
-  const colorScheme = useColorScheme()
-  const { pref: themePref } = useThemePreference()
-  const activeScheme = themePref === 'system' ? colorScheme : themePref
+  const activeScheme = useActiveColorScheme()
   const theme = activeScheme === 'dark' ? darkTheme : lightTheme
   const navigationTheme = activeScheme === 'dark' ? darkNavigationTheme : lightNavigationTheme
   const { client, logout, authenticating, status } = useAuth()
@@ -72,11 +69,7 @@ const InnerLayout = () => {
 
   const content = (
     <SafeAreaProvider>
-      {/* Render the system status bar with theme-adaptive icons (dark on the
-          light UI, light in dark mode) so the time/wifi/battery stay visible —
-          without this the default light icons were invisible on the white app
-          background under edge-to-edge. Applies to Android and iOS. */}
-      <StatusBar style="auto" />
+      <StatusBar style={activeScheme === 'dark' ? 'light' : 'dark'} />
       <GestureHandlerRootView style={{ flex: 1 }}>
         <PaperProvider theme={withInterFonts(theme)}>
           <ThemeProvider value={navigationTheme}>

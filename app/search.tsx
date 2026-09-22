@@ -18,6 +18,7 @@ import { openFileFromList } from '@/files/openFromList'
 import { useDebouncedValue } from '@/search/useDebouncedValue'
 import { useFileSearch } from '@/search/useFileSearch'
 import { FileQueryResult } from '@/client/queries'
+import { useActiveColorScheme } from '@/preferences/themePreference'
 
 const MIN_CHARS = 2
 const DEBOUNCE_MS = 300
@@ -26,6 +27,7 @@ export default function SearchScreen() {
   const router = useRouter()
   const client = useClient()
   const { t } = useTranslation()
+  const activeScheme = useActiveColorScheme()
   // Top-level route with no navigation header — pad the top safe-area so the
   // Searchbar doesn't render under the status bar.
   const insets = useSafeAreaInsets()
@@ -58,9 +60,7 @@ export default function SearchScreen() {
 
   return (
     <ScreenContainer style={{ paddingTop: insets.top }}>
-      {/* This screen is a slide-up modal and doesn't inherit the app's status-bar
-          style — force icons that contrast the (theme-colored) safe-area strip. */}
-      <StatusBar style="auto" />
+      <StatusBar style={activeScheme === 'dark' ? 'light' : 'dark'} />
       <Searchbar
         testID="search-input"
         placeholder={t('drive.search.placeholder')}
