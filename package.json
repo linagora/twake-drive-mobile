@@ -16,7 +16,8 @@
     "e2e:login": "maestro test e2e/maestro/flows/00-login.yaml",
     "prepare": "lefthook install",
     "postinstall": "patch-package",
-    "e2e:ios:visual": "./e2e/scripts/run-ios-visual.sh"
+    "e2e:ios:visual": "./e2e/scripts/run-visual.sh ios",
+    "e2e:android:visual": "./e2e/scripts/run-visual.sh android"
   },
   "lint-staged": {
     "*.{ts,tsx}": [

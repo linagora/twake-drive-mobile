@@ -256,6 +256,7 @@ export const FilesScreen = ({ basePath }: FilesScreenProps): React.ReactElement 
       return (
         <FolderRow
           folder={item}
+          testID={`folder-row:${item.name}`}
           selected={isSelected}
           {...folderHandlers}
           onPress={folder => {
@@ -272,6 +273,7 @@ export const FilesScreen = ({ basePath }: FilesScreenProps): React.ReactElement 
     return (
       <FileRow
         file={{ ...item, size: item.size ?? null }}
+        testID={`file-row:${item.name}`}
         selected={isSelected}
         {...fileHandlers}
         onPress={file => {
