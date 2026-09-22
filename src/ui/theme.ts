@@ -47,6 +47,8 @@ export const cozyTokens = {
     chrome: 10,
     /** Floating actions, above that chrome so their menu is never covered. */
     fab: 20,
+    /** Transient feedback, above floating actions so it is never hidden. */
+    snackbar: 25,
     /** App-wide status, like the offline banner. */
     banner: 30,
     /** Full-screen overlays that take the app over. */

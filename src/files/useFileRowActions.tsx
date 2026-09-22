@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { StyleSheet } from 'react-native'
 import { Snackbar } from 'react-native-paper'
 import { useRouter } from 'expo-router'
 import { useClient } from 'cozy-client'
@@ -18,6 +19,7 @@ import { openFileFromList } from './openFromList'
 import { useWebEditor } from '@/viewer/useWebEditor'
 import { surfaceOpenError } from './errors'
 import { FileQueryResult, TRASH_DIR_ID } from '@/client/queries'
+import { cozyTokens } from '@/ui/theme'
 
 type Entry = FileQueryResult
 
@@ -205,7 +207,12 @@ export const useFileRowActions = ({
         onConfirm={() => void offlineActions.confirmPending()}
         onCancel={offlineActions.cancelPending}
       />
-      <Snackbar visible={!!snackbar} onDismiss={() => setSnackbar(null)} duration={3000}>
+      <Snackbar
+        visible={!!snackbar}
+        onDismiss={() => setSnackbar(null)}
+        duration={3000}
+        wrapperStyle={styles.snackbar}
+      >
         {snackbar ?? ''}
       </Snackbar>
     </>
@@ -213,3 +220,7 @@ export const useFileRowActions = ({
 
   return { fileProps, folderProps, dialogs, notify: setSnackbar }
 }
+
+const styles = StyleSheet.create({
+  snackbar: { zIndex: cozyTokens.zIndex.snackbar }
+})
