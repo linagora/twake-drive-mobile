@@ -218,7 +218,7 @@ export const FilesScreen = ({ basePath }: FilesScreenProps): React.ReactElement 
     if (items.length === 0) return
     const revert = optimisticFiles(
       client,
-      items.map(item => ({ ...item, dir_id: TRASH_DIR_ID }))
+      items.map(item => ({ ...item, dir_id: TRASH_DIR_ID, trashed: true }))
     )
     selection.clear()
     setBulkConfirmVisible(false)
