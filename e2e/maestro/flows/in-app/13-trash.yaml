@@ -1,0 +1,64 @@
+appId: com.linagora.twakedrive
+tags:
+  - inapp
+  - skip
+env:
+  FOLDER_NAME: 'Tqx'
+---
+# ⚠️ Tagged `skip`. The assertions here name a folder the flow types, and
+# synthetic typing drops characters: `Tqx` lands as `Tx`, `Mqx` as `Mx`. The
+# rework is to act on material the stack seeds — the disposable instance
+# already creates a folder and a file — so nothing the flow asserts on has to
+# be typed.
+# fail every run.
+# Trash: a deleted folder leaves the drive, shows up in Corbeille, and comes
+# back where it was when it is restored.
+#
+# Throwaway name, short on purpose: synthetic typing drops characters, at
+# random positions (see 09-favorite-toggle). The folder ends in the trash; the
+# trash is never emptied here, that would reach beyond this flow's own material.
+- runFlow: ../../subflows/openDrive.yaml
+- tapOn:
+    id: 'drive-fab'
+- tapOn: 'Nouveau dossier'
+- inputText: '${FOLDER_NAME}'
+- pressKey: Enter
+- waitForAnimationToEnd:
+    timeout: 8000
+- extendedWaitUntil:
+    visible: '${FOLDER_NAME}.*'
+    timeout: 12000
+- tapOn:
+    id: 'folder-actions:${FOLDER_NAME}'
+- tapOn: 'Supprimer'
+- waitForAnimationToEnd
+- tapOn:
+    id: 'confirm-delete-submit'
+- extendedWaitUntil:
+    notVisible: '${FOLDER_NAME}'
+    timeout: 15000
+- tapOn:
+    id: 'tab-trash'
+- extendedWaitUntil:
+    visible: '${FOLDER_NAME}.*'
+    timeout: 15000
+- tapOn:
+    id: 'folder-actions:${FOLDER_NAME}'
+- tapOn: 'Restaurer'
+- extendedWaitUntil:
+    notVisible: '${FOLDER_NAME}'
+    timeout: 15000
+- tapOn:
+    id: 'tab-files'
+- extendedWaitUntil:
+    visible: '${FOLDER_NAME}.*'
+    timeout: 15000
+- tapOn:
+    id: 'folder-actions:${FOLDER_NAME}'
+- tapOn: 'Supprimer'
+- waitForAnimationToEnd
+- tapOn:
+    id: 'confirm-delete-submit'
+- extendedWaitUntil:
+    notVisible: '${FOLDER_NAME}'
+    timeout: 15000

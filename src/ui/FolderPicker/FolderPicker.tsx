@@ -153,6 +153,7 @@ export const FolderPicker = ({
                 item={item}
                 disabled={item.type === 'file' || excludeIds.has(item._id)}
                 onPress={handleDrillIn}
+                testID={`folder-picker-row:${item.name}`}
               />
             )}
           />

@@ -72,6 +72,7 @@ export const FileActionsMenu = ({
         <Menu.Item
           leadingIcon={() => <CozyIcon name="cloud2" size={24} color={theme.colors.onSurface} />}
           title={t(isDirectPin ? 'drive.offline.unpin' : 'drive.offline.pin')}
+          testID="action-pin"
           disabled={!isDirectPin && !isOnline}
           onPress={() => {
             setMenuVisible(false)
@@ -85,6 +86,7 @@ export const FileActionsMenu = ({
             <CozyIcon name="shareExternal" size={24} color={theme.colors.onSurface} />
           )}
           title={t('drive.fileMeta.share')}
+          testID="action-share"
           disabled={!isOnline}
           onPress={() => {
             setMenuVisible(false)
@@ -96,6 +98,7 @@ export const FileActionsMenu = ({
         <Menu.Item
           leadingIcon={() => <CozyIcon name="rename" size={24} color={theme.colors.onSurface} />}
           title={t('drive.fileMeta.rename')}
+          testID="action-rename"
           disabled={!isOnline}
           onPress={() => {
             setMenuVisible(false)
@@ -107,6 +110,7 @@ export const FileActionsMenu = ({
         <Menu.Item
           leadingIcon={() => <CozyIcon name="restore" size={24} color={theme.colors.onSurface} />}
           title={t('drive.trashActions.restore')}
+          testID="action-restore"
           disabled={!isOnline}
           onPress={() => {
             setMenuVisible(false)
@@ -118,6 +122,7 @@ export const FileActionsMenu = ({
         <Menu.Item
           leadingIcon={() => <CozyIcon name="trash" size={24} color={theme.colors.onSurface} />}
           title={t('drive.fileMeta.delete')}
+          testID="action-delete"
           disabled={!isOnline}
           onPress={() => {
             setMenuVisible(false)
@@ -129,6 +134,7 @@ export const FileActionsMenu = ({
         <Menu.Item
           leadingIcon={() => <CozyIcon name="moveto" size={24} color={theme.colors.onSurface} />}
           title={t('drive.fileMeta.move')}
+          testID="action-move"
           disabled={!isOnline}
           onPress={() => {
             setMenuVisible(false)
@@ -140,6 +146,7 @@ export const FileActionsMenu = ({
         <Menu.Item
           leadingIcon={() => <CozyIcon name="info" size={24} color={theme.colors.onSurface} />}
           title={t('drive.fileMeta.info')}
+          testID="action-info"
           onPress={() => {
             setMenuVisible(false)
             onInfo(file)
@@ -160,6 +167,7 @@ export const FileActionsMenu = ({
             ? 'drive.fileMeta.unfavorite'
             : 'drive.fileMeta.favorite'
         )}
+        testID="action-favorite"
         onPress={() => {
           setMenuVisible(false)
           if (!client) return
@@ -175,6 +183,7 @@ export const FileActionsMenu = ({
       <Menu.Item
         leadingIcon={() => <CozyIcon name="download" size={24} color={theme.colors.onSurface} />}
         title={t('drive.fileMeta.download')}
+        testID="action-download"
         onPress={() => {
           setMenuVisible(false)
           if (!client) return

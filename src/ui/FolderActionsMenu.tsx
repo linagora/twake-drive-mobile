@@ -63,6 +63,7 @@ export const FolderActionsMenu = ({
         <Menu.Item
           leadingIcon={() => <CozyIcon name="cloud2" size={24} color={theme.colors.onSurface} />}
           title={t(isPinned ? 'drive.offline.unpin' : 'drive.offline.pin')}
+          testID="action-pin"
           disabled={!isPinned && !isOnline}
           onPress={() => {
             setMenuVisible(false)
@@ -76,6 +77,7 @@ export const FolderActionsMenu = ({
             <CozyIcon name="shareExternal" size={24} color={theme.colors.onSurface} />
           )}
           title={t('drive.fileMeta.share')}
+          testID="action-share"
           disabled={!isOnline}
           onPress={() => {
             setMenuVisible(false)
@@ -87,6 +89,7 @@ export const FolderActionsMenu = ({
         <Menu.Item
           leadingIcon={() => <CozyIcon name="rename" size={24} color={theme.colors.onSurface} />}
           title={t('drive.fileMeta.rename')}
+          testID="action-rename"
           disabled={!isOnline}
           onPress={() => {
             setMenuVisible(false)
@@ -98,6 +101,7 @@ export const FolderActionsMenu = ({
         <Menu.Item
           leadingIcon={() => <CozyIcon name="restore" size={24} color={theme.colors.onSurface} />}
           title={t('drive.trashActions.restore')}
+          testID="action-restore"
           disabled={!isOnline}
           onPress={() => {
             setMenuVisible(false)
@@ -109,6 +113,7 @@ export const FolderActionsMenu = ({
         <Menu.Item
           leadingIcon={() => <CozyIcon name="trash" size={24} color={theme.colors.onSurface} />}
           title={t('drive.fileMeta.delete')}
+          testID="action-delete"
           disabled={!isOnline}
           onPress={() => {
             setMenuVisible(false)
@@ -120,6 +125,7 @@ export const FolderActionsMenu = ({
         <Menu.Item
           leadingIcon={() => <CozyIcon name="moveto" size={24} color={theme.colors.onSurface} />}
           title={t('drive.fileMeta.move')}
+          testID="action-move"
           disabled={!isOnline}
           onPress={() => {
             setMenuVisible(false)
@@ -141,6 +147,7 @@ export const FolderActionsMenu = ({
             ? 'drive.fileMeta.unfavorite'
             : 'drive.fileMeta.favorite'
         )}
+        testID="action-favorite"
         onPress={() => {
           setMenuVisible(false)
           if (!client) return

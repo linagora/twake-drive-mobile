@@ -1,0 +1,69 @@
+appId: com.linagora.twakedrive
+tags:
+  - inapp
+  - skip
+env:
+  SOURCE: 'Mqx'
+  DESTINATION: 'Nqx'
+---
+# ⚠️ Tagged `skip`. The assertions here name a folder the flow types, and
+# synthetic typing drops characters: `Tqx` lands as `Tx`, `Mqx` as `Mx`. The
+# rework is to act on material the stack seeds — the disposable instance
+# already creates a folder and a file — so nothing the flow asserts on has to
+# be typed.
+# Move: the moved row leaves the list at once and is found inside the
+# destination. The picker it goes through lists the files of a folder dimmed
+# and walks into folders only (#172).
+#
+# Throwaway names, short on purpose: synthetic typing drops characters, at
+# random positions (see 09-favorite-toggle). Both folders are removed at the end.
+- runFlow: ../../subflows/openDrive.yaml
+- tapOn:
+    id: 'drive-fab'
+- tapOn: 'Nouveau dossier'
+- inputText: '${DESTINATION}'
+- pressKey: Enter
+- waitForAnimationToEnd:
+    timeout: 8000
+- extendedWaitUntil:
+    visible: '${DESTINATION}.*'
+    timeout: 12000
+- tapOn:
+    id: 'drive-fab'
+- tapOn: 'Nouveau dossier'
+- inputText: '${SOURCE}'
+- pressKey: Enter
+- waitForAnimationToEnd:
+    timeout: 8000
+- extendedWaitUntil:
+    visible: '${SOURCE}.*'
+    timeout: 12000
+- tapOn:
+    id: 'folder-actions:${SOURCE}'
+- tapOn: 'Déplacer.*'
+- waitForAnimationToEnd:
+    timeout: 8000
+- tapOn:
+    id: 'folder-picker-row:${DESTINATION}'
+- waitForAnimationToEnd
+- tapOn:
+    id: 'folder-picker-confirm'
+- extendedWaitUntil:
+    notVisible: '${SOURCE}'
+    timeout: 15000
+- tapOn: '${DESTINATION}.*'
+- extendedWaitUntil:
+    visible: '${SOURCE}.*'
+    timeout: 12000
+- tapOn:
+    id: 'appbar-back-button'
+- waitForAnimationToEnd
+- tapOn:
+    id: 'folder-actions:${DESTINATION}'
+- tapOn: 'Supprimer'
+- waitForAnimationToEnd
+- tapOn:
+    id: 'confirm-delete-submit'
+- extendedWaitUntil:
+    notVisible: '${DESTINATION}'
+    timeout: 15000

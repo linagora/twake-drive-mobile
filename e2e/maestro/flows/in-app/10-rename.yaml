@@ -1,0 +1,49 @@
+appId: com.linagora.twakedrive
+tags:
+  - inapp
+env:
+  FOLDER_NAME: 'Kqx'
+  RENAMED: 'Lqx'
+---
+# Rename: the row has to carry the new name without waiting for the
+# replication — the app writes it into the store before the server answers,
+# which is what #165 reported missing.
+#
+# Throwaway names, short on purpose: synthetic typing drops characters, at
+# random positions, so a long name never lands as typed (see 09-favorite-toggle).
+# Deleted at the end, and every action goes through the row's own menu testID so
+# it can never land on another row.
+- runFlow: ../../subflows/openDrive.yaml
+- tapOn:
+    id: 'drive-fab'
+- tapOn: 'Nouveau dossier'
+- inputText: '${FOLDER_NAME}'
+- pressKey: Enter
+- waitForAnimationToEnd:
+    timeout: 8000
+- extendedWaitUntil:
+    visible: '${FOLDER_NAME}.*'
+    timeout: 12000
+- tapOn:
+    id: 'folder-actions:${FOLDER_NAME}'
+- tapOn: 'Renommer'
+- waitForAnimationToEnd
+- tapOn:
+    id: 'rename-name-input'
+- eraseText
+- inputText: '${RENAMED}'
+- tapOn:
+    id: 'rename-submit'
+- extendedWaitUntil:
+    visible: '${RENAMED}.*'
+    timeout: 12000
+- assertNotVisible: '${FOLDER_NAME}.*'
+- tapOn:
+    id: 'folder-actions:${RENAMED}'
+- tapOn: 'Supprimer'
+- waitForAnimationToEnd
+- tapOn:
+    id: 'confirm-delete-submit'
+- extendedWaitUntil:
+    notVisible: '${RENAMED}'
+    timeout: 15000
