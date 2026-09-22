@@ -1,7 +1,7 @@
 import React, { useCallback, useMemo, useState } from 'react'
 import { FlatList, RefreshControl, StyleSheet, View } from 'react-native'
 import * as WebBrowser from 'expo-web-browser'
-import { FAB, Snackbar } from 'react-native-paper'
+import { FAB } from 'react-native-paper'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useClient, useQuery } from 'cozy-client'
 import { useTranslation } from 'react-i18next'
