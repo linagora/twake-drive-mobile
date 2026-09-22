@@ -44,6 +44,7 @@ import { triggerPouchReplication } from '@/pouchdb/triggerReplication'
 import { useWebEditor } from '@/viewer/useWebEditor'
 import { softDeleteEntry } from '@/files/deleteFile'
 import { optimisticFiles } from '@/files/optimisticFiles'
+import { optimisticCreated } from '@/files/optimisticCreated'
 import { renameEntry } from '@/files/renameEntry'
 import { openFileFromList } from '@/files/openFromList'
 import { surfaceOpenError } from '@/files/errors'
@@ -157,15 +158,7 @@ export const FilesScreen = ({ basePath }: FilesScreenProps): React.ReactElement 
     if (!requireOnline(isOnline, actions.notify, t)) return
     if (!client) throw new Error('No client')
     const created = await createFolder(client, name, currentDirId)
-    optimisticFiles(client, [
-      {
-        _id: created._id,
-        name: created.name,
-        dir_id: currentDirId,
-        type: 'directory',
-        _type: 'io.cozy.files'
-      }
-    ])
+    optimisticFiles(client, [optimisticCreated(created, currentDirId, 'directory')])
     setCreateFolderVisible(false)
   }
 
@@ -177,15 +170,7 @@ export const FilesScreen = ({ basePath }: FilesScreenProps): React.ReactElement 
       cls === 'excalidraw'
         ? await createExcalidrawFile(client, name, currentDirId)
         : await createOfficeFile(client, cls, name, currentDirId)
-    optimisticFiles(client, [
-      {
-        _id: created._id,
-        name: created.name,
-        dir_id: currentDirId,
-        type: 'file',
-        _type: 'io.cozy.files'
-      }
-    ])
+    optimisticFiles(client, [optimisticCreated(created, currentDirId, 'file')])
     setCreatingClass(null)
     if (cls === 'excalidraw') return
     void openEditor({ _id: created._id, name: created.name })
@@ -196,15 +181,7 @@ export const FilesScreen = ({ basePath }: FilesScreenProps): React.ReactElement 
     if (!client) return
     try {
       const created = await createCozyNote(client, currentDirId)
-      optimisticFiles(client, [
-        {
-          _id: created._id,
-          name: created.name ?? '',
-          dir_id: currentDirId,
-          type: 'file',
-          _type: 'io.cozy.files'
-        }
-      ])
+      optimisticFiles(client, [optimisticCreated(created, currentDirId, 'file')])
       await openEditor({ _id: created._id, name: created.name ?? '' })
     } catch (e) {
       console.error('[FilesScreen] note creation failed', e)
@@ -230,15 +207,7 @@ export const FilesScreen = ({ basePath }: FilesScreenProps): React.ReactElement 
     if (!requireOnline(isOnline, actions.notify, t)) return
     if (!client) throw new Error('No client')
     const created = await createShortcut(client, currentDirId, name, url)
-    optimisticFiles(client, [
-      {
-        _id: created._id,
-        name: created.name,
-        dir_id: currentDirId,
-        type: 'file',
-        _type: 'io.cozy.files'
-      }
-    ])
+    optimisticFiles(client, [optimisticCreated(created, currentDirId, 'file')])
     setCreateShortcutVisible(false)
   }
 
