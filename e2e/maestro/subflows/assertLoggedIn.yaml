@@ -1,6 +1,11 @@
 appId: com.linagora.twakedrive
 ---
-# Fails fast and clearly if the pre-auth session is absent
-# (login screen instead of the drive shell). The "Mon Drive" tab is
-# only present in the authenticated shell.
-- assertVisible: 'Mon Drive'
+# Fails clearly if the pre-auth session is absent (login screen instead of the
+# drive shell): the "Mon Drive" tab only exists in the authenticated shell.
+#
+# Waits rather than asserts on the spot: a development build fetches its bundle
+# from Metro on every launch, so the shell can take a while to paint, and an
+# immediate assertion turns that into a false failure.
+- extendedWaitUntil:
+    visible: 'Mon Drive.*'
+    timeout: 120000

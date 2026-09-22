@@ -55,6 +55,7 @@ export const RenameDialog = ({ visible, initialName, type, onDismiss, onSubmit }
         <Dialog.Title>{t(titleKey)}</Dialog.Title>
         <Dialog.Content>
           <TextInput
+            testID="rename-name-input"
             mode="outlined"
             label={t('drive.rename.nameLabel')}
             value={name}
@@ -74,6 +75,7 @@ export const RenameDialog = ({ visible, initialName, type, onDismiss, onSubmit }
             {t('common.cancel')}
           </Button>
           <Button
+            testID="rename-submit"
             mode="contained"
             onPress={handleSubmit}
             loading={submitting}
