@@ -8,16 +8,16 @@ there, where each value comes from, and how a release is cut.
 
 ## What runs where
 
-| Workflow                        | Trigger             | What it does                                                                                                         |
-| ------------------------------- | ------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| `ci.yml`                        | every push / PR     | tests, typecheck, lint                                                                                               |
-| `security.yml`                  | every push / PR     | Trivy filesystem scan                                                                                                |
-| `build-android.yml`             | every push / PR     | unsigned release APK, as an artefact                                                                                 |
-| `build-ios.yml`, `test-ios.yml` | every push / PR     | unsigned iOS build, simulator tests                                                                                  |
-| `release-ios.yml`               | `v*` tag, or manual | signed IPA → TestFlight (`fastlane ios distribute`), optionally App Store metadata (`ios release`)                   |
-| `release-android.yml`           | `v*` tag, or manual | signed AAB → Firebase App Distribution (`fastlane android distribute`), optionally Play internal (`android release`) |
-| `provision-ios.yml`             | manual              | registers the app extensions' identifiers and profiles through `fastlane ios provision_extensions`                   |
-| `release-preflight.yml`         | manual              | says which release secrets are present, without revealing any value                                                  |
+| Workflow                        | Trigger             | What it does                                                                                                                   |
+| ------------------------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `ci.yml`                        | every push / PR     | tests, typecheck, lint                                                                                                         |
+| `security.yml`                  | every push / PR     | Trivy filesystem scan                                                                                                          |
+| `build-android.yml`             | every push / PR     | unsigned release APK, as an artefact                                                                                           |
+| `build-ios.yml`, `test-ios.yml` | every push / PR     | unsigned iOS build, simulator tests                                                                                            |
+| `release-ios.yml`               | `v*` tag, or manual | signed IPA → TestFlight (`fastlane ios distribute`), optionally App Store metadata (`ios release`)                             |
+| `release-android.yml`           | `v*` tag, or manual | signed AAB → Play internal (`fastlane android release`), optionally an APK to Firebase App Distribution (`android distribute`) |
+| `provision-ios.yml`             | manual              | registers the app extensions' identifiers and profiles through `fastlane ios provision_extensions`                             |
+| `release-preflight.yml`         | manual              | says which release secrets are present, without revealing any value                                                            |
 
 ## The secrets
 
@@ -76,8 +76,14 @@ number, which TestFlight only needs to be unique within a version.
 
 - iOS lands in TestFlight. `publish_to_app_store: true` on a manual run also
   pushes the App Store metadata.
-- Android lands in Firebase App Distribution. The Play internal track is the
-  `upload to Google Play` input on a manual run.
+- Android lands in the Play internal track. A manual run can skip the upload
+  (`publish_to_play_store: false`) and keep the AAB as an artefact, or also
+  send an APK to Firebase (`distribute_via_firebase: true`).
+- The first build of a new Play app cannot go through the API: download the
+  AAB artefact of a run without upload and send it by hand in the Play
+  Console, which also enrols the app in Play App Signing. The service account
+  must be invited in the Play Console (Users and permissions) with release
+  rights on the app.
 - Both attach their artefact to the GitHub release.
 
 A manual run (`workflow_dispatch`) builds from the branch you pick, which is

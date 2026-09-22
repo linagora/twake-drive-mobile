@@ -22,13 +22,18 @@ platform :android do
     )
   end
 
-  desc "Build a signed AAB and upload it to Google Play (internal track)"
-  lane :release do
+  desc "Build a signed release AAB"
+  lane :build_bundle do
     gradle(
       task: "bundle",
       build_type: "Release",
       project_dir: "."
     )
+  end
+
+  desc "Build a signed AAB and upload it to Google Play (internal track)"
+  lane :release do
+    build_bundle
     supply(
       track: "internal",
       aab: "app/build/outputs/bundle/release/app-release.aab",

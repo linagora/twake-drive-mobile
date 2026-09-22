@@ -1,6 +1,6 @@
-name: Release Android (signed → Firebase/Play)
+name: Release Android (signed → Play/Firebase)
 
-# Signed APK build + Firebase App Distribution (and optional Play internal AAB).
+# Signed AAB build + Google Play internal track (and optional Firebase APK).
 # Fires on version tags (vX.Y.Z, pushed by scripts/release.sh) and manual
 # dispatch. Requires the Android signing + Firebase/Play secrets —
 # see docs/ci-cd-signed-release.md.
@@ -15,7 +15,12 @@ on:
         required: false
         default: ''
       publish_to_play_store:
-        description: 'Also upload the AAB to Google Play (internal track)'
+        description: 'Upload the AAB to Google Play (internal track)'
+        required: false
+        type: boolean
+        default: true
+      distribute_via_firebase:
+        description: 'Also build an APK and send it to Firebase App Distribution'
         required: false
         type: boolean
         default: false
@@ -87,7 +92,8 @@ jobs:
             echo "marketing=" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Build signed APK & distribute via Firebase
+      - name: Build signed APK & distribute via Firebase (optional)
+        if: inputs.distribute_via_firebase == true
         working-directory: android
         env:
           KEYSTORE_PATH: release.keystore
@@ -100,8 +106,7 @@ jobs:
           RELEASE_NOTES: ${{ github.event.inputs.release_notes }}
         run: bundle exec fastlane android distribute
 
-      - name: Build signed AAB & upload to Play internal (optional)
-        if: inputs.publish_to_play_store == true
+      - name: Build signed AAB & upload to Play internal
         working-directory: android
         env:
           KEYSTORE_PATH: release.keystore
@@ -110,7 +115,17 @@ jobs:
           KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
           SUPPLY_JSON_KEY_PATH: ${{ runner.temp }}/gcp-sa.json
           VERSION_NAME: ${{ steps.version.outputs.marketing }}
-        run: bundle exec fastlane android release
+          LANE: ${{ (github.event_name == 'push' || inputs.publish_to_play_store == true) && 'release' || 'build_bundle' }}
+        run: bundle exec fastlane android "$LANE"
+
+      - name: Upload AAB artifact
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7
+        if: always()
+        with:
+          name: twake-drive-android-aab-${{ github.run_number }}
+          path: android/app/build/outputs/bundle/release/app-release.aab
+          if-no-files-found: ignore
+          retention-days: 14
 
       - name: Locate signed APK
         id: apk
