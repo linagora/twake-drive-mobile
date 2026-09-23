@@ -1,9 +1,12 @@
 import type CozyClient from 'cozy-client'
-import { createMMKV } from 'react-native-mmkv'
+
+import { OFFLINE_FILES_STORE, OFFLINE_SETTINGS_STORE } from '@/offline/storage'
+import { accountStorage } from '@/storage/accountScope'
 
 import { resetLinks } from './getLinks'
+import { POUCH_META_STORE } from './platformReactNative.storage'
 
-const LOCAL_DATA_MMKV_IDS = ['pouchdb-meta', 'offline-files', 'offline-settings']
+const LOCAL_DATA_MMKV_IDS = [POUCH_META_STORE, OFFLINE_FILES_STORE, OFFLINE_SETTINGS_STORE]
 
 export const destroyLocalData = async (client?: CozyClient): Promise<void> => {
   if (__DEV__) console.log('[destroyLocalData] wiping pouch + sync/offline MMKV')
@@ -14,7 +17,7 @@ export const destroyLocalData = async (client?: CozyClient): Promise<void> => {
   }
   for (const id of LOCAL_DATA_MMKV_IDS) {
     try {
-      createMMKV({ id }).clearAll()
+      accountStorage(id).clearAll()
     } catch {
       // ignore — the store may not have been opened this session
     }

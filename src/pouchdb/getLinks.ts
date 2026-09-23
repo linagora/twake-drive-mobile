@@ -1,6 +1,7 @@
 import CozyClient, { CozyLink, Q, StackLink } from 'cozy-client'
 import PouchLink from 'cozy-pouch-link'
-import { createMMKV } from 'react-native-mmkv'
+
+import { accountStorage, ScopedStorage } from '@/storage/accountScope'
 
 import {
   instrumentPouchLink,
@@ -9,6 +10,7 @@ import {
   startJsStallMonitor
 } from './perfLogging'
 import { platformReactNative } from './platformReactNative'
+import { POUCH_META_STORE } from './platformReactNative.storage'
 
 export const REPLICATION_DEBOUNCE = 60 * 1000 // 60s
 export const REPLICATION_DEBOUNCE_MAX_DELAY = 5 * 60 * 1000 // 5min
@@ -113,9 +115,9 @@ const expectedAliasesByDoctype = (): Record<string, string[]> => {
 }
 
 const backfillWarmupAliases = (): void => {
-  let storage: ReturnType<typeof createMMKV>
+  let storage: ScopedStorage
   try {
-    storage = createMMKV({ id: 'pouchdb-meta' })
+    storage = accountStorage(POUCH_META_STORE)
   } catch {
     return
   }

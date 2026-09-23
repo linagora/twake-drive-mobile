@@ -1,6 +1,11 @@
-import { createMMKV } from 'react-native-mmkv'
+import { accountStorage } from '@/storage/accountScope'
 
-const mmkv = createMMKV({ id: 'pouchdb-meta' })
+// cozy-pouch-link keys its last replication sequences by doctype alone, so this
+// store belongs to one account: another one replicating from those sequences
+// would skip everything written before them.
+export const POUCH_META_STORE = 'pouchdb-meta'
+
+const mmkv = accountStorage(POUCH_META_STORE)
 
 export const storage = {
   getItem: async (key: string): Promise<string | null> => {
