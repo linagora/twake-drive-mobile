@@ -98,7 +98,7 @@ class CozyStackApi(private val session: SessionStore) {
 
     fun get(id: String): CozyFile {
         val data = jsonGet("/files/$id").getJSONObject("data")
-        return CozyFile.fromAttributes(data.getString("id"), data.getJSONObject("attributes"))
+        return CozyFile.fromDocument(data)
     }
 
     fun list(dirId: String, cap: Int = 500): List<CozyFile> {
@@ -112,7 +112,7 @@ class CozyStackApi(private val session: SessionStore) {
                 val node = included.getJSONObject(i)
                 val id = node.getString("id")
                 if (id in DocumentMapper.HIDDEN_IDS) continue
-                out.add(CozyFile.fromAttributes(id, node.getJSONObject("attributes")))
+                out.add(CozyFile.fromAttributes(id, node.getJSONObject("attributes"), node.optJSONObject("links")))
             }
             val next = json.optJSONObject("links")?.optString("next").orEmpty()
             path = if (next.isBlank()) null else next.substringAfter(base()).ifBlank { next }
@@ -133,9 +133,11 @@ class CozyStackApi(private val session: SessionStore) {
     }
 
     fun thumbnail(file: CozyFile, dest: File): Boolean {
+        // The stack signs thumbnail paths with a secret, so the only usable url is
+        // the one on the document itself.
+        val link = file.thumbnailLink ?: return false
         return onNetwork {
-            // cozy-stack exposes thumbnails via the file's medium link; fetch it directly.
-            val url = "${base()}/files/${file.id}/thumbnails/medium"
+            val url = base().trimEnd('/') + if (link.startsWith("/")) link else "/$link"
             val req = Request.Builder().url(url).build()
             // Stage to a temp file and only rename into place on full success, so a
             // mid-stream failure (dropped connection, etc.) never leaves a truncated
@@ -162,7 +164,7 @@ class CozyStackApi(private val session: SessionStore) {
                 .header("Accept", "application/vnd.api+json").post(body).build()
             exec(req).use {
                 val data = JSONObject(it.body!!.string()).getJSONObject("data")
-                return@onNetwork CozyFile.fromAttributes(data.getString("id"), data.getJSONObject("attributes"))
+                return@onNetwork CozyFile.fromDocument(data)
             }
         }
     }
@@ -184,7 +186,7 @@ class CozyStackApi(private val session: SessionStore) {
                 .header("Accept", "application/vnd.api+json").put(body).build()
             exec(req).use {
                 val data = JSONObject(it.body!!.string()).getJSONObject("data")
-                return@onNetwork CozyFile.fromAttributes(data.getString("id"), data.getJSONObject("attributes"))
+                return@onNetwork CozyFile.fromDocument(data)
             }
         }
     }
@@ -197,7 +199,7 @@ class CozyStackApi(private val session: SessionStore) {
                 .header("Accept", "application/vnd.api+json").patch(body).build()
             exec(req).use {
                 val data = JSONObject(it.body!!.string()).getJSONObject("data")
-                return@onNetwork CozyFile.fromAttributes(data.getString("id"), data.getJSONObject("attributes"))
+                return@onNetwork CozyFile.fromDocument(data)
             }
         }
     }
@@ -215,7 +217,7 @@ class CozyStackApi(private val session: SessionStore) {
 
     fun statByPath(path: String): CozyFile? = try {
         val data = jsonGet("/files/metadata?Path=${enc(path)}").getJSONObject("data")
-        CozyFile.fromAttributes(data.getString("id"), data.getJSONObject("attributes"))
+        CozyFile.fromDocument(data)
     } catch (e: FileNotFoundException) { null }
 
     fun move(id: String, targetParentId: String): CozyFile {

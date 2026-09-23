@@ -77,10 +77,12 @@ class CozyStackApiTest {
         api.get("f1")
     }
 
-    private fun cozyFile(id: String) = CozyFile(
-        id = id, name = "a.jpg", isDir = false, dirId = null,
-        size = 0L, mime = "image/jpeg", klass = "image", updatedAt = 0L, path = null
-    )
+    private fun cozyFile(id: String, thumbnailLink: String? = "/files/$id/thumbnails/s3cr3t/medium") =
+        CozyFile(
+            id = id, name = "a.jpg", isDir = false, dirId = null,
+            size = 0L, mime = "image/jpeg", klass = "image", updatedAt = 0L, path = null,
+            thumbnailLink = thumbnailLink
+        )
 
     @Test fun `thumbnail downloads the response body to dest on success`() {
         val body = "fake-thumbnail-bytes"
@@ -93,7 +95,34 @@ class CozyStackApiTest {
         assertTrue(ok)
         assertTrue(dest.exists())
         assertArrayEquals(body.toByteArray(), dest.readBytes())
-        assertEquals("/files/f1/thumbnails/medium", server.takeRequest().path)
+        // The stack signs the path with a secret, so it is read off the document
+        // and never rebuilt from the id (#276).
+        assertEquals("/files/f1/thumbnails/s3cr3t/medium", server.takeRequest().path)
+    }
+
+    @Test fun `thumbnail gives up when the document carries no link`() {
+        api = CozyStackApi(sessionFor(server.url("/").toString()))
+        val dest = File.createTempFile("thumb", ".dest").apply { delete() }
+
+        val ok = api.thumbnail(cozyFile("f3", thumbnailLink = null), dest)
+
+        assertFalse(ok)
+        assertFalse(dest.exists())
+        assertEquals(0, server.requestCount)
+    }
+
+    @Test fun `a document carries the thumbnail link the stack signed`() {
+        server.enqueue(MockResponse().setBody("""
+          {"data":{"id":"f1","type":"io.cozy.files",
+             "attributes":{"type":"file","name":"a.jpg","size":"3","class":"image"},
+             "links":{"self":"/files/f1","tiny":"/files/f1/thumbnails/abc/tiny",
+                      "medium":"/files/f1/thumbnails/abc/medium"}}}
+        """.trimIndent()))
+        api = CozyStackApi(sessionFor(server.url("/").toString()))
+
+        val file = api.get("f1")
+
+        assertEquals("/files/f1/thumbnails/abc/medium", file.thumbnailLink)
     }
 
     @Test fun `a mid-stream failure does not leave a truncated file at dest`() {
