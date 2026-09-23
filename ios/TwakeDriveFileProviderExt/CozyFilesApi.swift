@@ -65,9 +65,8 @@ struct CozyFilesApi {
   private func parseData(_ data: Data) throws -> CozyFile {
     guard let root = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any],
           let node = root["data"] as? [String: Any],
-          let id = node["id"] as? String,
-          let attrs = node["attributes"] as? [String: Any] else { throw CozyError.server(-1) }
-    return CozyFile.fromAttributes(id: id, attrs)
+          let file = CozyFile.fromDocument(node) else { throw CozyError.server(-1) }
+    return file
   }
 
   // MARK: read
@@ -84,10 +83,7 @@ struct CozyFilesApi {
       return ([], nil)
     }
     let included = (root["included"] as? [[String: Any]]) ?? []
-    let files: [CozyFile] = included.compactMap { node in
-      guard let id = node["id"] as? String, let attrs = node["attributes"] as? [String: Any] else { return nil }
-      return CozyFile.fromAttributes(id: id, attrs)
-    }
+    let files: [CozyFile] = included.compactMap { CozyFile.fromDocument($0) }
     var next: String? = nil
     if let links = root["links"] as? [String: Any], let raw = links["next"] as? String, !raw.isEmpty {
       next = raw.hasPrefix(baseURL) ? String(raw.dropFirst(baseURL.count)) : raw
@@ -106,8 +102,11 @@ struct CozyFilesApi {
     try Self.mapStatus(resp.statusCode)
   }
 
-  func thumbnail(id: String, to dest: URL) async throws {
-    let data = try await send("/files/\(id)/thumbnails/medium", method: .get, accept: false)
+  /// The stack signs thumbnail paths with a secret, so the only usable url is
+  /// the one carried on the document itself.
+  func thumbnail(file: CozyFile, to dest: URL) async throws {
+    guard let link = file.thumbnailLink else { throw CozyError.server(404) }
+    let data = try await send(link, method: .get, accept: false)
     try FileManager.default.createDirectory(at: dest.deletingLastPathComponent(), withIntermediateDirectories: true)
     try data.write(to: dest, options: .atomic)
   }
