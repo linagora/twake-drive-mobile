@@ -51,6 +51,9 @@ function DriveTabs() {
         <Tabs.Screen
           name="files"
           options={{
+            // Named for the flows: a tab bar can only be driven by its labels
+            // in the language the device happens to run.
+            tabBarButtonTestID: 'tab-files',
             title: t('drive.myDrive'),
             tabBarIcon: ({ color, size }) => <CozyIcon name="cloud2" color={color} size={size} />
           }}
@@ -58,6 +61,9 @@ function DriveTabs() {
         <Tabs.Screen
           name="favorites"
           options={{
+            // Named for the flows: a tab bar can only be driven by its labels
+            // in the language the device happens to run.
+            tabBarButtonTestID: 'tab-favorites',
             title: t('drive.favorites'),
             tabBarIcon: ({ color, size }) => <CozyIcon name="star" color={color} size={size} />
           }}
@@ -65,6 +71,9 @@ function DriveTabs() {
         <Tabs.Screen
           name="recent"
           options={{
+            // Named for the flows: a tab bar can only be driven by its labels
+            // in the language the device happens to run.
+            tabBarButtonTestID: 'tab-recent',
             title: t('drive.recent'),
             tabBarIcon: ({ color, size }) => (
               <CozyIcon name="clockOutline" color={color} size={size} />
@@ -74,6 +83,9 @@ function DriveTabs() {
         <Tabs.Screen
           name="shared"
           options={{
+            // Named for the flows: a tab bar can only be driven by its labels
+            // in the language the device happens to run.
+            tabBarButtonTestID: 'tab-shared',
             title: t('drive.shares'),
             tabBarIcon: ({ color, size }) => (
               <CozyIcon name="shareExternal" color={color} size={size} />
@@ -83,6 +95,9 @@ function DriveTabs() {
         <Tabs.Screen
           name="trash"
           options={{
+            // Named for the flows: a tab bar can only be driven by its labels
+            // in the language the device happens to run.
+            tabBarButtonTestID: 'tab-trash',
             title: t('drive.trash'),
             tabBarIcon: ({ color, size }) => <CozyIcon name="trash" color={color} size={size} />
           }}

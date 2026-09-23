@@ -1,11 +1,16 @@
 appId: com.linagora.twakedrive
 ---
 # Fails clearly if the pre-auth session is absent (login screen instead of the
-# drive shell): the "Mon Drive" tab only exists in the authenticated shell.
+# drive shell): the tab bar only exists in the authenticated shell.
+#
+# By testID, not by label: the label is translated, and a run on a device set
+# to another language never finds it (an emulator in English is what caught
+# this).
 #
 # Waits rather than asserts on the spot: a development build fetches its bundle
 # from Metro on every launch, so the shell can take a while to paint, and an
 # immediate assertion turns that into a false failure.
 - extendedWaitUntil:
-    visible: 'Mon Drive.*'
+    visible:
+      id: 'tab-files'
     timeout: 120000

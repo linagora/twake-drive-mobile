@@ -16,6 +16,10 @@ env:
 #
 # The material is what the disposable instance seeds (e2e/stack/setup.sh):
 # a `Documents` folder and a `readme.txt` file at the root. Nothing is typed.
+#
+# What is asserted is either a testID or a name the stack holds; the two
+# messages are matched in both languages, since the device language decides
+# which one the app shows.
 - runFlow: ../../subflows/openDrive.yaml
 - extendedWaitUntil:
     visible: '${FILE}'
@@ -46,7 +50,7 @@ env:
 - tapOn:
     id: 'rename-submit'
 - extendedWaitUntil:
-    visible: 'Disponible quand vous serez en ligne'
+    visible: '.*(quand vous serez en ligne|back online).*'
     timeout: 15000
 - assertVisible: '${FILE}'
 
@@ -60,7 +64,7 @@ env:
 - tapOn:
     id: 'confirm-delete-submit'
 - extendedWaitUntil:
-    visible: 'Disponible quand vous serez en ligne'
+    visible: '.*(quand vous serez en ligne|back online).*'
     timeout: 15000
 - assertVisible: '${FILE}'
 
@@ -71,11 +75,12 @@ env:
 - tapOn:
     id: 'action-share'
 - extendedWaitUntil:
-    visible: 'Disponible quand vous serez en ligne'
+    visible: '.*(quand vous serez en ligne|back online).*'
     timeout: 15000
 
 # Browsing still works: the local replica serves the folder.
-- tapOn: '${FOLDER}'
+- tapOn:
+    id: 'folder-row:${FOLDER}'
 - waitForAnimationToEnd:
     timeout: 8000
 - tapOn:
