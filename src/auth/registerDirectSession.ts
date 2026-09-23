@@ -3,6 +3,7 @@ import CozyClient from 'cozy-client'
 import { APP_SCOPES, APP_SCOPE_STRING, FLAGSHIP_SCOPES } from './scopes'
 import { Session, OAuthOptions, OAuthToken } from './types'
 import { generatePkce, openAuthorizeUrl } from './pkce'
+import { certificationOAuthOptions, tryStoreAttestation } from './storeCertification'
 
 import { redirectUri } from './redirectUri'
 
@@ -32,7 +33,8 @@ export const registerDirectSession = async (instanceUri: string): Promise<Sessio
       redirectURI: REDIRECT_URL,
       clientKind: 'mobile',
       clientURI: 'https://twake.app',
-      scopes: [...APP_SCOPES]
+      scopes: [...APP_SCOPES],
+      ...certificationOAuthOptions()
     },
     scope: [...FLAGSHIP_SCOPES],
     appMetadata: { slug: 'twake-drive-mobile', version: '0.1.0' }
@@ -42,6 +44,11 @@ export const registerDirectSession = async (instanceUri: string): Promise<Sessio
   stackClient.setUri(uri)
   await stackClient.register(uri)
   const oauthOptions = stackClient.oauthOptions as OAuthOptions
+
+  // The authorize page below asks for the flagship scope, which the stack only
+  // hands to a certified client: attesting here is what spares the user the
+  // code it mails otherwise.
+  await tryStoreAttestation(client)
 
   const pkceCodes = await generatePkce()
   const authorizeResult = (await client.authorize({

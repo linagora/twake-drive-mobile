@@ -8,7 +8,13 @@ jest.mock('expo-constants', () => ({
   }
 }))
 
-import { certificationOAuthOptions, cloudProjectNumber } from './storeCertification'
+import CozyClient from 'cozy-client'
+
+import {
+  certificationOAuthOptions,
+  cloudProjectNumber,
+  tryStoreAttestation
+} from './storeCertification'
 
 describe('certificationOAuthOptions', () => {
   beforeEach(() => {
@@ -31,5 +37,21 @@ describe('certificationOAuthOptions', () => {
       shouldRequireFlagshipPermissions: true,
       certificationConfig: { cloudProjectNumber: '123456789012', issuer: 'playintegrity' }
     })
+  })
+})
+
+describe('tryStoreAttestation', () => {
+  const clientWith = (certifyFlagship: () => Promise<void>): CozyClient =>
+    ({ certifyFlagship }) as unknown as CozyClient
+
+  it('answers true once the store vouched for the app', async () => {
+    const certifyFlagship = jest.fn().mockResolvedValue(undefined)
+    await expect(tryStoreAttestation(clientWith(certifyFlagship))).resolves.toBe(true)
+    expect(certifyFlagship).toHaveBeenCalled()
+  })
+
+  it('answers false when the store refuses, leaving the email code to take over', async () => {
+    const certifyFlagship = jest.fn().mockRejectedValue(new Error('no Play Integrity here'))
+    await expect(tryStoreAttestation(clientWith(certifyFlagship))).resolves.toBe(false)
   })
 })

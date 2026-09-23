@@ -3,7 +3,7 @@ import CozyClient from 'cozy-client'
 import { APP_SCOPES, APP_SCOPE_STRING, FLAGSHIP_SCOPES } from './scopes'
 import { OidcCallback, Session, OAuthOptions, OAuthToken } from './types'
 import { generatePkce, openAuthorizeUrl } from './pkce'
-import { certificationOAuthOptions } from './storeCertification'
+import { certificationOAuthOptions, tryStoreAttestation } from './storeCertification'
 
 interface OidcResponse {
   session_code?: string
@@ -74,6 +74,11 @@ export const registerSession = async (
 
   const oauthOptions = stackClient.oauthOptions as OAuthOptions
   console.log('[registerSession] oauth client ready', oauthOptions.clientID)
+
+  // The authorize page below asks for the flagship scope, which the stack only
+  // hands to a certified client: attesting here is what spares the user the
+  // code it mails otherwise.
+  await tryStoreAttestation(client)
 
   let oidcResponse: OidcResponse
   try {
