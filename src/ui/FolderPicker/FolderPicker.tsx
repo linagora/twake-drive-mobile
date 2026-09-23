@@ -77,7 +77,7 @@ export const FolderPicker = ({
   const files = (filesQuery.data as FileQueryResult[] | null | undefined) ?? []
   const items: FolderPickerRowItem[] = [
     ...subfolders.map(d => ({ _id: d._id, name: d.name, type: 'directory' as const })),
-    ...files.map(f => ({ _id: f._id, name: f.name, type: 'file' as const }))
+    ...files.map(f => ({ _id: f._id, name: f.name, type: 'file' as const, mime: f.mime }))
   ]
 
   const isLoading =
