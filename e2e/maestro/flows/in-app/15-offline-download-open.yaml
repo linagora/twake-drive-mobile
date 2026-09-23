@@ -41,6 +41,10 @@ env:
 - extendedWaitUntil:
     visible: '${CONTENT}'
     timeout: 30000
+# The bar steps aside on its own, so the document is touched to bring it back.
+- tapOn:
+    id: 'document-content'
+- waitForAnimationToEnd
 - tapOn:
     id: 'document-back-button'
 - waitForAnimationToEnd:
