@@ -272,7 +272,13 @@
     "gridView": "Grid view",
     "folderActions": "Folder actions",
     "fileActions": "File actions",
-    "removeRecipient": "Remove recipient"
+    "removeRecipient": "Remove recipient",
+    "account": "Account and settings",
+    "offlineAvailable": "Available offline",
+    "offlineDownloading": "Downloading for offline use",
+    "offlinePending": "Waiting to download for offline use",
+    "offlineFailed": "Offline download failed",
+    "offlinePaused": "Offline download paused"
   },
   "errors": {
     "noNetwork": "No connection",

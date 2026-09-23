@@ -53,4 +53,18 @@ describe('PinnedBadge', () => {
     const { queryByTestId } = wrap(<PinnedBadge entry={entry('failed')} testID="pinned-badge" />)
     expect(queryByTestId('pinned-badge')).not.toBeNull()
   })
+
+  // The badge carried no label, so "available offline" was never announced (#275).
+  it.each([
+    ['downloaded', 'a11y.offlineAvailable'],
+    ['downloading', 'a11y.offlineDownloading'],
+    ['pending', 'a11y.offlinePending'],
+    ['failed', 'a11y.offlineFailed'],
+    ['paused-auth', 'a11y.offlinePaused']
+  ] as [OfflineFileEntry['state'], string][])('announces the %s state', (state, label) => {
+    mockFlag.mockReturnValue(true)
+    const { getByLabelText } = wrap(<PinnedBadge entry={entry(state)} testID="badge" />)
+
+    expect(getByLabelText(label)).toBeTruthy()
+  })
 })

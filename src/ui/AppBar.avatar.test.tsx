@@ -51,6 +51,13 @@ test('tapping the avatar opens the menu with settings and logout', () => {
   expect(screen.getByText('common.logout')).toBeOnTheScreen()
 })
 
+// TalkBack stopped on the avatar with nothing to announce (#275).
+test('the avatar says what it opens', () => {
+  render(wrap(<AppBar title="Mes fichiers" onLogout={jest.fn()} />))
+
+  expect(screen.getByLabelText('a11y.account')).toBeOnTheScreen()
+})
+
 test('renders the instance avatar when there is one', () => {
   mockAvatarUrl = 'https://alice.example.com/public/avatar'
   render(wrap(<AppBar title="Mes fichiers" onLogout={jest.fn()} />))

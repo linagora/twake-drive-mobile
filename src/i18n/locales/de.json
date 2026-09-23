@@ -272,7 +272,13 @@
     "gridView": "Rasteransicht",
     "folderActions": "Ordneraktionen",
     "fileActions": "Dateiaktionen",
-    "removeRecipient": "Empfänger entfernen"
+    "removeRecipient": "Empfänger entfernen",
+    "account": "Konto und Einstellungen",
+    "offlineAvailable": "Offline verfügbar",
+    "offlineDownloading": "Wird für die Offlinenutzung heruntergeladen",
+    "offlinePending": "Wartet auf den Offline-Download",
+    "offlineFailed": "Offline-Download fehlgeschlagen",
+    "offlinePaused": "Offline-Download pausiert"
   },
   "errors": {
     "noNetwork": "Keine Verbindung",

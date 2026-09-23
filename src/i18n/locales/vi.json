@@ -263,7 +263,13 @@
     "gridView": "Xem dạng lưới",
     "folderActions": "Tác vụ thư mục",
     "fileActions": "Tác vụ tệp",
-    "removeRecipient": "Xóa người nhận"
+    "removeRecipient": "Xóa người nhận",
+    "account": "Tài khoản và cài đặt",
+    "offlineAvailable": "Có sẵn ngoại tuyến",
+    "offlineDownloading": "Đang tải xuống để dùng ngoại tuyến",
+    "offlinePending": "Đang chờ tải xuống ngoại tuyến",
+    "offlineFailed": "Tải xuống ngoại tuyến thất bại",
+    "offlinePaused": "Đã tạm dừng tải xuống ngoại tuyến"
   },
   "errors": {
     "noNetwork": "Không có kết nối",

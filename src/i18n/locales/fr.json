@@ -281,7 +281,13 @@
     "gridView": "Vue grille",
     "folderActions": "Actions du dossier",
     "fileActions": "Actions du fichier",
-    "removeRecipient": "Retirer le destinataire"
+    "removeRecipient": "Retirer le destinataire",
+    "account": "Compte et réglages",
+    "offlineAvailable": "Disponible hors ligne",
+    "offlineDownloading": "Téléchargement pour le hors ligne",
+    "offlinePending": "En attente de téléchargement hors ligne",
+    "offlineFailed": "Échec du téléchargement hors ligne",
+    "offlinePaused": "Téléchargement hors ligne en pause"
   },
   "errors": {
     "noNetwork": "Pas de connexion",
