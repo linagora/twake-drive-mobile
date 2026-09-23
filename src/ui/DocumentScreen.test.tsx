@@ -1,7 +1,7 @@
 import React from 'react'
 import { Platform, StatusBar, Text } from 'react-native'
 import { Provider as PaperProvider } from 'react-native-paper'
-import { fireEvent, render, screen } from '@testing-library/react-native'
+import { act, fireEvent, render, screen } from '@testing-library/react-native'
 
 jest.mock('expo-router', () => ({
   __esModule: true,
@@ -13,7 +13,8 @@ jest.mock('@/account/useCurrentUser', () => ({
   useCurrentUser: () => ({ initials: 'QV', avatarUrl: null })
 }))
 
-import { DOCUMENT_CONTENT_TEST_ID, DocumentScreen } from './DocumentScreen'
+import { DOCUMENT_CHROME_TEST_ID, DOCUMENT_CONTENT_TEST_ID, DocumentScreen } from './DocumentScreen'
+import { CHROME_VISIBLE_MS } from './useAutoHidingChrome'
 
 const wrap = (ui: React.ReactElement) => <PaperProvider>{ui}</PaperProvider>
 
@@ -61,5 +62,56 @@ describe('DocumentScreen', () => {
     const content = screen.getByTestId(DOCUMENT_CONTENT_TEST_ID)
     expect(JSON.stringify(content.props.style)).toContain('"paddingTop":24')
     Platform.OS = 'ios'
+  })
+
+  // The bar sits over the document, so it steps aside once it has been read
+  // and comes back on the next touch (#274).
+  describe('the floating bar', () => {
+    beforeEach(() => jest.useFakeTimers())
+    afterEach(() => jest.useRealTimers())
+
+    const show = (): void => {
+      render(
+        wrap(
+          <DocumentScreen title="rapport.pdf" onBack={jest.fn()}>
+            <Text>content</Text>
+          </DocumentScreen>
+        )
+      )
+    }
+
+    it('is there when the document opens', () => {
+      show()
+      expect(screen.getByTestId(DOCUMENT_CHROME_TEST_ID).props.pointerEvents).toBe('box-none')
+    })
+
+    it('steps aside once nothing has happened', () => {
+      show()
+
+      act(() => jest.advanceTimersByTime(CHROME_VISIBLE_MS))
+
+      expect(screen.getByTestId(DOCUMENT_CHROME_TEST_ID).props.pointerEvents).toBe('none')
+    })
+
+    it('comes back when the document is touched', () => {
+      show()
+      act(() => jest.advanceTimersByTime(CHROME_VISIBLE_MS))
+
+      act(() => {
+        fireEvent(screen.getByTestId(DOCUMENT_CONTENT_TEST_ID), 'startShouldSetResponderCapture')
+      })
+
+      expect(screen.getByTestId(DOCUMENT_CHROME_TEST_ID).props.pointerEvents).toBe('box-none')
+    })
+
+    it('lets the touch through to the document', () => {
+      show()
+      const answer = fireEvent(
+        screen.getByTestId(DOCUMENT_CONTENT_TEST_ID),
+        'startShouldSetResponderCapture'
+      )
+
+      expect(answer).toBe(false)
+    })
   })
 })
