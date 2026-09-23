@@ -8,6 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { TwakeLogo } from '@/ui/icons/TwakeLogo'
 import { useAuth } from '@/auth/useAuth'
 import { NetworkError, UserCancelledError } from '@/auth/types'
+import { enterDrive } from '@/auth/enterDrive'
 
 const isValidEmail = (s: string): boolean => /\S+@\S+\.\S+/.test(s)
 
@@ -34,7 +35,7 @@ export default function LoginScreen() {
     setLoading(true)
     try {
       await login(email)
-      router.replace('/(drive)/files')
+      enterDrive(router)
     } catch (err) {
       const e = err as Error
       if (err instanceof UserCancelledError) {

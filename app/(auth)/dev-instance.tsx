@@ -8,6 +8,7 @@ import { createMMKV } from 'react-native-mmkv'
 import { useAuth } from '@/auth/useAuth'
 import { isDevInstanceLoginEnabled } from '@/auth/devInstanceLogin'
 import { UserCancelledError } from '@/auth/types'
+import { enterDrive } from '@/auth/enterDrive'
 
 const STORAGE_KEY = 'devInstanceUri'
 
@@ -49,7 +50,7 @@ export default function DevInstanceScreen() {
       const trimmed = uri.trim()
       storage?.set(STORAGE_KEY, trimmed)
       await loginWithInstance(trimmed)
-      router.replace('/(drive)/files')
+      enterDrive(router)
     } catch (err) {
       if (!(err instanceof UserCancelledError)) setError((err as Error).message ?? 'Login failed')
     } finally {
