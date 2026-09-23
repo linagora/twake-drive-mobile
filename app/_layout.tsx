@@ -52,7 +52,7 @@ const InnerLayout = () => {
   useEffect(() => {
     if (!client) return
     return attachRevocationListener(client, () => {
-      void logout()
+      void logout({ expired: true })
     })
   }, [client, logout])
 

@@ -41,7 +41,11 @@ interface AuthContextValue extends AuthState {
   loginWithInstance: (instanceUri: string) => Promise<void>
   /** Certifies this client as flagship, so the stack grants session codes. */
   certifyFlagship: () => Promise<CozyClient>
-  logout: () => Promise<void>
+  /**
+   * `expired` tells the welcome screen to explain the bounce: the session
+   * ended on its own (revoked from the web), the user did not ask to leave.
+   */
+  logout: (options?: { expired?: boolean }) => Promise<void>
   devResetAndResync: () => Promise<void>
 }
 
@@ -140,7 +144,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }, [])
 
-  const logout = useCallback(async (): Promise<void> => {
+  const logout = useCallback(async (options?: { expired?: boolean }): Promise<void> => {
     setState(prev => {
       if (prev.client) {
         Promise.resolve(prev.client.logout()).catch(() => {
@@ -153,6 +157,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // Nothing of this account is erased, but nothing may be written to its
     // stores either once it is gone.
     setAccountScope(null)
+    setSessionExpired(!!options?.expired)
     setState({ status: 'unauthenticated', client: null })
     // Drop the instance locale that synced during the session; the login screen
     // returns to the device language, like a cold launch.
