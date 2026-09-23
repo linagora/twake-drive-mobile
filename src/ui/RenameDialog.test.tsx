@@ -1,7 +1,7 @@
 import React from 'react'
 import { Keyboard } from 'react-native'
 import { Provider as PaperProvider } from 'react-native-paper'
-import { act, render, screen } from '@testing-library/react-native'
+import { act, fireEvent, render, screen } from '@testing-library/react-native'
 
 jest.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (k: string) => k })
@@ -54,6 +54,75 @@ const dialogStyle = (): Record<string, unknown> => {
   }
   return {}
 }
+
+// The dialog stays mounted between openings, so it has to take the name of the
+// item it is opened for, not the one it was first rendered with (#267).
+describe('RenameDialog reopened for another item', () => {
+  const renderClosed = (): ReturnType<typeof render> =>
+    render(
+      wrap(
+        <RenameDialog
+          visible={false}
+          initialName=""
+          type="file"
+          onDismiss={jest.fn()}
+          onSubmit={jest.fn().mockResolvedValue(undefined)}
+        />
+      )
+    )
+
+  const close = (view: ReturnType<typeof render>, initialName: string): void =>
+    view.rerender(
+      wrap(
+        <RenameDialog
+          visible={false}
+          initialName={initialName}
+          type="file"
+          onDismiss={jest.fn()}
+          onSubmit={jest.fn().mockResolvedValue(undefined)}
+        />
+      )
+    )
+
+  const rerenderWith = (view: ReturnType<typeof render>, initialName: string): void =>
+    view.rerender(
+      wrap(
+        <RenameDialog
+          visible
+          initialName={initialName}
+          type="file"
+          onDismiss={jest.fn()}
+          onSubmit={jest.fn().mockResolvedValue(undefined)}
+        />
+      )
+    )
+
+  it('shows the name of the item it is opened for', () => {
+    const view = renderClosed()
+    rerenderWith(view, 'b.txt')
+    expect(screen.getByDisplayValue('b.txt')).toBeOnTheScreen()
+  })
+
+  it('drops what was typed for the previous item', () => {
+    const view = renderClosed()
+    rerenderWith(view, 'a.ogg')
+    fireEvent.changeText(screen.getByTestId('rename-name-input'), 'new-a.ogg')
+    close(view, 'a.ogg')
+    rerenderWith(view, 'b.txt')
+
+    expect(screen.getByDisplayValue('b.txt')).toBeOnTheScreen()
+  })
+
+  it('keeps submit disabled until the name is actually changed', () => {
+    const view = renderClosed()
+    rerenderWith(view, 'a.ogg')
+    fireEvent.changeText(screen.getByTestId('rename-name-input'), 'new-a.ogg')
+    close(view, 'a.ogg')
+    rerenderWith(view, 'b.txt')
+
+    expect(screen.getByTestId('rename-submit')).toBeDisabled()
+  })
+})
 
 describe('RenameDialog', () => {
   it('renders the input with the current name', () => {

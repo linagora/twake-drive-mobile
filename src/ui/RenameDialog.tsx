@@ -21,6 +21,14 @@ export const RenameDialog = ({ visible, initialName, type, onDismiss, onSubmit }
   const [error, setError] = useState<string | null>(null)
   const keyboardHeight = useKeyboardOffset(visible)
 
+  // The dialog stays mounted between openings, so the initial state seeds it
+  // only once. Take the name of the item it is opened for.
+  useEffect(() => {
+    if (!visible) return
+    setName(initialName)
+    setError(null)
+  }, [visible])
+
   const trimmed = name.trim()
   const unchanged = trimmed === initialName.trim()
 
