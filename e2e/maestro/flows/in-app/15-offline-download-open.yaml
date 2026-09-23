@@ -41,8 +41,10 @@ env:
 # The viewer serves the local copy: the seeded content is on screen.
 - tapOn:
     id: 'file-row:${FILE}'
+# Wildcards on purpose: the seeded file ends with a newline, and the viewer's
+# floating header sits over the first line (see #274).
 - extendedWaitUntil:
-    visible: '${CONTENT}'
+    visible: '.*${CONTENT}.*'
     timeout: 30000
 - tapOn:
     id: 'document-back-button'

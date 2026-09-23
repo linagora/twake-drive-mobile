@@ -63,7 +63,11 @@ env:
 - assertVisible:
     id: 'action-info'
     enabled: true
-- back
+# Closed by tapping the scrim: the system back leaves the app from the drive
+# root, and what is underneath is whatever the login left in the task.
+- tapOn:
+    point: '10%,85%'
+- waitForAnimationToEnd
 
 # Browsing still works: the local replica serves the folder.
 - tapOn:
