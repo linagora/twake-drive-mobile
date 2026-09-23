@@ -10,6 +10,9 @@ struct CozyFile: Equatable {
   let klass: String?
   let updatedAt: Date
   let path: String?
+  /// Path of the thumbnail the stack signed for this file. It carries a secret,
+  /// so it cannot be rebuilt from the id.
+  var thumbnailLink: String? = nil
 
   var hasThumbnail: Bool { klass == "image" }
 
@@ -26,8 +29,24 @@ struct CozyFile: Equatable {
     return iso.date(from: String(s.prefix(19))) ?? Date(timeIntervalSince1970: 0)
   }
 
+  /// The `links` of a JSON-API document, preferring the size a picker shows.
+  private static func thumbnailLink(_ links: [String: Any]?) -> String? {
+    guard let links else { return nil }
+    for size in ["medium", "small", "large", "tiny"] {
+      if let link = links[size] as? String, !link.isEmpty { return link }
+    }
+    return nil
+  }
+
+  /// Ports Models.kt CozyFile.fromDocument.
+  static func fromDocument(_ node: [String: Any]) -> CozyFile? {
+    guard let id = node["id"] as? String,
+          let attrs = node["attributes"] as? [String: Any] else { return nil }
+    return fromAttributes(id: id, attrs, links: node["links"] as? [String: Any])
+  }
+
   /// Ports Models.kt CozyFile.fromAttributes.
-  static func fromAttributes(id: String, _ a: [String: Any]) -> CozyFile {
+  static func fromAttributes(id: String, _ a: [String: Any], links: [String: Any]? = nil) -> CozyFile {
     let isDir = (a["type"] as? String) == "directory"
     func str(_ k: String) -> String? {
       guard let v = a[k] as? String, !v.isEmpty else { return nil }
@@ -43,7 +62,8 @@ struct CozyFile: Equatable {
       mime: str("mime"),
       klass: str("class"),
       updatedAt: parseDate(str("updated_at")),
-      path: str("path")
+      path: str("path"),
+      thumbnailLink: thumbnailLink(links)
     )
   }
 }

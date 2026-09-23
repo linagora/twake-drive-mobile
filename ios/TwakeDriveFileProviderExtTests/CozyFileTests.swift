@@ -37,4 +37,23 @@ final class CozyFileTests: XCTestCase {
     let f = CozyFile.fromAttributes(id: "i", ["type": "file", "name": "p.jpg", "class": "image", "size": "1"])
     XCTAssertTrue(f.hasThumbnail)
   }
+
+  func testCarriesTheThumbnailLinkTheStackSigned() {
+    let f = CozyFile.fromDocument([
+      "id": "file-1",
+      "attributes": ["type": "file", "name": "a.jpg", "class": "image"],
+      "links": ["self": "/files/file-1", "tiny": "/files/file-1/thumbnails/abc/tiny",
+                "medium": "/files/file-1/thumbnails/abc/medium"],
+    ])
+    XCTAssertEqual(f?.thumbnailLink, "/files/file-1/thumbnails/abc/medium")
+  }
+
+  func testFallsBackToAnotherSizeAndToNoLinkAtAll() {
+    let small = CozyFile.fromAttributes(id: "f", ["type": "file", "name": "a.jpg"],
+                                        links: ["small": "/files/f/thumbnails/abc/small"])
+    XCTAssertEqual(small.thumbnailLink, "/files/f/thumbnails/abc/small")
+
+    let none = CozyFile.fromAttributes(id: "f", ["type": "file", "name": "a.jpg"])
+    XCTAssertNil(none.thumbnailLink)
+  }
 }

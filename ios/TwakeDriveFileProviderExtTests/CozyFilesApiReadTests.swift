@@ -30,6 +30,44 @@ final class CozyFilesApiReadTests: XCTestCase {
     XCTAssertEqual(f.size, 3)
   }
 
+  // The stack signs thumbnail paths with a secret and answers 404 without it,
+  // so the url is read off the document and never rebuilt from the id (#276).
+  func testThumbnailFetchesTheLinkTheStackSigned() async throws {
+    let dest = URL(fileURLWithPath: NSTemporaryDirectory())
+      .appendingPathComponent("thumb-\(UUID().uuidString).jpg")
+    let api = makeApi { req in
+      XCTAssertEqual(req.url?.path, "/files/file-1/thumbnails/s3cr3t/medium")
+      return httpResponse(req.url!, 200, "thumbnail-bytes")
+    }
+    let file = CozyFile.fromAttributes(
+      id: "file-1",
+      ["type": "file", "name": "a.jpg", "class": "image"],
+      links: ["medium": "/files/file-1/thumbnails/s3cr3t/medium"]
+    )
+
+    try await api.thumbnail(file: file, to: dest)
+
+    XCTAssertEqual(try String(contentsOf: dest), "thumbnail-bytes")
+    try? FileManager.default.removeItem(at: dest)
+  }
+
+  func testThumbnailGivesUpWhenTheDocumentCarriesNoLink() async throws {
+    let dest = URL(fileURLWithPath: NSTemporaryDirectory())
+      .appendingPathComponent("thumb-\(UUID().uuidString).jpg")
+    let api = makeApi { req in
+      XCTFail("no request should be sent without a signed link")
+      return httpResponse(req.url!, 200, "")
+    }
+    let file = CozyFile.fromAttributes(id: "file-2", ["type": "file", "name": "a.jpg"])
+
+    do {
+      try await api.thumbnail(file: file, to: dest)
+      XCTFail("expected a failure")
+    } catch {
+      XCTAssertFalse(FileManager.default.fileExists(atPath: dest.path))
+    }
+  }
+
   func testListParsesIncludedAndFollowsLinksNext() async throws {
     let api = makeApi { req in
       XCTAssertEqual(req.url?.path, "/files/dir-1")
