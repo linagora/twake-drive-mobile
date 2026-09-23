@@ -1,7 +1,7 @@
 import React from 'react'
 import { Text } from 'react-native'
 import { render, screen, fireEvent } from '@testing-library/react-native'
-import { Provider as PaperProvider } from 'react-native-paper'
+import { MD3LightTheme, Provider as PaperProvider } from 'react-native-paper'
 
 import { SettingsRow } from './SettingsRow'
 import { cozyTokens } from './theme'
@@ -42,5 +42,12 @@ describe('SettingsRow', () => {
       )
     )
     expect(screen.getByTestId('custom-accessory')).toBeOnTheScreen()
+  })
+
+  it('tints a destructive row with the error colour', () => {
+    render(wrap(<SettingsRow title="Supprimer le compte" destructive />))
+    const title = screen.getByText('Supprimer le compte')
+    const style = Object.assign({}, ...[title.props.style].flat(Infinity).filter(Boolean))
+    expect(style.color).toBe(MD3LightTheme.colors.error)
   })
 })

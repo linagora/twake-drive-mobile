@@ -16,6 +16,8 @@ interface Props {
   trailing?: SettingsRowTrailing
   /** Rendered in the trailing slot instead of `trailing` (a Switch, a Button…). */
   accessory?: React.ReactNode
+  /** Tint the row with the error colour (irreversible actions). */
+  destructive?: boolean
   onPress?: () => void
   testID?: string
 }
@@ -30,10 +32,12 @@ export const SettingsRow = ({
   icon,
   trailing = 'none',
   accessory,
+  destructive,
   onPress,
   testID
 }: Props): React.ReactElement => {
   const theme = useTheme()
+  const tint = destructive ? theme.colors.error : theme.colors.onSurfaceVariant
 
   const renderTrailing = (): React.ReactNode => {
     if (accessory) return accessory
@@ -52,18 +56,13 @@ export const SettingsRow = ({
     <List.Item
       testID={testID}
       title={title}
+      titleStyle={destructive ? { color: theme.colors.error } : undefined}
       description={description}
       onPress={onPress}
       style={styles.row}
       left={props => (
         <View testID="settings-row-leading" style={[props.style, styles.leadingSlot]}>
-          {icon ? (
-            <CozyIcon
-              name={icon}
-              size={cozyTokens.iconSize.md}
-              color={theme.colors.onSurfaceVariant}
-            />
-          ) : null}
+          {icon ? <CozyIcon name={icon} size={cozyTokens.iconSize.md} color={tint} /> : null}
         </View>
       )}
       right={props => <View style={[props.style, styles.trailingSlot]}>{renderTrailing()}</View>}

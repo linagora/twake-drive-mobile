@@ -20,7 +20,10 @@
     "themeDark": "Dunkel",
     "about": "Über",
     "version": "Version",
-    "general": "Allgemein"
+    "general": "Allgemein",
+    "deleteAccount": "Konto löschen",
+    "deleteAccountMessage": "Beim Löschen Ihres Kontos werden Ihre Dateien und Ihre Daten endgültig entfernt. Sie werden zur Löschseite weitergeleitet, um Ihre Anfrage zu bestätigen.",
+    "deleteAccountContinue": "Weiter"
   },
   "auth": {
     "welcomeTitle": "Willkommen bei Twake Drive",
