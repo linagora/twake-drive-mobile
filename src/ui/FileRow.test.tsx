@@ -35,6 +35,7 @@ jest.mock('@/pouchdb/triggerReplication', () => ({
   triggerPouchReplication: jest.fn()
 }))
 
+import { useOfflineState } from '@/offline/useOfflineState'
 import { isFavorite, toggleFavorite } from '@/files/favorites'
 import { download } from '@/files/download'
 import { FileRow, FileItem } from './FileRow'
@@ -51,6 +52,7 @@ const wrap = (ui: React.ReactElement) => <PaperProvider>{ui}</PaperProvider>
 
 afterEach(() => {
   mockOnline = true
+  ;(useOfflineState as jest.Mock).mockReturnValue(undefined)
 })
 
 // The menu of a row is addressed by the name it belongs to, so a list can be
@@ -165,6 +167,40 @@ describe('FileRow', () => {
       fireEvent.press(screen.getByTestId(FILE_MENU))
       fireEvent.press(screen.getByText('drive.fileMeta.download'))
       expect(download).toHaveBeenCalledWith(expect.anything(), file, 'drive-1')
+    })
+
+    // Offline a download has nothing to read unless the file is already kept
+    // offline, and it was the one action left black in a greyed menu (#294).
+    it('is out of reach offline on a file that is not kept offline', () => {
+      mockOnline = false
+      render(wrap(<FileRow file={file} onPress={() => {}} onShare={jest.fn()} />))
+      fireEvent.press(screen.getByTestId(FILE_MENU))
+      expect(screen.getByText('drive.fileMeta.download')).toBeDisabled()
+    })
+
+    it('stays available offline on a file kept offline', () => {
+      mockOnline = false
+      ;(useOfflineState as jest.Mock).mockReturnValue({
+        fileId: 'f1',
+        state: 'downloaded',
+        isDirectPin: true
+      })
+      render(wrap(<FileRow file={file} onPress={() => {}} onShare={jest.fn()} />))
+      fireEvent.press(screen.getByTestId(FILE_MENU))
+      fireEvent.press(screen.getByText('drive.fileMeta.download'))
+      expect(download).toHaveBeenCalledWith(expect.anything(), file, undefined)
+    })
+
+    it('is out of reach offline while the copy is still downloading', () => {
+      mockOnline = false
+      ;(useOfflineState as jest.Mock).mockReturnValue({
+        fileId: 'f1',
+        state: 'downloading',
+        isDirectPin: true
+      })
+      render(wrap(<FileRow file={file} onPress={() => {}} onShare={jest.fn()} />))
+      fireEvent.press(screen.getByTestId(FILE_MENU))
+      expect(screen.getByText('drive.fileMeta.download')).toBeDisabled()
     })
   })
 })
