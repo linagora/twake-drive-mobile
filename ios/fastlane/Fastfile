@@ -1,3 +1,5 @@
+require "json"
+
 default_platform(:ios)
 
 # Twake Drive iOS release lanes. Signing uses fastlane match (App Store
@@ -6,6 +8,17 @@ default_platform(:ios)
 # twake's profiles are seeded once with `fastlane match appstore`). CI never
 # generates certs (readonly: true). See docs/ci-cd-signed-release.md.
 APP_IDENTIFIER = "com.linagora.twakedrive"
+
+# The version being released: the tag the release workflow passes, and the one
+# the app displays otherwise, which app.json owns — the same fallback
+# android/app/build.gradle applies, so a manual run does not ship the version
+# left in the Xcode project.
+def marketing_version
+  from_env = ENV["MARKETING_VERSION"].to_s
+  return from_env unless from_env.empty?
+
+  JSON.parse(File.read(File.expand_path("../../app.json", __dir__)))["expo"]["version"].to_s
+end
 
 platform :ios do
   # One-off provisioning: create any MISSING match profiles (e.g. a newly-added
@@ -56,17 +69,15 @@ platform :ios do
       readonly: true
     )
 
-    # Marketing version comes from the git tag (vX.Y.Z -> X.Y.Z), build number
-    # from the monotonic CI run number. Both are optional so a bare local run
-    # still works. agvtool needs the project on "Apple Generic" versioning
-    # (Expo default); if it errors "No values were found", set Versioning System
-    # = Apple Generic in Build Settings (see runbook).
-    unless ENV["MARKETING_VERSION"].to_s.empty?
-      increment_version_number(
-        version_number: ENV["MARKETING_VERSION"],
-        xcodeproj: "TwakeDrive.xcodeproj"
-      )
-    end
+    # Marketing version comes from the git tag (vX.Y.Z -> X.Y.Z) or, without one,
+    # from app.json; build number from the monotonic CI run number. agvtool needs
+    # the project on "Apple Generic" versioning (Expo default); if it errors
+    # "No values were found", set Versioning System = Apple Generic in Build
+    # Settings (see runbook).
+    increment_version_number(
+      version_number: marketing_version,
+      xcodeproj: "TwakeDrive.xcodeproj"
+    )
 
     increment_build_number(
       build_number: ENV["GITHUB_RUN_NUMBER"] || "1",

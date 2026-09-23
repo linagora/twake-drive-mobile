@@ -69,7 +69,8 @@ scripts/release.sh 0.3.0        # bumps package.json + app.json, commits, tags, 
 ```
 
 Pushing the tag starts both release workflows. The marketing version is the
-tag. The Android version code is derived from it (`0.4.2` gives `40299`), so
+tag; a manual run, which has no tag, takes it from `app.json` on both
+platforms. The Android version code is derived from it (`0.4.2` gives `40299`), so
 it follows the releases rather than a CI counter, which restarts at 1 when the
 releases move to another repository. Its last two digits rank a prerelease
 under the version it leads to, so `0.5.0-rc.1` gives `50001` and `0.5.0` gives
