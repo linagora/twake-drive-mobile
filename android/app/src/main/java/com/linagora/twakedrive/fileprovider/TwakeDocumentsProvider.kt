@@ -6,6 +6,7 @@ import android.database.MatrixCursor
 import android.os.CancellationSignal
 import android.os.ParcelFileDescriptor
 import android.provider.DocumentsProvider
+import java.io.FileNotFoundException
 
 class TwakeDocumentsProvider : DocumentsProvider() {
 
@@ -73,11 +74,14 @@ class TwakeDocumentsProvider : DocumentsProvider() {
         documentId: String?,
         sizeHint: android.graphics.Point?,
         signal: CancellationSignal?
-    ): AssetFileDescriptor? {
-        val id = documentId ?: return null
+    ): AssetFileDescriptor {
+        // The framework dereferences what it gets back, so a missing thumbnail has
+        // to be thrown: returning null surfaces as a NullPointerException inside
+        // the caller instead of an error it can handle.
+        val id = documentId ?: throw FileNotFoundException("no document id")
         val f = cache.cachedFile("$id.thumb")
         if (!f.exists() || f.length() == 0L) {
-            if (!api.thumbnail(api.get(id), f)) return null
+            if (!api.thumbnail(api.get(id), f)) throw FileNotFoundException("no thumbnail for $id")
         }
         val pfd = ParcelFileDescriptor.open(f, ParcelFileDescriptor.MODE_READ_ONLY)
         return AssetFileDescriptor(pfd, 0, AssetFileDescriptor.UNKNOWN_LENGTH)
