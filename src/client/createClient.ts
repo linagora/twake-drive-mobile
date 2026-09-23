@@ -12,6 +12,8 @@ import {
   resetPerfCounters
 } from '@/pouchdb/perfLogging'
 import { triggerPouchReplication } from '@/pouchdb/triggerReplication'
+import { setAccountScope } from '@/storage/accountScope'
+import { adoptLegacyFiles, adoptLegacyStores } from '@/storage/legacyAccountData'
 
 /**
  * Build a CozyClient from a stored session.
@@ -37,6 +39,11 @@ export const createClient = async (session: Session): Promise<CozyClient> => {
     session.token.accessToken?.length ?? 0
   )
   if (__DEV__) resetPerfCounters()
+  // Before the links are built: they read the replication bookkeeping of the
+  // account, which lives in a store scoped to it.
+  setAccountScope(session.uri)
+  adoptLegacyStores()
+  await adoptLegacyFiles()
   const client = new CozyClient({
     uri: session.uri,
     oauth: { ...session.oauthOptions, token: session.token },

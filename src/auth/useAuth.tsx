@@ -14,6 +14,7 @@ import { createClient } from '@/client/createClient'
 import i18n, { resolveDeviceLanguage } from '@/i18n'
 import { mirrorSessionToNative } from '@/native/twakeAuthBridge'
 import { destroyLocalData } from '@/pouchdb/destroyLocalData'
+import { setAccountScope } from '@/storage/accountScope'
 import { clearSession, getSession, saveSession } from './tokenStorage'
 import { startOidcFlow } from './oidcFlow'
 import { registerSession } from './registerSession'
@@ -149,6 +150,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       return prev
     })
     await clearSession()
+    // Nothing of this account is erased, but nothing may be written to its
+    // stores either once it is gone.
+    setAccountScope(null)
     setState({ status: 'unauthenticated', client: null })
     // Drop the instance locale that synced during the session; the login screen
     // returns to the device language, like a cold launch.
