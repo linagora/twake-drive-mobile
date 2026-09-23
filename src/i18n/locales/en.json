@@ -23,7 +23,8 @@
     "general": "General",
     "deleteAccount": "Delete account",
     "deleteAccountMessage": "Deleting your account permanently erases your files and your data. You will be taken to the deletion page to confirm your request.",
-    "deleteAccountContinue": "Continue"
+    "deleteAccountContinue": "Continue",
+    "legalNotice": "Legal notice"
   },
   "auth": {
     "welcomeTitle": "Welcome to Twake Drive",

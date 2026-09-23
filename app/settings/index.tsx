@@ -3,6 +3,7 @@ import { ScrollView } from 'react-native'
 import { useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import Constants from 'expo-constants'
+import * as WebBrowser from 'expo-web-browser'
 
 import { AccountHeader } from '@/ui/AccountHeader'
 import { AppBar } from '@/ui/AppBar'
@@ -12,6 +13,7 @@ import { SettingsRow } from '@/ui/SettingsRow'
 import { SettingsSection } from '@/ui/SettingsSection'
 import { useCurrentUser } from '@/account/useCurrentUser'
 import { useDeleteAccount } from '@/account/useDeleteAccount'
+import { useLegalNoticeUrl } from '@/account/useLegalNotice'
 import { getLocalePreference, LOCALE_SYSTEM } from '@/preferences/localePreference'
 import { localeDisplayName } from '@/i18n/localeNames'
 import { useThemePreference, ThemePref } from '@/preferences/themePreference'
@@ -25,6 +27,7 @@ export default function SettingsIndex(): React.ReactElement {
   const { name, email, initials } = useCurrentUser()
   const { logout } = useAuth()
   const deleteAccount = useDeleteAccount()
+  const legalNoticeUrl = useLegalNoticeUrl()
   const [deleteAccountAsked, setDeleteAccountAsked] = React.useState(false)
   const localePref = getLocalePreference()
   const languageValue =
@@ -81,6 +84,15 @@ export default function SettingsIndex(): React.ReactElement {
 
         <SettingsSection title={t('settings.about')}>
           <SettingsRow title={t('settings.version')} description={version} />
+          {legalNoticeUrl ? (
+            <SettingsRow
+              testID="settings-legal-notice"
+              title={t('settings.legalNotice')}
+              icon="info"
+              trailing="chevron"
+              onPress={() => void WebBrowser.openBrowserAsync(legalNoticeUrl)}
+            />
+          ) : null}
           <SettingsRow
             testID="settings-logout"
             title={t('common.logout')}

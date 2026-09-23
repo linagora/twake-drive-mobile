@@ -23,7 +23,8 @@
     "general": "Общие",
     "deleteAccount": "Удалить аккаунт",
     "deleteAccountMessage": "Удаление аккаунта безвозвратно стирает ваши файлы и данные. Вы будете перенаправлены на страницу удаления, чтобы подтвердить запрос.",
-    "deleteAccountContinue": "Продолжить"
+    "deleteAccountContinue": "Продолжить",
+    "legalNotice": "Правовая информация"
   },
   "auth": {
     "welcomeTitle": "Добро пожаловать в Twake Drive",
