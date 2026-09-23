@@ -30,6 +30,12 @@ env:
 - waitForAnimationToEnd
 - tapOn:
     id: 'folder-picker-confirm'
+# The sheet closes on its own once the move lands, and the row is gone from
+# the folder it left.
+- extendedWaitUntil:
+    visible:
+      id: 'drive-fab'
+    timeout: 20000
 - extendedWaitUntil:
     notVisible: '${FILE}'
     timeout: 20000
@@ -54,6 +60,10 @@ env:
 - waitForAnimationToEnd
 - tapOn:
     id: 'folder-picker-confirm'
+- extendedWaitUntil:
+    visible:
+      id: 'drive-fab'
+    timeout: 20000
 - extendedWaitUntil:
     notVisible: '${FILE}'
     timeout: 20000
