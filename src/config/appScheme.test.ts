@@ -5,7 +5,7 @@ import { REDIRECT_URL } from '@/auth/pkce'
 
 // expo-linking resolves the first scheme of the Expo config and warns about the
 // others, so the one it picks has to be the one the app actually redirects to
-// (#178). `cozy` stays declared, it is still registered natively.
+// (#178).
 describe('app scheme', () => {
   const schemes = appConfig.expo.scheme as string[]
 
@@ -17,7 +17,7 @@ describe('app scheme', () => {
     expect(schemes[0]).toBe(SHARE_SCHEME)
   })
 
-  it('still declares the cozy scheme', () => {
-    expect(schemes).toContain('cozy')
+  it('no longer claims the cozy scheme', () => {
+    expect(schemes).not.toContain('cozy')
   })
 })
