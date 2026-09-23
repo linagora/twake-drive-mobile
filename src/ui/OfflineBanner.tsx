@@ -15,6 +15,7 @@ export const OfflineBanner = (): React.ReactElement | null => {
   if (online) return null
   return (
     <View
+      testID="offline-banner"
       pointerEvents="none"
       style={[styles.wrap, { top: insets.top + cozyTokens.appBarHeight + cozyTokens.spacing.sm }]}
     >

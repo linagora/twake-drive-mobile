@@ -64,7 +64,7 @@ export const FileActionsMenu = ({
           icon={p => <CozyIcon name="dotsVertical" size={p?.size ?? 24} color={p?.color} />}
           onPress={() => setMenuVisible(true)}
           accessibilityLabel={t('a11y.fileActions')}
-          testID={testID ?? 'file-actions'}
+          testID={testID ?? `file-actions:${file.name}`}
         />
       }
     >
