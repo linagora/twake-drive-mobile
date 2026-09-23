@@ -26,10 +26,16 @@ const SHARE_INTENT_OPTIONS = { scheme: SHARE_SCHEME } as const
 const normalizeUri = (path: string): string =>
   path.startsWith('file://') || path.startsWith('content://') ? path : `file://${path}`
 
+const hasPath = (f: unknown): f is RawFile & { path: string } =>
+  typeof f === 'object' &&
+  f !== null &&
+  typeof (f as RawFile).path === 'string' &&
+  !!(f as RawFile).path
+
 const toItems = (files: unknown): SharedItem[] => {
   if (!Array.isArray(files)) return []
-  return (files as RawFile[]).map(f => ({
-    uri: normalizeUri(f.path ?? ''),
+  return (files as unknown[]).filter(hasPath).map(f => ({
+    uri: normalizeUri(f.path),
     name: f.fileName ?? 'shared',
     mimeType: f.mimeType ?? 'application/octet-stream',
     size: f.size ?? undefined
