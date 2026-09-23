@@ -5,6 +5,7 @@ import { FileSystemRepo } from '@/offline/FileSystemRepo'
 import { OfflineFilesStore } from '@/offline/OfflineFilesStore'
 import { getOnlineMonitor } from '@/network/OnlineMonitor'
 import { buildFreshDownloadUrl } from '@/files/streamUrl'
+import { accountDir } from '@/storage/accountScope'
 
 export const OFFLINE_ERROR = 'DocumentUnavailableOfflineError'
 
@@ -21,7 +22,30 @@ export interface ViewableFile {
   name: string
 }
 
-const viewerCacheDir = (): string => `${FileSystem.cacheDirectory ?? ''}twake-drive/viewer/`
+const viewerCacheRoot = (): string => `${FileSystem.cacheDirectory ?? ''}twake-drive/viewer/`
+
+// One cache per account: the bytes of every document opened live here, and the
+// account that logs in next must not read them.
+const viewerCacheDir = (): string => accountDir(viewerCacheRoot())
+
+/**
+ * Drops the cache written before it was split per account: the `open/`
+ * directory and the copies sitting at the root, the two shapes the old layout
+ * wrote. These are copies of documents the stack can serve again, so they are
+ * deleted rather than moved.
+ */
+export const dropLegacyViewerCache = async (): Promise<void> => {
+  const root = viewerCacheRoot()
+  const names = await FileSystem.readDirectoryAsync(root).catch(() => [])
+  for (const name of names) {
+    const entry = `${root}${name}`
+    const info = await FileSystem.getInfoAsync(entry)
+    if (!info.exists) continue
+    if (name === 'open' || !info.isDirectory) {
+      await FileSystem.deleteAsync(entry, { idempotent: true })
+    }
+  }
+}
 
 const sanitize = (name: string): string => name.replace(/[/\\?%*:|"<>]/g, '_')
 
