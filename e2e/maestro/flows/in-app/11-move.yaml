@@ -1,46 +1,28 @@
 appId: com.linagora.twakedrive
 tags:
   - inapp
-  - skip
 env:
-  SOURCE: 'Mqx'
-  DESTINATION: 'Nqx'
+  FILE: 'readme.txt'
+  DESTINATION: 'Documents'
 ---
-# ⚠️ Tagged `skip`. The assertions here name a folder the flow types, and
-# synthetic typing drops characters: `Tqx` lands as `Tx`, `Mqx` as `Mx`. The
-# rework is to act on material the stack seeds — the disposable instance
-# already creates a folder and a file — so nothing the flow asserts on has to
-# be typed.
 # Move: the moved row leaves the list at once and is found inside the
-# destination. The picker it goes through lists the files of a folder dimmed
-# and walks into folders only (#172).
+# destination. The picker it goes through walks into folders only (#172).
 #
-# Throwaway names, short on purpose: synthetic typing drops characters, at
-# random positions (see 09-favorite-toggle). Both folders are removed at the end.
+# Acts on what the disposable instance seeds (e2e/stack/setup.sh): a
+# `Documents` folder and a `readme.txt` file at the root. Nothing is typed —
+# synthetic typing drops characters, which is what had this flow skipped.
+# The file is moved back to the root at the end, so a rerun starts clean.
 - runFlow: ../../subflows/openDrive.yaml
-- tapOn:
-    id: 'drive-fab'
-- tapOn: 'Nouveau dossier'
-- inputText: '${DESTINATION}'
-- pressKey: Enter
-- waitForAnimationToEnd:
-    timeout: 8000
 - extendedWaitUntil:
-    visible: '${DESTINATION}.*'
-    timeout: 12000
+    visible: '${FILE}'
+    timeout: 20000
+
+# Root → Documents
 - tapOn:
-    id: 'drive-fab'
-- tapOn: 'Nouveau dossier'
-- inputText: '${SOURCE}'
-- pressKey: Enter
-- waitForAnimationToEnd:
-    timeout: 8000
-- extendedWaitUntil:
-    visible: '${SOURCE}.*'
-    timeout: 12000
+    id: 'file-actions:${FILE}'
+- waitForAnimationToEnd
 - tapOn:
-    id: 'folder-actions:${SOURCE}'
-- tapOn: 'Déplacer.*'
+    id: 'action-move'
 - waitForAnimationToEnd:
     timeout: 8000
 - tapOn:
@@ -49,21 +31,34 @@ env:
 - tapOn:
     id: 'folder-picker-confirm'
 - extendedWaitUntil:
-    notVisible: '${SOURCE}'
-    timeout: 15000
-- tapOn: '${DESTINATION}.*'
+    notVisible: '${FILE}'
+    timeout: 20000
+
+# It is inside the destination.
+- tapOn:
+    id: 'folder-row:${DESTINATION}'
 - extendedWaitUntil:
-    visible: '${SOURCE}.*'
-    timeout: 12000
+    visible: '${FILE}'
+    timeout: 20000
+
+# Documents → root, through the picker's own way up.
+- tapOn:
+    id: 'file-actions:${FILE}'
+- waitForAnimationToEnd
+- tapOn:
+    id: 'action-move'
+- waitForAnimationToEnd:
+    timeout: 8000
+- tapOn:
+    id: 'folder-picker-up'
+- waitForAnimationToEnd
+- tapOn:
+    id: 'folder-picker-confirm'
+- extendedWaitUntil:
+    notVisible: '${FILE}'
+    timeout: 20000
 - tapOn:
     id: 'appbar-back-button'
-- waitForAnimationToEnd
-- tapOn:
-    id: 'folder-actions:${DESTINATION}'
-- tapOn: 'Supprimer'
-- waitForAnimationToEnd
-- tapOn:
-    id: 'confirm-delete-submit'
 - extendedWaitUntil:
-    notVisible: '${DESTINATION}'
-    timeout: 15000
+    visible: '${FILE}'
+    timeout: 20000
