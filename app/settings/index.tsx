@@ -6,10 +6,12 @@ import Constants from 'expo-constants'
 
 import { AccountHeader } from '@/ui/AccountHeader'
 import { AppBar } from '@/ui/AppBar'
+import { ConfirmDialog } from '@/ui/ConfirmDialog'
 import { ScreenContainer } from '@/ui/ScreenContainer'
 import { SettingsRow } from '@/ui/SettingsRow'
 import { SettingsSection } from '@/ui/SettingsSection'
 import { useCurrentUser } from '@/account/useCurrentUser'
+import { useDeleteAccount } from '@/account/useDeleteAccount'
 import { getLocalePreference, LOCALE_SYSTEM } from '@/preferences/localePreference'
 import { localeDisplayName } from '@/i18n/localeNames'
 import { useThemePreference, ThemePref } from '@/preferences/themePreference'
@@ -22,6 +24,8 @@ export default function SettingsIndex(): React.ReactElement {
   const router = useRouter()
   const { name, email, initials } = useCurrentUser()
   const { logout } = useAuth()
+  const deleteAccount = useDeleteAccount()
+  const [deleteAccountAsked, setDeleteAccountAsked] = React.useState(false)
   const localePref = getLocalePreference()
   const languageValue =
     localePref === LOCALE_SYSTEM ? t('settings.systemLanguage') : localeDisplayName(localePref)
@@ -84,7 +88,31 @@ export default function SettingsIndex(): React.ReactElement {
             onPress={() => void logout()}
           />
         </SettingsSection>
+
+        <SettingsSection title={t('settings.account')}>
+          <SettingsRow
+            testID="settings-delete-account"
+            title={t('settings.deleteAccount')}
+            icon="trash"
+            destructive
+            onPress={() => setDeleteAccountAsked(true)}
+          />
+        </SettingsSection>
       </ScrollView>
+
+      <ConfirmDialog
+        visible={deleteAccountAsked}
+        testID="delete-account-dialog"
+        title={t('settings.deleteAccount')}
+        message={t('settings.deleteAccountMessage')}
+        confirmLabel={t('settings.deleteAccountContinue')}
+        destructive
+        onConfirm={() => {
+          setDeleteAccountAsked(false)
+          void deleteAccount()
+        }}
+        onDismiss={() => setDeleteAccountAsked(false)}
+      />
     </ScreenContainer>
   )
 }

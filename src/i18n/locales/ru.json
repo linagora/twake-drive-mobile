@@ -20,7 +20,10 @@
     "themeDark": "Тёмная",
     "about": "О приложении",
     "version": "Версия",
-    "general": "Общие"
+    "general": "Общие",
+    "deleteAccount": "Удалить аккаунт",
+    "deleteAccountMessage": "Удаление аккаунта безвозвратно стирает ваши файлы и данные. Вы будете перенаправлены на страницу удаления, чтобы подтвердить запрос.",
+    "deleteAccountContinue": "Продолжить"
   },
   "auth": {
     "welcomeTitle": "Добро пожаловать в Twake Drive",

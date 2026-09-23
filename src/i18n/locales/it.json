@@ -20,7 +20,10 @@
     "themeDark": "Scuro",
     "about": "Informazioni",
     "version": "Versione",
-    "general": "Generale"
+    "general": "Generale",
+    "deleteAccount": "Elimina l'account",
+    "deleteAccountMessage": "L'eliminazione dell'account cancella definitivamente i tuoi file e i tuoi dati. Verrai indirizzato alla pagina di eliminazione per confermare la richiesta.",
+    "deleteAccountContinue": "Continua"
   },
   "auth": {
     "welcomeTitle": "Benvenuto in Twake Drive",
