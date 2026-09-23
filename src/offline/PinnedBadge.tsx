@@ -1,5 +1,6 @@
 import React from 'react'
 import { StyleSheet, View } from 'react-native'
+import { useTranslation } from 'react-i18next'
 import { useTheme } from 'react-native-paper'
 import { CozyIcon } from '@/ui/icons/CozyIcon'
 
@@ -27,8 +28,24 @@ const iconForState = (state: OfflineFileEntry['state']): string => {
   }
 }
 
+const labelForState = (state: OfflineFileEntry['state']): string => {
+  switch (state) {
+    case 'downloaded':
+      return 'a11y.offlineAvailable'
+    case 'downloading':
+      return 'a11y.offlineDownloading'
+    case 'pending':
+      return 'a11y.offlinePending'
+    case 'failed':
+      return 'a11y.offlineFailed'
+    case 'paused-auth':
+      return 'a11y.offlinePaused'
+  }
+}
+
 export const PinnedBadge = ({ entry, size = 12, testID }: Props): React.ReactElement | null => {
   const theme = useTheme()
+  const { t } = useTranslation()
   if (!entry || !isKeepOfflineEnabled()) return null
   const color =
     entry.state === 'failed'
@@ -39,6 +56,9 @@ export const PinnedBadge = ({ entry, size = 12, testID }: Props): React.ReactEle
   return (
     <View
       testID={testID}
+      accessible
+      accessibilityRole="image"
+      accessibilityLabel={t(labelForState(entry.state))}
       style={[styles.wrap, { backgroundColor: theme.colors.surface, borderColor: color }]}
     >
       <CozyIcon name={iconForState(entry.state)} size={size} color={color} />

@@ -281,7 +281,13 @@
     "gridView": "Vista de cuadrícula",
     "folderActions": "Acciones de carpeta",
     "fileActions": "Acciones de archivo",
-    "removeRecipient": "Quitar destinatario"
+    "removeRecipient": "Quitar destinatario",
+    "account": "Cuenta y ajustes",
+    "offlineAvailable": "Disponible sin conexión",
+    "offlineDownloading": "Descargando para uso sin conexión",
+    "offlinePending": "Esperando la descarga sin conexión",
+    "offlineFailed": "Error al descargar sin conexión",
+    "offlinePaused": "Descarga sin conexión en pausa"
   },
   "errors": {
     "noNetwork": "Sin conexión",

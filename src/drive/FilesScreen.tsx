@@ -348,11 +348,13 @@ export const FilesScreen = ({ basePath }: FilesScreenProps): React.ReactElement 
     {
       icon: 'folder-plus',
       label: t('drive.createMenu.folder'),
+      accessibilityLabel: t('drive.createMenu.folder'),
       onPress: () => setCreateFolderVisible(true)
     },
     {
       icon: 'note-text',
       label: t('drive.createMenu.note'),
+      accessibilityLabel: t('drive.createMenu.note'),
       onPress: () => void handleCreateNote()
     },
     ...(docsEnabled
@@ -360,6 +362,7 @@ export const FilesScreen = ({ basePath }: FilesScreenProps): React.ReactElement 
           {
             icon: 'file-document-edit',
             label: t('drive.createMenu.docs'),
+            accessibilityLabel: t('drive.createMenu.docs'),
             onPress: () => void handleCreateDocs()
           }
         ]
@@ -369,16 +372,19 @@ export const FilesScreen = ({ basePath }: FilesScreenProps): React.ReactElement 
           {
             icon: 'file-document-outline',
             label: t('drive.createMenu.text'),
+            accessibilityLabel: t('drive.createMenu.text'),
             onPress: () => setCreatingClass('text')
           },
           {
             icon: 'file-table-outline',
             label: t('drive.createMenu.sheet'),
+            accessibilityLabel: t('drive.createMenu.sheet'),
             onPress: () => setCreatingClass('sheet')
           },
           {
             icon: 'file-presentation-box',
             label: t('drive.createMenu.slide'),
+            accessibilityLabel: t('drive.createMenu.slide'),
             onPress: () => setCreatingClass('slide')
           }
         ]
@@ -390,6 +396,7 @@ export const FilesScreen = ({ basePath }: FilesScreenProps): React.ReactElement 
               <CozyIcon name="excalidraw" size={p.size} color={p.color} />
             ),
             label: t('drive.createMenu.excalidraw'),
+            accessibilityLabel: t('drive.createMenu.excalidraw'),
             onPress: () => setCreatingClass('excalidraw')
           }
         ]
@@ -399,6 +406,7 @@ export const FilesScreen = ({ basePath }: FilesScreenProps): React.ReactElement 
         <CozyIcon name="deviceBrowser" size={p.size} color={p.color} />
       ),
       label: t('drive.createMenu.shortcut'),
+      accessibilityLabel: t('drive.createMenu.shortcut'),
       onPress: () => setCreateShortcutVisible(true)
     }
   ]

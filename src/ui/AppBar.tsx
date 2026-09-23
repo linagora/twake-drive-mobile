@@ -123,7 +123,12 @@ export const AppBar = ({ title, onBack, onClose, onLogout, selection }: Props) =
           visible={menuVisible}
           onDismiss={() => setMenuVisible(false)}
           anchor={
-            <Pressable onPress={() => setMenuVisible(true)} testID="appbar-avatar">
+            <Pressable
+              onPress={() => setMenuVisible(true)}
+              testID="appbar-avatar"
+              accessibilityRole="button"
+              accessibilityLabel={t('a11y.account')}
+            >
               {avatarUrl && !avatarFailed ? (
                 <Avatar.Image
                   size={cozyTokens.avatarSize.sm}

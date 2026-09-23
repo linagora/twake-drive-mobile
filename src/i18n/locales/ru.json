@@ -290,7 +290,13 @@
     "gridView": "Сетка",
     "folderActions": "Действия с папкой",
     "fileActions": "Действия с файлом",
-    "removeRecipient": "Удалить получателя"
+    "removeRecipient": "Удалить получателя",
+    "account": "Аккаунт и настройки",
+    "offlineAvailable": "Доступно офлайн",
+    "offlineDownloading": "Загружается для работы офлайн",
+    "offlinePending": "Ожидает загрузки для работы офлайн",
+    "offlineFailed": "Не удалось загрузить для работы офлайн",
+    "offlinePaused": "Загрузка для работы офлайн приостановлена"
   },
   "errors": {
     "noNetwork": "Нет подключения",
