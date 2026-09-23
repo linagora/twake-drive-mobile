@@ -7,6 +7,5 @@ export const APPLE_TEAM_ID = 'KUT463DS29'
 // extensions read the cozy session from.
 export const SHARED_KEYCHAIN_ACCESS_GROUP = `${APPLE_TEAM_ID}.com.linagora.twakedrive.shared`
 
-// Dedicated URL scheme the iOS Share Extension redirects to; the OAuth flow
-// uses the reserved "cozy" scheme (scheme[0]) instead.
+// URL scheme the iOS Share Extension and the OAuth redirect both come back on.
 export const SHARE_SCHEME = 'twakedrive'
