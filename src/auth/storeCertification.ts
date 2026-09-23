@@ -1,4 +1,5 @@
 import Constants from 'expo-constants'
+import CozyClient from 'cozy-client'
 
 export interface CertificationConfig {
   cloudProjectNumber: string
@@ -31,5 +32,21 @@ export const certificationOAuthOptions = (): CertificationOAuthOptions => {
   return {
     shouldRequireFlagshipPermissions: true,
     certificationConfig: { cloudProjectNumber: number, issuer: 'playintegrity' }
+  }
+}
+
+/**
+ * Asks the store to vouch for this installation, so the stack certifies the
+ * client without mailing a code. Answers whether it went through: Play
+ * Integrity and App Attest only speak for a build that came from a store, and
+ * the stack's email code is what takes over for every other build.
+ */
+export const tryStoreAttestation = async (client: CozyClient): Promise<boolean> => {
+  try {
+    await client.certifyFlagship()
+    return true
+  } catch (err) {
+    console.log('[storeCertification] store attestation failed', (err as Error)?.message)
+    return false
   }
 }

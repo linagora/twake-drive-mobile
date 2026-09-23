@@ -32,7 +32,7 @@ import CozyClient from 'cozy-client'
 import { FLAGSHIP_SCOPES } from './scopes'
 import { Session, OAuthToken } from './types'
 import { generatePkce, openAuthorizeUrl } from './pkce'
-import { certificationOAuthOptions } from './storeCertification'
+import { certificationOAuthOptions, tryStoreAttestation } from './storeCertification'
 
 export const certifyFlagship = async (session: Session): Promise<Session> => {
   const client = new CozyClient({
@@ -49,14 +49,7 @@ export const certifyFlagship = async (session: Session): Promise<Session> => {
   // getAuthCodeURL includes the correct client_id / redirect_uri.
   stackClient.setOAuthOptions({ ...session.oauthOptions, ...certificationOAuthOptions() })
 
-  // Play Integrity and App Attest only vouch for an installation that came
-  // from a store, so this is expected to fail on a development or a Firebase
-  // build. The email code below is the fallback the stack designed for it.
-  try {
-    await client.certifyFlagship()
-  } catch (err) {
-    console.log('[certifyFlagship] store attestation failed', (err as Error)?.message)
-  }
+  await tryStoreAttestation(client)
 
   const pkceCodes = await generatePkce()
   const authorizeResult = (await client.authorize({
