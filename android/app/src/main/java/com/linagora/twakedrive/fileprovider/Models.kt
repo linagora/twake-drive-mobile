@@ -14,7 +14,13 @@ data class CozyFile(
     val mime: String?,
     val klass: String?,
     val updatedAt: Long,
-    val path: String?
+    val path: String?,
+    /**
+     * Path of the thumbnail the stack signed for this file. It carries a secret,
+     * so it cannot be rebuilt from the id (see the web client, which also reads
+     * it off the document).
+     */
+    val thumbnailLink: String? = null
 ) {
     fun hasThumbnail(): Boolean = klass == "image"
 
@@ -30,7 +36,23 @@ data class CozyFile(
             return try { iso.get()!!.parse(s.substring(0, 19))?.time ?: 0L } catch (e: Exception) { 0L }
         }
 
-        fun fromAttributes(id: String, a: JSONObject): CozyFile {
+        /** The `links` of a JSON-API document, preferring the size the picker shows. */
+        private fun thumbnailLinkOf(links: JSONObject?): String? {
+            if (links == null) return null
+            for (size in arrayOf("medium", "small", "large", "tiny")) {
+                val link = links.optString(size).ifBlank { null }
+                if (link != null) return link
+            }
+            return null
+        }
+
+        fun fromDocument(node: JSONObject): CozyFile = fromAttributes(
+            node.getString("id"),
+            node.getJSONObject("attributes"),
+            node.optJSONObject("links")
+        )
+
+        fun fromAttributes(id: String, a: JSONObject, links: JSONObject? = null): CozyFile {
             val isDir = a.optString("type") == "directory"
             return CozyFile(
                 id = id,
@@ -41,7 +63,8 @@ data class CozyFile(
                 mime = a.optString("mime").ifBlank { null },
                 klass = a.optString("class").ifBlank { null },
                 updatedAt = parseDate(a.optString("updated_at").ifBlank { null }),
-                path = a.optString("path").ifBlank { null }
+                path = a.optString("path").ifBlank { null },
+                thumbnailLink = thumbnailLinkOf(links)
             )
         }
     }
