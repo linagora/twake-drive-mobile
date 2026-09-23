@@ -69,9 +69,11 @@ scripts/release.sh 0.3.0        # bumps package.json + app.json, commits, tags, 
 ```
 
 Pushing the tag starts both release workflows. The marketing version is the
-tag. The Android version code is derived from it (`0.4.2` gives `402`), so it
-follows the releases rather than a CI counter, which restarts at 1 when the
-releases move to another repository. The iOS build number is the CI run
+tag. The Android version code is derived from it (`0.4.2` gives `40299`), so
+it follows the releases rather than a CI counter, which restarts at 1 when the
+releases move to another repository. Its last two digits rank a prerelease
+under the version it leads to, so `0.5.0-rc.1` gives `50001` and `0.5.0` gives
+`50099`, and Play never sees the same code twice. The iOS build number is the CI run
 number, which TestFlight only needs to be unique within a version.
 
 - iOS lands in TestFlight. `publish_to_app_store: true` on a manual run also

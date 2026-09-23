@@ -87,11 +87,20 @@ def appJson = new groovy.json.JsonSlurper().parseText(file("../../app.json").tex
 def buildVersionName = System.getenv("VERSION_NAME") ?: appJson.expo.version
 // Derived from that version rather than from a CI counter: a counter restarts
 // at 1 when the releases move to another repository, and Play refuses an
-// update whose code is lower than the one already published.
+// update whose code is lower than the one already published. The last two
+// digits rank a prerelease under the version it leads to, which Play needs
+// since it refuses two uploads sharing a code: 0.5.0-rc.1 is 50001, its
+// rc.2 is 50002, and 0.5.0 itself is 50099.
+def cleanVersionName = buildVersionName.replaceAll('^v', '')
+def preReleaseTag = cleanVersionName.contains('-') ?
+    cleanVersionName.substring(cleanVersionName.indexOf('-') + 1) : ''
+def preReleaseNumbers = preReleaseTag.findAll(/\d+/)
+def preReleaseRank = preReleaseTag.isEmpty() ? 99 :
+    Math.max(1, Math.min(98, preReleaseNumbers.isEmpty() ? 1 : preReleaseNumbers.last().toInteger()))
 def buildVersionCode = appJson.expo.android?.versionCode ?:
-    buildVersionName.replaceAll('^v', '').split('-')[0].split("\\.").inject(0) { acc, part ->
+    (cleanVersionName.split('-')[0].split("\\.").inject(0) { acc, part ->
         acc * 100 + part.toInteger()
-    }
+    } * 100 + preReleaseRank)
 
 android {
     ndkVersion rootProject.ext.ndkVersion
