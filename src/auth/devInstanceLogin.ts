@@ -3,7 +3,7 @@
  *
  * It exists for a development build, and for the end-to-end runs, which sign
  * into a stack created for the run and have no cloudery or OIDC discovery to
- * go through. A shipped build has neither of those and never shows it.
+ * go through. It is on everywhere for now, so the entry point can be tried
+ * from TestFlight and the Play internal track.
  */
-export const isDevInstanceLoginEnabled = (): boolean =>
-  __DEV__ || process.env.EXPO_PUBLIC_E2E === '1'
+export const isDevInstanceLoginEnabled = (): boolean => true
