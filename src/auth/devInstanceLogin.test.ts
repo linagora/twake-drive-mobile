@@ -18,8 +18,8 @@ describe('isDevInstanceLoginEnabled', () => {
     expect(isDevInstanceLoginEnabled()).toBe(true)
   })
 
-  it('is off in a shipped build', () => {
+  it('is on in a shipped build too, while the entry point is being tested', () => {
     ;(global as unknown as { __DEV__: boolean }).__DEV__ = false
-    expect(isDevInstanceLoginEnabled()).toBe(false)
+    expect(isDevInstanceLoginEnabled()).toBe(true)
   })
 })
