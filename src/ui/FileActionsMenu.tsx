@@ -54,6 +54,9 @@ export const FileActionsMenu = ({
   // "Remove from offline" only applies to a DIRECT pin: a file that is offline
   // because its parent folder is pinned must offer "Keep offline" instead.
   const isDirectPin = !!offlineEntry?.isDirectPin
+  // A download reads the blob of a file kept offline and falls back to the
+  // stack for anything else, so offline it is offered only for the first.
+  const isDownloadable = isOnline || offlineEntry?.state === 'downloaded'
 
   return (
     <Menu
@@ -184,6 +187,7 @@ export const FileActionsMenu = ({
         leadingIcon={() => <CozyIcon name="download" size={24} color={theme.colors.onSurface} />}
         title={t('drive.fileMeta.download')}
         testID="action-download"
+        disabled={!isDownloadable}
         onPress={() => {
           setMenuVisible(false)
           if (!client) return
