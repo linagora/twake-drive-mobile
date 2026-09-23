@@ -9,6 +9,7 @@ import { TwakeLogo } from '@/ui/icons/TwakeLogo'
 import { useAuth } from '@/auth/useAuth'
 import { UserCancelledError } from '@/auth/types'
 import { isDevInstanceLoginEnabled } from '@/auth/devInstanceLogin'
+import { enterDrive } from '@/auth/enterDrive'
 
 export default function WelcomeScreen() {
   const { t } = useTranslation()
@@ -33,7 +34,7 @@ export default function WelcomeScreen() {
     setLoading(mode)
     try {
       await loginWithTwakeWorkplace(mode)
-      router.replace('/(drive)/files')
+      enterDrive(router)
     } catch (err) {
       const e = err as Error
       if (err instanceof UserCancelledError) {
