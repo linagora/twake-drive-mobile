@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       flows:
-        description: 'Maestro path to run (default: the CI flows)'
+        description: 'Maestro paths to run, space separated (the login flow first)'
         required: false
         default: 'e2e/maestro/flows/00-login-instance.yaml'
 
@@ -100,7 +100,11 @@ jobs:
           script: |
             adb install -r android/app/build/outputs/apk/release/app-release.apk
             adb shell pm clear com.linagora.twakedrive || true
-            maestro test --env INSTANCE_URL="http://$INSTANCE_DOMAIN" --env INSTANCE_PASSPHRASE="$INSTANCE_PASSPHRASE" --format junit --output /tmp/maestro-report.xml "$FLOWS"
+            # Unquoted on purpose: a dispatch passes several paths, and the
+            # session the login flow leaves behind only lives for this one
+            # emulator run, so the flows that need it come along with it.
+            # shellcheck disable=SC2086
+            maestro test --env INSTANCE_URL="http://$INSTANCE_DOMAIN" --env INSTANCE_PASSPHRASE="$INSTANCE_PASSPHRASE" --format junit --output /tmp/maestro-report.xml $FLOWS
             # The app is signed in by the flow above, so the tour can walk it and
             # leave a screenshot at every stop. Captured, not compared: an
             # Android baseline is committed once these are eyeballed.
