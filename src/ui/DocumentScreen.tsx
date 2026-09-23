@@ -1,11 +1,12 @@
 import React from 'react'
-import { Platform, Pressable, StatusBar, StyleSheet, View } from 'react-native'
+import { Animated, Platform, Pressable, StatusBar, StyleSheet, View } from 'react-native'
 import { Appbar, Text, useTheme } from 'react-native-paper'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useTranslation } from 'react-i18next'
 
 import { CozyIcon } from '@/ui/icons/CozyIcon'
 import { cozyTokens } from '@/ui/theme'
+import { useAutoHidingChrome } from './useAutoHidingChrome'
 
 /**
  * How a document screen is framed.
@@ -39,6 +40,7 @@ type Props =
 
 export const DOCUMENT_BACK_TEST_ID = 'document-back-button'
 export const DOCUMENT_CONTENT_TEST_ID = 'document-content'
+export const DOCUMENT_CHROME_TEST_ID = 'document-chrome'
 
 export const DocumentScreen = ({
   title,
@@ -50,6 +52,7 @@ export const DocumentScreen = ({
   const theme = useTheme()
   const insets = useSafeAreaInsets()
   const { t } = useTranslation()
+  const { visible, opacity, reveal } = useAutoHidingChrome()
   const androidTopInset = Platform.OS === 'ios' ? 0 : insets.top || StatusBar.currentHeight || 0
   const barTopInset = Platform.OS === 'ios' ? 0 : insets.top
 
@@ -59,12 +62,19 @@ export const DocumentScreen = ({
         <View
           testID={DOCUMENT_CONTENT_TEST_ID}
           style={[styles.screen, { paddingTop: androidTopInset }]}
+          // Capture without taking the gesture: a tap or the start of a scroll
+          // brings the bar back, and still reaches the document underneath.
+          onStartShouldSetResponderCapture={() => {
+            reveal()
+            return false
+          }}
         >
           {children}
         </View>
-        <View
-          style={[styles.floatingBar, { top: barTopInset + cozyTokens.spacing.sm }]}
-          pointerEvents="box-none"
+        <Animated.View
+          testID={DOCUMENT_CHROME_TEST_ID}
+          style={[styles.floatingBar, { top: barTopInset + cozyTokens.spacing.sm, opacity }]}
+          pointerEvents={visible ? 'box-none' : 'none'}
         >
           <Pressable
             onPress={onBack}
@@ -98,7 +108,7 @@ export const DocumentScreen = ({
               />
             </Pressable>
           ))}
-        </View>
+        </Animated.View>
       </View>
     )
   }
