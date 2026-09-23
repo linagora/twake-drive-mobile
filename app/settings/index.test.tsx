@@ -53,6 +53,18 @@ jest.mock('@/auth/useAuth', () => ({
   useAuth: () => ({ logout: mockLogout })
 }))
 
+// The legal notice row reads the instance settings through cozy-client, which
+// this isolated render has no client for.
+let mockLegalNoticeUrl: string | undefined
+jest.mock('@/account/useLegalNotice', () => ({
+  useLegalNoticeUrl: () => mockLegalNoticeUrl
+}))
+
+const mockOpenBrowser = jest.fn()
+jest.mock('expo-web-browser', () => ({
+  openBrowserAsync: (...args: unknown[]) => mockOpenBrowser(...args)
+}))
+
 // The deletion row hands off to the settings web app through useDeleteAccount,
 // which needs a CozyClient this isolated render has none of.
 const mockDeleteAccount = jest.fn()
@@ -72,7 +84,9 @@ const renderScreen = () =>
 describe('SettingsIndex', () => {
   beforeEach(() => {
     mockUser = { initials: 'MM', loading: false }
+    mockLegalNoticeUrl = undefined
     mockLogout.mockReset()
+    mockOpenBrowser.mockReset()
     mockDeleteAccount.mockReset()
   })
 
@@ -130,6 +144,20 @@ describe('SettingsIndex', () => {
       fireEvent.press(getByTestId('settings-delete-account'))
       fireEvent.press(getByTestId('delete-account-dialog-cancel'))
       expect(mockDeleteAccount).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('legal notice', () => {
+    it('opens the address the instance names, in the in-app browser', () => {
+      mockLegalNoticeUrl = 'https://twake.app/legal'
+      const { getByTestId } = renderScreen()
+      fireEvent.press(getByTestId('settings-legal-notice'))
+      expect(mockOpenBrowser).toHaveBeenCalledWith('https://twake.app/legal')
+    })
+
+    it('hides the row when the instance names no legal notice', () => {
+      const { queryByTestId } = renderScreen()
+      expect(queryByTestId('settings-legal-notice')).toBeNull()
     })
   })
 })

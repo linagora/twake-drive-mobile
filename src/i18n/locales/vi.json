@@ -23,7 +23,8 @@
     "general": "Chung",
     "deleteAccount": "Xóa tài khoản",
     "deleteAccountMessage": "Việc xóa tài khoản sẽ xóa vĩnh viễn các tệp và dữ liệu của bạn. Bạn sẽ được chuyển đến trang xóa tài khoản để xác nhận yêu cầu.",
-    "deleteAccountContinue": "Tiếp tục"
+    "deleteAccountContinue": "Tiếp tục",
+    "legalNotice": "Thông tin pháp lý"
   },
   "auth": {
     "welcomeTitle": "Chào mừng đến với Twake Drive",
