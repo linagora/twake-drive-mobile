@@ -4,11 +4,13 @@ import { List, useTheme } from 'react-native-paper'
 
 import { CozyIcon } from '@/ui/icons/CozyIcon'
 import { FileTypeIcon } from '@/ui/icons/FileTypeIcon'
+import { getFileIcon } from '@/utils/fileIcons'
 
 export interface FolderPickerRowItem {
   _id: string
   name: string
   type: 'file' | 'directory'
+  mime?: string
 }
 
 interface Props {
@@ -29,7 +31,7 @@ export const FolderPickerRow = ({ item, disabled, onPress, testID }: Props) => {
       titleStyle={disabled ? { color: theme.colors.outline } : undefined}
       left={props => (
         <View style={[props.style, styles.leftSlot, disabled && styles.dimmed]}>
-          <FileTypeIcon icon={isFolder ? 'folder' : 'files'} size={32} />
+          <FileTypeIcon icon={getFileIcon(item.type, item.mime, item.name)} size={32} />
         </View>
       )}
       right={props =>
