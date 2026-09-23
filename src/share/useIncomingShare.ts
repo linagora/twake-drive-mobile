@@ -17,10 +17,10 @@ interface RawFile {
   size?: number | null
 }
 
-// expo-share-intent's getScheme() defaults to app.json scheme[0] (= "cozy",
-// reserved for the OAuth deep-link). Force the dedicated "twakedrive" scheme so
-// the JS listener (twakedrive://dataUrl=) and the reset key ("twakedriveShareKey")
-// match exactly what the iOS Share Extension redirects to.
+// expo-share-intent's getScheme() defaults to app.json scheme[0]. Name the
+// scheme here rather than rely on that order, so the JS listener
+// (twakedrive://dataUrl=) and the reset key ("twakedriveShareKey") match
+// exactly what the iOS Share Extension redirects to.
 const SHARE_INTENT_OPTIONS = { scheme: SHARE_SCHEME } as const
 
 const normalizeUri = (path: string): string =>
