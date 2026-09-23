@@ -68,12 +68,14 @@ const mockSession = {
 }
 
 const Probe = () => {
-  const { status, login, logout } = useAuth()
+  const { status, login, logout, sessionExpired } = useAuth()
   return (
     <>
       <Text testID="status">{status}</Text>
+      <Text testID="expired">{String(sessionExpired)}</Text>
       <Pressable testID="login" onPress={() => login('user@example.com').catch(() => {})} />
       <Pressable testID="logout" onPress={() => logout()} />
+      <Pressable testID="logout-expired" onPress={() => logout({ expired: true })} />
     </>
   )
 }
@@ -135,6 +137,44 @@ describe('useAuth', () => {
 
     await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('authenticated'))
     expect(saveSpy).toHaveBeenCalledWith(mockSession)
+  })
+
+  // A session revoked from the web ends on its own: the welcome screen has to
+  // say so rather than reappear as if the user had asked to leave (#270).
+  it('a session that ended on its own is flagged for the welcome screen', async () => {
+    jest.spyOn(tokenStorage, 'getSession').mockResolvedValue(mockSession)
+    jest.spyOn(tokenStorage, 'clearSession').mockResolvedValue()
+    render(
+      <AuthProvider>
+        <Probe />
+      </AuthProvider>
+    )
+    await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('authenticated'))
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('logout-expired'))
+    })
+
+    await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('unauthenticated'))
+    expect(screen.getByTestId('expired')).toHaveTextContent('true')
+  })
+
+  it('a logout the user asked for explains nothing', async () => {
+    jest.spyOn(tokenStorage, 'getSession').mockResolvedValue(mockSession)
+    jest.spyOn(tokenStorage, 'clearSession').mockResolvedValue()
+    render(
+      <AuthProvider>
+        <Probe />
+      </AuthProvider>
+    )
+    await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('authenticated'))
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('logout'))
+    })
+
+    await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('unauthenticated'))
+    expect(screen.getByTestId('expired')).toHaveTextContent('false')
   })
 
   it('logout clears session and transitions to unauthenticated', async () => {
