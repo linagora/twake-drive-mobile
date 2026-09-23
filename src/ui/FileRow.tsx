@@ -142,7 +142,6 @@ export const FileRow = ({
             onMove={onMove}
             onInfo={onInfo}
             onFavoriteChange={onFavoriteChange}
-            testID="file-actions"
           />
         ) : null}
       </View>
