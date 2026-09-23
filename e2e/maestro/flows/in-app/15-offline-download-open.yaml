@@ -13,7 +13,10 @@ env:
 # Airplane mode is an Android-only Maestro command, hence the `android` tag.
 #
 # The file and its content are what the disposable instance seeds
-# (e2e/stack/setup.sh). The flow unpins at the end, so a rerun starts clean.
+# (e2e/stack/setup.sh). The flow unpins at the end, so a rerun starts clean,
+# and it clears airplane mode at the start: a flow killed midway leaves the
+# radio as it was.
+- setAirplaneMode: disabled
 - runFlow: ../../subflows/openDrive.yaml
 - extendedWaitUntil:
     visible: '${FILE}'

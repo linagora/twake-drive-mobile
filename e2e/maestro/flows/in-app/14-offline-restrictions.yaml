@@ -7,19 +7,18 @@ env:
   FOLDER: 'Documents'
 ---
 # Offline: the app says so, and the writes it cannot carry out are refused
-# rather than attempted. There is no offline queue (see requireOnline).
+# before they are started — the row menu offers them greyed out rather than
+# letting a tap fail. There is no offline queue (see requireOnline).
 #
 # Airplane mode is an Android-only Maestro command, hence the `android` tag.
-# The flow puts the radio back whatever it asserted, so a failure in the middle
-# does not leave the emulator offline for the flows that follow — the last two
-# steps run even on success, and a failing run is followed by `cleanup`.
+# The radio is turned off at the start too: a flow that fails midway is killed
+# on the spot and cannot put it back, so the next run clears it rather than
+# inheriting it.
 #
 # The material is what the disposable instance seeds (e2e/stack/setup.sh):
-# a `Documents` folder and a `readme.txt` file at the root. Nothing is typed.
-#
-# What is asserted is either a testID or a name the stack holds; the two
-# messages are matched in both languages, since the device language decides
-# which one the app shows.
+# a `Documents` folder and a `readme.txt` file at the root. Nothing is typed,
+# and nothing asserted here is a translated label.
+- setAirplaneMode: disabled
 - runFlow: ../../subflows/openDrive.yaml
 - extendedWaitUntil:
     visible: '${FILE}'
@@ -37,46 +36,34 @@ env:
 - assertNotVisible:
     id: 'drive-fab'
 
-# Renaming: the dialog opens, the write is refused on submit.
+# Everything that writes to the stack is out of reach.
 - tapOn:
     id: 'file-actions:${FILE}'
 - waitForAnimationToEnd
-- tapOn:
+- assertVisible:
     id: 'action-rename'
-- waitForAnimationToEnd
-- tapOn:
-    id: 'rename-name-input'
-- inputText: 'x'
-- tapOn:
-    id: 'rename-submit'
-- extendedWaitUntil:
-    visible: '.*(quand vous serez en ligne|back online).*'
-    timeout: 15000
-- assertVisible: '${FILE}'
-
-# Trashing: same, the entry is still there afterwards.
-- tapOn:
-    id: 'file-actions:${FILE}'
-- waitForAnimationToEnd
-- tapOn:
+    enabled: false
+- assertVisible:
     id: 'action-delete'
-- waitForAnimationToEnd
-- tapOn:
-    id: 'confirm-delete-submit'
-- extendedWaitUntil:
-    visible: '.*(quand vous serez en ligne|back online).*'
-    timeout: 15000
-- assertVisible: '${FILE}'
-
-# Sharing needs the stack for every step, so it is refused before opening.
-- tapOn:
-    id: 'file-actions:${FILE}'
-- waitForAnimationToEnd
-- tapOn:
+    enabled: false
+- assertVisible:
+    id: 'action-move'
+    enabled: false
+- assertVisible:
     id: 'action-share'
-- extendedWaitUntil:
-    visible: '.*(quand vous serez en ligne|back online).*'
-    timeout: 15000
+    enabled: false
+- assertVisible:
+    id: 'action-favorite'
+    enabled: false
+# Keeping a file offline is a download, so it needs the stack as well.
+- assertVisible:
+    id: 'action-pin'
+    enabled: false
+# Reading what the replica already holds stays available.
+- assertVisible:
+    id: 'action-info'
+    enabled: true
+- back
 
 # Browsing still works: the local replica serves the folder.
 - tapOn:
