@@ -42,12 +42,20 @@ const makePlayer = (playing: boolean) => ({
   addListener: jest.fn().mockReturnValue({ remove: jest.fn() })
 })
 
+let inPictureInPicture = false
+const mockSetPiP = jest.fn((value: boolean) => {
+  inPictureInPicture = value
+})
+const mockIsPiP = jest.fn(() => inPictureInPicture)
+
 const wrap = (ui: React.ReactElement, playing = true) => {
   const ctxValue: PiPSessionContextValue = {
     active: null,
     player: makePlayer(playing) as unknown as PiPSessionContextValue['player'],
     claim: mockClaim,
-    release: mockRelease
+    release: mockRelease,
+    setPictureInPicture: mockSetPiP,
+    isPictureInPicture: mockIsPiP
   }
   return <PiPSessionContext.Provider value={ctxValue}>{ui}</PiPSessionContext.Provider>
 }
@@ -58,6 +66,9 @@ describe('VideoPreview', () => {
     mockPush.mockReset()
     mockClaim.mockReset()
     mockRelease.mockReset()
+    mockSetPiP.mockClear()
+    mockIsPiP.mockClear()
+    inPictureInPicture = false
     captured.onStart = undefined
     captured.onStop = undefined
   })
@@ -77,7 +88,9 @@ describe('VideoPreview', () => {
       active: null,
       player,
       claim: mockClaim,
-      release: mockRelease
+      release: mockRelease,
+      setPictureInPicture: mockSetPiP,
+      isPictureInPicture: mockIsPiP
     }
     render(
       <PiPSessionContext.Provider value={ctxValue}>
@@ -116,5 +129,39 @@ describe('VideoPreview', () => {
     captured.onStop!()
     await new Promise(resolve => setTimeout(resolve, 10))
     expect(mockPush).toHaveBeenCalledWith('/preview/f1')
+  })
+
+  // The video kept playing, sound and all, once the preview was gone.
+  it('stops the video when the preview is left', () => {
+    const view = render(
+      wrap(<VideoPreview fileId="f1" source={{ uri: 'https://x/v.mp4', headers: {} }} />)
+    )
+
+    view.unmount()
+
+    expect(mockRelease).toHaveBeenCalledTimes(1)
+  })
+
+  // Starting PiP unmounts this view on purpose, and the player has to survive
+  // it for the OS layer to keep going.
+  it('leaves the player alone when PiP took the video', () => {
+    const view = render(
+      wrap(<VideoPreview fileId="f1" source={{ uri: 'https://x/v.mp4', headers: {} }} />)
+    )
+    act(() => captured.onStart!())
+
+    view.unmount()
+
+    expect(mockSetPiP).toHaveBeenCalledWith(true)
+    expect(mockRelease).not.toHaveBeenCalled()
+  })
+
+  it('tells the session the PiP window is gone', () => {
+    render(wrap(<VideoPreview fileId="f1" source={{ uri: 'https://x/v.mp4', headers: {} }} />))
+    act(() => captured.onStart!())
+
+    act(() => captured.onStop!())
+
+    expect(mockSetPiP).toHaveBeenLastCalledWith(false)
   })
 })

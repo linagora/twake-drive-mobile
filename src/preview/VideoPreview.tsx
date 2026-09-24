@@ -16,7 +16,7 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window')
 
 export const VideoPreview = ({ fileId, source }: VideoPreviewProps): React.ReactElement => {
   const router = useRouter()
-  const { player, claim } = usePiPSession()
+  const { player, claim, release, setPictureInPicture, isPictureInPicture } = usePiPSession()
   // Read the current player status synchronously so the spinner doesn't
   // get stuck when we mount after the player is already loaded (e.g. on
   // PiP restore, where the player has been streaming for a while and the
@@ -25,10 +25,18 @@ export const VideoPreview = ({ fileId, source }: VideoPreviewProps): React.React
 
   useEffect(() => {
     claim(fileId, source)
-    // Important: do NOT release on unmount. When PiP starts we router.back()
-    // which unmounts this component, but the player must stay alive at the
-    // session level for the OS PiP layer to keep playing.
   }, [fileId, source, claim])
+
+  // Leaving the preview stops the video, however it is left: the back control
+  // or the sheet swiped away. Starting PiP also unmounts this view, on purpose
+  // (router.back() below), and there the player must stay alive for the OS
+  // layer — which is the one case this leaves alone.
+  useEffect(
+    () => () => {
+      if (!isPictureInPicture()) release()
+    },
+    [release, isPictureInPicture]
+  )
 
   useEffect(() => {
     if (player.status === 'readyToPlay') setReady(true)
@@ -53,6 +61,7 @@ export const VideoPreview = ({ fileId, source }: VideoPreviewProps): React.React
         // video instead of over a black rectangle the user has to tap.
         nativeControls={ready}
         onPictureInPictureStart={() => {
+          setPictureInPicture(true)
           // Dismiss the page-sheet modal so iOS can detach PiP at system
           // level. AVPictureInPictureController cannot detach from a
           // presented page-sheet view controller — the parent must be
@@ -61,6 +70,7 @@ export const VideoPreview = ({ fileId, source }: VideoPreviewProps): React.React
           if (router.canGoBack()) router.back()
         }}
         onPictureInPictureStop={() => {
+          setPictureInPicture(false)
           // KNOWN LIMITATION: tapping "restore" on the PiP window does
           // not bring the video back. expo-video does not expose iOS's
           // restoreUserInterfaceForPictureInPictureStop callback, so we
