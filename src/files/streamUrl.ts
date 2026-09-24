@@ -13,11 +13,17 @@ export interface StreamSource {
 /**
  * `driveId` switches the download to the shared-drive route: a drive file is
  * held by the owner instance, which only serves it through the drive.
+ *
+ * The address is built from `rev` so that it stays the same for as long as the
+ * document does: the players and the PDF viewer take the URL as the identity
+ * of what they are showing, and restart on any change. Without a revision it
+ * falls back to a one-off address, which is still correct, only wasteful.
  */
 export const buildFileStreamSource = (
   client: CozyClient,
   fileId: string,
-  driveId?: string
+  driveId?: string,
+  rev?: string
 ): StreamSource => {
   const stackClient = client.getStackClient() as unknown as MinimalStackClient
   const stackUri = stackClient.uri
@@ -25,7 +31,7 @@ export const buildFileStreamSource = (
   if (!stackUri) throw new Error('Stack URI unavailable')
   if (!token) throw new Error('No access token available')
   return {
-    uri: buildFreshDownloadUrl(stackUri, fileId, driveId),
+    uri: buildRevisionDownloadUrl(stackUri, fileId, rev, driveId),
     headers: { Authorization: `Bearer ${token}` }
   }
 }
