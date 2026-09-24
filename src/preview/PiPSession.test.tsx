@@ -72,4 +72,38 @@ describe('PiPSession', () => {
     })
     expect(result.current).toBeInstanceOf(Error)
   })
+
+  describe('picture in picture', () => {
+    it('keeps the video out of the background until a PiP window takes it', () => {
+      const { result } = renderHook(() => usePiPSession(), { wrapper: wrap })
+
+      expect(result.current.player.staysActiveInBackground).toBe(false)
+      expect(result.current.isPictureInPicture()).toBe(false)
+
+      act(() => result.current.setPictureInPicture(true))
+
+      expect(result.current.player.staysActiveInBackground).toBe(true)
+      expect(result.current.isPictureInPicture()).toBe(true)
+    })
+
+    it('stops following the user around once the PiP window is gone', () => {
+      const { result } = renderHook(() => usePiPSession(), { wrapper: wrap })
+
+      act(() => result.current.setPictureInPicture(true))
+      act(() => result.current.setPictureInPicture(false))
+
+      expect(result.current.player.staysActiveInBackground).toBe(false)
+      expect(result.current.isPictureInPicture()).toBe(false)
+    })
+
+    // Read at unmount, where a value captured on the last render is stale.
+    it('answers with the state at the time of the question', () => {
+      const { result } = renderHook(() => usePiPSession(), { wrapper: wrap })
+      const ask = result.current.isPictureInPicture
+
+      act(() => result.current.setPictureInPicture(true))
+
+      expect(ask()).toBe(true)
+    })
+  })
 })
