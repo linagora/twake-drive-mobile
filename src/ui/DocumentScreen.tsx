@@ -13,10 +13,13 @@ import { useAutoHidingChrome } from './useAutoHidingChrome'
  *
  * - `immersive`: the document takes the whole dark canvas, the name, the way
  *   back and the actions floating over it.
+ * - `player`: the same bar, in flow above the document rather than over it,
+ *   and always on screen. For a document that draws controls of its own: two
+ *   layers hiding themselves on two timers, in the same band, fight.
  * - `editor`: the web editor draws its own header inside, so the native bar
  *   stays down to the way back.
  */
-export type DocumentChrome = 'immersive' | 'editor'
+export type DocumentChrome = 'immersive' | 'player' | 'editor'
 
 export interface DocumentAction {
   icon: string
@@ -35,7 +38,7 @@ interface CommonProps {
 
 /** The editor chrome shows no title, so those routes do not have to know one. */
 type Props =
-  | (CommonProps & { chrome?: 'immersive'; title: string })
+  | (CommonProps & { chrome?: 'immersive' | 'player'; title: string })
   | (CommonProps & { chrome: 'editor'; title?: string })
 
 export const DOCUMENT_BACK_TEST_ID = 'document-back-button'
@@ -56,14 +59,70 @@ export const DocumentScreen = ({
   const androidTopInset = Platform.OS === 'ios' ? 0 : insets.top || StatusBar.currentHeight || 0
   const barTopInset = Platform.OS === 'ios' ? 0 : insets.top
 
-  if (chrome === 'immersive') {
+  if (chrome === 'immersive' || chrome === 'player') {
+    const floating = chrome === 'immersive'
+    const bar = (
+      <Animated.View
+        testID={DOCUMENT_CHROME_TEST_ID}
+        style={[
+          styles.bar,
+          floating
+            ? [styles.floatingBar, { top: barTopInset + cozyTokens.spacing.sm, opacity }]
+            : [styles.staticBar, { marginTop: barTopInset + cozyTokens.spacing.sm }]
+        ]}
+        pointerEvents={!floating || visible ? 'box-none' : 'none'}
+      >
+        <Pressable
+          onPress={onBack}
+          accessibilityRole="button"
+          accessibilityLabel={t('common.back')}
+          testID={DOCUMENT_BACK_TEST_ID}
+          hitSlop={cozyTokens.spacing.sm}
+          style={styles.floatingControl}
+        >
+          <CozyIcon name="previous" size={cozyTokens.iconSize.md} color={cozyTokens.canvas.on} />
+        </Pressable>
+        <Text style={styles.floatingTitle} numberOfLines={1}>
+          {title}
+        </Text>
+        {(actions ?? []).map(action => (
+          <Pressable
+            key={action.icon}
+            onPress={action.onPress}
+            disabled={action.disabled}
+            accessibilityRole="button"
+            accessibilityLabel={action.label}
+            accessibilityState={{ disabled: !!action.disabled }}
+            testID={action.testID}
+            hitSlop={cozyTokens.spacing.sm}
+            style={[styles.floatingControl, action.disabled && styles.disabled]}
+          >
+            <CozyIcon
+              name={action.icon}
+              size={cozyTokens.iconSize.md}
+              color={cozyTokens.canvas.on}
+            />
+          </Pressable>
+        ))}
+      </Animated.View>
+    )
+
+    if (!floating) {
+      return (
+        <View style={[styles.screen, styles.canvas]}>
+          {bar}
+          <View testID={DOCUMENT_CONTENT_TEST_ID} style={styles.screen}>
+            {children}
+          </View>
+        </View>
+      )
+    }
+
     return (
       <View style={[styles.screen, styles.canvas]}>
         <View
           testID={DOCUMENT_CONTENT_TEST_ID}
           style={[styles.screen, { paddingTop: androidTopInset }]}
-          // Capture without taking the gesture: a tap or the start of a scroll
-          // brings the bar back, and still reaches the document underneath.
           onStartShouldSetResponderCapture={() => {
             reveal()
             return false
@@ -71,44 +130,7 @@ export const DocumentScreen = ({
         >
           {children}
         </View>
-        <Animated.View
-          testID={DOCUMENT_CHROME_TEST_ID}
-          style={[styles.floatingBar, { top: barTopInset + cozyTokens.spacing.sm, opacity }]}
-          pointerEvents={visible ? 'box-none' : 'none'}
-        >
-          <Pressable
-            onPress={onBack}
-            accessibilityRole="button"
-            accessibilityLabel={t('common.back')}
-            testID={DOCUMENT_BACK_TEST_ID}
-            hitSlop={cozyTokens.spacing.sm}
-            style={styles.floatingControl}
-          >
-            <CozyIcon name="previous" size={cozyTokens.iconSize.md} color={cozyTokens.canvas.on} />
-          </Pressable>
-          <Text style={styles.floatingTitle} numberOfLines={1}>
-            {title}
-          </Text>
-          {(actions ?? []).map(action => (
-            <Pressable
-              key={action.icon}
-              onPress={action.onPress}
-              disabled={action.disabled}
-              accessibilityRole="button"
-              accessibilityLabel={action.label}
-              accessibilityState={{ disabled: !!action.disabled }}
-              testID={action.testID}
-              hitSlop={cozyTokens.spacing.sm}
-              style={[styles.floatingControl, action.disabled && styles.disabled]}
-            >
-              <CozyIcon
-                name={action.icon}
-                size={cozyTokens.iconSize.md}
-                color={cozyTokens.canvas.on}
-              />
-            </Pressable>
-          ))}
-        </Animated.View>
+        {bar}
       </View>
     )
   }
@@ -139,14 +161,20 @@ export const DocumentScreen = ({
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   canvas: { backgroundColor: cozyTokens.canvas.background },
+  bar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: cozyTokens.spacing.sm
+  },
   floatingBar: {
     position: 'absolute',
     left: cozyTokens.spacing.sm,
     right: cozyTokens.spacing.sm,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: cozyTokens.spacing.sm,
     zIndex: cozyTokens.zIndex.chrome
+  },
+  staticBar: {
+    marginHorizontal: cozyTokens.spacing.sm,
+    marginBottom: cozyTokens.spacing.sm
   },
   floatingControl: {
     width: 40,
