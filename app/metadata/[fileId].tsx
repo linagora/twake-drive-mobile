@@ -90,7 +90,12 @@ export default function MetadataRoute() {
     if (!client || !file) return
     if (webEditorKindOf(file)) {
       close()
-      await openEditor({ _id: file._id, name: file.name, mime: file.mime })
+      await openEditor({
+        _id: file._id,
+        name: file.name,
+        mime: file.mime,
+        metadata: file.metadata
+      })
       return
     }
     if (canPreviewInApp(file)) {

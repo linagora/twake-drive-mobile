@@ -15,6 +15,7 @@ interface FileLike {
   name: string
   mime?: string
   class?: string
+  metadata?: { externalId?: string }
 }
 
 /**
@@ -44,7 +45,10 @@ export const openFileFromList = async (
     return
   }
   if (webEditorKindOf(file) && openEditor) {
-    await openEditor({ _id: file._id, name: file.name, mime: file.mime }, driveId)
+    await openEditor(
+      { _id: file._id, name: file.name, mime: file.mime, metadata: file.metadata },
+      driveId
+    )
     return
   }
   if (canPreviewInApp(file)) {

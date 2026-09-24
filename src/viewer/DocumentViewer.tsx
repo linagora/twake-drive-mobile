@@ -22,6 +22,7 @@ export interface DocumentViewerFile {
   _rev?: string
   name: string
   mime?: string
+  metadata?: { externalId?: string }
 }
 
 interface Props {

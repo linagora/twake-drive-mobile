@@ -28,6 +28,7 @@ export interface FileItem {
   class?: string
   updated_at?: string
   links?: { tiny?: string; small?: string; medium?: string; large?: string }
+  metadata?: { externalId?: string }
   cozyMetadata?: { favorite?: boolean }
 }
 
