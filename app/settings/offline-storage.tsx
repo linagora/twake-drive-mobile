@@ -107,7 +107,7 @@ export default function OfflineStorageScreen() {
 
   return (
     <ScreenContainer>
-      <AppBar title={t('drive.offline.storageTitle')} onBack={() => router.back()} />
+      <AppBar sheet title={t('drive.offline.storageTitle')} onBack={() => router.back()} />
       <ScrollView>
         <SettingsRow
           title={t('drive.offline.totalUsed')}

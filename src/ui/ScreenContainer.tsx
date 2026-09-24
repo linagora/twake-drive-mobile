@@ -1,18 +1,17 @@
 import React from 'react'
 import { StyleProp, View, ViewStyle } from 'react-native'
 import { useTheme } from 'react-native-paper'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
+
+import { useSheetTopInset } from './sheetInset'
 
 interface Props {
   children: React.ReactNode
   style?: StyleProp<ViewStyle>
   /**
-   * Pad the top by the device status-bar inset. Drive screens get this from
-   * their AppBar/tab chrome, but full-screen routes (the editor WebViews) draw
-   * edge-to-edge and would otherwise render under the status bar — set this so
-   * the phone's clock/icons stay visible above the editor.
+   * Set on a screen presented as a sheet that draws its own top edge. Adds the
+   * inset the platform actually needs, which on iOS is none.
    */
-  safeTop?: boolean
+  sheet?: boolean
 }
 
 /**
@@ -21,13 +20,17 @@ interface Props {
  * screens that don't explicitly set a backgroundColor end up with whatever
  * the parent (Tabs sceneStyle) supplies, which has been flaky.
  */
-export const ScreenContainer = ({ children, style, safeTop }: Props): React.ReactElement => {
+export const ScreenContainer = ({ children, style, sheet }: Props): React.ReactElement => {
   const theme = useTheme()
-  const insets = useSafeAreaInsets()
+  const sheetTopInset = useSheetTopInset()
   return (
     <View
       style={[
-        { flex: 1, backgroundColor: theme.colors.background, paddingTop: safeTop ? insets.top : 0 },
+        {
+          flex: 1,
+          backgroundColor: theme.colors.background,
+          paddingTop: sheet ? sheetTopInset : 0
+        },
         style
       ]}
     >

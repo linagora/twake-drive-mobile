@@ -8,6 +8,7 @@ import { TwakeLogo } from '@/ui/icons/TwakeLogo'
 import { CozyIcon } from '@/ui/icons/CozyIcon'
 import { useCurrentUser } from '@/account/useCurrentUser'
 import { cozyTokens } from '@/ui/theme'
+import { useSheetTopInset } from './sheetInset'
 
 export interface AppBarSelectionAction {
   icon: string
@@ -43,19 +44,26 @@ interface Props {
    * the provided actions are rendered on the right.
    */
   selection?: AppBarSelection
+  /**
+   * Set on a screen presented as a sheet. Paper's automatic inset is measured
+   * against the window, not the sheet, so it lands as empty space above the bar.
+   */
+  sheet?: boolean
 }
 
-export const AppBar = ({ title, onBack, onClose, onLogout, selection }: Props) => {
+export const AppBar = ({ title, onBack, onClose, onLogout, selection, sheet }: Props) => {
   const { t } = useTranslation()
   const [menuVisible, setMenuVisible] = useState(false)
   const theme = useTheme()
   const router = useRouter()
   const { initials, avatarUrl } = useCurrentUser()
   const [avatarFailed, setAvatarFailed] = useState(false)
+  const sheetTopInset = useSheetTopInset()
+  const statusBarHeight = sheet ? sheetTopInset : undefined
 
   if (selection) {
     return (
-      <Appbar.Header>
+      <Appbar.Header statusBarHeight={statusBarHeight}>
         <Appbar.Action
           icon={p => (
             <CozyIcon name="cross" size={p?.size ?? cozyTokens.iconSize.md} color={p?.color} />
@@ -81,7 +89,7 @@ export const AppBar = ({ title, onBack, onClose, onLogout, selection }: Props) =
   }
 
   return (
-    <Appbar.Header>
+    <Appbar.Header statusBarHeight={statusBarHeight}>
       {onBack ? (
         <Appbar.Action
           isLeading
