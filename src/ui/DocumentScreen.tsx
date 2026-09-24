@@ -13,9 +13,9 @@ import { useAutoHidingChrome } from './useAutoHidingChrome'
  *
  * - `immersive`: the document takes the whole dark canvas, the name, the way
  *   back and the actions floating over it.
- * - `player`: the same bar, in flow above the document rather than over it,
- *   and always on screen. For a document that draws controls of its own: two
- *   layers hiding themselves on two timers, in the same band, fight.
+ * - `player`: the same bar, hiding itself the same way, but with its room kept
+ *   clear of the document. For a document that draws controls of its own: two
+ *   layers sharing the same band fight, whoever is on top.
  * - `editor`: the web editor draws its own header inside, so the native bar
  *   stays down to the way back.
  */
@@ -45,6 +45,9 @@ export const DOCUMENT_BACK_TEST_ID = 'document-back-button'
 export const DOCUMENT_CONTENT_TEST_ID = 'document-content'
 export const DOCUMENT_CHROME_TEST_ID = 'document-chrome'
 
+/** Height of the bar's controls, the room the `player` chrome keeps for it. */
+const CHROME_BAR_HEIGHT = 40
+
 export const DocumentScreen = ({
   title,
   onBack,
@@ -60,17 +63,16 @@ export const DocumentScreen = ({
   const barTopInset = Platform.OS === 'ios' ? 0 : insets.top
 
   if (chrome === 'immersive' || chrome === 'player') {
-    const floating = chrome === 'immersive'
+    const barTop = barTopInset + cozyTokens.spacing.sm
+    // `player` keeps the document out from under the bar rather than out of
+    // its way: the room stays reserved, so nothing moves when the bar fades.
+    const contentTop =
+      chrome === 'player' ? barTop + CHROME_BAR_HEIGHT + cozyTokens.spacing.sm : androidTopInset
     const bar = (
       <Animated.View
         testID={DOCUMENT_CHROME_TEST_ID}
-        style={[
-          styles.bar,
-          floating
-            ? [styles.floatingBar, { top: barTopInset + cozyTokens.spacing.sm, opacity }]
-            : [styles.staticBar, { marginTop: barTopInset + cozyTokens.spacing.sm }]
-        ]}
-        pointerEvents={!floating || visible ? 'box-none' : 'none'}
+        style={[styles.bar, styles.floatingBar, { top: barTop, opacity }]}
+        pointerEvents={visible ? 'box-none' : 'none'}
       >
         <Pressable
           onPress={onBack}
@@ -107,22 +109,11 @@ export const DocumentScreen = ({
       </Animated.View>
     )
 
-    if (!floating) {
-      return (
-        <View style={[styles.screen, styles.canvas]}>
-          {bar}
-          <View testID={DOCUMENT_CONTENT_TEST_ID} style={styles.screen}>
-            {children}
-          </View>
-        </View>
-      )
-    }
-
     return (
       <View style={[styles.screen, styles.canvas]}>
         <View
           testID={DOCUMENT_CONTENT_TEST_ID}
-          style={[styles.screen, { paddingTop: androidTopInset }]}
+          style={[styles.screen, { paddingTop: contentTop }]}
           onStartShouldSetResponderCapture={() => {
             reveal()
             return false
@@ -172,10 +163,7 @@ const styles = StyleSheet.create({
     right: cozyTokens.spacing.sm,
     zIndex: cozyTokens.zIndex.chrome
   },
-  staticBar: {
-    marginHorizontal: cozyTokens.spacing.sm,
-    marginBottom: cozyTokens.spacing.sm
-  },
+
   floatingControl: {
     width: 40,
     height: 40,
