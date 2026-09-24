@@ -117,11 +117,11 @@ export default function PreviewScreen() {
     }
     if (!client) return null
     try {
-      return buildFileStreamSource(client, fileId, driveId)
+      return buildFileStreamSource(client, fileId, driveId, file?._rev)
     } catch {
       return null
     }
-  }, [client, driveId, fileId, kind, pinnedAliasPath, offlineEntry?.state])
+  }, [client, driveId, fileId, kind, pinnedAliasPath, offlineEntry?.state, file?._rev])
 
   // Unsupported types: download then native intent, then back.
   useEffect(() => {

@@ -35,6 +35,31 @@ describe('buildFileStreamSource', () => {
     expect(src.uri).toMatch(/^https:\/\/alice\.cozy\.test\/files\/download\/abc\?fresh=/)
   })
 
+  it('gives the same address twice for the same revision', () => {
+    const client = buildClient('https://alice.cozy.test', 'TOK')
+    const first = buildFileStreamSource(client, 'abc', undefined, '3-deadbeef')
+    const second = buildFileStreamSource(client, 'abc', undefined, '3-deadbeef')
+
+    expect(first.uri).toBe(second.uri)
+    expect(first.uri).toContain('rev=3-deadbeef')
+  })
+
+  it('changes address when the document does', () => {
+    const client = buildClient('https://alice.cozy.test', 'TOK')
+
+    expect(buildFileStreamSource(client, 'abc', undefined, '3-aaa').uri).not.toBe(
+      buildFileStreamSource(client, 'abc', undefined, '4-bbb').uri
+    )
+  })
+
+  it('falls back to a one-off address when the revision is unknown', () => {
+    const client = buildClient('https://alice.cozy.test', 'TOK')
+
+    expect(buildFileStreamSource(client, 'abc').uri).not.toBe(
+      buildFileStreamSource(client, 'abc').uri
+    )
+  })
+
   it('URL-encodes the file id', () => {
     const src = buildFileStreamSource(buildClient('https://x', 'TOK'), 'a/b c')
     expect(src.uri).toMatch(/^https:\/\/x\/files\/download\/a%2Fb%20c\?fresh=/)
