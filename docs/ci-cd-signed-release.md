@@ -15,7 +15,7 @@ there, where each value comes from, and how a release is cut.
 | `build-android.yml`             | every push / PR     | unsigned release APK, as an artefact                                                                                           |
 | `build-ios.yml`, `test-ios.yml` | every push / PR     | unsigned iOS build, simulator tests                                                                                            |
 | `release-ios.yml`               | `v*` tag, or manual | signed IPA → TestFlight (`fastlane ios distribute`), optionally App Store metadata (`ios release`)                             |
-| `release-android.yml`           | `v*` tag, or manual | signed AAB → Play internal (`fastlane android release`), optionally an APK to Firebase App Distribution (`android distribute`) |
+| `release-android.yml`           | `v*` tag, or manual | signed AAB → Play internal (`fastlane android release`), optionally an APK to Firebase App Distribution (`android distribute`) or the store listing (`android publish_listing`) |
 | `provision-ios.yml`             | manual              | registers the app extensions' identifiers and profiles through `fastlane ios provision_extensions`                             |
 | `release-preflight.yml`         | manual              | says which release secrets are present, without revealing any value                                                            |
 
@@ -82,6 +82,11 @@ number, which TestFlight only needs to be unique within a version.
 - Android lands in the Play internal track. A manual run can skip the upload
   (`publish_to_play_store: false`) and keep the AAB as an artefact, or also
   send an APK to Firebase (`distribute_via_firebase: true`).
+- The Play store listing lives in `android/fastlane/metadata/` and is never
+  pushed by a release: the `release` lane skips metadata, images and changelogs.
+  `publish_listing: true` on a manual run pushes it through the
+  `android publish_listing` lane, which refuses to run while a file is empty or
+  still holds a `TODO`. See `android/fastlane/metadata/README.md`.
 - The first build of a new Play app cannot go through the API: download the
   AAB artefact of a run without upload and send it by hand in the Play
   Console, which also enrols the app in Play App Signing. The service account

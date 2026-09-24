@@ -24,6 +24,11 @@ on:
         required: false
         type: boolean
         default: false
+      publish_listing:
+        description: 'Also push the Play store listing (texts + graphics) from android/fastlane/metadata'
+        required: false
+        type: boolean
+        default: false
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -117,6 +122,13 @@ jobs:
           VERSION_NAME: ${{ steps.version.outputs.marketing }}
           LANE: ${{ (github.event_name == 'push' || inputs.publish_to_play_store == true) && 'release' || 'build_bundle' }}
         run: bundle exec fastlane android "$LANE"
+
+      - name: Push the Play store listing (optional)
+        if: inputs.publish_listing == true
+        working-directory: android
+        env:
+          SUPPLY_JSON_KEY_PATH: ${{ runner.temp }}/gcp-sa.json
+        run: bundle exec fastlane android publish_listing
 
       - name: Upload AAB artifact
         uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7

@@ -5,6 +5,17 @@ default_platform(:android)
 # workflow decodes the keystore + exports those before calling these lanes.
 # See docs/ci-cd-signed-release.md.
 PACKAGE_NAME = "com.linagora.twakedrive"
+METADATA_PATH = "./fastlane/metadata/android"
+METADATA_DIR = File.expand_path("metadata/android", __dir__)
+
+def assert_listing_filled
+  files = Dir.glob("#{METADATA_DIR}/**/*.txt")
+  UI.user_error!("No store listing under #{METADATA_DIR}") if files.empty?
+  unfilled = files.select { |f| File.read(f).strip.empty? || File.read(f).include?("TODO") }
+  return if unfilled.empty?
+
+  UI.user_error!("Store listing not ready, still empty or holding a TODO:\n#{unfilled.sort.join("\n")}")
+end
 
 platform :android do
   desc "Build a signed release APK and distribute it via Firebase App Distribution"
@@ -38,7 +49,24 @@ platform :android do
       track: "internal",
       aab: "app/build/outputs/bundle/release/app-release.aab",
       json_key: ENV["SUPPLY_JSON_KEY_PATH"],
-      package_name: PACKAGE_NAME
+      package_name: PACKAGE_NAME,
+      skip_upload_metadata: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true,
+      skip_upload_changelogs: true
+    )
+  end
+
+  desc "Push the store listing (texts + graphics) to Google Play, no binary"
+  lane :publish_listing do
+    assert_listing_filled
+    supply(
+      json_key: ENV["SUPPLY_JSON_KEY_PATH"],
+      package_name: PACKAGE_NAME,
+      metadata_path: METADATA_PATH,
+      skip_upload_aab: true,
+      skip_upload_apk: true,
+      skip_upload_changelogs: true
     )
   end
 end
