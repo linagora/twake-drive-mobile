@@ -114,4 +114,51 @@ describe('DocumentScreen', () => {
       expect(answer).toBe(false)
     })
   })
+
+  describe('the player chrome', () => {
+    beforeEach(() => jest.useFakeTimers())
+    afterEach(() => jest.useRealTimers())
+
+    it('keeps its bar on screen instead of hiding it on a timer', () => {
+      render(
+        wrap(
+          <DocumentScreen title="clip.mp4" onBack={jest.fn()} chrome="player">
+            <Text>video</Text>
+          </DocumentScreen>
+        )
+      )
+
+      act(() => {
+        jest.advanceTimersByTime(CHROME_VISIBLE_MS + 100)
+      })
+
+      expect(screen.getByTestId(DOCUMENT_CHROME_TEST_ID).props.pointerEvents).toBe('box-none')
+    })
+
+    it('offers the same way back and the same actions as the immersive one', () => {
+      const onBack = jest.fn()
+      const onShare = jest.fn()
+      render(
+        wrap(
+          <DocumentScreen
+            title="clip.mp4"
+            onBack={onBack}
+            chrome="player"
+            actions={[
+              { icon: 'shareExternal', label: 'Share', onPress: onShare, testID: 'document-share' }
+            ]}
+          >
+            <Text>video</Text>
+          </DocumentScreen>
+        )
+      )
+
+      expect(screen.getByText('clip.mp4')).toBeOnTheScreen()
+      fireEvent.press(screen.getByTestId('document-back-button'))
+      fireEvent.press(screen.getByTestId('document-share'))
+
+      expect(onBack).toHaveBeenCalledTimes(1)
+      expect(onShare).toHaveBeenCalledTimes(1)
+    })
+  })
 })
