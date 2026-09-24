@@ -1,5 +1,5 @@
 import React from 'react'
-import { Platform, StatusBar, Text } from 'react-native'
+import { Platform, StatusBar, StyleSheet, Text } from 'react-native'
 import { Provider as PaperProvider } from 'react-native-paper'
 import { act, fireEvent, render, screen } from '@testing-library/react-native'
 
@@ -119,7 +119,7 @@ describe('DocumentScreen', () => {
     beforeEach(() => jest.useFakeTimers())
     afterEach(() => jest.useRealTimers())
 
-    it('keeps its bar on screen instead of hiding it on a timer', () => {
+    const showPlayer = (): void => {
       render(
         wrap(
           <DocumentScreen title="clip.mp4" onBack={jest.fn()} chrome="player">
@@ -127,12 +127,49 @@ describe('DocumentScreen', () => {
           </DocumentScreen>
         )
       )
+    }
+
+    it('steps aside on its own, like the immersive bar', () => {
+      showPlayer()
 
       act(() => {
         jest.advanceTimersByTime(CHROME_VISIBLE_MS + 100)
       })
 
-      expect(screen.getByTestId(DOCUMENT_CHROME_TEST_ID).props.pointerEvents).toBe('box-none')
+      expect(screen.getByTestId(DOCUMENT_CHROME_TEST_ID).props.pointerEvents).toBe('none')
+    })
+
+    it('keeps the document out from under the bar, so nothing moves when it fades', () => {
+      showPlayer()
+      const padded = StyleSheet.flatten(
+        screen.getByTestId(DOCUMENT_CONTENT_TEST_ID).props.style
+      ) as { paddingTop?: number }
+
+      act(() => {
+        jest.advanceTimersByTime(CHROME_VISIBLE_MS + 100)
+      })
+
+      const afterFade = StyleSheet.flatten(
+        screen.getByTestId(DOCUMENT_CONTENT_TEST_ID).props.style
+      ) as { paddingTop?: number }
+
+      expect(padded.paddingTop).toBeGreaterThan(0)
+      expect(afterFade.paddingTop).toBe(padded.paddingTop)
+    })
+
+    it('leaves the immersive document under its bar', () => {
+      render(
+        wrap(
+          <DocumentScreen title="rapport.pdf" onBack={jest.fn()}>
+            <Text>content</Text>
+          </DocumentScreen>
+        )
+      )
+      const style = StyleSheet.flatten(
+        screen.getByTestId(DOCUMENT_CONTENT_TEST_ID).props.style
+      ) as { paddingTop?: number }
+
+      expect(style.paddingTop).toBe(0)
     })
 
     it('offers the same way back and the same actions as the immersive one', () => {
