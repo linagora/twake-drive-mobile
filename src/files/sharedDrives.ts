@@ -114,6 +114,20 @@ const driveQueryOptions = (
   ...(entry.owner ? {} : { driveId: entry.driveId })
 })
 
+interface DriveScopable {
+  sharingById: (driveId: string) => unknown
+}
+
+/**
+ * Names the drive on the query itself, not only in its options: the options
+ * route it to the drive's local database, `sharingId` is what the stack route
+ * is built from when the query is served from there instead.
+ */
+const scopedToDrive = (
+  query: unknown,
+  entry: Pick<SharedDriveEntry, 'driveId' | 'owner'>
+): unknown => (entry.owner ? query : (query as DriveScopable).sharingById(entry.driveId))
+
 /**
  * One document of a shared drive, read from the local replica.
  *
@@ -126,7 +140,7 @@ export const querySharedDriveFile = async (
   fileId: string
 ): Promise<SharedDriveFile | null> => {
   const resp = (await client.query(
-    Query('io.cozy.files').getById(fileId) as never,
+    scopedToDrive(Query('io.cozy.files').getById(fileId), entry) as never,
     {
       ...driveQueryOptions(entry, `shareddrive-${entry.driveId}-file-${fileId}`),
       singleDocData: true
@@ -152,21 +166,24 @@ export const querySharedDriveFolder = async (
 ): Promise<{ folder: { _id: string; name: string } | null; children: SharedDriveFile[] }> => {
   const [folder, children] = await Promise.all([
     client.query(
-      Query('io.cozy.files').getById(folderId) as never,
+      scopedToDrive(Query('io.cozy.files').getById(folderId), entry) as never,
       {
         ...driveQueryOptions(entry, `shareddrive-${entry.driveId}-folder-${folderId}`),
         singleDocData: true
       } as never
     ) as Promise<{ data?: SharedDriveFile | null }>,
     client.queryAll(
-      Query('io.cozy.files')
-        .where({
-          dir_id: folderId,
-          type: { $gt: null },
-          name: { $gt: null }
-        })
-        .indexFields(['dir_id', 'type', 'name'])
-        .sortBy([{ dir_id: 'asc' }, { type: 'asc' }, { name: 'asc' }]) as never,
+      scopedToDrive(
+        Query('io.cozy.files')
+          .where({
+            dir_id: folderId,
+            type: { $gt: null },
+            name: { $gt: null }
+          })
+          .indexFields(['dir_id', 'type', 'name'])
+          .sortBy([{ dir_id: 'asc' }, { type: 'asc' }, { name: 'asc' }]),
+        entry
+      ) as never,
       driveQueryOptions(entry, `shareddrive-${entry.driveId}-children-${folderId}`) as never
     ) as Promise<SharedDriveFile[]>
   ])
