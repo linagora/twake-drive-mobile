@@ -7,6 +7,7 @@ import { createMMKV } from 'react-native-mmkv'
 
 import { useAuth } from '@/auth/useAuth'
 import { isDevInstanceLoginEnabled } from '@/auth/devInstanceLogin'
+import { readLastAttestationOutcome } from '@/auth/storeCertification'
 import { UserCancelledError } from '@/auth/types'
 import { enterDrive } from '@/auth/enterDrive'
 
@@ -33,6 +34,7 @@ export default function DevInstanceScreen() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const inFlight = useRef(false)
+  const attestationOutcome = readLastAttestationOutcome()
 
   if (!isDevInstanceLoginEnabled()) return <Redirect href="/(auth)/welcome" />
 
@@ -101,6 +103,16 @@ export default function DevInstanceScreen() {
         <HelperText type="error" visible={!!error}>
           {error ?? ''}
         </HelperText>
+
+        {attestationOutcome ? (
+          <Text
+            testID="dev-instance-attestation"
+            variant="bodySmall"
+            style={[styles.subtitle, { color: theme.colors.onSurfaceVariant }]}
+          >
+            {`Last store attestation: ${attestationOutcome}`}
+          </Text>
+        ) : null}
 
         <Button
           testID="dev-instance-submit"

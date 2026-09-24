@@ -1,5 +1,6 @@
 import Constants from 'expo-constants'
 import CozyClient from 'cozy-client'
+import { createMMKV } from 'react-native-mmkv'
 
 export interface CertificationConfig {
   cloudProjectNumber: string
@@ -35,18 +36,64 @@ export const certificationOAuthOptions = (): CertificationOAuthOptions => {
   }
 }
 
+const OUTCOME_KEY = 'lastStoreAttestation'
+
+let storage: ReturnType<typeof createMMKV> | null = null
+try {
+  storage = createMMKV({ id: 'app-preferences' })
+} catch {
+  storage = null
+}
+
+let lastOutcome: string | null = null
+
+/**
+ * What the last attestation attempt left behind: the reason it failed, or null
+ * when the store vouched for the app. Read on the instance-address screen,
+ * which is the only place a store build can show it.
+ */
+export const readLastAttestationOutcome = (): string | null => {
+  if (lastOutcome !== null) return lastOutcome
+  return storage?.getString(OUTCOME_KEY) ?? null
+}
+
+const recordOutcome = (reason: string | null): void => {
+  lastOutcome = reason
+  try {
+    if (reason === null) storage?.remove(OUTCOME_KEY)
+    else storage?.set(OUTCOME_KEY, `${new Date().toISOString()} ${reason}`)
+  } catch {
+    // a diagnostic is not worth failing a sign-in over
+  }
+}
+
 /**
  * Asks the store to vouch for this installation, so the stack certifies the
  * client without mailing a code. Answers whether it went through: Play
  * Integrity and App Attest only speak for a build that came from a store, and
  * the stack's email code is what takes over for every other build.
+ *
+ * cozy-client catches an attestation failure itself and only warns about it,
+ * so what it warned about is what says whether anything was attested.
  */
 export const tryStoreAttestation = async (client: CozyClient): Promise<boolean> => {
+  const warnings: string[] = []
+  let threw = false
+  const warn = console.warn
+  console.warn = (...args: unknown[]): void => {
+    warnings.push(args.map(a => String(a)).join(' '))
+    warn(...args)
+  }
   try {
     await client.certifyFlagship()
-    return true
   } catch (err) {
-    console.log('[storeCertification] store attestation failed', (err as Error)?.message)
-    return false
+    threw = true
+    warnings.push((err as Error)?.message ?? String(err))
+  } finally {
+    console.warn = warn
   }
+  const failed = threw || warnings.some(w => /FLAGSHIP_CERTIFICATION|attest|certif/i.test(w))
+  recordOutcome(failed ? warnings.join(' | ') : null)
+  if (failed) console.log('[storeCertification] store attestation failed', warnings.join(' | '))
+  return !failed
 }
