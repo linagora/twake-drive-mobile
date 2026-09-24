@@ -107,6 +107,22 @@ describe('querySharedDriveFolder', () => {
     expect(queryAll.mock.calls[0][1]).not.toHaveProperty('driveId')
   })
 
+  it('names the drive on the query, so the stack serves it before the replica does', async () => {
+    const { client, query, queryAll } = buildClient([], { _id: 'folder-1', name: 'Reports' }, [])
+    await querySharedDriveFolder(client, { driveId: 'sharing-A', owner: false }, 'folder-1')
+
+    expect(query.mock.calls[0][0]).toMatchObject({ sharingId: 'sharing-A' })
+    expect(queryAll.mock.calls[0][0]).toMatchObject({ sharingId: 'sharing-A' })
+  })
+
+  it('leaves a drive the user owns unscoped: it is in their own replica', async () => {
+    const { client, query, queryAll } = buildClient([], { _id: 'folder-2', name: 'Mine' }, [])
+    await querySharedDriveFolder(client, { driveId: 'sharing-B', owner: true }, 'folder-2')
+
+    expect(query.mock.calls[0][0].sharingId).toBeUndefined()
+    expect(queryAll.mock.calls[0][0].sharingId).toBeUndefined()
+  })
+
   it('survives a folder the local replica does not hold yet', async () => {
     const { client } = buildClient([], null, [])
     const res = await querySharedDriveFolder(
