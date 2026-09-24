@@ -15,13 +15,7 @@ export const VIEWER_FLAGS = {
 export type ViewerKind = keyof typeof VIEWER_FLAGS
 
 /**
- * Off unless the instance says otherwise: a viewer is opt-in until it ships.
- *
- * A dev build turns them all on instead, so the viewers being built can be used
- * without setting a flag on an instance; an explicit `false` still wins there.
+ * Off unless the instance says otherwise: a viewer is opt-in until it ships,
+ * in every build, so what a developer sees is what a user gets.
  */
-export const isViewerEnabled = (kind: ViewerKind): boolean => {
-  const value = flag(VIEWER_FLAGS[kind])
-  if (__DEV__) return value !== false
-  return value === true
-}
+export const isViewerEnabled = (kind: ViewerKind): boolean => flag(VIEWER_FLAGS[kind]) === true

@@ -5,10 +5,7 @@ import { isViewerEnabled, VIEWER_FLAGS } from './viewerFlags'
 
 describe('isViewerEnabled', () => {
   const dev = __DEV__
-  beforeEach(() => {
-    mockFlag.mockReset()
-    ;(global as unknown as { __DEV__: boolean }).__DEV__ = false
-  })
+  beforeEach(() => mockFlag.mockReset())
   afterAll(() => {
     ;(global as unknown as { __DEV__: boolean }).__DEV__ = dev
   })
@@ -30,15 +27,11 @@ describe('isViewerEnabled', () => {
     expect(isViewerEnabled('note')).toBe(false)
   })
 
-  it('is on by default in a dev build, so a viewer can be used while it is built', () => {
+  it('reads the same flag in a dev build as in a shipped one', () => {
     ;(global as unknown as { __DEV__: boolean }).__DEV__ = true
     mockFlag.mockReturnValue(undefined)
-    expect(isViewerEnabled('markdown')).toBe(true)
-  })
-
-  it('still obeys an instance that turned a viewer off, even in a dev build', () => {
-    ;(global as unknown as { __DEV__: boolean }).__DEV__ = true
-    mockFlag.mockReturnValue(false)
     expect(isViewerEnabled('markdown')).toBe(false)
+    mockFlag.mockReturnValue(true)
+    expect(isViewerEnabled('markdown')).toBe(true)
   })
 })
