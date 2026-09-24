@@ -1,4 +1,4 @@
-import { Platform } from 'react-native'
+import { AppState, Platform } from 'react-native'
 import * as WebBrowser from 'expo-web-browser'
 import * as Linking from 'expo-linking'
 
@@ -108,10 +108,12 @@ describe('openLoginUrl (shared-jar Custom Tab)', () => {
 
 describe('openAuthorizeUrl (fast native redirect + email-code fallback)', () => {
   let urlHandler: (e: { url: string }) => void
+  let appStateHandler: (state: string) => void
   let remove: jest.Mock
 
   beforeEach(() => {
     jest.clearAllMocks()
+    jest.useFakeTimers()
     remove = jest.fn()
     linking.addEventListener.mockImplementation(
       (_evt: string, cb: (e: { url: string }) => void) => {
@@ -119,8 +121,17 @@ describe('openAuthorizeUrl (fast native redirect + email-code fallback)', () => 
         return { remove }
       }
     )
+    jest.spyOn(AppState, 'addEventListener').mockImplementation(((
+      _evt: string,
+      cb: (state: string) => void
+    ) => {
+      appStateHandler = cb
+      return { remove: jest.fn() }
+    }) as never)
     wb.dismissBrowser.mockReturnValue(undefined)
   })
+
+  afterEach(() => jest.useRealTimers())
 
   // The stack's /auth/authorize redirects to twakedrive:// instantly with no UI.
   // openAuthSessionAsync captures that native redirect reliably; the
@@ -144,17 +155,49 @@ describe('openAuthorizeUrl (fast native redirect + email-code fallback)', () => 
   // user leaves to read the 6-digit code, which aborts openAuthSessionAsync on
   // refocus. Fall back to the system browser + deep-link listener, which survives
   // the mail excursion (the flagship certification path).
-  it('falls back to the system browser when the auth session is dismissed', async () => {
-    wb.openAuthSessionAsync.mockResolvedValue({ type: 'dismiss' })
+  it('falls back to the system browser once the user has left for their mail', async () => {
+    wb.openAuthSessionAsync.mockImplementation(async () => {
+      appStateHandler('background')
+      return { type: 'dismiss' }
+    })
     wb.openBrowserAsync.mockReturnValue(new Promise(() => undefined))
     const p = openAuthorizeUrl('https://x/auth/authorize')
-    await Promise.resolve()
-    await Promise.resolve()
+    for (let i = 0; i < 10; i++) await Promise.resolve()
+    jest.advanceTimersByTime(1000)
+    for (let i = 0; i < 10; i++) await Promise.resolve()
     urlHandler({ url: 'twakedrive://?code=viacustomtab' })
     await expect(p).resolves.toBe('twakedrive://?code=viacustomtab')
     expect(wb.openBrowserAsync).toHaveBeenCalledWith('https://x/auth/authorize', {
       showInRecents: true
     })
+  })
+
+  // Closing the sheet without ever leaving the app is the user giving up.
+  // Answering that with another browser reopened the stack's login page on
+  // someone who had just cancelled, and the presentation was dropped by UIKit
+  // anyway, which is what left the app spinning (#293).
+  it('gives up when the sheet is closed without the user leaving the app', async () => {
+    wb.openAuthSessionAsync.mockResolvedValue({ type: 'cancel', url: null })
+
+    await expect(openAuthorizeUrl('https://x/auth/authorize')).rejects.toBeInstanceOf(
+      UserCancelledError
+    )
+    expect(wb.openBrowserAsync).not.toHaveBeenCalled()
+  })
+
+  // iOS reports `inactive` merely for presenting the session's own sheet, so
+  // counting anything but `background` made the fallback fire on every cancel.
+  it('does not take the session sheet appearing for the user leaving', async () => {
+    wb.openAuthSessionAsync.mockImplementation(async () => {
+      appStateHandler('inactive')
+      appStateHandler('active')
+      return { type: 'cancel', url: null }
+    })
+
+    await expect(openAuthorizeUrl('https://x/auth/authorize')).rejects.toBeInstanceOf(
+      UserCancelledError
+    )
+    expect(wb.openBrowserAsync).not.toHaveBeenCalled()
   })
 })
 

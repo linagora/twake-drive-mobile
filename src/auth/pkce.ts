@@ -1,4 +1,4 @@
-import { Platform } from 'react-native'
+import { AppState, Platform } from 'react-native'
 import * as WebBrowser from 'expo-web-browser'
 import * as Crypto from 'expo-crypto'
 import * as Linking from 'expo-linking'
@@ -31,6 +31,9 @@ export const generatePkce = async (): Promise<{ codeVerifier: string; codeChalle
 
 const CANCEL_GRACE_MS = 400
 const REDIRECT_RACE_GRACE_MS = 4000
+/** Room for the auth session to finish being torn down before another browser
+ *  is presented. */
+const AUTH_SESSION_TEARDOWN_MS = 600
 
 let abortActiveBrowserFlow: (() => void) | null = null
 
@@ -101,9 +104,25 @@ export const openAuthorizeUrl = async (url: string): Promise<string> => {
   // out of SFSafariViewController — the deep-link path misses it. This does not
   // affect the Docs cookie jar: the Lemon SSO cookie is set during login
   // (openLoginUrl / SFSafariViewController), not here.
-  const result = await WebBrowser.openAuthSessionAsync(url, REDIRECT_URL, { showInRecents: false })
+  // An auth session reports the same `cancel` whether the sheet was closed or
+  // the app was backgrounded. Only `background` is the mail excursion: iOS
+  // reports `inactive` merely for presenting the session's own sheet.
+  let leftTheApp = false
+  const watching = AppState.addEventListener('change', state => {
+    if (state === 'background') leftTheApp = true
+  })
+  let result: WebBrowser.WebBrowserAuthSessionResult
+  try {
+    result = await WebBrowser.openAuthSessionAsync(url, REDIRECT_URL, { showInRecents: false })
+  } finally {
+    watching.remove()
+  }
   if (result.type === 'success' && result.url) {
     return normalize(result.url)
+  }
+  if (!leftTheApp) {
+    console.log('[auth] auth session closed without leaving the app — the user gave up')
+    throw new UserCancelledError()
   }
   // An uncertified client shows the email-code form instead of redirecting; the
   // user leaves to read the code, which aborts openAuthSessionAsync on refocus.
@@ -111,6 +130,10 @@ export const openAuthorizeUrl = async (url: string): Promise<string> => {
   // of a second consent screen. Kept on iOS on purpose: a certified client
   // redirects without ever showing one, so this path stays exceptional.
   console.log('[auth] auth session returned', result.type, '— falling back to system browser')
+  // iOS drops a presentation asked for while the session is still being torn
+  // down, and drops it silently: the browser never shows, its delegate never
+  // fires, and openBrowserAsync never settles.
+  await new Promise(resolve => setTimeout(resolve, AUTH_SESSION_TEARDOWN_MS))
   return openViaSystemBrowser(url)
 }
 
