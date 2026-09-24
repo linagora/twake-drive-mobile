@@ -15,7 +15,21 @@ interface Props {
  * Single sectioning idiom for settings-style lists. Replaces the mix of bare
  * List.Subheader and List.Section the settings screens each used.
  */
-export const SettingsSection = ({ title, children, first }: Props): React.ReactElement => {
+export const SettingsSection = ({ title, children, first }: Props): React.ReactElement => (
+  <View>
+    <SettingsSectionHeader title={title} first={first} />
+    {children}
+  </View>
+)
+
+/** The heading alone, for a list that renders its own sections. */
+export const SettingsSectionHeader = ({
+  title,
+  first
+}: {
+  title: string
+  first?: boolean
+}): React.ReactElement => {
   const theme = useTheme()
   return (
     <View>
@@ -27,7 +41,6 @@ export const SettingsSection = ({ title, children, first }: Props): React.ReactE
       >
         {title}
       </Text>
-      {children}
     </View>
   )
 }

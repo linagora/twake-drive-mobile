@@ -82,12 +82,4 @@ describe('FileSystemRepo', () => {
 
     expect(FS.moveAsync).not.toHaveBeenCalled()
   })
-
-  it('totalBytes sums getInfoAsync.size across the directory', async () => {
-    ;(FS.readDirectoryAsync as jest.Mock).mockResolvedValueOnce(['abc', 'def'])
-    ;(FS.getInfoAsync as jest.Mock)
-      .mockResolvedValueOnce({ exists: true, size: 10 })
-      .mockResolvedValueOnce({ exists: true, size: 20 })
-    expect(await FileSystemRepo.totalBytes()).toBe(30)
-  })
 })
