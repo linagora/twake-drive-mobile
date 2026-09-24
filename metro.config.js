@@ -17,11 +17,9 @@ config.resolver.blockList = config.resolver.blockList
 
 const stub = path.resolve(__dirname, 'src/utils/emptyModule.js')
 
-const STUBBED = new Set([
-  'react-native-inappbrowser-reborn',
-  'react-native-ios11-devicecheck',
-  'react-native-google-play-integrity'
-])
+const { STUBBED_MODULES } = require('./src/utils/stubbedModules')
+
+const STUBBED = new Set(STUBBED_MODULES)
 
 const upstreamResolveRequest = config.resolver.resolveRequest
 config.resolver.resolveRequest = (context, moduleName, platform) => {
