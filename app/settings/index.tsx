@@ -1,5 +1,6 @@
 import React from 'react'
 import { ScrollView } from 'react-native'
+import { Switch } from 'react-native-paper'
 import { useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import Constants from 'expo-constants'
@@ -13,6 +14,7 @@ import { SettingsRow } from '@/ui/SettingsRow'
 import { SettingsSection } from '@/ui/SettingsSection'
 import { useCurrentUser } from '@/account/useCurrentUser'
 import { useDeleteAccount } from '@/account/useDeleteAccount'
+import { setCrashReportsEnabled, useCrashReportsEnabled } from '@/monitoring/crashReportsPreference'
 import { useLegalNoticeUrl } from '@/account/useLegalNotice'
 import { getLocalePreference, LOCALE_SYSTEM } from '@/preferences/localePreference'
 import { localeDisplayName } from '@/i18n/localeNames'
@@ -27,6 +29,7 @@ export default function SettingsIndex(): React.ReactElement {
   const { name, email, initials } = useCurrentUser()
   const { logout } = useAuth()
   const deleteAccount = useDeleteAccount()
+  const crashReports = useCrashReportsEnabled()
   const legalNoticeUrl = useLegalNoticeUrl()
   const [deleteAccountAsked, setDeleteAccountAsked] = React.useState(false)
   const localePref = getLocalePreference()
@@ -68,6 +71,23 @@ export default function SettingsIndex(): React.ReactElement {
               onPress={() => router.push('/settings/offline-storage')}
             />
           ) : null}
+        </SettingsSection>
+
+        <SettingsSection title={t('settings.privacy')}>
+          <SettingsRow
+            testID="settings-crash-reports"
+            title={t('settings.crashReports')}
+            description={t('settings.crashReportsDescription')}
+            descriptionLines={4}
+            icon="info"
+            accessory={
+              <Switch
+                value={crashReports}
+                onValueChange={setCrashReportsEnabled}
+                testID="settings-crash-reports-switch"
+              />
+            }
+          />
         </SettingsSection>
 
         <SettingsSection title={t('settings.theme')}>

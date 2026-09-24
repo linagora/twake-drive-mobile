@@ -24,7 +24,10 @@
     "deleteAccount": "Konto löschen",
     "deleteAccountMessage": "Beim Löschen Ihres Kontos werden Ihre Dateien und Ihre Daten endgültig entfernt. Sie werden zur Löschseite weitergeleitet, um Ihre Anfrage zu bestätigen.",
     "deleteAccountContinue": "Weiter",
-    "legalNotice": "Impressum"
+    "legalNotice": "Impressum",
+    "privacy": "Datenschutz",
+    "crashReports": "Absturzberichte",
+    "crashReportsDescription": "Sendet die technischen Details eines Absturzes, damit er behoben werden kann. Keine Dateinamen, keine Ordnernamen, keine Adresse Ihres Servers."
   },
   "auth": {
     "welcomeTitle": "Willkommen bei Twake Drive",

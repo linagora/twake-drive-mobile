@@ -4,6 +4,8 @@ import { Button, Text } from 'react-native-paper'
 import * as Clipboard from 'expo-clipboard'
 import { withTranslation, WithTranslation } from 'react-i18next'
 
+import { reportCaughtError } from '@/monitoring/crashReporting'
+
 interface State {
   hasError: boolean
   details: string | null
@@ -33,8 +35,9 @@ class ErrorBoundaryClass extends React.Component<
 
   componentDidCatch(error: Error, errorInfo: { componentStack?: string | null }) {
     console.error('[ErrorBoundary]', error)
-    // Release builds forward no JS console anywhere, so this text is the only
-    // way a failure met in the field can be reported at all.
+    reportCaughtError(error, { componentStack: errorInfo?.componentStack ?? null })
+    // Release builds forward no JS console anywhere, so this text stays the
+    // only channel for a user who left crash reports off.
     this.setState({ details: formatDetails(error, errorInfo?.componentStack) })
   }
 

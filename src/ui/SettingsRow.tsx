@@ -18,6 +18,9 @@ interface Props {
   accessory?: React.ReactNode
   /** Tint the row with the error colour (irreversible actions). */
   destructive?: boolean
+  /** Room for a description that has to be read in full, e.g. what a switch
+   *  consents to. Paper clamps to two lines otherwise. */
+  descriptionLines?: number
   onPress?: () => void
   testID?: string
 }
@@ -34,7 +37,8 @@ export const SettingsRow = ({
   accessory,
   destructive,
   onPress,
-  testID
+  testID,
+  descriptionLines
 }: Props): React.ReactElement => {
   const theme = useTheme()
   const tint = destructive ? theme.colors.error : theme.colors.onSurfaceVariant
@@ -58,6 +62,7 @@ export const SettingsRow = ({
       title={title}
       titleStyle={destructive ? { color: theme.colors.error } : undefined}
       description={description}
+      descriptionNumberOfLines={descriptionLines}
       onPress={onPress}
       style={styles.row}
       left={props => (
