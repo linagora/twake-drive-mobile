@@ -1,4 +1,4 @@
-import { Platform } from 'react-native'
+import { AppState, Platform } from 'react-native'
 import * as WebBrowser from 'expo-web-browser'
 import * as Crypto from 'expo-crypto'
 import * as Linking from 'expo-linking'
@@ -54,6 +54,7 @@ const openViaSystemBrowser = (url: string): Promise<string> =>
 
     let settled = false
     let sub: ReturnType<typeof Linking.addEventListener> | undefined
+    let appState: ReturnType<typeof AppState.addEventListener> | undefined
     let timer: ReturnType<typeof setTimeout> | undefined
     let abort: () => void
     const finish = (run: () => void): void => {
@@ -61,6 +62,7 @@ const openViaSystemBrowser = (url: string): Promise<string> =>
       settled = true
       if (abortActiveBrowserFlow === abort) abortActiveBrowserFlow = null
       sub?.remove()
+      appState?.remove()
       if (timer) clearTimeout(timer)
       try {
         void Promise.resolve(WebBrowser.dismissBrowser()).catch(() => undefined)
@@ -78,12 +80,35 @@ const openViaSystemBrowser = (url: string): Promise<string> =>
         finish(() => resolve(normalize(incoming)))
       }
     })
+    const cancelLater = (grace: number): void => {
+      if (timer) clearTimeout(timer)
+      timer = setTimeout(() => finish(() => reject(new UserCancelledError())), grace)
+    }
+
     WebBrowser.openBrowserAsync(url, { showInRecents: true }).then(
       result => {
         if (settled) return
+        // Android answers as soon as the tab is launched, so this result says
+        // nothing about the user closing it. The tab is an activity of its own,
+        // which keeps this app in the background: coming back to the foreground
+        // is what says the tab is gone. Leaving for the mail app and returning
+        // to the tab never brings this app forward, so the excursion the
+        // email-code certification needs is not mistaken for a cancellation.
+        if (result?.type === WebBrowser.WebBrowserResultType.OPENED) {
+          let wentAway = false
+          appState = AppState.addEventListener('change', state => {
+            if (state !== 'active') {
+              // Only a real background says the user left; iOS reports
+              // `inactive` for a passing system sheet.
+              if (state === 'background') wentAway = true
+              return
+            }
+            if (wentAway) cancelLater(CANCEL_GRACE_MS)
+          })
+          return
+        }
         const userClosed = result?.type === WebBrowser.WebBrowserResultType.CANCEL
-        const grace = userClosed ? CANCEL_GRACE_MS : REDIRECT_RACE_GRACE_MS
-        timer = setTimeout(() => finish(() => reject(new UserCancelledError())), grace)
+        cancelLater(userClosed ? CANCEL_GRACE_MS : REDIRECT_RACE_GRACE_MS)
       },
       (err: unknown) => finish(() => reject(err as Error))
     )
