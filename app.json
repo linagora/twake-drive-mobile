@@ -73,7 +73,8 @@
         }
       ],
       "./plugins/withTwakeDocumentsProvider",
-      "./plugins/withTwakeShareIntent"
+      "./plugins/withTwakeShareIntent",
+      "@sentry/react-native"
     ],
     "experiments": {
       "typedRoutes": true

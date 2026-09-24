@@ -24,7 +24,10 @@
     "deleteAccount": "Eliminar la cuenta",
     "deleteAccountMessage": "Eliminar tu cuenta borra definitivamente tus archivos y tus datos. Te llevaremos a la página de eliminación para confirmar tu solicitud.",
     "deleteAccountContinue": "Continuar",
-    "legalNotice": "Aviso legal"
+    "legalNotice": "Aviso legal",
+    "privacy": "Privacidad",
+    "crashReports": "Informes de fallos",
+    "crashReportsDescription": "Envía los detalles técnicos de un fallo para poder corregirlo. Ningún nombre de archivo, ningún nombre de carpeta, ninguna dirección de tu servidor."
   },
   "auth": {
     "welcomeTitle": "Bienvenido a Twake Drive",
