@@ -27,7 +27,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 75
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
 
       - name: Start the stack
         run: |
@@ -40,7 +40,7 @@ jobs:
             e2e/stack/setup.sh "$INSTANCE_DOMAIN" "$INSTANCE_PASSPHRASE"
 
       - name: Set up Node.js
-        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v6
         with:
           node-version: '20'
           cache: 'npm'
@@ -48,13 +48,13 @@ jobs:
       - name: Install JS dependencies
         run: npm ci
 
-      - uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v4
         with:
           distribution: 'temurin'
           java-version: '17'
 
       - name: Cache Gradle
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             ~/.gradle/caches
@@ -121,7 +121,7 @@ jobs:
 
       - name: Upload them
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: e2e-android
           path: /tmp/e2e-artifacts
