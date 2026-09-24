@@ -52,14 +52,5 @@ export const FileSystemRepo = {
       if (!info.exists || info.isDirectory) continue
       await FS.moveAsync({ from, to: `${dir()}${name}` })
     }
-  },
-  async totalBytes(): Promise<number> {
-    const names = await FS.readDirectoryAsync(dir())
-    let total = 0
-    for (const name of names) {
-      const info = await FS.getInfoAsync(`${dir()}${name}`)
-      if (info.exists && 'size' in info && typeof info.size === 'number') total += info.size
-    }
-    return total
   }
 }
