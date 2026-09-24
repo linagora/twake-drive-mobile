@@ -13,6 +13,7 @@ import CozyClient from 'cozy-client'
 import {
   certificationOAuthOptions,
   cloudProjectNumber,
+  describeAttestationModule,
   readLastAttestationOutcome,
   tryStoreAttestation
 } from './storeCertification'
@@ -74,5 +75,20 @@ describe('tryStoreAttestation', () => {
     const warn = console.warn
     await tryStoreAttestation(clientWith(jest.fn().mockResolvedValue(undefined)))
     expect(console.warn).toBe(warn)
+  })
+})
+
+describe('describeAttestationModule', () => {
+  it('names the native module the platform attests through, and whether it answers', () => {
+    const described = describeAttestationModule()
+    expect(described).toContain('RNIOS11DeviceCheck')
+    expect(described).toMatch(/bridge=(absent|present)/)
+  })
+
+  it('travels with the reason an attestation failed', async () => {
+    await tryStoreAttestation({
+      certifyFlagship: jest.fn().mockRejectedValue(new Error('boom'))
+    } as unknown as CozyClient)
+    expect(readLastAttestationOutcome()).toContain('RNIOS11DeviceCheck')
   })
 })
