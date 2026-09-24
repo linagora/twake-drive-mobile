@@ -238,3 +238,88 @@ describe('openAuthorizeUrl on Android', () => {
     })
   })
 })
+
+// Android's openBrowserAsync answers `opened` the moment the tab is launched
+// (WebBrowserModule.kt), so it says nothing about the user closing it. Treating
+// it as "the browser is gone" gave the whole sign-in four seconds (#324).
+describe('a Custom Tab that only reports being opened', () => {
+  let urlHandler: (e: { url: string }) => void
+  let appStateHandler: (state: string) => void
+  let removeAppState: jest.Mock
+
+  beforeEach(() => {
+    jest.clearAllMocks()
+    jest.useFakeTimers()
+    removeAppState = jest.fn()
+    linking.addEventListener.mockImplementation(
+      (_evt: string, cb: (e: { url: string }) => void) => {
+        urlHandler = cb
+        return { remove: jest.fn() }
+      }
+    )
+    jest.spyOn(AppState, 'addEventListener').mockImplementation(((
+      _evt: string,
+      cb: (state: string) => void
+    ) => {
+      appStateHandler = cb
+      return { remove: removeAppState }
+    }) as never)
+    wb.dismissBrowser.mockReturnValue(undefined)
+  })
+
+  afterEach(() => jest.useRealTimers())
+
+  const openTab = (): Promise<string> => {
+    wb.openBrowserAsync.mockResolvedValue({ type: 'opened' })
+    return openLoginUrl('https://login.example.com/oauth')
+  }
+
+  it('leaves the user time to sign in instead of giving up on a timer', async () => {
+    const p = openTab()
+    const settled = jest.fn()
+    void p.then(settled, settled)
+    await Promise.resolve()
+
+    jest.advanceTimersByTime(60_000)
+    await Promise.resolve()
+
+    expect(settled).not.toHaveBeenCalled()
+    urlHandler({ url: 'twakedrive://?code=typed-slowly' })
+    await expect(p).resolves.toBe('twakedrive://?code=typed-slowly')
+  })
+
+  it('gives up once the app is back in front, the tab being gone', async () => {
+    const p = openTab()
+    await Promise.resolve()
+
+    appStateHandler('background')
+    appStateHandler('active')
+    jest.advanceTimersByTime(500)
+
+    await expect(p).rejects.toBeInstanceOf(UserCancelledError)
+  })
+
+  it('stays out of the way while the user is still in the tab', async () => {
+    const p = openTab()
+    const settled = jest.fn()
+    void p.then(settled, settled)
+    await Promise.resolve()
+
+    appStateHandler('active')
+    jest.advanceTimersByTime(60_000)
+    await Promise.resolve()
+
+    expect(settled).not.toHaveBeenCalled()
+    urlHandler({ url: 'twakedrive://?code=still-there' })
+    await expect(p).resolves.toBe('twakedrive://?code=still-there')
+  })
+
+  it('stops listening to the app state once the flow is over', async () => {
+    const p = openTab()
+    await Promise.resolve()
+    urlHandler({ url: 'twakedrive://?code=done' })
+    await p
+
+    expect(removeAppState).toHaveBeenCalled()
+  })
+})
