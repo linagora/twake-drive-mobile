@@ -1,1 +1,1 @@
-TODO: description complete (4000 caracteres max)
+Avec la version mobile de Twake Drive, vous avez la possibilité de parcourir votre drive, d'éditer des documents, d'en consulter, d'en rendre disponibles hors ligne, et de les utiliser dans vos applications courantes (mail, etc.).
