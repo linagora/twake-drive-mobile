@@ -159,7 +159,13 @@ export default function PreviewScreen() {
     if (file && localViewerFor(file)) {
       return (
         <DocumentViewer
-          file={{ _id: file._id, _rev: file._rev, name: file.name, mime: file.mime }}
+          file={{
+            _id: file._id,
+            _rev: file._rev,
+            name: file.name,
+            mime: file.mime,
+            metadata: file.metadata
+          }}
           driveId={driveId}
         />
       )

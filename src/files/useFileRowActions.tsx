@@ -24,7 +24,13 @@ import { cozyTokens } from '@/ui/theme'
 type Entry = FileQueryResult
 
 interface FileHandlers {
-  onPress: (file: { _id: string; name: string; mime?: string; class?: string }) => void
+  onPress: (file: {
+    _id: string
+    name: string
+    mime?: string
+    class?: string
+    metadata?: { externalId?: string }
+  }) => void
   onShare?: (file: { _id: string }) => void
   onRename?: () => void
   onDelete?: () => void
@@ -115,7 +121,13 @@ export const useFileRowActions = ({
     router.push(`/share/${id}`)
   }
 
-  const open = (file: { _id: string; name: string; mime?: string; class?: string }): void => {
+  const open = (file: {
+    _id: string
+    name: string
+    mime?: string
+    class?: string
+    metadata?: { externalId?: string }
+  }): void => {
     if (!client) return
     void openFileFromList(client, router, file, driveId, openEditor).catch(e =>
       surfaceOpenError(e, setSnackbar, t, screen)

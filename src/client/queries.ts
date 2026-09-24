@@ -27,6 +27,9 @@ export interface FileQueryResult {
   class?: string
   updated_at?: string
   path?: string
+  /** Set by the app that owns the document; the Docs bridge is addressed by
+   *  `externalId`. */
+  metadata?: { externalId?: string }
   cozyMetadata?: {
     /** Instance the document was created on, which tells a shared one apart. */
     createdOn?: string
