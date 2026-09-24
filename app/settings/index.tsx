@@ -41,7 +41,7 @@ export default function SettingsIndex(): React.ReactElement {
   const version = Constants.expoConfig?.version ?? ''
   return (
     <ScreenContainer>
-      <AppBar title={t('settings.title')} onClose={() => router.back()} />
+      <AppBar sheet title={t('settings.title')} onClose={() => router.back()} />
       <ScrollView>
         <AccountHeader
           name={name}

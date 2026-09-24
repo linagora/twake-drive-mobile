@@ -288,21 +288,21 @@ export default function ShareRoute() {
 
   if (fileLookup.fetchStatus === 'loading' && !file) {
     return (
-      <ScreenContainer safeTop>
+      <ScreenContainer sheet>
         <LoadingState />
       </ScreenContainer>
     )
   }
   if (!file) {
     return (
-      <ScreenContainer safeTop>
+      <ScreenContainer sheet>
         <ErrorState message={t('drive.preview.loadFailed')} onRetry={() => fileLookup.fetch()} />
       </ScreenContainer>
     )
   }
 
   return (
-    <ScreenContainer safeTop>
+    <ScreenContainer sheet>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
           <FileThumbnail file={file} size={64} />
