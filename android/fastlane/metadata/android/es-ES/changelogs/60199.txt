@@ -1,0 +1,4 @@
+• Una unidad compartida ya no aparece por error en Mi unidad después de abrirla.
+• Corregido un regreso inesperado a la pantalla de inicio de sesión con una sesión válida.
+• Reinstalar la aplicación ya no conserva la sesión anterior.
+• Una unidad compartida ahora se muestra con el nombre de la carpeta compartida.

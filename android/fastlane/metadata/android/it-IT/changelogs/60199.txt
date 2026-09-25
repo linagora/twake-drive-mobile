@@ -1,0 +1,4 @@
+• Un drive condiviso non compare più per errore in Il mio Drive dopo essere stato aperto.
+• Corretto un ritorno inatteso alla schermata di accesso con una sessione ancora valida.
+• Reinstallare l'app non conserva più la sessione precedente.
+• Un drive condiviso ora mostra il nome della cartella condivisa.

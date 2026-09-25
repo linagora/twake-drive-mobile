@@ -1,0 +1,4 @@
+• Ein geteiltes Drive erscheint nach dem Öffnen nicht mehr versehentlich in Meine Ablage.
+• Unerwartete Rückkehr zum Anmeldebildschirm bei gültiger Sitzung behoben.
+• Eine Neuinstallation der App behält die vorherige Sitzung nicht mehr bei.
+• Ein geteiltes Drive wird jetzt nach dem geteilten Ordner benannt.
