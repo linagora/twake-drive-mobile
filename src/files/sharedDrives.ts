@@ -122,6 +122,11 @@ interface DriveScopable {
  * Names the drive on the query itself, not only in its options: the options
  * route it to the drive's local database, `sharingId` is what the stack route
  * is built from when the query is served from there instead.
+ *
+ * Only on a getById, which is what twake-drive web scopes this way
+ * (buildSharedDriveFolderQuery): the stack answers
+ * `GET /sharings/drives/<driveId>/<folderId>` with the folder and its children
+ * in `included`. A listing has no such route and is scoped by field instead.
  */
 const scopedToDrive = (
   query: unknown,
@@ -158,37 +163,51 @@ export const querySharedDriveFile = async (
  * options is what routes the query there, and cozy-pouch-link stamps that
  * `driveId` onto every document it pulls. A drive the user owns has no such
  * database: its files are on their own instance, hence in the main replica.
+ *
+ * The listing matches the `driveId` cozy-pouch-link stamps on every document it
+ * pulls, which is how twake-drive web's buildSharedDriveQuery reads a drive.
  */
 export const querySharedDriveFolder = async (
   client: CozyClient,
   entry: Pick<SharedDriveEntry, 'driveId' | 'owner'>,
   folderId: string
 ): Promise<{ folder: { _id: string; name: string } | null; children: SharedDriveFile[] }> => {
-  const [folder, children] = await Promise.all([
+  const [folder, replicated] = await Promise.all([
     client.query(
       scopedToDrive(Query('io.cozy.files').getById(folderId), entry) as never,
-      {
-        ...driveQueryOptions(entry, `shareddrive-${entry.driveId}-folder-${folderId}`),
-        singleDocData: true
-      } as never
-    ) as Promise<{ data?: SharedDriveFile | null }>,
+      driveQueryOptions(entry, `shareddrive-${entry.driveId}-folder-${folderId}`) as never
+    ) as Promise<{
+      data?: SharedDriveFile | SharedDriveFile[] | null
+      included?: SharedDriveFile[]
+    }>,
     client.queryAll(
-      scopedToDrive(
-        Query('io.cozy.files')
-          .where({
-            dir_id: folderId,
-            type: { $gt: null },
-            name: { $gt: null }
-          })
-          .indexFields(['dir_id', 'type', 'name'])
-          .sortBy([{ dir_id: 'asc' }, { type: 'asc' }, { name: 'asc' }]),
-        entry
-      ) as never,
+      Query('io.cozy.files')
+        .where({
+          dir_id: folderId,
+          ...(entry.owner ? {} : { driveId: entry.driveId }),
+          type: { $gt: null },
+          name: { $gt: null }
+        })
+        .indexFields(
+          entry.owner ? ['dir_id', 'type', 'name'] : ['dir_id', 'type', 'driveId', 'name']
+        )
+        .sortBy(
+          entry.owner
+            ? [{ dir_id: 'asc' }, { type: 'asc' }, { name: 'asc' }]
+            : [{ dir_id: 'asc' }, { driveId: 'asc' }, { type: 'asc' }, { name: 'asc' }]
+        ) as never,
       driveQueryOptions(entry, `shareddrive-${entry.driveId}-children-${folderId}`) as never
     ) as Promise<SharedDriveFile[]>
   ])
+
+  const doc = Array.isArray(folder.data) ? folder.data[0] : folder.data
+  // The stack answers the drive route with the folder and its contents in one
+  // go; the local replica answers the document alone, and the listing is what
+  // reads it there.
+  const fromStack = (folder.included ?? []).filter(child => !!child)
+  const fromReplica = (replicated ?? []).filter(child => !!child)
   return {
-    folder: folder.data ? { _id: folder.data._id, name: folder.data.name } : null,
-    children: (children ?? []).filter(child => !!child)
+    folder: doc ? { _id: doc._id, name: doc.name } : null,
+    children: fromStack.length > 0 ? fromStack : fromReplica
   }
 }
