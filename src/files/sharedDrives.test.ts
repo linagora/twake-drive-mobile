@@ -1,4 +1,9 @@
-import { fetchSharedDrives, querySharedDriveFolder, toSharedDriveEntry } from './sharedDrives'
+import {
+  fetchSharedDrives,
+  querySharedDriveFolder,
+  sharedDriveRowId,
+  toSharedDriveEntry
+} from './sharedDrives'
 
 const buildClient = (
   drives: unknown[],
@@ -192,5 +197,29 @@ describe('querySharedDriveFolder', () => {
     )
 
     expect(res.children.map(c => c._id)).toEqual(['c'])
+  })
+})
+
+// The sharings map is keyed by the values of a sharing's rules, which is where
+// rootFolderId is read from. A row built on the drive's own id — a sharing id —
+// matches nothing there, so it carried no share badge until the document had
+// replicated and could be used instead (#340).
+describe('sharedDriveRowId', () => {
+  it('names a drive row by the folder the sharing is about', () => {
+    expect(sharedDriveRowId({ driveId: 'sharing-A', rootFolderId: 'folder-1' })).toBe('folder-1')
+  })
+
+  it('falls back to the drive id when the sharing carries no rule', () => {
+    expect(sharedDriveRowId({ driveId: 'sharing-A', rootFolderId: null })).toBe('sharing-A')
+  })
+
+  it('agrees with the id the listing already exposes', () => {
+    const entry = toSharedDriveEntry({
+      _id: 'sharing-A',
+      description: 'Marketing',
+      rules: [{ values: ['folder-1'] }]
+    })
+
+    expect(sharedDriveRowId(entry!)).toBe('folder-1')
   })
 })

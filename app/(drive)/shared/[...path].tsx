@@ -29,7 +29,7 @@ import { SharingContext } from '@/sharing/SharingProvider'
 import { sharedFileLastUpdatedAt } from '@/sharing/lastUpdatedAt'
 import { useSharedDrives } from '@/files/useSharedDrives'
 import { registerSharedDrive } from '@/files/sharedDriveReplication'
-import { querySharedDriveFile, SharedDriveEntry } from '@/files/sharedDrives'
+import { querySharedDriveFile, sharedDriveRowId, SharedDriveEntry } from '@/files/sharedDrives'
 import { buildSharingRows, drivesForTab, SharingRow, SharingsTab } from '@/files/sharingRows'
 import { openFileFromList } from '@/files/openFromList'
 import { useFileRowActions } from '@/files/useFileRowActions'
@@ -212,7 +212,7 @@ export default function SharedScreen() {
             file={{
               ...(document ??
                 ({
-                  _id: drive.rootFolderId ?? drive.driveId,
+                  _id: sharedDriveRowId(drive),
                   name: drive.name,
                   mime: drive.mime
                 } as unknown as FileQueryResult)),
@@ -225,7 +225,7 @@ export default function SharedScreen() {
       }
       return (
         <FolderRow
-          folder={document ?? { _id: drive.driveId, name: drive.name }}
+          folder={document ?? { _id: sharedDriveRowId(drive), name: drive.name }}
           onPress={() => onDrivePress(drive)}
         />
       )
