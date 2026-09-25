@@ -13,7 +13,7 @@ import { FileListView } from '@/ui/FileListView'
 import { FileRow } from '@/ui/FileRow'
 import { FolderRow } from '@/ui/FolderRow'
 import { useAuth } from '@/auth/useAuth'
-import { querySharedDriveFolder, SharedDriveEntry } from '@/files/sharedDrives'
+import { querySharedDriveFolder, sharedDriveRowId, SharedDriveEntry } from '@/files/sharedDrives'
 import {
   getCachedSharedDrives,
   registerSharedDrive,
@@ -149,7 +149,10 @@ export const SharedDriveScreen = ({ basePath }: Props): React.ReactElement => {
   )
 
   const renderDrive = ({ item }: { item: SharedDriveEntry }): React.ReactElement => (
-    <FolderRow folder={{ _id: item.driveId, name: item.name }} onPress={() => onDrivePress(item)} />
+    <FolderRow
+      folder={{ _id: sharedDriveRowId(item), name: item.name }}
+      onPress={() => onDrivePress(item)}
+    />
   )
 
   const renderChild = ({ item }: { item: DriveChild }): React.ReactElement => {

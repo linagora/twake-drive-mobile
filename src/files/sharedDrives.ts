@@ -94,6 +94,18 @@ export const fetchSharedDrives = async (client: CozyClient): Promise<SharedDrive
     .filter((entry): entry is SharedDriveEntry => entry !== null)
 }
 
+/**
+ * The id a drive's row is known by.
+ *
+ * The sharings map is keyed by file ids — the values of the sharing's rules —
+ * and `rootFolderId` is read from exactly there. The drive's own id is a
+ * sharing id and matches nothing in that map, so a row built on it carries no
+ * sharing status until the document has replicated and can be used instead.
+ */
+export const sharedDriveRowId = (
+  drive: Pick<SharedDriveEntry, 'driveId' | 'rootFolderId'>
+): string => drive.rootFolderId ?? drive.driveId
+
 export interface SharedDriveFile {
   _id: string
   name: string
