@@ -10,6 +10,7 @@ import { useAuth } from '@/auth/useAuth'
 import { recentQuery, recentQueryAs, FileQueryResult, HIDDEN_ROOT_DIR_IDS } from '@/client/queries'
 import { useFileRowActions } from '@/files/useFileRowActions'
 import { fetchNextPage } from '@/drive/paging'
+import { belongsToASharedDrive } from '@/files/sharedDriveDocuments'
 
 export default function RecentScreen() {
   const { t } = useTranslation()
@@ -28,6 +29,7 @@ export default function RecentScreen() {
   const seenIds = new Set<string>()
   const data = ((query.data as FileQueryResult[] | null | undefined) ?? [])
     .filter(d => d.type === 'file' && !d.trashed && !HIDDEN_ROOT_DIR_IDS.includes(d.dir_id ?? ''))
+    .filter(d => !belongsToASharedDrive(d))
     .filter(d => !d.updated_at || new Date(d.updated_at).getTime() <= nowMs + 86_400_000)
     .filter(d => {
       if (seenIds.has(d._id)) return false

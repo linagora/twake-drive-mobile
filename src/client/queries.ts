@@ -27,6 +27,8 @@ export interface FileQueryResult {
   class?: string
   updated_at?: string
   path?: string
+  /** Stamped by cozy-pouch-link on documents it pulls for a shared drive. */
+  driveId?: string
   /** Set by the app that owns the document; the Docs bridge is addressed by
    *  `externalId`. */
   metadata?: { externalId?: string }
