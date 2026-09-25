@@ -92,39 +92,4 @@ describe('TrashScreen', () => {
     rerender(wrap(<TrashScreen />))
     expect(screen.getByText('Corbeille vide')).toBeOnTheScreen()
   })
-
-  describe('filtering', () => {
-    const trashed = [
-      { _id: 'd1', _type: 'io.cozy.files', type: 'directory', name: 'Rapports 2026' },
-      { _id: 'f1', _type: 'io.cozy.files', type: 'file', name: 'budget après revue.xlsx' }
-    ]
-
-    const byKind = () => {
-      const folders = queryResult([trashed[0]])
-      const files = queryResult([trashed[1]])
-      mockUseQuery.mockImplementation((_def: unknown, opts: { as: string }) =>
-        opts.as.endsWith('folders') ? folders : files
-      )
-    }
-
-    it('narrows the list to what the user types, accents aside', () => {
-      byKind()
-      render(wrap(<TrashScreen />))
-      expect(screen.getByText('Rapports 2026')).toBeOnTheScreen()
-
-      fireEvent.changeText(screen.getByTestId('trash-filter-input'), 'apres')
-
-      expect(screen.queryByText('Rapports 2026')).toBeNull()
-      expect(screen.getByText('budget après revue.xlsx')).toBeOnTheScreen()
-    })
-
-    it('says nothing matches rather than claiming the trash is empty', () => {
-      byKind()
-      render(wrap(<TrashScreen />))
-
-      fireEvent.changeText(screen.getByTestId('trash-filter-input'), 'zzz')
-
-      expect(screen.getByText(i18n.t('drive.trashActions.filterEmpty'))).toBeOnTheScreen()
-    })
-  })
 })

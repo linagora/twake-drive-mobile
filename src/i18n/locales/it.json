@@ -178,9 +178,7 @@
       "emptyConfirmBody": "Tutti gli elementi nel cestino verranno eliminati definitivamente. L'operazione è irreversibile.",
       "emptyConfirm": "Svuota",
       "emptySuccess": "Cestino svuotato",
-      "emptyError": "Impossibile svuotare il cestino",
-      "filterPlaceholder": "Filtra il cestino",
-      "filterEmpty": "Nessun elemento corrisponde"
+      "emptyError": "Impossibile svuotare il cestino"
     },
     "createMenu": {
       "folder": "Nuova cartella",

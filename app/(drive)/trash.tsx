@@ -1,15 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { StyleSheet, View } from 'react-native'
-import {
-  Button,
-  Dialog,
-  FAB,
-  Portal,
-  Searchbar,
-  Snackbar,
-  Text,
-  useTheme
-} from 'react-native-paper'
+import { Button, Dialog, FAB, Portal, Snackbar, Text, useTheme } from 'react-native-paper'
 import { useFocusEffect, useRouter } from 'expo-router'
 import { useQuery } from 'cozy-client'
 import { useClient } from 'cozy-client'
@@ -33,7 +24,6 @@ import {
 import { restoreEntry, emptyTrash } from '@/files/trashActions'
 import { useIsOnline } from '@/network/useIsOnline'
 import { requireOnline } from '@/network/requireOnline'
-import { filterByName } from '@/files/filterByName'
 
 export default function TrashScreen() {
   const router = useRouter()
@@ -56,7 +46,6 @@ export default function TrashScreen() {
     }, [])
   )
 
-  const [filter, setFilter] = useState('')
   const [snackbar, setSnackbar] = useState<string | null>(null)
   const [emptyDialogVisible, setEmptyDialogVisible] = useState(false)
   const [emptying, setEmptying] = useState(false)
@@ -77,7 +66,7 @@ export default function TrashScreen() {
   // Folders first, then files — same display order as the regular folder
   // listing and as twake-drive-web's trash view.
   const items = [...folderDocs, ...fileDocs].filter(d => !removedIds.has(d._id))
-  const data = filterByName(items, filter)
+  const data = items
 
   useEffect(() => {
     if (foldersQuery.fetchStatus === 'loaded' || filesQuery.fetchStatus === 'loaded') {
@@ -150,15 +139,6 @@ export default function TrashScreen() {
   return (
     <ScreenContainer>
       <AppBar title={t('drive.trash')} onLogout={logout} />
-      {items.length > 0 ? (
-        <Searchbar
-          testID="trash-filter-input"
-          placeholder={t('drive.trashActions.filterPlaceholder')}
-          value={filter}
-          onChangeText={setFilter}
-          style={styles.filter}
-        />
-      ) : null}
       <FileListView
         items={data}
         keyExtractor={item => item._id}
@@ -179,7 +159,7 @@ export default function TrashScreen() {
           fetchNextPage(foldersQuery)
           fetchNextPage(filesQuery)
         }}
-        emptyMessage={filter ? 'drive.trashActions.filterEmpty' : 'drive.emptyTrash'}
+        emptyMessage="drive.emptyTrash"
         contentContainerStyle={styles.listContent}
       />
       {data.length > 0 ? (
@@ -226,10 +206,6 @@ export default function TrashScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   fab: { position: 'absolute', right: 16, bottom: 16 },
-  filter: {
-    marginHorizontal: cozyTokens.spacing.md,
-    marginBottom: cozyTokens.spacing.sm
-  },
   // The empty-trash FAB floats over the list; leave room for the last row.
   listContent: { paddingBottom: cozyTokens.fabClearance }
 })
