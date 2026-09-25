@@ -14,6 +14,7 @@ jest.mock('./sharedDrives', () => ({
 import {
   getCachedSharedDrives,
   registerSharedDrive,
+  replicateAllSharedDrives,
   restoreSharedDriveReplication,
   sharedDriveDoctype,
   syncSharedDrives
@@ -119,5 +120,52 @@ describe('shared drive replication', () => {
     const { client: client2, removeDoctype } = buildClient([sharedDriveDoctype('drive-1')])
     await syncSharedDrives(client2)
     expect(removeDoctype).toHaveBeenCalledWith(sharedDriveDoctype('drive-1'))
+  })
+
+  describe('replicateAllSharedDrives', () => {
+    const entry = (driveId: string, owner = false): never =>
+      ({ driveId, name: driveId, rootFolderId: `root-${driveId}`, owner }) as never
+
+    it('starts every drive the user is a recipient of', async () => {
+      const { client, addDoctype } = buildClient()
+
+      const started = await replicateAllSharedDrives(client, [entry('drive-1'), entry('drive-2')])
+
+      expect(started).toBe(2)
+      expect(addDoctype).toHaveBeenCalledWith(sharedDriveDoctype('drive-1'), expect.anything())
+      expect(addDoctype).toHaveBeenCalledWith(sharedDriveDoctype('drive-2'), expect.anything())
+    })
+
+    // An owned drive has no database of its own: its files are already in the
+    // main replica.
+    it('leaves a drive the user owns alone', async () => {
+      const { client, addDoctype } = buildClient()
+
+      const started = await replicateAllSharedDrives(client, [entry('drive-1', true)])
+
+      expect(started).toBe(0)
+      expect(addDoctype).not.toHaveBeenCalled()
+    })
+
+    it('counts nothing for a drive already replicating', async () => {
+      const { client, addDoctype } = buildClient([sharedDriveDoctype('drive-1')])
+
+      const started = await replicateAllSharedDrives(client, [entry('drive-1')])
+
+      expect(started).toBe(0)
+      expect(addDoctype).not.toHaveBeenCalled()
+    })
+
+    // Dozens of drives is the case this exists for, so one refusing must not
+    // take the rest of the sync with it.
+    it('carries on when one drive cannot be started', async () => {
+      const { client, addDoctype } = buildClient()
+      addDoctype.mockRejectedValueOnce(new Error('nope'))
+
+      const started = await replicateAllSharedDrives(client, [entry('drive-1'), entry('drive-2')])
+
+      expect(started).toBe(1)
+      expect(addDoctype).toHaveBeenCalledTimes(2)
+    })
   })
 })

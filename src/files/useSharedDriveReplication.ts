@@ -2,7 +2,12 @@ import { useEffect } from 'react'
 import { useClient } from 'cozy-client'
 
 import { getOnlineMonitor } from '@/network/OnlineMonitor'
-import { restoreSharedDriveReplication, syncSharedDrives } from './sharedDriveReplication'
+import {
+  replicateAllSharedDrives,
+  restoreSharedDriveReplication,
+  syncSharedDrives
+} from './sharedDriveReplication'
+import { isEagerSharedDriveSyncEnabled } from './sharedDriveFlags'
 
 /**
  * Keeps the shared drives replicating.
@@ -24,7 +29,11 @@ export const useSharedDriveReplication = (): void => {
       await restoreSharedDriveReplication(client)
       if (cancelled || !getOnlineMonitor().getCurrent()) return
       try {
-        await syncSharedDrives(client)
+        const drives = await syncSharedDrives(client)
+        if (cancelled) return
+        // Off by default: every drive replicating from the first sync is what
+        // the per-drive registration was written to avoid paying for.
+        if (isEagerSharedDriveSyncEnabled()) await replicateAllSharedDrives(client, drives)
       } catch (e) {
         console.warn('[sharedDrives] could not refresh the drive list', e)
       }
