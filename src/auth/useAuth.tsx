@@ -16,6 +16,7 @@ import { mirrorSessionToNative } from '@/native/twakeAuthBridge'
 import { destroyLocalData } from '@/pouchdb/destroyLocalData'
 import { setAccountScope } from '@/storage/accountScope'
 import { clearSession, getSession, saveSession } from './tokenStorage'
+import { clearSessionLeftByAPreviousInstall } from './freshInstall'
 import { startOidcFlow } from './oidcFlow'
 import { registerSession } from './registerSession'
 import { registerDirectSession } from './registerDirectSession'
@@ -67,6 +68,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const bootstrap = async () => {
       let hadStoredSession = false
       try {
+        // The keychain outlives the app that wrote it, so a reinstall would
+        // otherwise come back signed in with every local database empty.
+        await clearSessionLeftByAPreviousInstall()
         const session = await getSession()
         if (!session) {
           setState({ status: 'unauthenticated', client: null })
