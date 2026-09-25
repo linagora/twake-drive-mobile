@@ -1,0 +1,3 @@
+• Sửa thông báo «phiên đã hết hạn» hiển thị nhầm sau khi cập nhật.
+• Cửa sổ di chuyển nay tự đóng khi di chuyển xong.
+• Đã bỏ thanh tìm kiếm khỏi thùng rác.

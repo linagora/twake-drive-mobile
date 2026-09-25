@@ -1,0 +1,3 @@
+• Fälschlich angezeigte Meldung „Sitzung abgelaufen" nach einem Update behoben.
+• Das Verschieben-Fenster schließt sich jetzt, sobald das Verschieben fertig ist.
+• Die Suchleiste wurde aus dem Papierkorb entfernt.

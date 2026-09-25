@@ -1,0 +1,3 @@
+• Correction d'un message « session expirée » affiché à tort après une mise à jour.
+• La fenêtre de déplacement se ferme désormais une fois le déplacement terminé.
+• La barre de recherche a été retirée de la corbeille.

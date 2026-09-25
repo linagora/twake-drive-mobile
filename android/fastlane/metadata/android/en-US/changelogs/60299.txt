@@ -1,0 +1,3 @@
+• Fixed a "session expired" message shown by mistake after an update.
+• The move window now closes once the move is done.
+• The search bar has been removed from the trash.

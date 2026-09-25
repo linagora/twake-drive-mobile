@@ -1,0 +1,3 @@
+• Corretto un messaggio «sessione scaduta» mostrato per errore dopo un aggiornamento.
+• La finestra di spostamento ora si chiude quando lo spostamento è terminato.
+• La barra di ricerca è stata rimossa dal cestino.

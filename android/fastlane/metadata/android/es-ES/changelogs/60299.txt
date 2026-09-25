@@ -1,0 +1,3 @@
+• Corregido un mensaje de «sesión caducada» mostrado por error tras una actualización.
+• La ventana de mover ahora se cierra cuando termina el movimiento.
+• Se ha quitado la barra de búsqueda de la papelera.
