@@ -1,0 +1,4 @@
+• Un drive partagé n'apparaît plus par erreur dans Mon Drive après avoir été ouvert.
+• Correction d'un retour inattendu vers l'écran de connexion alors que la session était valide.
+• Réinstaller l'application ne conserve plus la session précédente.
+• Un drive partagé s'affiche désormais avec le nom du dossier partagé.

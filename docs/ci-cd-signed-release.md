@@ -8,16 +8,16 @@ there, where each value comes from, and how a release is cut.
 
 ## What runs where
 
-| Workflow                        | Trigger             | What it does                                                                                                                   |
-| ------------------------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `ci.yml`                        | every push / PR     | tests, typecheck, lint                                                                                                         |
-| `security.yml`                  | every push / PR     | Trivy filesystem scan                                                                                                          |
-| `build-android.yml`             | every push / PR     | unsigned release APK, as an artefact                                                                                           |
-| `build-ios.yml`, `test-ios.yml` | every push / PR     | unsigned iOS build, simulator tests                                                                                            |
-| `release-ios.yml`               | `v*` tag, or manual | signed IPA → TestFlight (`fastlane ios distribute`), optionally App Store metadata (`ios release`)                             |
+| Workflow                        | Trigger             | What it does                                                                                                                                                                    |
+| ------------------------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ci.yml`                        | every push / PR     | tests, typecheck, lint                                                                                                                                                          |
+| `security.yml`                  | every push / PR     | Trivy filesystem scan                                                                                                                                                           |
+| `build-android.yml`             | every push / PR     | unsigned release APK, as an artefact                                                                                                                                            |
+| `build-ios.yml`, `test-ios.yml` | every push / PR     | unsigned iOS build, simulator tests                                                                                                                                             |
+| `release-ios.yml`               | `v*` tag, or manual | signed IPA → TestFlight (`fastlane ios distribute`), optionally App Store metadata (`ios release`)                                                                              |
 | `release-android.yml`           | `v*` tag, or manual | signed AAB → Play internal (`fastlane android release`), optionally an APK to Firebase App Distribution (`android distribute`) or the store listing (`android publish_listing`) |
-| `provision-ios.yml`             | manual              | registers the app extensions' identifiers and profiles through `fastlane ios provision_extensions`                             |
-| `release-preflight.yml`         | manual              | says which release secrets are present, without revealing any value                                                            |
+| `provision-ios.yml`             | manual              | registers the app extensions' identifiers and profiles through `fastlane ios provision_extensions`                                                                              |
+| `release-preflight.yml`         | manual              | says which release secrets are present, without revealing any value                                                                                                             |
 
 ## The secrets
 
@@ -83,10 +83,16 @@ number, which TestFlight only needs to be unique within a version.
   (`publish_to_play_store: false`) and keep the AAB as an artefact, or also
   send an APK to Firebase (`distribute_via_firebase: true`).
 - The Play store listing lives in `android/fastlane/metadata/` and is never
-  pushed by a release: the `release` lane skips metadata, images and changelogs.
-  `publish_listing: true` on a manual run pushes it through the
+  pushed by a release: the `release` lane skips metadata, images and
+  screenshots. `publish_listing: true` on a manual run pushes it through the
   `android publish_listing` lane, which refuses to run while a file is empty or
   still holds a `TODO`. See `android/fastlane/metadata/README.md`.
+- Release notes DO ship with the build, from
+  `android/fastlane/metadata/android/<locale>/changelogs/<versionCode>.txt`.
+  The version code is derived from the marketing version in
+  `android/app/build.gradle` — 0.6.1 is `60199` — so add one file per locale
+  before cutting the tag. A version with no changelog file uploads without
+  notes rather than failing.
 - The first build of a new Play app cannot go through the API: download the
   AAB artefact of a run without upload and send it by hand in the Play
   Console, which also enrols the app in Play App Signing. The service account

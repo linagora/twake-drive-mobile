@@ -1,0 +1,4 @@
+• Ổ đĩa được chia sẻ không còn xuất hiện nhầm trong Drive của tôi sau khi mở.
+• Sửa lỗi quay lại màn hình đăng nhập dù phiên vẫn còn hiệu lực.
+• Cài đặt lại ứng dụng không còn giữ phiên đăng nhập trước đó.
+• Ổ đĩa được chia sẻ nay hiển thị theo tên thư mục được chia sẻ.

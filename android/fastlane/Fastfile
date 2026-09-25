@@ -50,10 +50,14 @@ platform :android do
       aab: "app/build/outputs/bundle/release/app-release.aab",
       json_key: ENV["SUPPLY_JSON_KEY_PATH"],
       package_name: PACKAGE_NAME,
+      metadata_path: METADATA_PATH,
+      # The release notes ship with the build; the store listing does not, it
+      # has its own lane. A version with no changelogs/<versionCode>.txt simply
+      # uploads without notes.
       skip_upload_metadata: true,
       skip_upload_images: true,
       skip_upload_screenshots: true,
-      skip_upload_changelogs: true
+      skip_upload_changelogs: false
     )
   end
 

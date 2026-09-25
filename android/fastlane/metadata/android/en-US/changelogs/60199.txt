@@ -1,0 +1,4 @@
+• A shared drive no longer shows up in My Drive by mistake after being opened.
+• Fixed an unexpected return to the login screen while the session was still valid.
+• Reinstalling the app no longer keeps the previous session.
+• A shared drive is now named after the folder it shares.
