@@ -94,6 +94,32 @@ const unregisterSharedDrive = async (client: CozyClient, driveId: string): Promi
 }
 
 /**
+ * Starts replicating every drive the user is a recipient of, rather than
+ * waiting for them to open one.
+ *
+ * Behind a flag: this is the cost the per-drive registration exists to avoid,
+ * so it is opt-in and measurable. Drives are taken one at a time and a failure
+ * on one does not stop the others; a drive already registered is a no-op.
+ */
+export const replicateAllSharedDrives = async (
+  client: CozyClient,
+  drives: SharedDriveEntry[]
+): Promise<number> => {
+  let started = 0
+  for (const drive of drives) {
+    // An owned drive has no database of its own: its files are already in the
+    // main replica.
+    if (drive.owner) continue
+    try {
+      if (await registerSharedDrive(client, drive.driveId)) started += 1
+    } catch (e) {
+      console.warn('[sharedDrives] could not start replicating', drive.driveId, e)
+    }
+  }
+  return started
+}
+
+/**
  * Registers back every drive replicated in a past session: the link is built
  * from a static doctype list, so without this a restart leaves their databases
  * on disk and unreachable.
