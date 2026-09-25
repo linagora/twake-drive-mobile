@@ -8,6 +8,7 @@ import { useTranslation } from 'react-i18next'
 
 import { AppBar } from '@/ui/AppBar'
 import { fetchNextPage } from '@/drive/paging'
+import { withoutSharedDriveDocuments } from '@/files/sharedDriveDocuments'
 import { useGuardedPush } from '@/ui/useGuardedPush'
 import { FileListView } from '@/ui/FileListView'
 import { useFileRowActions } from '@/files/useFileRowActions'
@@ -315,10 +316,15 @@ export const FilesScreen = ({ basePath }: FilesScreenProps): React.ReactElement 
   }
 
   // Folders first, then files — same display order as twake-drive-web.
-  const folderDocs = (foldersQuery.data as FileQueryResult[] | null | undefined) ?? []
-  const fileDocs = (filesQuery.data as FileQueryResult[] | null | undefined) ?? []
+  const folderDocs = withoutSharedDriveDocuments(
+    (foldersQuery.data as FileQueryResult[] | null | undefined) ?? []
+  )
+  const fileDocs = withoutSharedDriveDocuments(
+    (filesQuery.data as FileQueryResult[] | null | undefined) ?? []
+  )
   // shared-drives-dir + trash-dir are already filtered server-side by
-  // buildDriveQuery (see src/client/queries.ts).
+  // buildDriveQuery (see src/client/queries.ts); a shared drive's own root is
+  // not, since it sits at its owner's root and so carries our root's dir_id.
   // Sort within each group (folders / files) separately to preserve grouping.
   const data = useMemo(() => {
     const direction = sort.dir === 'asc' ? 1 : -1

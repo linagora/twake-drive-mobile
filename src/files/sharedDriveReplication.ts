@@ -49,6 +49,21 @@ const readList = <T>(key: string): T[] => {
 export const getCachedSharedDrives = (): SharedDriveEntry[] =>
   readList<SharedDriveEntry>(DRIVES_KEY)
 
+let rootFolderIds: Set<string> | null = null
+
+/** Root folder _ids of the drives shared with the user, read once per listing. */
+export const getSharedDriveRootIds = (): Set<string> => {
+  if (!rootFolderIds) {
+    rootFolderIds = new Set(
+      getCachedSharedDrives()
+        .filter(drive => !drive.owner)
+        .map(drive => drive.rootFolderId)
+        .filter((id): id is string => !!id)
+    )
+  }
+  return rootFolderIds
+}
+
 const getReplicatedDriveIds = (): string[] => readList<string>(REPLICATED_KEY)
 
 const setReplicatedDriveIds = (ids: string[]): void => {
@@ -166,5 +181,6 @@ const runSyncSharedDrives = async (client: CozyClient): Promise<SharedDriveEntry
   }
 
   storage?.set(DRIVES_KEY, JSON.stringify(drives))
+  rootFolderIds = null
   return drives
 }
