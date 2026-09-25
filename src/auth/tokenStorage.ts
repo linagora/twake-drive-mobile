@@ -27,9 +27,20 @@ const DEFAULT_KEYCHAIN: SecureStore.SecureStoreOptions = {
   keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK
 }
 
+const deleteFrom = async (options: SecureStore.SecureStoreOptions): Promise<void> => {
+  try {
+    await SecureStore.deleteItemAsync(SESSION_KEY, options)
+  } catch {
+    // Nothing to delete, or no entitlement to look there.
+  }
+}
+
 const setItem = async (value: string): Promise<void> => {
   try {
     await SecureStore.setItemAsync(SESSION_KEY, value, SHARED_KEYCHAIN)
+    // The two keychains must never hold different sessions, since a read falls
+    // back to the default one as soon as the shared group answers empty.
+    await deleteFrom(DEFAULT_KEYCHAIN)
   } catch {
     await SecureStore.setItemAsync(SESSION_KEY, value, DEFAULT_KEYCHAIN)
   }
@@ -55,12 +66,11 @@ const getItem = async (): Promise<string | null> => {
   }
 }
 
+// Both keychains, always. Clearing only the one the delete happened to reach
+// left a copy behind that a later read would hand back as a live session.
 const deleteItem = async (): Promise<void> => {
-  try {
-    await SecureStore.deleteItemAsync(SESSION_KEY, SHARED_KEYCHAIN)
-  } catch {
-    await SecureStore.deleteItemAsync(SESSION_KEY, DEFAULT_KEYCHAIN)
-  }
+  await deleteFrom(SHARED_KEYCHAIN)
+  await deleteFrom(DEFAULT_KEYCHAIN)
 }
 
 export const saveSession = async (session: Session): Promise<void> => {
