@@ -100,4 +100,35 @@ describe('tokenStorage', () => {
 
     await expect(getSession()).resolves.toBeNull()
   })
+
+  // A copy left in the other keychain is read back as a live session by
+  // getItem's fallback, which is how a cleared session came back stale.
+  it('clearSession empties both keychains', async () => {
+    await clearSession()
+
+    expect(SecureStore.deleteItemAsync).toHaveBeenCalledWith(SESSION_KEY, SHARED)
+    expect(SecureStore.deleteItemAsync).toHaveBeenCalledWith(SESSION_KEY, DEFAULT)
+  })
+
+  it('clearSession still empties the default keychain when the shared one throws', async () => {
+    ;(SecureStore.deleteItemAsync as jest.Mock).mockImplementation(
+      async (_key: string, options: { accessGroup?: string }) => {
+        if (options?.accessGroup) throw new Error('missing entitlement')
+      }
+    )
+
+    await expect(clearSession()).resolves.toBeUndefined()
+    expect(SecureStore.deleteItemAsync).toHaveBeenCalledWith(SESSION_KEY, DEFAULT)
+  })
+
+  it('saveSession drops any copy left in the default keychain', async () => {
+    await saveSession(session)
+
+    expect(SecureStore.setItemAsync).toHaveBeenCalledWith(
+      SESSION_KEY,
+      JSON.stringify(session),
+      SHARED
+    )
+    expect(SecureStore.deleteItemAsync).toHaveBeenCalledWith(SESSION_KEY, DEFAULT)
+  })
 })
