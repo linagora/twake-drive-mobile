@@ -1,22 +1,24 @@
 import { getSharedDriveRootIds } from './sharedDriveReplication'
+import { SHARED_DRIVES_DIR_ID } from '@/client/queries'
 
-interface MaybeDriveDocument {
+interface MaybeDriveRoot {
   _id?: string
-  /** Stamped by cozy-pouch-link on every document it pulls for a drive. */
-  driveId?: string
+  dir_id?: string
 }
 
 /**
- * Whether a document belongs to a drive shared with the user, and so has no
- * place in a listing of their own files.
+ * Whether a document is the root of a drive shared with the user.
  *
- * Two signals, because a drive is read from its local replica once it has one
- * and from the stack until then: the replica stamps `driveId` on what it
- * pulls, while a stack response carries no such mark and is recognised by the
- * root folder its sharing points at.
+ * twake-drive web recognises those by their parent: a drive root is a child of
+ * `io.cozy.files.shared-drives-dir`, which is what `buildRecentQuery` filters
+ * on and what keeps them out of the drive listing there. A drive replicated
+ * locally keeps the `dir_id` it has on its owner's instance instead, and for a
+ * drive shared at their root that is `io.cozy.files.root-dir` — the same
+ * constant as the user's own root. So the sharing's root folder id is checked
+ * as well.
  */
-export const belongsToASharedDrive = (doc: MaybeDriveDocument): boolean =>
-  !!doc.driveId || (!!doc._id && getSharedDriveRootIds().has(doc._id))
+export const isSharedDriveRoot = (doc: MaybeDriveRoot): boolean =>
+  doc.dir_id === SHARED_DRIVES_DIR_ID || (!!doc._id && getSharedDriveRootIds().has(doc._id))
 
-export const withoutSharedDriveDocuments = <T extends MaybeDriveDocument>(docs: T[]): T[] =>
-  docs.some(belongsToASharedDrive) ? docs.filter(doc => !belongsToASharedDrive(doc)) : docs
+export const withoutSharedDriveRoots = <T extends MaybeDriveRoot>(docs: T[]): T[] =>
+  docs.some(isSharedDriveRoot) ? docs.filter(doc => !isSharedDriveRoot(doc)) : docs
