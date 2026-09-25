@@ -54,8 +54,29 @@ const AuthContext = createContext<AuthContextValue | null>(null)
 
 let devResyncInFlight = false
 
+// The established client, held outside React so a remount of the provider
+// finds the session already open instead of starting the bootstrap over.
+// In production the provider mounts once and this is never read again.
+let liveClient: CozyClient | null = null
+
+/** Test seam: drops the client a previous test left behind. */
+export const resetLiveClientForTests = (): void => {
+  liveClient = null
+}
+
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [state, setState] = useState<AuthState>({ status: 'loading', client: null })
+  const [state, setRawState] = useState<AuthState>(() =>
+    liveClient
+      ? { status: 'authenticated', client: liveClient }
+      : { status: 'loading', client: null }
+  )
+  const setState: typeof setRawState = update => {
+    setRawState(prev => {
+      const next = typeof update === 'function' ? update(prev) : update
+      liveClient = next.client
+      return next
+    })
+  }
   const [authenticating, setAuthenticating] = useState(false)
   const [sessionExpired, setSessionExpired] = useState(false)
   const clientRef = useRef<CozyClient | null>(null)
@@ -66,6 +87,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     const bootstrap = async () => {
+      if (liveClient) {
+        setState({ status: 'authenticated', client: liveClient })
+        return
+      }
       let hadStoredSession = false
       try {
         // The keychain outlives the app that wrote it, so a reinstall would

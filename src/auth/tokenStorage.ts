@@ -35,11 +35,23 @@ const setItem = async (value: string): Promise<void> => {
   }
 }
 
+// The shared group is tried first, then the default keychain — on BOTH a
+// throw and an empty result. `setItem` falls back on a throw, so on a build
+// without the entitlement the session lives in the default keychain; a read
+// that answers "nothing here" for the shared group rather than raising would
+// otherwise report no session at all while one is stored.
 const getItem = async (): Promise<string | null> => {
+  let shared: string | null = null
   try {
-    return await SecureStore.getItemAsync(SESSION_KEY, SHARED_KEYCHAIN)
+    shared = await SecureStore.getItemAsync(SESSION_KEY, SHARED_KEYCHAIN)
   } catch {
+    shared = null
+  }
+  if (shared) return shared
+  try {
     return await SecureStore.getItemAsync(SESSION_KEY, DEFAULT_KEYCHAIN)
+  } catch {
+    return null
   }
 }
 

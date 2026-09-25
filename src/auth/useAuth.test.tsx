@@ -50,7 +50,7 @@ import * as tokenStorage from './tokenStorage'
 import * as oidcFlow from './oidcFlow'
 import * as autodiscovery from './autodiscovery'
 import * as registerSessionMod from './registerSession'
-import { useAuth, AuthProvider } from './useAuth'
+import { useAuth, AuthProvider, resetLiveClientForTests } from './useAuth'
 
 const mockSession = {
   uri: 'https://alice.example.com',
@@ -81,7 +81,10 @@ const Probe = () => {
 }
 
 describe('useAuth', () => {
-  beforeEach(() => jest.restoreAllMocks())
+  beforeEach(() => {
+    jest.restoreAllMocks()
+    resetLiveClientForTests()
+  })
 
   it('starts loading then transitions to unauthenticated when no session', async () => {
     jest.spyOn(tokenStorage, 'getSession').mockResolvedValue(null)
@@ -197,5 +200,55 @@ describe('useAuth', () => {
     // login screen returns to the device language, dropping the instance locale
     expect(resolveDeviceLanguage).toHaveBeenCalled()
     expect(i18n.changeLanguage).toHaveBeenCalledWith('en')
+  })
+
+  // A Fast Refresh remounts the provider. Restarting the bootstrap there
+  // dropped the user on the login screen with a live session behind it.
+  it('keeps the session when the provider remounts', async () => {
+    const getSessionSpy = jest.spyOn(tokenStorage, 'getSession').mockResolvedValue(mockSession)
+
+    const first = render(
+      <AuthProvider>
+        <Probe />
+      </AuthProvider>
+    )
+    await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('authenticated'))
+    const callsAfterBootstrap = getSessionSpy.mock.calls.length
+    first.unmount()
+
+    render(
+      <AuthProvider>
+        <Probe />
+      </AuthProvider>
+    )
+
+    expect(screen.getByTestId('status')).toHaveTextContent('authenticated')
+    expect(getSessionSpy).toHaveBeenCalledTimes(callsAfterBootstrap)
+  })
+
+  it('does not resurrect a session after logout', async () => {
+    jest.spyOn(tokenStorage, 'getSession').mockResolvedValue(mockSession)
+    jest.spyOn(tokenStorage, 'clearSession').mockResolvedValue()
+
+    const first = render(
+      <AuthProvider>
+        <Probe />
+      </AuthProvider>
+    )
+    await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('authenticated'))
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('logout'))
+    })
+    await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('unauthenticated'))
+    first.unmount()
+
+    jest.spyOn(tokenStorage, 'getSession').mockResolvedValue(null)
+    render(
+      <AuthProvider>
+        <Probe />
+      </AuthProvider>
+    )
+
+    await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('unauthenticated'))
   })
 })
