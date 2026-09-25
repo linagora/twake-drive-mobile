@@ -8,6 +8,7 @@ import { moveEntry, MoveEntryTarget } from '@/files/moveEntry'
 import { optimisticFiles } from '@/files/optimisticFiles'
 import { filesByIdsQuery, filesByIdsQueryAs, FileQueryResult } from '@/client/queries'
 import { MoveContext, MoveContextValue } from '@/drive/moveContext'
+import { closeSheet, SheetRouter } from '@/ui/closeSheet'
 
 const SNACKBAR_DISMISS_DELAY_MS = 200
 
@@ -41,16 +42,8 @@ export default function MoveLayout() {
   const [isBusy, setIsBusy] = useState(false)
   const [snackbar, setSnackbar] = useState<string | null>(null)
 
-  // Cancel/close: dismiss closes the pageSheet modal from any depth in the
-  // nested stack. Falls back to back() if dismiss isn't available.
   const close = useCallback((): void => {
-    type MaybeDismiss = { dismiss?: () => void; canDismiss?: () => boolean }
-    const r = router as unknown as MaybeDismiss
-    if (typeof r.dismiss === 'function' && r.canDismiss?.() !== false) {
-      r.dismiss()
-      return
-    }
-    if (router.canGoBack()) router.back()
+    closeSheet(router as unknown as SheetRouter)
   }, [router])
 
   const onConfirm = useCallback(
