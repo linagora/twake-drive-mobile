@@ -80,4 +80,24 @@ describe('tokenStorage', () => {
     expect(SecureStore.getItemAsync).toHaveBeenNthCalledWith(1, SESSION_KEY, SHARED)
     expect(SecureStore.getItemAsync).toHaveBeenNthCalledWith(2, SESSION_KEY, DEFAULT)
   })
+
+  // The write falls back to the default keychain when the shared group has no
+  // entitlement, so a read that answers "nothing" for the shared group — rather
+  // than raising — must still look there before reporting no session.
+  it('getSession falls back to the default keychain on an empty shared read', async () => {
+    ;(SecureStore.getItemAsync as jest.Mock).mockImplementation(
+      async (_key: string, options: { accessGroup?: string }) =>
+        options?.accessGroup ? null : JSON.stringify(session)
+    )
+
+    await expect(getSession()).resolves.toEqual(session)
+    expect(SecureStore.getItemAsync).toHaveBeenCalledWith(SESSION_KEY, SHARED)
+    expect(SecureStore.getItemAsync).toHaveBeenCalledWith(SESSION_KEY, DEFAULT)
+  })
+
+  it('getSession reports no session when neither keychain holds one', async () => {
+    ;(SecureStore.getItemAsync as jest.Mock).mockResolvedValue(null)
+
+    await expect(getSession()).resolves.toBeNull()
+  })
 })
