@@ -8,6 +8,7 @@ import { uploadBatch } from '@/share/uploadBatch'
 import { optimisticFiles } from '@/files/optimisticFiles'
 import { usePendingShare } from '@/share/PendingShareProvider'
 import { ImportContext, ImportContextValue } from '@/drive/importContext'
+import { closeSheet, SheetRouter } from '@/ui/closeSheet'
 
 const SNACKBAR_DISMISS_DELAY_MS = 200
 
@@ -20,13 +21,7 @@ export default function ImportLayout({ children }: { children?: React.ReactNode 
   const [snackbar, setSnackbar] = useState<string | null>(null)
 
   const close = useCallback((): void => {
-    type MaybeDismiss = { dismiss?: () => void; canDismiss?: () => boolean }
-    const r = router as unknown as MaybeDismiss
-    if (typeof r.dismiss === 'function' && r.canDismiss?.() === true) {
-      r.dismiss()
-      return
-    }
-    if (router.canGoBack()) router.back()
+    closeSheet(router as unknown as SheetRouter)
   }, [router])
 
   // Declining the import must also drop the staged share — otherwise `pending`
