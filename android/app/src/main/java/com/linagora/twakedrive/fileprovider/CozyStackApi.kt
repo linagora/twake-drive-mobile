@@ -97,13 +97,13 @@ class CozyStackApi(private val session: SessionStore) {
     }
 
     fun get(id: String): CozyFile {
-        val data = jsonGet("/files/$id").getJSONObject("data")
+        val data = jsonGet("/files/${DocumentIds.require(id)}").getJSONObject("data")
         return CozyFile.fromDocument(data)
     }
 
     fun list(dirId: String, cap: Int = 500): List<CozyFile> {
         val out = ArrayList<CozyFile>()
-        var path: String? = "/files/$dirId"
+        var path: String? = "/files/${DocumentIds.require(dirId)}"
         var pages = 0
         while (path != null && out.size < cap) {
             val json = jsonGet(path)
@@ -124,7 +124,8 @@ class CozyStackApi(private val session: SessionStore) {
 
     fun download(id: String, dest: File) {
         onNetwork {
-            val req = Request.Builder().url("${base()}/files/download/$id").build()
+            val req = Request.Builder()
+                .url("${base()}/files/download/${DocumentIds.require(id)}").build()
             exec(req).use { resp ->
                 dest.parentFile?.mkdirs()
                 dest.outputStream().use { out -> resp.body!!.byteStream().copyTo(out) }
@@ -172,14 +173,15 @@ class CozyStackApi(private val session: SessionStore) {
     private fun enc(s: String) = java.net.URLEncoder.encode(s, "UTF-8")
 
     fun createDirectory(parentId: String, name: String): CozyFile =
-        postForFile("/files/$parentId?Type=directory&Name=${enc(name)}",
+        postForFile("/files/${DocumentIds.require(parentId)}?Type=directory&Name=${enc(name)}",
             ByteArray(0).toRequestBody(null))
 
     fun createFile(parentId: String, name: String, mime: String): CozyFile =
-        postForFile("/files/$parentId?Type=file&Name=${enc(name)}",
+        postForFile("/files/${DocumentIds.require(parentId)}?Type=file&Name=${enc(name)}",
             ByteArray(0).toRequestBody(mime.toMediaTypeOrNull()))
 
     fun upload(id: String, src: File, mime: String): CozyFile {
+        DocumentIds.require(id)
         return onNetwork {
             val body = src.asRequestBody(mime.toMediaTypeOrNull())
             val req = Request.Builder().url("${base()}/files/$id")
@@ -192,6 +194,7 @@ class CozyStackApi(private val session: SessionStore) {
     }
 
     private fun patchAttributes(id: String, attrsJson: String): CozyFile {
+        DocumentIds.require(id)
         return onNetwork {
             val payload = """{"data":{"type":"io.cozy.files","id":"$id","attributes":$attrsJson}}"""
             val body = payload.toRequestBody("application/vnd.api+json".toMediaTypeOrNull())
@@ -208,6 +211,7 @@ class CozyStackApi(private val session: SessionStore) {
         patchAttributes(id, JSONObject().put("name", newName).toString())
 
     fun trash(id: String) {
+        DocumentIds.require(id)
         onNetwork {
             val req = Request.Builder().url("${base()}/files/$id")
                 .header("Accept", "application/vnd.api+json").delete().build()
@@ -221,7 +225,7 @@ class CozyStackApi(private val session: SessionStore) {
     } catch (e: FileNotFoundException) { null }
 
     fun move(id: String, targetParentId: String): CozyFile {
-        val patch = JSONObject().put("dir_id", targetParentId).toString()
+        val patch = JSONObject().put("dir_id", DocumentIds.require(targetParentId)).toString()
         try {
             return patchAttributes(id, patch)
         } catch (e: AuthRequiredException) {
