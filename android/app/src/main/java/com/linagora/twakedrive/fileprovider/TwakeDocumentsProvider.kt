@@ -182,6 +182,9 @@ class TwakeDocumentsProvider : DocumentsProvider() {
 
     override fun isChildDocument(parentDocumentId: String?, documentId: String?): Boolean {
         if (parentDocumentId == null || documentId == null) return false
+        // enforceTree() asks this before honouring a tree grant, so an id the stack
+        // could not have minted stops here rather than at its first use.
+        if (!DocumentIds.isValid(parentDocumentId) || !DocumentIds.isValid(documentId)) return false
         if (parentDocumentId == DocumentMapper.ROOT_DOC_ID) return true // single-root tree
         var current: String? = documentId
         var hops = 0

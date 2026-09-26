@@ -4,11 +4,13 @@ import androidx.test.core.app.ApplicationProvider
 import okhttp3.OkHttpClient
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import java.io.File
+import java.io.FileNotFoundException
 
 @RunWith(RobolectricTestRunner::class)
 class DocumentCacheTest {
@@ -74,5 +76,41 @@ class DocumentCacheTest {
         val blobStillWinsResult = cache.ensureLocal("z", fakeApi())
         assertEquals(blob, blobStillWinsResult)
         assertEquals("blob bytes", blobStillWinsResult.readText())
+    }
+
+    // A documentId reaches us from another app over Binder. Every entry point that
+    // turns one into a path has to refuse the ones that name a path.
+    @Test fun `cachedFile refuses an id that climbs out of the cache dir`() {
+        assertThrows(FileNotFoundException::class.java) {
+            DocumentCache(ctx).cachedFile("../../databases/twake.db")
+        }
+    }
+
+    @Test fun `offlineBlob refuses an id that climbs out of the offline dir`() {
+        val outside = File(ctx.filesDir, "../databases/twake.db")
+            .apply { parentFile?.mkdirs(); writeText("private") }
+        assertTrue(outside.exists())
+        assertThrows(FileNotFoundException::class.java) {
+            DocumentCache(ctx).offlineBlob("../databases/twake.db")
+        }
+    }
+
+    @Test fun `ensureLocal refuses a traversing id before it reaches the network`() {
+        assertThrows(FileNotFoundException::class.java) {
+            DocumentCache(ctx).ensureLocal("../../databases/twake.db", fakeApi())
+        }
+    }
+
+    @Test fun `tempFor refuses a traversing id`() {
+        assertThrows(FileNotFoundException::class.java) {
+            DocumentCache(ctx).tempFor("../../databases/twake.db")
+        }
+    }
+
+    @Test fun `stageWritten refuses a traversing id`() {
+        val src = File(ctx.cacheDir, "staged").apply { writeText("bytes") }
+        assertThrows(FileNotFoundException::class.java) {
+            DocumentCache(ctx).stageWritten("../../databases/twake.db", src)
+        }
     }
 }

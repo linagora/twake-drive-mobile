@@ -13,6 +13,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import java.io.File
+import java.io.FileNotFoundException
 import java.io.IOException
 
 class CozyStackApiTest {
@@ -244,5 +245,32 @@ class CozyStackApiTest {
         api.trash("f1")
         val req = server.takeRequest()
         assertEquals("DELETE", req.method); assertEquals("/files/f1", req.path)
+    }
+
+    // Ids land in the request path. OkHttp normalises `..` away, so an id that
+    // names a path would aim the user's Bearer token at another stack route.
+    @Test fun `an id that names a path never reaches the network`() {
+        api = CozyStackApi(sessionFor(server.url("/").toString()))
+
+        assertThrows(FileNotFoundException::class.java) { api.get("../../auth/tokens") }
+        assertThrows(FileNotFoundException::class.java) { api.list("../../settings") }
+        assertThrows(FileNotFoundException::class.java) {
+            api.download("../../auth/tokens", File.createTempFile("down", null))
+        }
+        assertThrows(FileNotFoundException::class.java) {
+            api.upload("../../auth/tokens", File.createTempFile("upld", null), "text/plain")
+        }
+        assertThrows(FileNotFoundException::class.java) { api.trash("../../settings") }
+        assertThrows(FileNotFoundException::class.java) { api.rename("../../settings", "x") }
+        assertThrows(FileNotFoundException::class.java) { api.move("../../settings", "root") }
+        assertThrows(FileNotFoundException::class.java) { api.move("f1", "../../settings") }
+        assertThrows(FileNotFoundException::class.java) {
+            api.createFile("../../settings", "x.txt", "text/plain")
+        }
+        assertThrows(FileNotFoundException::class.java) {
+            api.createDirectory("../../settings", "x")
+        }
+
+        assertEquals(0, server.requestCount)
     }
 }
