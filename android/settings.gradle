@@ -18,6 +18,11 @@ pluginManagement {
 }
 
 plugins {
+  // The unit test tasks pin their launcher to Java 21 (Robolectric needs it to
+  // build an SDK 36 sandbox — see app/build.gradle). With no download
+  // repository configured, `gradlew test` fails outright on a machine whose
+  // JAVA_HOME is older, so let Gradle fetch the toolchain it asks for.
+  id("org.gradle.toolchains.foojay-resolver-convention") version "0.8.0"
   id("com.facebook.react.settings")
   id("expo-autolinking-settings")
 }
