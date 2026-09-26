@@ -42,7 +42,8 @@ struct KeychainSessionStore: SessionStoring {
   func save(_ session: Session) throws {
     let data = try JSONEncoder().encode(session)
     guard access.write(data, service: Self.writeService, account: account,
-                       accessGroup: accessGroup, accessible: kSecAttrAccessibleAfterFirstUnlock) else {
+                       accessGroup: accessGroup,
+                       accessible: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly) else {
       throw CozyError.serverUnreachable
     }
   }

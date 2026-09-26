@@ -23,16 +23,16 @@ const session = {
 }
 
 // Native extensions read the SAME keychain item, so every call must target the
-// shared access group with AFTER_FIRST_UNLOCK accessibility.
+// shared access group, with an accessibility class that stays on this device.
 const SHARED = {
   accessGroup: 'KUT463DS29.com.linagora.twakedrive.shared',
-  keychainAccessible: 'AFTER_FIRST_UNLOCK'
+  keychainAccessible: 'AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY'
 }
 
 // Fallback keychain (no access group) used when the shared-group entitlement is
 // absent, e.g. the unsigned iOS Simulator build.
 const DEFAULT = {
-  keychainAccessible: 'AFTER_FIRST_UNLOCK'
+  keychainAccessible: 'AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY'
 }
 
 describe('tokenStorage', () => {

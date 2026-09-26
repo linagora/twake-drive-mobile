@@ -14,12 +14,14 @@ private final class FakeKeychain: KeychainAccess {
   private(set) var lastWriteService: String?
   private(set) var lastAccessGroup: String?
   private(set) var lastAccount: Data?
+  private(set) var lastAccessible: CFString?
   func read(service: String, account: Data, accessGroup: String) -> Data? {
     lastAccessGroup = accessGroup; lastAccount = account
     return store[service]
   }
   func write(_ value: Data, service: String, account: Data, accessGroup: String, accessible: CFString) -> Bool {
     lastWriteService = service; lastAccessGroup = accessGroup; lastAccount = account
+    lastAccessible = accessible
     store[service] = value; return true
   }
 }
@@ -50,7 +52,7 @@ final class KeychainSessionStoreTests: XCTestCase {
     XCTAssertNil(try KeychainSessionStore(access: FakeKeychain()).load())
   }
 
-  func testSaveWritesCanonicalNoAuthAliasWithAfterFirstUnlock() throws {
+  func testSaveWritesCanonicalNoAuthAlias() throws {
     let kc = FakeKeychain()
     var s = try JSONDecoder().decode(Session.self, from: Data(sessionJSON.utf8))
     s.token.accessToken = "at-2"
@@ -58,5 +60,14 @@ final class KeychainSessionStoreTests: XCTestCase {
     XCTAssertEqual(kc.lastWriteService, "app:no-auth")
     let readBack = try KeychainSessionStore(access: kc).load()
     XCTAssertEqual(readBack?.token.accessToken, "at-2")               // converges with the app
+  }
+
+  // An item without the ThisDeviceOnly suffix travels in an encrypted backup,
+  // so restoring that backup on another device hands over a live session.
+  func testSaveBindsTheItemToThisDevice() throws {
+    let kc = FakeKeychain()
+    let s = try JSONDecoder().decode(Session.self, from: Data(sessionJSON.utf8))
+    try KeychainSessionStore(access: kc).save(s)
+    XCTAssertEqual(kc.lastAccessible, kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly)
   }
 }
