@@ -155,4 +155,82 @@ final class CozyFilesApiReadTests: XCTestCase {
     try await api.download(id: "file-1", to: dest)
     XCTAssertEqual(try String(contentsOf: dest, encoding: .utf8), "hello")
   }
+
+  // MARK: the stack's own strings are input too
+
+  /// A link is concatenated onto baseURL, so `@evil.example/x` makes Foundation
+  /// read `alice.twake.app` as userinfo and `evil.example` as the host — and the
+  /// request carries the user's Bearer token.
+  func testALinkThatChangesTheHostIsRefusedBeforeSending() async throws {
+    var sent = 0
+    let api = makeApi { req in
+      sent += 1
+      return httpResponse(req.url!, 200, "nope")
+    }
+    let dest = URL(fileURLWithPath: NSTemporaryDirectory())
+      .appendingPathComponent("thumb-\(UUID().uuidString).jpg")
+
+    // Not listed: "//evil.example/x". Concatenated onto a base with no trailing
+    // slash it stays on the instance host, so it is a odd path, not an exfiltration.
+    for hostile in ["@evil.example/steal", "https://evil.example/steal",
+                    ".evil.example/steal", "@evil.example:443/steal"] {
+      let file = CozyFile.fromAttributes(
+        id: "file-1", ["type": "file", "name": "a.jpg", "class": "image"],
+        links: ["medium": hostile]
+      )
+      do {
+        try await api.thumbnail(file: file, to: dest)
+        XCTFail("expected \(hostile) to be refused")
+      } catch {}
+    }
+    XCTAssertEqual(sent, 0, "nothing may leave for another host")
+  }
+
+  /// Pagination follows `links.next` verbatim, so it is the same primitive.
+  func testANextPageOnAnotherHostIsRefusedBeforeSending() async throws {
+    var sent = 0
+    let api = makeApi { req in
+      sent += 1
+      return httpResponse(req.url!, 200, #"{"included":[],"links":{}}"#)
+    }
+    do {
+      _ = try await api.list(dirId: "d", page: "@evil.example/files")
+      XCTFail("expected the page link to be refused")
+    } catch {}
+    XCTAssertEqual(sent, 0)
+  }
+
+  /// Ids are interpolated into the path. One that names a path would aim the
+  /// token at another stack route.
+  func testAnIdThatNamesAPathIsRefusedBeforeSending() async throws {
+    var sent = 0
+    let api = makeApi { req in
+      sent += 1
+      return httpResponse(req.url!, 200, "nope")
+    }
+    do { _ = try await api.get("../../auth/tokens"); XCTFail("expected get to refuse") } catch {}
+    do { _ = try await api.list(dirId: "../../settings", page: nil); XCTFail("expected list to refuse") } catch {}
+    do {
+      try await api.download(id: "../../auth/tokens",
+                             to: URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("x"))
+      XCTFail("expected download to refuse")
+    } catch {}
+    XCTAssertEqual(sent, 0)
+  }
+
+  /// A legitimate relative link on the instance still goes through untouched.
+  func testALinkOnTheInstanceStillGoesThrough() async throws {
+    let dest = URL(fileURLWithPath: NSTemporaryDirectory())
+      .appendingPathComponent("thumb-\(UUID().uuidString).jpg")
+    let api = makeApi { req in
+      XCTAssertEqual(req.url?.host, "alice.twake.app")
+      return httpResponse(req.url!, 200, "thumbnail-bytes")
+    }
+    let file = CozyFile.fromAttributes(
+      id: "file-1", ["type": "file", "name": "a.jpg", "class": "image"],
+      links: ["medium": "/files/file-1/thumbnails/s3cr3t/medium"]
+    )
+    try await api.thumbnail(file: file, to: dest)
+    XCTAssertEqual(try Data(contentsOf: dest), Data("thumbnail-bytes".utf8))
+  }
 }

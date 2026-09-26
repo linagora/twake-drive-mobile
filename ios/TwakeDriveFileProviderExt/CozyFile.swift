@@ -67,3 +67,16 @@ struct CozyFile: Equatable {
     )
   }
 }
+
+extension CozyFile {
+  /// The name as a single path component.
+  ///
+  /// `name` is whatever the stack sent, and it ends up appended to a directory
+  /// URL, so a name carrying separators would write outside it. Keep the last
+  /// component, and fall back when nothing addressable is left.
+  func safeLocalName(fallback: String) -> String {
+    let last = (name as NSString).lastPathComponent
+    guard !last.isEmpty, last != ".", last != "..", !last.contains("/") else { return fallback }
+    return last
+  }
+}
