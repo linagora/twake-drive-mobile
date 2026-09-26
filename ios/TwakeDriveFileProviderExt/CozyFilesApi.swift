@@ -19,7 +19,16 @@ struct CozyFilesApi {
     // percent-encoded elsewhere in `path` (brackets can't appear inside a `%XX` escape).
     let safePath = path.replacingOccurrences(of: "[", with: "%5B")
                        .replacingOccurrences(of: "]", with: "%5D")
-    guard let url = URL(string: baseURL + safePath) else {
+    // Some of what lands in `path` is the stack's own string — `links.next`, a
+    // signed thumbnail link. Concatenated onto the base, a link like
+    // `@evil.example/x` makes Foundation read the instance as userinfo and
+    // `evil.example` as the host, and the request below carries a Bearer token.
+    // Nothing leaves for an origin other than the instance's.
+    guard let url = URL(string: baseURL + safePath),
+          let origin = URL(string: baseURL),
+          url.scheme == origin.scheme,
+          url.host == origin.host,
+          url.port == origin.port else {
       throw CozyError.serverUnreachable
     }
     var req = URLRequest(url: url)
@@ -58,6 +67,19 @@ struct CozyFilesApi {
     }
   }
 
+  /// The shape cozy-stack mints: hexadecimal ids, plus the `io.cozy.files.*-dir`
+  /// literals. An id becomes a path segment, so one that names a path would aim
+  /// the request — and its Bearer token — at another stack route.
+  static func validId(_ id: String) throws -> String {
+    let allowed = CharacterSet(charactersIn:
+      "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._-")
+    guard !id.isEmpty, id.count <= 128, id != ".", id != "..",
+          id.unicodeScalars.allSatisfy(allowed.contains) else {
+      throw CozyError.noSuchItem
+    }
+    return id
+  }
+
   static func encode(_ s: String) -> String {
     s.addingPercentEncoding(withAllowedCharacters: .urlQueryValueAllowed) ?? s
   }
@@ -72,12 +94,12 @@ struct CozyFilesApi {
   // MARK: read
 
   func get(_ id: String) async throws -> CozyFile {
-    try parseData(try await send("/files/\(id)", method: .get))
+    try parseData(try await send("/files/\(try Self.validId(id))", method: .get))
   }
 
   /// One page of children + the next relative page path (base-stripped), mirroring CozyStackApi.list.
   func list(dirId: String, page: String?) async throws -> (files: [CozyFile], nextPage: String?) {
-    let path = page ?? "/files/\(dirId)"
+    let path = try page ?? "/files/\(Self.validId(dirId))"
     let data = try await send(path, method: .get)
     guard let root = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] else {
       return ([], nil)
@@ -92,7 +114,7 @@ struct CozyFilesApi {
   }
 
   func download(id: String, to dest: URL, progress: Progress = Progress()) async throws {
-    let path = "/files/download/\(id)"
+    let path = "/files/download/\(try Self.validId(id))"
     var token = try await tokens.validAccessToken()
     var resp = try await client.download(try request(path, method: .get, token: token, accept: false), to: dest, progress: progress)
     if resp.statusCode == 401 {
@@ -116,19 +138,19 @@ extension CozyFilesApi {
   // MARK: write
 
   func createDirectory(parentId: String, name: String) async throws -> CozyFile {
-    let data = try await send("/files/\(parentId)?Type=directory&Name=\(Self.encode(name))",
+    let data = try await send("/files/\(try Self.validId(parentId))?Type=directory&Name=\(Self.encode(name))",
                               method: .post)
     return try parseData(data)
   }
 
   func createFile(parentId: String, name: String, mime: String) async throws -> CozyFile {
-    let data = try await send("/files/\(parentId)?Type=file&Name=\(Self.encode(name))",
+    let data = try await send("/files/\(try Self.validId(parentId))?Type=file&Name=\(Self.encode(name))",
                               method: .post, contentType: mime, body: Data())
     return try parseData(data)
   }
 
   func upload(id: String, from src: URL, mime: String, progress: Progress = Progress()) async throws -> CozyFile {
-    let path = "/files/\(id)"
+    let path = "/files/\(try Self.validId(id))"
     var token = try await tokens.validAccessToken()
     var (data, resp) = try await client.upload(try request(path, method: .put, token: token, accept: true, contentType: mime), fromFile: src, progress: progress)
     if resp.statusCode == 401 {
@@ -142,7 +164,7 @@ extension CozyFilesApi {
   private func patch(_ id: String, attributes: [String: Any]) async throws -> CozyFile {
     let payload: [String: Any] = ["data": ["type": "io.cozy.files", "id": id, "attributes": attributes]]
     let body = try JSONSerialization.data(withJSONObject: payload)
-    let data = try await send("/files/\(id)", method: .patch, contentType: "application/vnd.api+json", body: body)
+    let data = try await send("/files/\(try Self.validId(id))", method: .patch, contentType: "application/vnd.api+json", body: body)
     return try parseData(data)
   }
 
@@ -152,11 +174,11 @@ extension CozyFilesApi {
 
   /// Plain reparent PATCH. A 409 surfaces as CozyError.filenameCollision; ConflictResolver (Task 9) resolves it.
   func move(id: String, toParent parentId: String) async throws -> CozyFile {
-    try await patch(id, attributes: ["dir_id": parentId])
+    try await patch(id, attributes: ["dir_id": try Self.validId(parentId)])
   }
 
   func trash(id: String) async throws {
-    _ = try await send("/files/\(id)", method: .delete)
+    _ = try await send("/files/\(try Self.validId(id))", method: .delete)
   }
 
   func statByPath(_ path: String) async throws -> CozyFile? {

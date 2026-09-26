@@ -74,7 +74,7 @@ final class FileProviderExtension: NSObject, NSFileProviderReplicatedExtension {
       do {
         let api = try makeApi()
         let file = try await api.get(itemIdentifier.rawValue)
-        let name = file.name.isEmpty ? itemIdentifier.rawValue : file.name
+        let name = file.safeLocalName(fallback: itemIdentifier.rawValue)
         let dest = FileManager.default.temporaryDirectory
           .appendingPathComponent(UUID().uuidString, isDirectory: true)
           .appendingPathComponent(name)

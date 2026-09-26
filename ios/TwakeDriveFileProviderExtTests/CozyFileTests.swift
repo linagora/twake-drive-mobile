@@ -56,4 +56,27 @@ final class CozyFileTests: XCTestCase {
     let none = CozyFile.fromAttributes(id: "f", ["type": "file", "name": "a.jpg"])
     XCTAssertNil(none.thumbnailLink)
   }
+
+  // MARK: the name is the stack's string, and it becomes a path component
+
+  func testSafeLocalNameKeepsAnOrdinaryName() {
+    let f = CozyFile.fromAttributes(id: "f", ["type": "file", "name": "rapport.pdf"])
+    XCTAssertEqual(f.safeLocalName(fallback: "f"), "rapport.pdf")
+  }
+
+  func testSafeLocalNameStripsAnythingThatWouldNameAPath() {
+    let climbing = CozyFile.fromAttributes(
+      id: "f", ["type": "file", "name": "../../Library/Caches/victim.db"])
+    XCTAssertEqual(climbing.safeLocalName(fallback: "f"), "victim.db")
+
+    let absolute = CozyFile.fromAttributes(id: "f", ["type": "file", "name": "/etc/passwd"])
+    XCTAssertEqual(absolute.safeLocalName(fallback: "f"), "passwd")
+  }
+
+  func testSafeLocalNameFallsBackWhenNothingUsableIsLeft() {
+    for hostile in ["", "..", ".", "../..", "/"] {
+      let f = CozyFile.fromAttributes(id: "f", ["type": "file", "name": hostile])
+      XCTAssertEqual(f.safeLocalName(fallback: "the-id"), "the-id", "name: \(hostile)")
+    }
+  }
 }
