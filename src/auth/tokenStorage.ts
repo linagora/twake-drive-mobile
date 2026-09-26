@@ -9,11 +9,13 @@ export const SESSION_KEY = 'twake-drive-session'
 // The cozy session is stored in a shared iOS Keychain access group so native
 // extensions (Share, and later File Provider) can read the SAME item directly —
 // no native bridge needed. AFTER_FIRST_UNLOCK lets the File Provider read while
-// the device is locked (the default WHEN_UNLOCKED would return nothing). On
-// Android these options are ignored by expo-secure-store.
+// the device is locked (the default WHEN_UNLOCKED would return nothing), and
+// THIS_DEVICE_ONLY keeps the item out of encrypted backups, so restoring one on
+// another device does not hand over a live session. On Android these options
+// are ignored by expo-secure-store.
 const SHARED_KEYCHAIN: SecureStore.SecureStoreOptions = {
   accessGroup: SHARED_KEYCHAIN_ACCESS_GROUP,
-  keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK
+  keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY
 }
 
 // Fallback for builds where the shared-group entitlement is ABSENT — e.g. the
@@ -24,7 +26,7 @@ const SHARED_KEYCHAIN: SecureStore.SecureStoreOptions = {
 // extensions is lost (and they aren't installed on the Simulator anyway). On a
 // properly signed device build the shared group works and this never runs.
 const DEFAULT_KEYCHAIN: SecureStore.SecureStoreOptions = {
-  keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK
+  keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY
 }
 
 const deleteFrom = async (options: SecureStore.SecureStoreOptions): Promise<void> => {
