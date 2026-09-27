@@ -18,8 +18,10 @@ describe('isDevInstanceLoginEnabled', () => {
     expect(isDevInstanceLoginEnabled()).toBe(true)
   })
 
-  it('is on in a shipped build too, while the entry point is being tested', () => {
+  // A store build must not offer to point the app at a typed-in stack: it is a
+  // phishing lever, and everything downstream trusts whatever host comes back.
+  it('is off in a shipped build', () => {
     ;(global as unknown as { __DEV__: boolean }).__DEV__ = false
-    expect(isDevInstanceLoginEnabled()).toBe(true)
+    expect(isDevInstanceLoginEnabled()).toBe(false)
   })
 })
