@@ -16,6 +16,7 @@ import { mirrorSessionToNative } from '@/native/twakeAuthBridge'
 import { destroyLocalData } from '@/pouchdb/destroyLocalData'
 import { setAccountScope } from '@/storage/accountScope'
 import { clearSession, getSession, saveSession } from './tokenStorage'
+import { wipeDeviceData } from './wipeDeviceData'
 import { clearSessionLeftByAPreviousInstall } from './freshInstall'
 import { startOidcFlow } from './oidcFlow'
 import { registerSession } from './registerSession'
@@ -45,8 +46,12 @@ interface AuthContextValue extends AuthState {
   /**
    * `expired` tells the welcome screen to explain the bounce: the session
    * ended on its own (revoked from the web), the user did not ask to leave.
+   * It also erases what the device holds — a revocation is somebody else
+   * ending the session, most often an admin taking the device back.
+   *
+   * `wipe` is the same erasure, asked for by a user leaving on their own.
    */
-  logout: (options?: { expired?: boolean }) => Promise<void>
+  logout: (options?: { expired?: boolean; wipe?: boolean }) => Promise<void>
   devResetAndResync: () => Promise<void>
 }
 
@@ -148,25 +153,32 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }, [])
 
-  const logout = useCallback(async (options?: { expired?: boolean }): Promise<void> => {
-    setState(prev => {
-      if (prev.client) {
-        Promise.resolve(prev.client.logout()).catch(() => {
-          // ignore — server may be unreachable
-        })
+  const logout = useCallback(
+    async (options?: { expired?: boolean; wipe?: boolean }): Promise<void> => {
+      setState(prev => {
+        if (prev.client) {
+          Promise.resolve(prev.client.logout()).catch(() => {
+            // ignore — server may be unreachable
+          })
+        }
+        return prev
+      })
+      await clearSession()
+      // Before the scope goes: the offline copies and the viewer cache are
+      // resolved through the account in scope, so afterwards they would no
+      // longer be reachable to erase.
+      if (options?.expired || options?.wipe) {
+        await wipeDeviceData(clientRef.current ?? undefined)
       }
-      return prev
-    })
-    await clearSession()
-    // Nothing of this account is erased, but nothing may be written to its
-    // stores either once it is gone.
-    setAccountScope(null)
-    setSessionExpired(!!options?.expired)
-    setState({ status: 'unauthenticated', client: null })
-    // Drop the instance locale that synced during the session; the login screen
-    // returns to the device language, like a cold launch.
-    void i18n.changeLanguage(resolveDeviceLanguage())
-  }, [])
+      setAccountScope(null)
+      setSessionExpired(!!options?.expired)
+      setState({ status: 'unauthenticated', client: null })
+      // Drop the instance locale that synced during the session; the login
+      // screen returns to the device language, like a cold launch.
+      void i18n.changeLanguage(resolveDeviceLanguage())
+    },
+    []
+  )
 
   const certifyFlagship = useCallback(async (): Promise<CozyClient> => {
     const session = await getSession()

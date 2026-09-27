@@ -27,7 +27,10 @@
     "legalNotice": "Thông tin pháp lý",
     "privacy": "Quyền riêng tư",
     "crashReports": "Báo cáo sự cố",
-    "crashReportsDescription": "Gửi chi tiết kỹ thuật của một sự cố để nó được sửa. Không có tên tệp, không có tên thư mục, không có địa chỉ máy chủ của bạn."
+    "crashReportsDescription": "Gửi chi tiết kỹ thuật của một sự cố để nó được sửa. Không có tên tệp, không có tên thư mục, không có địa chỉ máy chủ của bạn.",
+    "logoutTitle": "Đăng xuất?",
+    "logoutMessage": "Các tệp được giữ ngoại tuyến và tài liệu bạn đã mở vẫn còn trên thiết bị này. Hãy xóa chúng nếu đây không phải thiết bị của bạn.",
+    "logoutAndErase": "Đăng xuất và xóa"
   },
   "auth": {
     "welcomeTitle": "Chào mừng đến với Twake Drive",

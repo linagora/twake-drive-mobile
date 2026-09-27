@@ -27,7 +27,10 @@
     "legalNotice": "Aviso legal",
     "privacy": "Privacidad",
     "crashReports": "Informes de fallos",
-    "crashReportsDescription": "Envía los detalles técnicos de un fallo para poder corregirlo. Ningún nombre de archivo, ningún nombre de carpeta, ninguna dirección de tu servidor."
+    "crashReportsDescription": "Envía los detalles técnicos de un fallo para poder corregirlo. Ningún nombre de archivo, ningún nombre de carpeta, ninguna dirección de tu servidor.",
+    "logoutTitle": "¿Cerrar sesión?",
+    "logoutMessage": "Los archivos guardados sin conexión y los documentos que ha abierto permanecen en este dispositivo. Bórrelos si no es suyo.",
+    "logoutAndErase": "Cerrar sesión y borrar"
   },
   "auth": {
     "welcomeTitle": "Bienvenido a Twake Drive",

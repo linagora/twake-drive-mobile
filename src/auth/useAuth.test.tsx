@@ -34,6 +34,11 @@ jest.mock('cozy-client', () => ({
   StackLink: jest.fn()
 }))
 
+const mockWipeDeviceData = jest.fn(async () => undefined)
+jest.mock('./wipeDeviceData', () => ({
+  wipeDeviceData: (...a: unknown[]) => mockWipeDeviceData(...(a as []))
+}))
+
 jest.mock('cozy-flags', () => ({
   __esModule: true,
   default: Object.assign(jest.fn(), { plugin: jest.fn() })
@@ -76,12 +81,17 @@ const Probe = () => {
       <Pressable testID="login" onPress={() => login('user@example.com').catch(() => {})} />
       <Pressable testID="logout" onPress={() => logout()} />
       <Pressable testID="logout-expired" onPress={() => logout({ expired: true })} />
+      <Pressable testID="logout-wipe" onPress={() => logout({ wipe: true })} />
     </>
   )
 }
 
 describe('useAuth', () => {
-  beforeEach(() => jest.restoreAllMocks())
+  beforeEach(() => {
+    jest.restoreAllMocks()
+    // restoreAllMocks leaves jest.fn()s from jest.mock factories alone.
+    mockWipeDeviceData.mockClear()
+  })
 
   it('starts loading then transitions to unauthenticated when no session', async () => {
     jest.spyOn(tokenStorage, 'getSession').mockResolvedValue(null)
@@ -197,5 +207,59 @@ describe('useAuth', () => {
     // login screen returns to the device language, dropping the instance locale
     expect(resolveDeviceLanguage).toHaveBeenCalled()
     expect(i18n.changeLanguage).toHaveBeenCalledWith('en')
+  })
+
+  // A revocation is somebody else ending the session — most often an admin
+  // taking the device back. Nothing of the account may survive it.
+  it('a revoked session wipes what the device holds', async () => {
+    jest.spyOn(tokenStorage, 'getSession').mockResolvedValue(mockSession)
+    jest.spyOn(tokenStorage, 'clearSession').mockResolvedValue()
+    render(
+      <AuthProvider>
+        <Probe />
+      </AuthProvider>
+    )
+    await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('authenticated'))
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('logout-expired'))
+    })
+
+    await waitFor(() => expect(mockWipeDeviceData).toHaveBeenCalled())
+  })
+
+  it('a logout the user asked for keeps the local data by default', async () => {
+    jest.spyOn(tokenStorage, 'getSession').mockResolvedValue(mockSession)
+    jest.spyOn(tokenStorage, 'clearSession').mockResolvedValue()
+    render(
+      <AuthProvider>
+        <Probe />
+      </AuthProvider>
+    )
+    await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('authenticated'))
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('logout'))
+    })
+
+    await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('unauthenticated'))
+    expect(mockWipeDeviceData).not.toHaveBeenCalled()
+  })
+
+  it('a logout that asked to erase wipes too', async () => {
+    jest.spyOn(tokenStorage, 'getSession').mockResolvedValue(mockSession)
+    jest.spyOn(tokenStorage, 'clearSession').mockResolvedValue()
+    render(
+      <AuthProvider>
+        <Probe />
+      </AuthProvider>
+    )
+    await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('authenticated'))
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('logout-wipe'))
+    })
+
+    await waitFor(() => expect(mockWipeDeviceData).toHaveBeenCalled())
   })
 })
