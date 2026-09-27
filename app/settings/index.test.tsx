@@ -124,10 +124,33 @@ describe('SettingsIndex', () => {
     })
   })
 
-  it('renders the app version and a logout row that calls logout', () => {
-    const { getByText } = renderScreen()
-    fireEvent.press(getByText('Se déconnecter'))
-    expect(mockLogout).toHaveBeenCalled()
+  describe('logging out', () => {
+    it('asks before leaving, instead of logging out on the tap', () => {
+      const { getByTestId } = renderScreen()
+      fireEvent.press(getByTestId('settings-logout'))
+      expect(mockLogout).not.toHaveBeenCalled()
+    })
+
+    it('leaves the local data alone on a plain log out', () => {
+      const { getByTestId } = renderScreen()
+      fireEvent.press(getByTestId('settings-logout'))
+      fireEvent.press(getByTestId('logout-dialog-submit'))
+      expect(mockLogout).toHaveBeenCalledWith({ wipe: false })
+    })
+
+    it('erases what the device holds when that is the action chosen', () => {
+      const { getByTestId } = renderScreen()
+      fireEvent.press(getByTestId('settings-logout'))
+      fireEvent.press(getByTestId('logout-dialog-secondary'))
+      expect(mockLogout).toHaveBeenCalledWith({ wipe: true })
+    })
+
+    it('stays signed in when the question is dismissed', () => {
+      const { getByTestId } = renderScreen()
+      fireEvent.press(getByTestId('settings-logout'))
+      fireEvent.press(getByTestId('logout-dialog-cancel'))
+      expect(mockLogout).not.toHaveBeenCalled()
+    })
   })
 
   describe('account deletion', () => {

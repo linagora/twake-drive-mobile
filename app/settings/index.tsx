@@ -32,6 +32,7 @@ export default function SettingsIndex(): React.ReactElement {
   const crashReports = useCrashReportsEnabled()
   const legalNoticeUrl = useLegalNoticeUrl()
   const [deleteAccountAsked, setDeleteAccountAsked] = React.useState(false)
+  const [logoutAsked, setLogoutAsked] = React.useState(false)
   const localePref = getLocalePreference()
   const languageValue =
     localePref === LOCALE_SYSTEM ? t('settings.systemLanguage') : localeDisplayName(localePref)
@@ -117,7 +118,7 @@ export default function SettingsIndex(): React.ReactElement {
             testID="settings-logout"
             title={t('common.logout')}
             icon="logout"
-            onPress={() => void logout()}
+            onPress={() => setLogoutAsked(true)}
           />
         </SettingsSection>
 
@@ -131,6 +132,24 @@ export default function SettingsIndex(): React.ReactElement {
           />
         </SettingsSection>
       </ScrollView>
+
+      <ConfirmDialog
+        visible={logoutAsked}
+        testID="logout-dialog"
+        title={t('settings.logoutTitle')}
+        message={t('settings.logoutMessage')}
+        confirmLabel={t('common.logout')}
+        secondaryLabel={t('settings.logoutAndErase')}
+        onSecondary={() => {
+          setLogoutAsked(false)
+          void logout({ wipe: true })
+        }}
+        onConfirm={() => {
+          setLogoutAsked(false)
+          void logout({ wipe: false })
+        }}
+        onDismiss={() => setLogoutAsked(false)}
+      />
 
       <ConfirmDialog
         visible={deleteAccountAsked}

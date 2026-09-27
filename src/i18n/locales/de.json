@@ -27,7 +27,10 @@
     "legalNotice": "Impressum",
     "privacy": "Datenschutz",
     "crashReports": "Absturzberichte",
-    "crashReportsDescription": "Sendet die technischen Details eines Absturzes, damit er behoben werden kann. Keine Dateinamen, keine Ordnernamen, keine Adresse Ihres Servers."
+    "crashReportsDescription": "Sendet die technischen Details eines Absturzes, damit er behoben werden kann. Keine Dateinamen, keine Ordnernamen, keine Adresse Ihres Servers.",
+    "logoutTitle": "Abmelden?",
+    "logoutMessage": "Offline gespeicherte Dateien und die von Ihnen geöffneten Dokumente verbleiben auf diesem Gerät. Löschen Sie sie, wenn es nicht Ihnen gehört.",
+    "logoutAndErase": "Abmelden und löschen"
   },
   "auth": {
     "welcomeTitle": "Willkommen bei Twake Drive",

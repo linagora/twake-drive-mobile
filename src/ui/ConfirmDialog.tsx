@@ -8,6 +8,9 @@ interface Props {
   message: string
   /** Label of the confirming action. Defaults to `common.confirm`. */
   confirmLabel?: string
+  /** A second way out, rendered only when both it and `onSecondary` are given. */
+  secondaryLabel?: string
+  onSecondary?: () => void
   /** Tint the confirm action with the error colour (irreversible actions). */
   destructive?: boolean
   loading?: boolean
@@ -26,6 +29,8 @@ export const ConfirmDialog = ({
   title,
   message,
   confirmLabel,
+  secondaryLabel,
+  onSecondary,
   destructive,
   loading,
   onConfirm,
@@ -45,6 +50,11 @@ export const ConfirmDialog = ({
           <Button onPress={onDismiss} disabled={loading} testID={`${testID}-cancel`}>
             {t('common.cancel')}
           </Button>
+          {secondaryLabel && onSecondary ? (
+            <Button onPress={onSecondary} disabled={loading} testID={`${testID}-secondary`}>
+              {secondaryLabel}
+            </Button>
+          ) : null}
           <Button
             onPress={onConfirm}
             loading={loading}

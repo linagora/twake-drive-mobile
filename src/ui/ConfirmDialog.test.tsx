@@ -60,4 +60,19 @@ describe('ConfirmDialog', () => {
     setup({ testID: 'offline-delete-all-dialog' })
     expect(screen.getByTestId('offline-delete-all-dialog-submit')).toBeOnTheScreen()
   })
+
+  it('offers a second action when one is given', () => {
+    const onSecondary = jest.fn()
+    setup({ secondaryLabel: 'Log out and erase', onSecondary })
+
+    fireEvent.press(screen.getByTestId('confirm-dialog-secondary'))
+
+    expect(onSecondary).toHaveBeenCalled()
+  })
+
+  it('shows no second action when none is given', () => {
+    setup()
+
+    expect(screen.queryByTestId('confirm-dialog-secondary')).toBeNull()
+  })
 })

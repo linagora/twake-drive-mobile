@@ -27,7 +27,10 @@
     "legalNotice": "Note legali",
     "privacy": "Riservatezza",
     "crashReports": "Rapporti di arresto",
-    "crashReportsDescription": "Invia i dettagli tecnici di un arresto anomalo perché possa essere corretto. Nessun nome di file, nessun nome di cartella, nessun indirizzo del tuo server."
+    "crashReportsDescription": "Invia i dettagli tecnici di un arresto anomalo perché possa essere corretto. Nessun nome di file, nessun nome di cartella, nessun indirizzo del tuo server.",
+    "logoutTitle": "Disconnettersi?",
+    "logoutMessage": "I file mantenuti offline e i documenti che hai aperto restano su questo dispositivo. Cancellali se non ti appartiene.",
+    "logoutAndErase": "Disconnetti ed elimina"
   },
   "auth": {
     "welcomeTitle": "Benvenuto in Twake Drive",
