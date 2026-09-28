@@ -1,25 +1,39 @@
-# Dependabot — native dependency hygiene, no secret, no app install.
-# Covers npm deps + the pinned GitHub Actions SHAs. Security PRs come from
+# Dependabot: native dependency hygiene, no secret, no app install.
+# Covers npm, the pinned GitHub Actions SHAs, the fastlane gems and the
+# Android dependency tree. CocoaPods is not a Dependabot ecosystem, so the
+# pods stay on manual review. Security PRs come from
 # "Dependabot security updates" (repo Settings → Code security), complementing
 # the npm `overrides` CVE patches in package.json.
 version: 2
 updates:
-  - package-ecosystem: "npm"
-    directory: "/"
+  - package-ecosystem: 'npm'
+    directory: '/'
     schedule:
-      interval: "weekly"
+      interval: 'weekly'
     open-pull-requests-limit: 10
-    labels: ["dependencies"]
+    labels: ['dependencies']
     # Group low-risk bumps into one PR to cut noise; majors stay separate.
     groups:
       minor-and-patch:
-        update-types: ["minor", "patch"]
+        update-types: ['minor', 'patch']
 
-  - package-ecosystem: "github-actions"
-    directory: "/"
+  - package-ecosystem: 'github-actions'
+    directory: '/'
     schedule:
-      interval: "weekly"
-    labels: ["ci", "dependencies"]
+      interval: 'weekly'
+    labels: ['ci', 'dependencies']
     groups:
       actions:
-        patterns: ["*"]
+        patterns: ['*']
+
+  - package-ecosystem: 'bundler'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+    labels: ['ci', 'dependencies']
+
+  - package-ecosystem: 'gradle'
+    directory: '/android'
+    schedule:
+      interval: 'weekly'
+    labels: ['android', 'dependencies']
