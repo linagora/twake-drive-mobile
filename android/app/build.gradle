@@ -276,5 +276,5 @@ dependencies {
     // Real org.json implementation for plain (non-Robolectric) unit tests: the Android
     // stub/mockable jar throws "not mocked" for JSONObject/JSONArray methods, which
     // CozyStackApi and CozyFile rely on for parsing cozy-stack responses.
-    testImplementation("org.json:json:20260522")
+    testImplementation("org.json:json:20260814")
 }
