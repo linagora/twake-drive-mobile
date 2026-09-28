@@ -22,7 +22,8 @@ platform :android do
   lane :distribute do
     gradle(
       task: "assembleRelease",
-      project_dir: "."
+      project_dir: ".",
+      properties: { "requireReleaseKeystore" => "true" }
     )
 
     firebase_app_distribution(
@@ -38,7 +39,8 @@ platform :android do
     gradle(
       task: "bundle",
       build_type: "Release",
-      project_dir: "."
+      project_dir: ".",
+      properties: { "requireReleaseKeystore" => "true" }
     )
   end
 

@@ -131,8 +131,18 @@ android {
         // Env-driven release signing. When KEYSTORE_* are unset (local + PR
         // test builds) it falls back to the committed debug keystore, so the
         // secret-free `assembleRelease` still produces an installable APK.
+        //
+        // A build meant for distribution passes -PrequireReleaseKeystore=true
+        // and fails instead of falling back, so a keystore that went missing
+        // from the release workflow cannot ship as a debug-signed artifact.
         release {
-            storeFile file(System.getenv("KEYSTORE_PATH") ?: "debug.keystore")
+            def keystorePath = System.getenv("KEYSTORE_PATH")
+            if (!keystorePath && (findProperty('requireReleaseKeystore') ?: 'false').toString().toBoolean()) {
+                throw new GradleException(
+                    "requireReleaseKeystore is set but KEYSTORE_PATH is unset: " +
+                    "refusing to sign a distribution build with the committed debug keystore.")
+            }
+            storeFile file(keystorePath ?: "debug.keystore")
             storePassword System.getenv("KEYSTORE_PASSWORD") ?: "android"
             keyAlias System.getenv("KEY_ALIAS") ?: "androiddebugkey"
             keyPassword System.getenv("KEY_PASSWORD") ?: "android"
