@@ -59,6 +59,7 @@ logged-in state) and then exercises one area:
 | `08-share-internal`  | The share sheet opens for a folder (non-mutating)                          |
 | `09-favorite-toggle` | Favourite → present in Favoris → un-favourite → absent from Favoris        |
 | `12-offline-toggle`  | Pin → the menu shows "Remove from offline" → unpin                         |
+| `16-share-recipient` | Adds a recipient by email, checks the row, revokes it, deletes the folder  |
 
 Shared **subflows** live in `flows/subflows/`: `openDrive` (launch + assert logged
 in), `assertLoggedIn`, and `cleanup`.
