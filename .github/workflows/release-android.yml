@@ -165,3 +165,9 @@ jobs:
           gh release create "${GITHUB_REF_NAME}" "${{ steps.apk.outputs.path }}" \
             --title "Twake Drive ${GITHUB_REF_NAME}" --notes "$NOTES" --prerelease \
           || gh release upload "${GITHUB_REF_NAME}" "${{ steps.apk.outputs.path }}" --clobber
+
+      - name: Shred the decoded keystore
+        if: always()
+        run: |
+          rm -Pf android/app/release.keystore 2>/dev/null || rm -f android/app/release.keystore
+          rm -f "${{ runner.temp }}/gcp-sa.json"
