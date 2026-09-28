@@ -1,0 +1,26 @@
+appId: com.linagora.twakedrive
+tags:
+  - preauth
+  - shipped
+---
+# PRE-AUTH, and only meaningful on a build made WITHOUT EXPO_PUBLIC_E2E: the
+# "instance address" entry point must not be reachable. It takes a free-text
+# address and runs a full OAuth dance against it, so on a store build it is a
+# phishing lever — everything downstream trusts whatever host answers.
+#
+# Excluded from the normal e2e run, which builds WITH EXPO_PUBLIC_E2E and needs
+# that screen to reach the disposable stack:
+#   maestro test e2e/maestro/flows --include-tags shipped
+- launchApp:
+    clearState: true
+- assertVisible:
+    id: 'welcome-login'
+- assertNotVisible:
+    id: 'welcome-dev-instance-link'
+# The route guards itself too, so a deep link to it lands back on welcome
+# rather than opening the screen.
+- openLink: 'twakedrive:///dev-instance'
+- assertVisible:
+    id: 'welcome-login'
+- assertNotVisible:
+    id: 'dev-instance-uri-input'
