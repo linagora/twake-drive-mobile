@@ -34,6 +34,24 @@ if ! run instances show "$DOMAIN" >/dev/null 2>&1; then
     --public-name "E2E"
 fi
 
+# The flags twake-drive's own e2e run provisions every instance with, from its
+# e2e/helpers/flags.ts. drive.shared-drive.enabled and
+# drive.federated-shared-folder.enabled are the two the app reads to share by
+# email through a shared drive; the rest is kept as the web sets it so both
+# clients face the same instance.
+echo "Setting the feature flags"
+run features flags --domain "$DOMAIN" '{
+  "cozy.hide-sharing-cozy-to-cozy": true,
+  "drive.shared-drive.enabled": true,
+  "drive.federated-shared-folder.enabled": true,
+  "drive.federated-shared-modal.enabled": true,
+  "drive.file-picker-demo.enabled": true,
+  "cozy.search.enabled": true,
+  "dataproxy.force-trusted-device.enabled": true,
+  "drive.move-to-picker.enabled": true,
+  "drive.default-updated-at-sort.enabled": true
+}'
+
 echo "Seeding a folder and a file"
 TOKEN="$(run instances token-cli "$DOMAIN" io.cozy.files | tr -d '\r\n')"
 ROOT="io.cozy.files.root-dir"

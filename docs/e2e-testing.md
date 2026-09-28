@@ -89,6 +89,14 @@ Cross-platform selectors are the tricky part. What works on both platforms:
 - On large-screen devices (e.g. Pixel Fold) Maestro's coordinates can drift —
   confirm with the failure screenshot rather than trusting a single assertion.
 
+## Feature flags on the disposable stack
+
+`e2e/stack/setup.sh` sets the same flag map twake-drive's own e2e run provisions
+its instances with (`e2e/helpers/flags.ts` there), so both clients are exercised
+against the same instance. `drive.shared-drive.enabled` and
+`drive.federated-shared-folder.enabled` are the two the app reads to share by
+email through a shared drive rather than a cozy-to-cozy sharing.
+
 ## CI
 
 The iOS File Provider unit tests (37) run in CI on the simulator
