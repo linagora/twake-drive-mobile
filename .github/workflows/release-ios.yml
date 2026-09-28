@@ -11,11 +11,11 @@ on:
   workflow_dispatch:
     inputs:
       release_notes:
-        description: "Release notes for TestFlight testers"
+        description: 'Release notes for TestFlight testers'
         required: false
-        default: ""
+        default: ''
       publish_to_app_store:
-        description: "Also push App Store metadata (fastlane deliver)"
+        description: 'Also push App Store metadata (fastlane deliver)'
         required: false
         type: boolean
         default: false
@@ -67,7 +67,7 @@ jobs:
         run: pod install
 
       - name: Set up Ruby (fastlane)
-        uses: ruby/setup-ruby@v1
+        uses: ruby/setup-ruby@14594264cd68ce8a2345dd349bc3d138a4ef85c8 # v1.327.0
         with:
           ruby-version: '3.2'
           bundler-cache: true
