@@ -19,6 +19,9 @@ concurrency:
   group: ${{ github.workflow }}
   cancel-in-progress: false
 
+permissions:
+  contents: read
+
 jobs:
   provision-ios:
     runs-on: macos-15
