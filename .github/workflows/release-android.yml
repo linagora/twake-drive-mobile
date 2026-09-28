@@ -40,6 +40,7 @@ permissions:
 jobs:
   release-android:
     runs-on: ubuntu-24.04
+    environment: play-internal
     # Same ccache tuning as build-android.yml so the New-Arch native compile
     # reuses objects across runs (shared cache key with the test build).
     env:
