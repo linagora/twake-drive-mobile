@@ -129,8 +129,9 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/') && hashFiles('ios/build/TwakeDrive.ipa') != ''
         env:
           GH_TOKEN: ${{ github.token }}
+          RELEASE_NOTES: ${{ github.event.inputs.release_notes }}
         run: |
-          NOTES="${{ github.event.inputs.release_notes }}"
+          NOTES="$RELEASE_NOTES"
           [ -z "$NOTES" ] && NOTES="Release ${GITHUB_REF_NAME}"
           gh release create "${GITHUB_REF_NAME}" ios/build/TwakeDrive.ipa \
             --title "Twake Drive ${GITHUB_REF_NAME}" --notes "$NOTES" --prerelease \
