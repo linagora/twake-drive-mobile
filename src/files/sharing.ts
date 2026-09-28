@@ -81,6 +81,7 @@ interface SharingsCollectionApi {
     recipients?: { _id: string; _type: string }[]
     readOnlyRecipients?: { _id: string; _type: string }[]
     openSharing?: boolean
+    sharedDrive?: boolean
   }) => Promise<{ data: SharingDoc }>
   addRecipients: (params: {
     document: { _id: string }
@@ -160,11 +161,20 @@ const linkContainsFile = (perm: PublicLinkPermission, fileId: string): boolean =
 /**
  * Find the sharing that includes a given file/folder for the current user.
  * Prefers a sharing where the user is the owner.
+ *
+ * A document inside a shared drive has no sharing of its own: the drive's one
+ * is what carries its members, so `driveId` short-circuits the search the way
+ * cozy-sharing's `share` resolves `getSharingById(document.driveId)`.
  */
 export const findSharingForFile = async (
   client: CozyClient,
-  fileId: string
+  fileId: string,
+  driveId?: string
 ): Promise<SharingDoc | null> => {
+  if (driveId) {
+    const drive = await getSharings(client).get(driveId)
+    return drive?.data ?? null
+  }
   const resp = await getSharings(client).findByDoctype(FILES_DOCTYPE)
   const list = resp?.data ?? []
   const matching = list.filter(s => filesContains(s, fileId))
@@ -347,18 +357,19 @@ export const addRecipient = async (
 }
 
 /**
- * Revoke one recipient from a sharing by their index in the members array.
+ * Revoke a member of a sharing given its index in that sharing's members.
  *
- * Note: `members` includes the owner at index 0, so callers must pass the
- * absolute index (NOT a filtered-list index). `getRecipients` filters owners
- * out for display — translate back before calling this.
+ * The index is the absolute one: `members` holds the owner at index 0, so a
+ * position in the filtered list `getRecipients` returns has to go through
+ * `absoluteMemberIndex` first. The effective-recipients route answers an
+ * absolute index already, for inherited access as well as direct.
  */
-export const revokeRecipientAtIndex = async (
+export const revokeSharingMember = async (
   client: CozyClient,
-  sharing: SharingDoc,
-  index: number
+  sharingId: string,
+  memberIndex: number
 ): Promise<void> => {
-  await getSharings(client).revokeRecipient({ _id: sharing._id }, index)
+  await getSharings(client).revokeRecipient({ _id: sharingId }, memberIndex)
   triggerPouchReplication(client, 'io.cozy.sharings')
   triggerPouchReplication(client, 'io.cozy.permissions')
 }
@@ -381,13 +392,20 @@ export const absoluteMemberIndex = (sharing: SharingDoc, recipientIndex: number)
 
 /**
  * Create a new sharing for a file or folder with one initial recipient.
+ *
+ * `sharedDrive` makes it a shared drive rather than a cozy-to-cozy sharing:
+ * cozy-stack-client's `create` then posts to `/sharings/drives`. That is what
+ * twake-drive web does for every recipient it adds while
+ * `drive.federated-shared-folder.enabled` is on, down to `openSharing: false`
+ * (see cozy-sharing's FederatedFolderModal).
  */
 export const createSharingForFile = async (
   client: CozyClient,
   file: { _id: string; type?: 'file' | 'directory'; name?: string },
   email: string,
   readOnly: boolean,
-  existingContactId?: string
+  existingContactId?: string,
+  options: { sharedDrive?: boolean } = {}
 ): Promise<SharingDoc> => {
   const recipient = await recipientForEmail(client, email, existingContactId)
   const document = {
@@ -400,7 +418,8 @@ export const createSharingForFile = async (
     document,
     description: file.name ?? 'Shared',
     recipients: readOnly ? [] : [recipient],
-    readOnlyRecipients: readOnly ? [recipient] : []
+    readOnlyRecipients: readOnly ? [recipient] : [],
+    ...(options.sharedDrive ? { sharedDrive: true, openSharing: false } : {})
   }
   const resp = await getSharings(client).create(args)
   triggerPouchReplication(client, 'io.cozy.sharings')

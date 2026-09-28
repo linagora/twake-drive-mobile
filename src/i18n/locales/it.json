@@ -149,6 +149,7 @@
       "readOnly": "Sola lettura",
       "send": "Invia",
       "remove": "Rimuovi",
+      "inheritedFrom": "Ereditato da {{name}}",
       "errorLoad": "Impossibile caricare le informazioni di condivisione",
       "errorMutate": "Operazione non riuscita",
       "statusPending": "In attesa",

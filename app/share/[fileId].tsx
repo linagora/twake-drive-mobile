@@ -23,17 +23,19 @@ import { filterContactSuggestions, findContactIdByEmail } from '@/files/contactS
 import { useReachableContacts } from '@/files/useReachableContacts'
 import {
   LinkEditingRights,
-  SharingMember,
   absoluteMemberIndex,
   addRecipient,
   buildPublicLinkUrl,
   createPublicLink,
   createSharingForFile,
+  findSharingForFile,
   getLinkEditingRights,
   getRecipients,
   revokePublicLink,
-  revokeRecipientAtIndex
+  revokeSharingMember
 } from '@/files/sharing'
+import { RecipientView, fetchEffectiveRecipients } from '@/files/effectiveRecipients'
+import { FEDERATED_SHARED_FOLDER_FLAG, SHARED_DRIVE_FLAG } from '@/files/sharingFlags'
 import { useFileSharing, useRefreshSharings } from '@/sharing/SharingProvider'
 import { useIsOnline } from '@/network/useIsOnline'
 import { requireOnline } from '@/network/requireOnline'
@@ -65,7 +67,7 @@ export default function ShareRoute() {
   const client = useClient()
   const refreshSharings = useRefreshSharings()
   const isOnline = useIsOnline()
-  const { fileId } = useLocalSearchParams<{ fileId: string }>()
+  const { fileId, driveId } = useLocalSearchParams<{ fileId: string; driveId?: string }>()
 
   // Flags mirrored from twake-drive web's ShareFileView / ShareDisplayedFolderView:
   // - sharing.generate-link-button.enabled gates the public link toggle. The web
@@ -79,13 +81,19 @@ export default function ShareRoute() {
   // Sharing with people by email belongs to the shared drive feature, which the
   // instance turns on explicitly. Default off: an instance that never set the
   // flag does not get it.
-  const emailSharingEnabled = useFlag('drive.shared-drive.enabled') === true
+  const emailSharingEnabled = useFlag(SHARED_DRIVE_FLAG) === true
+  const federatedSharing = useFlag(FEDERATED_SHARED_FOLDER_FLAG) === true
   // TODO: when an advanced-settings panel is added, gate it on this flag too.
   // const autoOpenSettingsEnabled = !!useFlag('sharing.auto-open-settings.enabled')
 
+  // A document from a shared drive lives in that drive's own database, which the
+  // driveId option is what reaches.
   const fileLookup = useQuery(fileByIdQuery(fileId ?? ''), {
-    as: fileByIdQueryAs(fileId ?? ''),
-    enabled: !!fileId
+    as: driveId
+      ? `${fileByIdQueryAs(fileId ?? '')}/drive/${driveId}`
+      : fileByIdQueryAs(fileId ?? ''),
+    enabled: !!fileId,
+    ...(driveId ? { driveId } : {})
   })
   const lookupData = fileLookup.data
   const fileFromQuery = (Array.isArray(lookupData) ? lookupData[0] : lookupData) as
@@ -126,6 +134,29 @@ export default function ShareRoute() {
   // Only the very first session-open before the provider has resolved should
   // show a placeholder. Subsequent opens hit the warm context and are instant.
   const initialLoading = !contextLoaded && !entry
+
+  // Federated mode reads the access a document effectively has, inherited
+  // access included, instead of one sharing's members.
+  const [effectiveRecipients, setEffectiveRecipients] = useState<RecipientView[]>([])
+  const [recipientsTick, setRecipientsTick] = useState(0)
+
+  useEffect(() => {
+    if (!federatedSharing || !client || !fileId) return
+    let cancelled = false
+    void fetchEffectiveRecipients(client, fileId, driveId)
+      .then(list => {
+        if (!cancelled) setEffectiveRecipients(list)
+      })
+      .catch(e => console.error('[ShareRoute] effective recipients failed', e))
+    return () => {
+      cancelled = true
+    }
+  }, [client, driveId, federatedSharing, fileId, recipientsTick])
+
+  const refreshRecipients = useCallback(async (): Promise<void> => {
+    setRecipientsTick(tick => tick + 1)
+    await refreshSharings()
+  }, [refreshSharings])
 
   const stackUri = client?.getStackClient()?.uri as string | undefined
   const linkUrl = linkPermission && stackUri ? buildPublicLinkUrl(stackUri, linkPermission) : null
@@ -220,14 +251,20 @@ export default function ShareRoute() {
       // email) instead of minting a throwaway contact the stack can't yet
       // resolve — see findContactIdByEmail.
       const existingContactId = findContactIdByEmail(contacts, email)
-      if (sharing) {
-        await addRecipient(client, sharing, email, readOnlyInput, existingContactId)
+      // A document inside a shared drive has no sharing of its own: the
+      // drive's is what carries its recipients.
+      const target =
+        sharing ?? (driveId ? await findSharingForFile(client, file._id, driveId) : null)
+      if (target) {
+        await addRecipient(client, target, email, readOnlyInput, existingContactId)
       } else {
-        await createSharingForFile(client, file, email, readOnlyInput, existingContactId)
+        await createSharingForFile(client, file, email, readOnlyInput, existingContactId, {
+          sharedDrive: federatedSharing
+        })
       }
       setEmailInput('')
       setShowAddForm(false)
-      await refreshSharings()
+      await refreshRecipients()
     } catch (e) {
       console.error('[ShareRoute] add recipient failed', e)
       setError(t('drive.share.errorMutate'))
@@ -236,16 +273,15 @@ export default function ShareRoute() {
     }
   }
 
-  const onRemoveRecipient = async (recipientIndex: number): Promise<void> => {
+  const onRemoveRecipient = async (recipient: RecipientView): Promise<void> => {
     if (!requireOnline(isOnline, setSnack, t)) return
-    if (!client || !file || !sharing || mutating) return
-    const memberIndex = absoluteMemberIndex(sharing, recipientIndex)
-    if (memberIndex < 0) return
+    if (!client || !file || mutating) return
+    if (!recipient.sharingId || recipient.memberIndex === undefined) return
     setMutating(true)
     setError(null)
     try {
-      await revokeRecipientAtIndex(client, sharing, memberIndex)
-      await refreshSharings()
+      await revokeSharingMember(client, recipient.sharingId, recipient.memberIndex)
+      await refreshRecipients()
     } catch (e) {
       console.error('[ShareRoute] revoke recipient failed', e)
       setError(t('drive.share.errorMutate'))
@@ -254,7 +290,25 @@ export default function ShareRoute() {
     }
   }
 
-  const recipients = getRecipients(sharing)
+  // One shape for both modes: a member is reachable at its index in the sharing
+  // we hold, an effective recipient carries the sharing the stack picked for it.
+  const recipientViews = useMemo<RecipientView[]>(
+    () =>
+      federatedSharing
+        ? effectiveRecipients
+        : getRecipients(sharing).map((member, index) => ({
+            key: `${member.email ?? member.name ?? 'recipient'}-${index}`,
+            name: member.name ?? member.public_name,
+            email: member.email,
+            instance: member.instance,
+            status: member.status,
+            readOnly: member.read_only === true,
+            sharingId: sharing?._id,
+            memberIndex: sharing ? absoluteMemberIndex(sharing, index) : undefined,
+            manageable: true
+          })),
+    [effectiveRecipients, federatedSharing, sharing]
+  )
 
   // Contact autocomplete: only fetch when the add form is visible. Mirrors
   // cozy-sharing's web ShareAutosuggest — client-side filtering of the
@@ -263,8 +317,8 @@ export default function ShareRoute() {
   // see useReachableContacts for why.
   const { contacts, loading: contactsLoading } = useReachableContacts(showAddForm)
   const excludeEmails = useMemo(
-    () => recipients.map(r => r.email).filter((e): e is string => !!e),
-    [recipients]
+    () => recipientViews.map(r => r.email).filter((e): e is string => !!e),
+    [recipientViews]
   )
   const suggestions = useMemo(
     () => filterContactSuggestions(contacts, emailInput, excludeEmails),
@@ -395,18 +449,18 @@ export default function ShareRoute() {
         {/* Recipients section */}
         <View style={styles.section}>
           <Text variant="titleSmall">{t('drive.share.recipientsTitle')}</Text>
-          {recipients.length === 0 ? (
+          {recipientViews.length === 0 ? (
             <Text variant="bodySmall" style={styles.sectionHint}>
               —
             </Text>
           ) : (
-            recipients.map((m, idx) => (
+            recipientViews.map(recipient => (
               <RecipientRow
-                key={`${m.email ?? m.name ?? 'r'}-${idx}`}
-                member={m}
-                statusLabel={statusLabel(m.status)}
+                key={recipient.key}
+                recipient={recipient}
+                statusLabel={statusLabel(recipient.status)}
                 disabled={mutating}
-                onRemove={() => void onRemoveRecipient(idx)}
+                onRemove={() => void onRemoveRecipient(recipient)}
               />
             ))
           )}
@@ -541,15 +595,15 @@ export default function ShareRoute() {
 }
 
 interface RecipientRowProps {
-  member: SharingMember
+  recipient: RecipientView
   statusLabel: string
   disabled: boolean
   onRemove: () => void
 }
 
-const RecipientRow = ({ member, statusLabel, disabled, onRemove }: RecipientRowProps) => {
+const RecipientRow = ({ recipient, statusLabel, disabled, onRemove }: RecipientRowProps) => {
   const { t } = useTranslation()
-  const label = member.name ?? member.public_name ?? member.email ?? '—'
+  const label = recipient.name ?? recipient.email ?? '—'
   return (
     <View style={styles.recipientRow}>
       <View style={styles.recipientText}>
@@ -558,16 +612,24 @@ const RecipientRow = ({ member, statusLabel, disabled, onRemove }: RecipientRowP
         </Text>
         <Text variant="bodySmall" style={styles.recipientStatus}>
           {statusLabel}
-          {member.read_only ? ' · ☓' : ''}
+          {recipient.readOnly ? ' · ☓' : ''}
         </Text>
+        {recipient.inheritedFrom ? (
+          <Text variant="bodySmall" style={styles.recipientStatus} numberOfLines={1}>
+            {t('drive.share.inheritedFrom', { name: recipient.inheritedFrom })}
+          </Text>
+        ) : null}
       </View>
-      <IconButton
-        icon="delete"
-        onPress={onRemove}
-        disabled={disabled}
-        accessibilityLabel={t('a11y.removeRecipient')}
-        testID="remove-recipient"
-      />
+      {/* Access granted by a parent share is revoked where it was granted. */}
+      {recipient.manageable ? (
+        <IconButton
+          icon="delete"
+          onPress={onRemove}
+          disabled={disabled}
+          accessibilityLabel={t('a11y.removeRecipient')}
+          testID="remove-recipient"
+        />
+      ) : null}
     </View>
   )
 }

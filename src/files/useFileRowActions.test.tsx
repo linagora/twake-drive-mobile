@@ -96,6 +96,16 @@ describe('useFileRowActions', () => {
     expect(mockPinFolder).toHaveBeenCalledWith({ _id: 'd1', name: 'Dossier' })
   })
 
+  it('opens the share screen on the document alone outside a drive', () => {
+    setup().fileProps(file).onShare?.(file)
+    expect(mockPush).toHaveBeenCalledWith('/share/f1')
+  })
+
+  it('carries the drive to the share screen for a document inside one', () => {
+    setup({ driveId: 'drive-1' }).fileProps(file).onShare?.(file)
+    expect(mockPush).toHaveBeenCalledWith('/share/f1?driveId=drive-1')
+  })
+
   it('refuses to open the share screen offline', () => {
     mockOnline = false
     setup().fileProps(file).onShare?.(file)

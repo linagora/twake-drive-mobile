@@ -137,6 +137,7 @@
       "readOnly": "Chỉ đọc",
       "send": "Gửi",
       "remove": "Xóa",
+      "inheritedFrom": "Kế thừa từ {{name}}",
       "errorLoad": "Không thể tải thông tin chia sẻ",
       "errorMutate": "Thao tác thất bại",
       "statusPending": "Đang chờ",

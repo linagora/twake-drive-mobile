@@ -143,6 +143,7 @@
       "readOnly": "Nur Lesen",
       "send": "Senden",
       "remove": "Entfernen",
+      "inheritedFrom": "Geerbt von {{name}}",
       "errorLoad": "Freigabeinformationen konnten nicht geladen werden",
       "errorMutate": "Vorgang fehlgeschlagen",
       "statusPending": "Ausstehend",
