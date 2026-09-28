@@ -469,6 +469,7 @@ export default function ShareRoute() {
             <View style={styles.addForm}>
               <TextInput
                 mode="outlined"
+                testID="share-email-input"
                 label={t('drive.share.emailPlaceholder')}
                 value={emailInput}
                 onChangeText={setEmailInput}
@@ -555,6 +556,7 @@ export default function ShareRoute() {
                 </Button>
                 <Button
                   mode="contained"
+                  testID="share-send"
                   onPress={() => void onSubmitRecipient()}
                   loading={mutating}
                   disabled={mutating || !emailInput.trim()}
@@ -567,6 +569,7 @@ export default function ShareRoute() {
             <Button
               mode="outlined"
               icon="account-plus"
+              testID="share-add-recipient"
               onPress={() => setShowAddForm(true)}
               style={styles.addButton}
               disabled={initialLoading}
@@ -605,7 +608,7 @@ const RecipientRow = ({ recipient, statusLabel, disabled, onRemove }: RecipientR
   const { t } = useTranslation()
   const label = recipient.name ?? recipient.email ?? '—'
   return (
-    <View style={styles.recipientRow}>
+    <View style={styles.recipientRow} testID="recipient-row">
       <View style={styles.recipientText}>
         <Text variant="bodyMedium" numberOfLines={1}>
           {label}

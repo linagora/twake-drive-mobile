@@ -1,0 +1,70 @@
+appId: com.linagora.twakedrive
+tags:
+  - inapp
+env:
+  FOLDER_NAME: 'E2E-share'
+  RECIPIENT: 'e2e-recipient@example.org'
+---
+# In-app SHARE WITH SOMEONE — MUTATING, scoped strictly to a throwaway folder.
+#
+# Unlike 08-share-internal (which only opens the sheet), this one adds a
+# recipient by email, which on an instance with drive.federated-shared-folder
+# .enabled makes the folder a shared drive. It then revokes that recipient and
+# deletes the folder, so the run leaves nothing behind.
+#
+# Requires an instance with drive.shared-drive.enabled on (otherwise the app
+# offers no recipient form at all) and a stack that answers the effective
+# recipients route, which is where the row under "Destinataires" comes from.
+# e2e/stack/setup.sh provisions both.
+- runFlow: ../../subflows/openDrive.yaml
+# create a throwaway target
+- tapOn:
+    id: 'drive-fab'
+- tapOn: 'Nouveau dossier'
+- inputText: '${FOLDER_NAME}'
+- pressKey: Enter
+- extendedWaitUntil:
+    visible: '${FOLDER_NAME}'
+    timeout: 12000
+# open its menu -> Partager
+- tapOn:
+    id: 'folder-actions:${FOLDER_NAME}'
+- tapOn: 'Partager'
+- extendedWaitUntil:
+    visible: 'Lien public'
+    timeout: 10000
+# add the recipient
+- tapOn:
+    id: 'share-add-recipient'
+- tapOn:
+    id: 'share-email-input'
+- inputText: '${RECIPIENT}'
+- hideKeyboard
+- tapOn:
+    id: 'share-send'
+# the row comes back from the stack, so give the round-trip room
+- extendedWaitUntil:
+    visible:
+      id: 'recipient-row'
+    timeout: 25000
+# revoke, so the throwaway is not left shared with anyone
+- tapOn:
+    id: 'remove-recipient'
+- extendedWaitUntil:
+    notVisible:
+      id: 'recipient-row'
+    timeout: 25000
+- tapOn: 'Fermer'
+# cleanup: delete the throwaway through its own row menu
+- extendedWaitUntil:
+    visible: '${FOLDER_NAME}'
+    timeout: 12000
+- tapOn:
+    id: 'folder-actions:${FOLDER_NAME}'
+- tapOn: 'Supprimer'
+- waitForAnimationToEnd
+- tapOn:
+    id: 'confirm-delete-submit'
+- extendedWaitUntil:
+    notVisible: '${FOLDER_NAME}'
+    timeout: 15000

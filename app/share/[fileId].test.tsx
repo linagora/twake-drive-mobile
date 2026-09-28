@@ -1,6 +1,6 @@
 import React from 'react'
 import { Provider as PaperProvider } from 'react-native-paper'
-import { render, screen, waitFor } from '@testing-library/react-native'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react-native'
 
 let mockParams: { fileId: string; driveId?: string } = { fileId: 'f1' }
 jest.mock('expo-router', () => ({
@@ -80,6 +80,7 @@ describe('ShareRoute', () => {
     ])
     render(wrap(<ShareRoute />))
     expect(await screen.findByText('Ada')).toBeOnTheScreen()
+    expect(screen.getByTestId('recipient-row')).toBeOnTheScreen()
     expect(mockFetchEffectiveRecipients).toHaveBeenCalledWith(mockClient, 'f1', undefined)
   })
 
@@ -89,6 +90,14 @@ describe('ShareRoute', () => {
     await waitFor(() =>
       expect(mockFetchEffectiveRecipients).toHaveBeenCalledWith(mockClient, 'f1', 'drive-1')
     )
+  })
+
+  it('exposes the handles the e2e share flow drives', async () => {
+    render(wrap(<ShareRoute />))
+    const addButton = await screen.findByTestId('share-add-recipient')
+    fireEvent.press(addButton)
+    expect(screen.getByTestId('share-email-input')).toBeOnTheScreen()
+    expect(screen.getByTestId('share-send')).toBeOnTheScreen()
   })
 
   it('offers no revocation on an access it cannot manage here', async () => {
