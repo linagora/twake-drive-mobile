@@ -118,7 +118,10 @@ export const useFileRowActions = ({
 
   const share = (id: string): void => {
     if (!requireOnline(isOnline, setSnackbar, t)) return
-    router.push(`/share/${id}`)
+    // Inside a shared drive the document lives in that drive's database, and
+    // its members are the drive's: the share screen needs the drive to find
+    // either of them.
+    router.push(driveId ? `/share/${id}?driveId=${driveId}` : `/share/${id}`)
   }
 
   const open = (file: {

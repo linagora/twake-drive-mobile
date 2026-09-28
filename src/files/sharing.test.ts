@@ -14,7 +14,7 @@ import {
   getLinkEditingRights,
   getRecipients,
   revokePublicLink,
-  revokeRecipientAtIndex
+  revokeSharingMember
 } from './sharing'
 
 beforeEach(() => {
@@ -99,6 +99,24 @@ describe('findSharingForFile', () => {
     const client = makeClient({ 'io.cozy.sharings': { findByDoctype } })
     const result = await findSharingForFile(client, 'file-1')
     expect(result?._id).toBe('s1')
+  })
+})
+
+describe('findSharingForFile, inside a shared drive', () => {
+  it('reads the drive sharing instead of scanning the file sharings', async () => {
+    const get = jest.fn().mockResolvedValue({ data: { _id: 'drive-1' } })
+    const findByDoctype = jest.fn()
+    const client = makeClient({ 'io.cozy.sharings': { get, findByDoctype } })
+    const result = await findSharingForFile(client, 'file-1', 'drive-1')
+    expect(result?._id).toBe('drive-1')
+    expect(get).toHaveBeenCalledWith('drive-1')
+    expect(findByDoctype).not.toHaveBeenCalled()
+  })
+
+  it('returns null when the drive sharing cannot be read', async () => {
+    const get = jest.fn().mockResolvedValue({})
+    const client = makeClient({ 'io.cozy.sharings': { get } })
+    expect(await findSharingForFile(client, 'file-1', 'drive-1')).toBeNull()
   })
 })
 
@@ -324,39 +342,25 @@ describe('addRecipient', () => {
   })
 })
 
-describe('revokeRecipientAtIndex', () => {
+describe('revokeSharingMember', () => {
   it('passes the sharing id and index to revokeRecipient', async () => {
     const revokeRecipient = jest.fn().mockResolvedValue({})
     const client = makeClient({ 'io.cozy.sharings': { revokeRecipient } })
-    await revokeRecipientAtIndex(
-      client,
-      { _id: 'sharing-1' } as Parameters<typeof revokeRecipientAtIndex>[1],
-      2
-    )
+    await revokeSharingMember(client, 'sharing-1', 2)
     expect(revokeRecipient).toHaveBeenCalledWith({ _id: 'sharing-1' }, 2)
   })
 
   it('triggers sharings + permissions pouch replications on success', async () => {
     const revokeRecipient = jest.fn().mockResolvedValue({})
     const client = makeClient({ 'io.cozy.sharings': { revokeRecipient } })
-    await revokeRecipientAtIndex(
-      client,
-      { _id: 'sharing-1' } as Parameters<typeof revokeRecipientAtIndex>[1],
-      2
-    )
+    await revokeSharingMember(client, 'sharing-1', 2)
     expectSharingTriggers(client)
   })
 
   it('does NOT trigger pouch replication when the stack call fails', async () => {
     const revokeRecipient = jest.fn().mockRejectedValue(new Error('boom'))
     const client = makeClient({ 'io.cozy.sharings': { revokeRecipient } })
-    await expect(
-      revokeRecipientAtIndex(
-        client,
-        { _id: 'sharing-1' } as Parameters<typeof revokeRecipientAtIndex>[1],
-        2
-      )
-    ).rejects.toThrow('boom')
+    await expect(revokeSharingMember(client, 'sharing-1', 2)).rejects.toThrow('boom')
     expect(triggerPouchReplication).not.toHaveBeenCalled()
   })
 })
@@ -536,6 +540,49 @@ describe('createSharingForFile', () => {
       recipients: [{ _id: 'contact-1', _type: 'io.cozy.contacts' }],
       readOnlyRecipients: []
     })
+  })
+
+  it('asks for a shared drive when the instance shares that way', async () => {
+    const contactCreate = jest
+      .fn()
+      .mockResolvedValue({ data: { _id: 'contact-1', _type: 'io.cozy.contacts' } })
+    const create = jest.fn().mockResolvedValue({ data: { _id: 'drive-1' } })
+    const client = makeClient({
+      'io.cozy.contacts': { create: contactCreate },
+      'io.cozy.sharings': { create }
+    })
+    await createSharingForFile(
+      client,
+      { _id: 'folder-1', name: 'Reports', type: 'directory' },
+      'bob@example.com',
+      false,
+      undefined,
+      { sharedDrive: true }
+    )
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({ sharedDrive: true, openSharing: false })
+    )
+  })
+
+  it('leaves the shared drive attributes out otherwise', async () => {
+    const contactCreate = jest
+      .fn()
+      .mockResolvedValue({ data: { _id: 'contact-1', _type: 'io.cozy.contacts' } })
+    const create = jest.fn().mockResolvedValue({ data: { _id: 'sharing-1' } })
+    const client = makeClient({
+      'io.cozy.contacts': { create: contactCreate },
+      'io.cozy.sharings': { create }
+    })
+    await createSharingForFile(
+      client,
+      { _id: 'folder-1', name: 'Reports', type: 'directory' },
+      'bob@example.com',
+      false,
+      undefined,
+      { sharedDrive: false }
+    )
+    expect(create.mock.calls[0][0]).not.toHaveProperty('sharedDrive')
+    expect(create.mock.calls[0][0]).not.toHaveProperty('openSharing')
   })
 
   it('triggers sharings + permissions pouch replications on success', async () => {

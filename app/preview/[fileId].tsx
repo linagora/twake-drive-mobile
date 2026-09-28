@@ -216,7 +216,8 @@ export default function PreviewScreen() {
           label: t('drive.fileMeta.share'),
           disabled: !isOnline,
           testID: 'document-share',
-          onPress: () => router.push(`/share/${file._id}`)
+          onPress: () =>
+            router.push(driveId ? `/share/${file._id}?driveId=${driveId}` : `/share/${file._id}`)
         },
         {
           icon: 'download',

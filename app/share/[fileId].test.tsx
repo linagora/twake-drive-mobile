@@ -1,22 +1,22 @@
 import React from 'react'
 import { Provider as PaperProvider } from 'react-native-paper'
-import { render, screen } from '@testing-library/react-native'
+import { render, screen, waitFor } from '@testing-library/react-native'
 
+let mockParams: { fileId: string; driveId?: string } = { fileId: 'f1' }
 jest.mock('expo-router', () => ({
   __esModule: true,
   useRouter: () => ({ back: jest.fn(), canGoBack: () => true }),
-  useLocalSearchParams: () => ({ fileId: 'f1' })
+  useLocalSearchParams: () => mockParams
 }))
 
-let mockQueryCallIndex = 0 // eslint-disable-line prefer-const
+const mockClient = { getStackClient: () => ({ uri: 'https://example.localhost' }) }
 jest.mock('cozy-client', () => ({
   __esModule: true,
-  useClient: () => null,
-  useQuery: jest.fn().mockImplementation(() => {
-    // First call is fileByIdQuery → return the file. Subsequent calls
-    // (reachableContactsQuery, etc.) → return an empty array shape.
-    const i = mockQueryCallIndex++
-    if (i === 0) {
+  useClient: () => mockClient,
+  // Keyed on the query name so a re-render answers the same thing: the file for
+  // fileByIdQuery, an empty list for anything else (reachable contacts).
+  useQuery: jest.fn().mockImplementation((_def: unknown, options: { as?: string }) => {
+    if (options?.as?.startsWith('io.cozy.files/f1')) {
       return {
         data: { _id: 'f1', name: 'rapport.pdf', type: 'file' },
         fetchStatus: 'loaded'
@@ -39,6 +39,10 @@ jest.mock('@/network/useIsOnline', () => ({ useIsOnline: () => true }))
 jest.mock('@/files/useReachableContacts', () => ({
   useReachableContacts: () => ({ contacts: [], loading: false })
 }))
+const mockFetchEffectiveRecipients = jest.fn()
+jest.mock('@/files/effectiveRecipients', () => ({
+  fetchEffectiveRecipients: (...args: unknown[]) => mockFetchEffectiveRecipients(...args)
+}))
 jest.mock('@/sharing/SharingProvider', () => ({
   useFileSharing: () => ({ loaded: true, entry: undefined }),
   useRefreshSharings: () => jest.fn()
@@ -51,11 +55,57 @@ const wrap = (ui: React.ReactElement) => <PaperProvider>{ui}</PaperProvider>
 
 describe('ShareRoute', () => {
   beforeEach(() => {
-    mockQueryCallIndex = 0
+    mockParams = { fileId: 'f1' }
+    mockFetchEffectiveRecipients.mockReset()
+    mockFetchEffectiveRecipients.mockResolvedValue([])
   })
 
-  it('renders the file name', () => {
+  it('renders the file name', async () => {
     render(wrap(<ShareRoute />))
-    expect(screen.getByText('rapport.pdf')).toBeOnTheScreen()
+    expect(await screen.findByText('rapport.pdf')).toBeOnTheScreen()
+  })
+
+  it('lists the recipients the document effectively has', async () => {
+    mockFetchEffectiveRecipients.mockResolvedValue([
+      {
+        key: 'own-1',
+        name: 'Ada',
+        email: 'ada@example.org',
+        status: 'ready',
+        readOnly: false,
+        sharingId: 'own',
+        memberIndex: 1,
+        manageable: true
+      }
+    ])
+    render(wrap(<ShareRoute />))
+    expect(await screen.findByText('Ada')).toBeOnTheScreen()
+    expect(mockFetchEffectiveRecipients).toHaveBeenCalledWith(mockClient, 'f1', undefined)
+  })
+
+  it('asks the drive route for a document inside a shared drive', async () => {
+    mockParams = { fileId: 'f1', driveId: 'drive-1' }
+    render(wrap(<ShareRoute />))
+    await waitFor(() =>
+      expect(mockFetchEffectiveRecipients).toHaveBeenCalledWith(mockClient, 'f1', 'drive-1')
+    )
+  })
+
+  it('offers no revocation on an access it cannot manage here', async () => {
+    mockFetchEffectiveRecipients.mockResolvedValue([
+      {
+        key: 'parent-2',
+        name: 'Ada',
+        status: 'ready',
+        readOnly: false,
+        sharingId: 'parent',
+        memberIndex: 2,
+        manageable: false,
+        inheritedFrom: 'Reports'
+      }
+    ])
+    render(wrap(<ShareRoute />))
+    expect(await screen.findByText('drive.share.inheritedFrom')).toBeOnTheScreen()
+    expect(screen.queryByTestId('remove-recipient')).toBeNull()
   })
 })
