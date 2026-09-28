@@ -29,6 +29,10 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          # Keep GITHUB_TOKEN out of .git/config: third-party install and
+          # build scripts run in this job, next to the signing secrets.
+          persist-credentials: false
 
       - name: Set up Ruby (fastlane)
         uses: ruby/setup-ruby@14594264cd68ce8a2345dd349bc3d138a4ef85c8 # v1.327.0
