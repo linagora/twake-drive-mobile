@@ -9,7 +9,7 @@ on:
       flows:
         description: 'Maestro paths to run, space separated (the login flow first)'
         required: false
-        default: 'e2e/maestro/flows/00-login-instance.yaml'
+        default: 'e2e/maestro/flows/00-login-instance.yaml e2e/maestro/flows/in-app/'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -86,7 +86,7 @@ jobs:
 
       - name: Run the flows
         env:
-          FLOWS: ${{ inputs.flows || 'e2e/maestro/flows/00-login-instance.yaml' }}
+          FLOWS: ${{ inputs.flows || 'e2e/maestro/flows/00-login-instance.yaml e2e/maestro/flows/in-app/' }}
         uses: ReactiveCircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
         with:
           api-level: 30
