@@ -1,6 +1,7 @@
 import CozyClient from 'cozy-client'
 import flag from 'cozy-flags'
 
+import { keepStoredTokenFresh } from '@/auth/keepStoredTokenFresh'
 import { APP_SCOPES } from '@/auth/scopes'
 import { Session } from '@/auth/types'
 import { configureNetInfo } from '@/network/netInfoConfig'
@@ -96,6 +97,8 @@ export const createClient = async (session: Session): Promise<CozyClient> => {
     // — but the UI still renders with whatever cached data Pouch already has.
     console.warn('[createClient] client.login failed (offline?)', err)
   }
+
+  keepStoredTokenFresh(client)
 
   // Kick off the initial sync after login (non-blocking, immediate — no debounce).
   // Safe to call even if login above failed; the helper handles a missing
