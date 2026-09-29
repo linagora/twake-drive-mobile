@@ -6,13 +6,16 @@ env:
 ---
 # An empty folder keeps its empty state while the list refetches.
 #
-# The empty state is the only thing on screen there, so a refetch that swaps it
-# for the loading state makes the icon and the text blink. A pull to refresh is
-# the refetch this flow can ask for by hand; the sync does the same thing on its
-# own, which is what a user sees as flickering.
+# With nothing to list, the empty state is the only thing on screen, so a
+# refetch that swaps it for the loading state makes the icon and the text
+# blink. A sync landing changes does that on its own; a pull to refresh is the
+# same refetch, asked for by hand.
 #
-# The assertions after the pull are deliberately repeated: the swap is brief,
-# and a single check can land on either side of it.
+# The check is `loading-state` never showing after the first load, repeated
+# over several pulls. Measured limit: against a warm local replica the refetch
+# is shorter than Maestro's look, so this flow still passed on a build with the
+# bug put back. It guards the screen, not the timing; the regression itself is
+# pinned by the unit tests.
 - runFlow: ../../subflows/openDrive.yaml
 - tapOn:
     id: 'drive-fab'
@@ -28,13 +31,18 @@ env:
 - extendedWaitUntil:
     visible: 'Aucun fichier dans ce dossier'
     timeout: 12000
-# pull to refresh, then check the empty state never leaves
-- swipe:
-    start: '50%, 35%'
-    end: '50%, 75%'
-- assertVisible: 'Aucun fichier dans ce dossier'
-- assertVisible: 'Aucun fichier dans ce dossier'
-- assertVisible: 'Aucun fichier dans ce dossier'
+- repeat:
+    times: 3
+    commands:
+      - swipe:
+          start: '50%, 35%'
+          end: '50%, 75%'
+      - assertNotVisible:
+          id: 'loading-state'
+      - assertVisible: 'Aucun fichier dans ce dossier'
+      - assertNotVisible:
+          id: 'loading-state'
+      - assertVisible: 'Aucun fichier dans ce dossier'
 - waitForAnimationToEnd
 - assertVisible: 'Aucun fichier dans ce dossier'
 # cleanup: back out and delete the throwaway

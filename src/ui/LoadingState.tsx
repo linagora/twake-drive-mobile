@@ -3,7 +3,7 @@ import { StyleSheet, View } from 'react-native'
 import { ActivityIndicator } from 'react-native-paper'
 
 export const LoadingState = () => (
-  <View style={styles.container}>
+  <View style={styles.container} testID="loading-state">
     <ActivityIndicator animating size="large" />
   </View>
 )
