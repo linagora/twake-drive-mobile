@@ -1,0 +1,54 @@
+appId: com.linagora.twakedrive
+tags:
+  - inapp
+env:
+  FOLDER_NAME: 'E2E-empty'
+---
+# An empty folder keeps its empty state while the list refetches.
+#
+# The empty state is the only thing on screen there, so a refetch that swaps it
+# for the loading state makes the icon and the text blink. A pull to refresh is
+# the refetch this flow can ask for by hand; the sync does the same thing on its
+# own, which is what a user sees as flickering.
+#
+# The assertions after the pull are deliberately repeated: the swap is brief,
+# and a single check can land on either side of it.
+- runFlow: ../../subflows/openDrive.yaml
+- tapOn:
+    id: 'drive-fab'
+- tapOn: 'Nouveau dossier'
+- waitForAnimationToEnd
+- inputText: '${FOLDER_NAME}'
+- pressKey: Enter
+- extendedWaitUntil:
+    visible: '${FOLDER_NAME}'
+    timeout: 12000
+- tapOn: '${FOLDER_NAME}'
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible: 'Aucun fichier dans ce dossier'
+    timeout: 12000
+# pull to refresh, then check the empty state never leaves
+- swipe:
+    start: '50%, 35%'
+    end: '50%, 75%'
+- assertVisible: 'Aucun fichier dans ce dossier'
+- assertVisible: 'Aucun fichier dans ce dossier'
+- assertVisible: 'Aucun fichier dans ce dossier'
+- waitForAnimationToEnd
+- assertVisible: 'Aucun fichier dans ce dossier'
+# cleanup: back out and delete the throwaway
+- tapOn:
+    id: 'appbar-back-button'
+- extendedWaitUntil:
+    visible: '${FOLDER_NAME}'
+    timeout: 12000
+- tapOn:
+    id: 'folder-actions:${FOLDER_NAME}'
+- tapOn: 'Supprimer'
+- waitForAnimationToEnd
+- tapOn:
+    id: 'confirm-delete-submit'
+- extendedWaitUntil:
+    notVisible: '${FOLDER_NAME}'
+    timeout: 15000

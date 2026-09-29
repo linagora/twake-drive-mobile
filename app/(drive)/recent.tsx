@@ -11,6 +11,7 @@ import { recentQuery, recentQueryAs, FileQueryResult, HIDDEN_ROOT_DIR_IDS } from
 import { useFileRowActions } from '@/files/useFileRowActions'
 import { fetchNextPage } from '@/drive/paging'
 import { isSharedDriveRoot } from '@/files/sharedDriveDocuments'
+import { isFirstLoad } from '@/client/queryLoading'
 
 export default function RecentScreen() {
   const { t } = useTranslation()
@@ -46,7 +47,7 @@ export default function RecentScreen() {
         renderItem={({ item }) => (
           <FileRow file={{ ...item, size: item.size ?? null }} {...actions.fileProps(item)} />
         )}
-        loading={query.fetchStatus === 'loading'}
+        loading={isFirstLoad(query)}
         error={query.fetchStatus === 'failed' ? query.lastError : undefined}
         onRetry={() => query.fetch()}
         refreshing={query.fetchStatus === 'loading'}

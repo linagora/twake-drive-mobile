@@ -15,6 +15,7 @@ import { useFileRowActions } from '@/files/useFileRowActions'
 import { useTabBack } from '@/ui/useTabBack'
 import { ScreenContainer } from '@/ui/ScreenContainer'
 import { EmptyState } from '@/ui/EmptyState'
+import { isFirstLoad } from '@/client/queryLoading'
 import { ErrorState } from '@/ui/ErrorState'
 import { LoadingState } from '@/ui/LoadingState'
 import { FileRow } from '@/ui/FileRow'
@@ -467,7 +468,7 @@ export const FilesScreen = ({ basePath }: FilesScreenProps): React.ReactElement 
           keyExtractor={(item: FileQueryResult) => item._id}
           renderItem={mode === 'grid' ? renderGridItem : renderItem}
           numColumns={mode === 'grid' ? 3 : undefined}
-          loading={foldersQuery.fetchStatus === 'loading' || filesQuery.fetchStatus === 'loading'}
+          loading={isFirstLoad(foldersQuery, filesQuery)}
           error={
             foldersQuery.fetchStatus === 'failed' || filesQuery.fetchStatus === 'failed'
               ? (foldersQuery.lastError ?? filesQuery.lastError)
