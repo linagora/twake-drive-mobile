@@ -29,7 +29,9 @@ const resources = {
 export const resolveDeviceLanguage = (): string =>
   resolveLanguage(
     getLocalePreference(),
-    getLocales()[0]?.languageCode ?? undefined,
+    // The e2e build runs on an emulator the runner creates in English, and
+    // every flow selects on the French labels. Only that build reads the flag.
+    process.env.EXPO_PUBLIC_E2E === '1' ? 'fr' : (getLocales()[0]?.languageCode ?? undefined),
     Object.keys(resources)
   )
 
