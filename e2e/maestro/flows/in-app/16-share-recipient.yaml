@@ -30,16 +30,22 @@ env:
 - tapOn:
     id: 'folder-actions:${FOLDER_NAME}'
 - tapOn: 'Partager'
+# the sheet is a presented route: without waiting for that animation, the
+# hierarchy Maestro reads is still the list behind it and every selector in the
+# sheet misses for the whole timeout
+- waitForAnimationToEnd
 - extendedWaitUntil:
     visible: 'Lien public'
-    timeout: 10000
+    timeout: 20000
 # add the recipient
 - tapOn:
     id: 'share-add-recipient'
 - tapOn:
     id: 'share-email-input'
 - inputText: '${RECIPIENT}'
-- hideKeyboard
+# tapping outside the field dismisses the keyboard, which would otherwise
+# sit over the send button (hideKeyboard is not supported on iOS here)
+- tapOn: 'Destinataires'
 - tapOn:
     id: 'share-send'
 # the row comes back from the stack, so give the round-trip room
