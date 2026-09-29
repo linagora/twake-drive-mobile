@@ -1,4 +1,7 @@
 import Foundation
+import os
+
+private let log = Logger(subsystem: "com.linagora.twakedrive.FileProvider", category: "api")
 
 struct CozyFilesApi {
   let baseURL: String
@@ -52,8 +55,16 @@ struct CozyFilesApi {
       token = try await tokens.forceRefresh(previous: token)
       (data, resp) = try await client.send(try request(path, method: method, token: token, accept: accept, contentType: contentType, body: body))
     }
-    try Self.mapStatus(resp.statusCode)
+    try Self.check(resp.statusCode, method: method, path: path)
     return data
+  }
+
+  private static func check(_ code: Int, method: Method, path: String) throws {
+    if !(200...299).contains(code) {
+      let route = path.split(separator: "?", maxSplits: 1).first.map(String.init) ?? path
+      log.error("\(method.rawValue, privacy: .public) \(route, privacy: .public) answered \(code, privacy: .public)")
+    }
+    try mapStatus(code)
   }
 
   static func mapStatus(_ code: Int) throws {
@@ -121,7 +132,7 @@ struct CozyFilesApi {
       token = try await tokens.forceRefresh(previous: token)
       resp = try await client.download(try request(path, method: .get, token: token, accept: false), to: dest, progress: progress)
     }
-    try Self.mapStatus(resp.statusCode)
+    try Self.check(resp.statusCode, method: .get, path: path)
   }
 
   /// The stack signs thumbnail paths with a secret, so the only usable url is

@@ -1,5 +1,8 @@
 import Foundation
+import os
 import Security
+
+private let log = Logger(subsystem: "com.linagora.twakedrive.FileProvider", category: "keychain")
 
 /// Seam over the raw Security framework so the store is unit-testable with a fake.
 protocol KeychainAccess {
@@ -34,8 +37,14 @@ struct KeychainSessionStore: SessionStoring {
   func load() throws -> Session? {
     for service in Self.readServices {
       guard let data = access.read(service: service, account: account, accessGroup: accessGroup) else { continue }
-      return try JSONDecoder().decode(Session.self, from: data)
+      do {
+        return try JSONDecoder().decode(Session.self, from: data)
+      } catch {
+        log.error("session under \(service, privacy: .public) does not decode: \(String(describing: error), privacy: .public)")
+        throw error
+      }
     }
+    log.error("no session in \(accessGroup, privacy: .public)")
     return nil
   }
 
@@ -62,7 +71,15 @@ struct RealKeychainAccess: KeychainAccess {
       kSecReturnData as String: kCFBooleanTrue as Any,
     ]
     var out: CFTypeRef?
-    guard SecItemCopyMatching(query as CFDictionary, &out) == errSecSuccess else { return nil }
+    let status = SecItemCopyMatching(query as CFDictionary, &out)
+    guard status == errSecSuccess else {
+      if status == errSecItemNotFound {
+        log.debug("nothing under \(service, privacy: .public)")
+      } else {
+        log.error("reading \(service, privacy: .public) failed with OSStatus \(status, privacy: .public)")
+      }
+      return nil
+    }
     return out as? Data
   }
 

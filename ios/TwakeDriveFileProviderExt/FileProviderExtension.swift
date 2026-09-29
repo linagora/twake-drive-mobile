@@ -1,4 +1,5 @@
 import FileProvider
+import os
 import UniformTypeIdentifiers
 
 // NSExtensionPrincipalClass in Info.plist resolves "$(PRODUCT_MODULE_NAME).FileProviderExtension".
@@ -18,6 +19,8 @@ final class FileProviderExtension: NSObject, NSFileProviderReplicatedExtension {
   private func makeApi() throws -> CozyFilesApi {
     let store = KeychainSessionStore(access: RealKeychainAccess(), accessGroup: Self.keychainAccessGroup)
     guard let session = try store.load() else { throw CozyError.notAuthenticated }
+    Logger(subsystem: "com.linagora.twakedrive.FileProvider", category: "session")
+      .debug("session scope: \(session.token.scope, privacy: .public)")
     let client = URLSessionHTTPClient()
     let lockURL = FileManager.default
       .containerURL(forSecurityApplicationGroupIdentifier: Self.appGroup)?

@@ -1,4 +1,7 @@
 import Foundation
+import os
+
+private let log = Logger(subsystem: "com.linagora.twakedrive.FileProvider", category: "token")
 
 actor TokenProvider {
   private let store: SessionStoring
@@ -61,7 +64,10 @@ actor TokenProvider {
     req.httpBody = Data(form.utf8)
 
     let (data, response) = try await client.send(req)
-    guard response.statusCode == 200 else { throw CozyError.notAuthenticated }
+    guard response.statusCode == 200 else {
+      log.error("refresh refused with \(response.statusCode, privacy: .public)")
+      throw CozyError.notAuthenticated
+    }
     let obj = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
     guard let access = obj?["access_token"] as? String, !access.isEmpty else { throw CozyError.notAuthenticated }
     session.token.accessToken = access
