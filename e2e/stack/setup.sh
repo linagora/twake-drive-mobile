@@ -39,6 +39,11 @@ fi
 # drive.federated-shared-folder.enabled are the two the app reads to share by
 # email through a shared drive; the rest is kept as the web sets it so both
 # clients face the same instance.
+# The image creates the instance in English, the app follows the instance
+# locale, and every flow selects on the French labels.
+echo "Setting the instance locale"
+run instances modify "$DOMAIN" --locale fr
+
 echo "Setting the feature flags"
 run features flags --domain "$DOMAIN" '{
   "cozy.hide-sharing-cozy-to-cozy": true,
