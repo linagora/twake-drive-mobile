@@ -61,6 +61,11 @@ logged-in state) and then exercises one area:
 | `12-offline-toggle`  | Pin → the menu shows "Remove from offline" → unpin                         |
 | `16-share-recipient` | Adds a recipient by email, checks the row, revokes it, deletes the folder  |
 
+On the **iOS simulator**, the `openDrive` subflow cannot run: a Debug build
+loses its session at every cold start, so the `launchApp` it begins with lands on
+the welcome screen (see issue #366). Until that is fixed, drive the flows there
+on an app that is already signed in, skipping that first line.
+
 Shared **subflows** live in `flows/subflows/`: `openDrive` (launch + assert logged
 in), `assertLoggedIn`, and `cleanup`.
 
