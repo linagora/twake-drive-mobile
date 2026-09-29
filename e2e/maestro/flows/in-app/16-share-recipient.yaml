@@ -21,6 +21,8 @@ env:
 - tapOn:
     id: 'drive-fab'
 - tapOn: 'Nouveau dossier'
+# let the dialog settle: typing into it while it animates drops characters
+- waitForAnimationToEnd
 - inputText: '${FOLDER_NAME}'
 - pressKey: Enter
 - extendedWaitUntil:
