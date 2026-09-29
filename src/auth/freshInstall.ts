@@ -29,6 +29,7 @@ export const clearSessionLeftByAPreviousInstall = async (): Promise<boolean> => 
   // and signing the user out on every launch would be worse than the bug.
   if (!storage) return false
   if (storage.getString(INSTALL_MARKER_KEY)) return false
+  console.warn('[freshInstall] no install marker, clearing the stored session')
   // Cleared first, marked after: a keychain that could not be read yet is
   // worth another try on the next launch, where marking first would leave the
   // session behind for good. Clearing twice costs nothing.
