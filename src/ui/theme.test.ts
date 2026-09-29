@@ -1,15 +1,16 @@
+import { cozyPalette } from './cozyPalette'
 import { lightTheme, darkTheme, cozyTokens } from './theme'
 
 test('lightTheme mappe la palette cozy-ui sur les slots Paper', () => {
-  expect(lightTheme.colors.primary).toBe('#3b82f7')
-  expect(lightTheme.colors.primaryContainer).toBe('#C2DCFF')
-  expect(lightTheme.colors.error).toBe('#F52D2D')
-  expect(lightTheme.colors.background).toBe('#F5FAFF')
+  expect(lightTheme.colors.primary).toBe(cozyPalette.light.primary)
+  expect(lightTheme.colors.primaryContainer).toBe(cozyPalette.light.primaryContainer)
+  expect(lightTheme.colors.error).toBe(cozyPalette.light.error)
+  expect(lightTheme.colors.background).toBe(cozyPalette.light.background)
 })
 
 test('darkTheme reste un thème MD3 sombre', () => {
   expect(darkTheme.dark).toBe(true)
-  expect(darkTheme.colors.primary).toBe('#6FA8FA')
+  expect(darkTheme.colors.primary).toBe(cozyPalette.dark.primary)
 })
 
 test('cozyTokens expose radius + shadow', () => {

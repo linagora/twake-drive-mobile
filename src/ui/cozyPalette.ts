@@ -1,7 +1,7 @@
-// Palette Twake/cozy-ui. Sources :
-//  - primary : thème de l'instance (--primaryColor: #3b82f7, mmaudet.twake.linagora.com/assets/styles/theme.css)
-//  - autres accents : cozy-ui@139.2.0/react/palette.js (frenchPass/puertoRico/pomegranate/zircon)
-//  - neutres : rampe cozy-ui coolGrey (approx. alignée ; affinable sur device)
+// Source : @linagora/twake-css/palette.json, réparti par mode comme
+// twake-ui/packages/twake-mui/src/lib/makePalette.ts.
+import twakePalette from '@linagora/twake-css/palette.json'
+
 export type CozyPaletteScheme = {
   primary: string
   primaryContainer: string
@@ -15,29 +15,31 @@ export type CozyPaletteScheme = {
   surfaceVariant: string
 }
 
+const { Primary, Secondary, Error, Grey, Common } = twakePalette
+
 export const cozyPalette: { light: CozyPaletteScheme; dark: CozyPaletteScheme } = {
   light: {
-    primary: '#3b82f7',
-    primaryContainer: '#C2DCFF',
-    secondary: '#0DCBCF',
-    error: '#F52D2D',
-    background: '#F5FAFF',
-    surface: '#FFFFFF',
-    onSurface: '#32363F',
-    onSurfaceVariant: '#5D6165',
-    outline: '#D6D8DA',
-    surfaceVariant: '#F0F3F5'
+    primary: Primary[600],
+    primaryContainer: Primary[200],
+    secondary: Secondary[600],
+    error: Error[600],
+    background: Grey[100],
+    surface: Common.white,
+    onSurface: Grey[900],
+    onSurfaceVariant: Grey.A700,
+    outline: Grey[300],
+    surfaceVariant: Grey[200]
   },
   dark: {
-    primary: '#6FA8FA',
-    primaryContainer: '#1E3A5F',
-    secondary: '#3FE0E4',
-    error: '#FF6B6B',
-    background: '#15171A',
-    surface: '#1E2126',
-    onSurface: '#E3E5E8',
-    onSurfaceVariant: '#A0A4A8',
-    outline: '#3A3E44',
-    surfaceVariant: '#282C32'
+    primary: Primary[400],
+    primaryContainer: Primary[800],
+    secondary: Grey[400],
+    error: Error[400],
+    background: Grey.A400,
+    surface: Grey[800],
+    onSurface: Common.white,
+    onSurfaceVariant: Grey[400],
+    outline: Grey[700],
+    surfaceVariant: Grey.A700
   }
 }
