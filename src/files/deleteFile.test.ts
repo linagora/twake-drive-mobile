@@ -2,10 +2,15 @@ jest.mock('@/pouchdb/triggerReplication', () => ({
   triggerPouchReplication: jest.fn()
 }))
 
+jest.mock('@/pouchdb/persistStackDoc', () => ({
+  persistStackDoc: jest.fn().mockResolvedValue(undefined)
+}))
+
 import CozyClient from 'cozy-client'
 
 import { folderSubfoldersQuery, TRASH_DIR_ID } from '@/client/queries'
 import { triggerPouchReplication } from '@/pouchdb/triggerReplication'
+import { persistStackDoc } from '@/pouchdb/persistStackDoc'
 
 import { softDeleteEntry } from './deleteFile'
 
@@ -38,6 +43,7 @@ const listedIds = (client: CozyClient): string[] =>
 describe('softDeleteEntry', () => {
   beforeEach(() => {
     ;(triggerPouchReplication as jest.Mock).mockClear()
+    ;(persistStackDoc as jest.Mock).mockClear()
   })
 
   it('destroys the entry through the files collection', async () => {
@@ -109,6 +115,19 @@ describe('softDeleteEntry', () => {
     destroy.mockRejectedValue(new Error('boom'))
     await expect(softDeleteEntry(client, folder)).rejects.toThrow('boom')
     expect(triggerPouchReplication).not.toHaveBeenCalled()
+  })
+
+  it('writes the trashed revision into the local database', async () => {
+    const { client } = makeClient()
+    await softDeleteEntry(client, folder)
+    expect(persistStackDoc).toHaveBeenCalledWith(client, trashed)
+  })
+
+  it('leaves the local database alone when the stack refuses', async () => {
+    const { client, destroy } = makeClient()
+    destroy.mockRejectedValue(new Error('boom'))
+    await expect(softDeleteEntry(client, folder)).rejects.toThrow('boom')
+    expect(persistStackDoc).not.toHaveBeenCalled()
   })
 
   it('triggers a pouch replication on success', async () => {
