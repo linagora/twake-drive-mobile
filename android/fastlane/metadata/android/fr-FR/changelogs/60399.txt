@@ -1,0 +1,5 @@
+• Vous restez désormais connecté après avoir fermé l'app.
+• Un fichier supprimé apparaît tout de suite dans la corbeille et ne revient plus après un redémarrage.
+• Le partage par e-mail fonctionne désormais comme sur le web.
+• La déconnexion efface maintenant les données conservées sur l'appareil.
+• Les couleurs reprennent celles de Twake Drive sur le web, et les dossiers vides ne clignotent plus.

@@ -1,0 +1,5 @@
+• Giờ đây bạn vẫn đăng nhập sau khi đóng ứng dụng.
+• Tệp đã xóa xuất hiện ngay trong thùng rác và không còn quay lại sau khi khởi động lại.
+• Chia sẻ qua email giờ hoạt động giống như trên web.
+• Đăng xuất giờ sẽ xóa dữ liệu lưu trên thiết bị.
+• Màu sắc giờ khớp với Twake Drive trên web và thư mục trống không còn nhấp nháy.

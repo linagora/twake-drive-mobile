@@ -1,0 +1,5 @@
+• Sie bleiben jetzt angemeldet, nachdem Sie die App geschlossen haben.
+• Eine gelöschte Datei erscheint sofort im Papierkorb und taucht nach einem Neustart nicht wieder auf.
+• Das Teilen per E-Mail funktioniert jetzt genauso wie im Web.
+• Beim Abmelden werden jetzt die auf dem Gerät gespeicherten Daten gelöscht.
+• Die Farben entsprechen jetzt Twake Drive im Web, und leere Ordner flackern nicht mehr.

@@ -1,0 +1,5 @@
+• You now stay signed in after closing the app.
+• A deleted file shows up in the trash right away and no longer comes back after a restart.
+• Sharing by email now works the same way as on the web.
+• Signing out now removes the data kept on the device.
+• Colours now match Twake Drive on the web, and empty folders no longer flicker.

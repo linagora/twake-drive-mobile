@@ -1,0 +1,5 @@
+• Ahora sigues con la sesión iniciada después de cerrar la app.
+• Un archivo eliminado aparece enseguida en la papelera y ya no vuelve tras un reinicio.
+• Compartir por correo electrónico ahora funciona igual que en la web.
+• Al cerrar sesión ahora se borran los datos guardados en el dispositivo.
+• Los colores ahora coinciden con Twake Drive en la web y las carpetas vacías ya no parpadean.
