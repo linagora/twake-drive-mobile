@@ -96,7 +96,9 @@ jobs:
           cores: 4
           ram-size: 4096M
           disable-animations: true
-          emulator-options: -no-snapshot -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          # French device: the flows select on the app's French labels, and the
+          # app follows the device before anything else.
+          emulator-options: -no-snapshot -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -prop persist.sys.locale=fr-FR -prop persist.sys.language=fr -prop persist.sys.country=FR
           script: |
             adb install -r android/app/build/outputs/apk/release/app-release.apk
             adb shell pm clear com.linagora.twakedrive || true
