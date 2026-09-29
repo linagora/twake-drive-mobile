@@ -47,6 +47,39 @@ describe('tokenStorage', () => {
     )
   })
 
+  // A delete carries no access group, so it is not scoped to one keychain: run
+  // after the write it took the item just stored, and the session never
+  // survived a restart.
+  it('saveSession drops the other copy before writing, never after', async () => {
+    const calls: string[] = []
+    ;(SecureStore.deleteItemAsync as jest.Mock).mockImplementation(async () => {
+      calls.push('delete')
+    })
+    ;(SecureStore.setItemAsync as jest.Mock).mockImplementation(async () => {
+      calls.push('write')
+    })
+
+    await saveSession(session)
+
+    expect(calls).toEqual(['delete', 'write'])
+  })
+
+  it('saveSession writes to the default keychain when the shared group refuses', async () => {
+    ;(SecureStore.setItemAsync as jest.Mock).mockImplementation(
+      async (_key: string, _value: string, options: { accessGroup?: string }) => {
+        if (options?.accessGroup) throw new Error('missing entitlement')
+      }
+    )
+
+    await saveSession(session)
+
+    expect(SecureStore.setItemAsync).toHaveBeenCalledWith(
+      SESSION_KEY,
+      JSON.stringify(session),
+      DEFAULT
+    )
+  })
+
   it('getSession returns parsed session when present, read from the shared group', async () => {
     ;(SecureStore.getItemAsync as jest.Mock).mockResolvedValueOnce(JSON.stringify(session))
     expect(await getSession()).toEqual(session)

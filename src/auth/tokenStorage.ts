@@ -38,11 +38,14 @@ const deleteFrom = async (options: SecureStore.SecureStoreOptions): Promise<void
 }
 
 const setItem = async (value: string): Promise<void> => {
+  // The two keychains must never hold different sessions, since a read falls
+  // back to the default one as soon as the shared group answers empty. Drop the
+  // other copy BEFORE writing: a delete carries no access group, so it is not
+  // scoped to one keychain, and running it afterwards took the item that had
+  // just been written — which is why a session never survived a restart.
+  await deleteFrom(DEFAULT_KEYCHAIN)
   try {
     await SecureStore.setItemAsync(SESSION_KEY, value, SHARED_KEYCHAIN)
-    // The two keychains must never hold different sessions, since a read falls
-    // back to the default one as soon as the shared group answers empty.
-    await deleteFrom(DEFAULT_KEYCHAIN)
   } catch {
     await SecureStore.setItemAsync(SESSION_KEY, value, DEFAULT_KEYCHAIN)
   }
