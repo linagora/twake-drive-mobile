@@ -62,9 +62,12 @@ const wrap = (ui: React.ReactElement) => (
   </I18nextProvider>
 )
 
-const queryResult = (data: unknown[], fetchStatus = 'loaded') => ({
+// `lastFetch` is what cozy-client stamps once a query has answered, and what
+// tells a refetch apart from the first load.
+const queryResult = (data: unknown[], fetchStatus = 'loaded', lastFetch: number | null = 1) => ({
   data,
   fetchStatus,
+  lastFetch,
   lastError: null,
   fetch: jest.fn().mockResolvedValue(undefined),
   fetchMore: jest.fn()
@@ -76,7 +79,7 @@ describe('TrashScreen', () => {
   })
 
   it('shows the loading state on the very first load', () => {
-    mockUseQuery.mockReturnValue(queryResult([], 'loading'))
+    mockUseQuery.mockReturnValue(queryResult([], 'loading', null))
     render(wrap(<TrashScreen />))
     expect(screen.queryByText('Corbeille vide')).toBeNull()
   })

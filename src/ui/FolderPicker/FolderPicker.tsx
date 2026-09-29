@@ -12,6 +12,7 @@ import { EmptyState } from '@/ui/EmptyState'
 import { ErrorState } from '@/ui/ErrorState'
 import { CreateFolderDialog } from '@/ui/CreateFolderDialog'
 import { createFolder } from '@/files/createFolder'
+import { isFirstLoad } from '@/client/queryLoading'
 import {
   FileQueryResult,
   ROOT_DIR_ID,
@@ -80,9 +81,7 @@ export const FolderPicker = ({
     ...files.map(f => ({ _id: f._id, name: f.name, type: 'file' as const, mime: f.mime }))
   ]
 
-  const isLoading =
-    (folderLookup.fetchStatus === 'loading' && !folderDoc) ||
-    (subfoldersQuery.fetchStatus === 'loading' && subfolders.length === 0)
+  const isLoading = isFirstLoad(folderLookup, subfoldersQuery)
   const hasError = folderLookup.fetchStatus === 'failed' || subfoldersQuery.fetchStatus === 'failed'
 
   const title = currentFolderId === ROOT_DIR_ID ? t('drive.myDrive') : (folderDoc?.name ?? '')

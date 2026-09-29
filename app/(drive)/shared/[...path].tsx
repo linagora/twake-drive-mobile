@@ -38,6 +38,7 @@ import { cozyTokens } from '@/ui/theme'
 import { SortControl } from '@/ui/SortControl'
 import { useFolderSort } from '@/ui/useFolderSort'
 import { fetchNextPage } from '@/drive/paging'
+import { isFirstLoad } from '@/client/queryLoading'
 
 export default function SharedScreen() {
   const router = useRouter()
@@ -263,11 +264,8 @@ export default function SharedScreen() {
     ? false
     : isRoot
       ? sharedIds.status === 'loading' ||
-        (sharedIds.status === 'loaded' &&
-          sharedIds.ids.length > 0 &&
-          sharedFilesQuery.fetchStatus === 'loading' &&
-          data.length === 0)
-      : subfoldersQuery.fetchStatus === 'loading' || folderFilesQ.fetchStatus === 'loading'
+        (sharedIds.status === 'loaded' && sharedIds.ids.length > 0 && isFirstLoad(sharedFilesQuery))
+      : isFirstLoad(subfoldersQuery, folderFilesQ)
   // Note: SharingProvider swallows its own fetch errors, so sharedIds no
   // longer surfaces a 'failed' state — failures of the secondary
   // filesByIdsQuery fetch still drive the failed UI here.

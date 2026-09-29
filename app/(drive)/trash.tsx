@@ -24,6 +24,7 @@ import {
 import { restoreEntry, emptyTrash } from '@/files/trashActions'
 import { useIsOnline } from '@/network/useIsOnline'
 import { requireOnline } from '@/network/requireOnline'
+import { isFirstLoad } from '@/client/queryLoading'
 
 export default function TrashScreen() {
   const router = useRouter()
@@ -50,10 +51,6 @@ export default function TrashScreen() {
   const [emptyDialogVisible, setEmptyDialogVisible] = useState(false)
   const [emptying, setEmptying] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
-  // Emptying the trash leaves a list that is empty AND refetching. Swapping the
-  // whole list for the loading state on every background refetch made the empty
-  // state blink in and out; only the very first load gets it.
-  const [loadedOnce, setLoadedOnce] = useState(false)
   const isOnline = useIsOnline()
   // Optimistic removal: restoreEntry / emptyTrash hit the server only (they
   // bypass local Pouch), so an immediate refetch races the async replication and
@@ -67,12 +64,6 @@ export default function TrashScreen() {
   // listing and as twake-drive-web's trash view.
   const items = [...folderDocs, ...fileDocs].filter(d => !removedIds.has(d._id))
   const data = items
-
-  useEffect(() => {
-    if (foldersQuery.fetchStatus === 'loaded' || filesQuery.fetchStatus === 'loaded') {
-      setLoadedOnce(true)
-    }
-  }, [foldersQuery.fetchStatus, filesQuery.fetchStatus])
 
   const handleRestore = async (item: FileQueryResult): Promise<void> => {
     if (!requireOnline(isOnline, setSnackbar, t)) return
@@ -143,10 +134,7 @@ export default function TrashScreen() {
         items={data}
         keyExtractor={item => item._id}
         renderItem={renderItem}
-        loading={
-          !loadedOnce &&
-          (foldersQuery.fetchStatus === 'loading' || filesQuery.fetchStatus === 'loading')
-        }
+        loading={isFirstLoad(foldersQuery, filesQuery)}
         error={
           foldersQuery.fetchStatus === 'failed' || filesQuery.fetchStatus === 'failed'
             ? (foldersQuery.lastError ?? filesQuery.lastError)

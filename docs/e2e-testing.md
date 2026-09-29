@@ -47,19 +47,20 @@ happened.
 Each in-app flow opens the drive via the `openDrive` subflow (which asserts the
 logged-in state) and then exercises one area:
 
-| Flow                 | What it checks                                                             |
-| -------------------- | -------------------------------------------------------------------------- |
-| `01-launch-browse`   | The app launches and the drive lists folders                               |
-| `02-tabs`            | The bottom tabs (Drive / Favoris / Récents / Partages / Corbeille) switch  |
-| `03-search`          | Disabled (tag `skip`): /search has no UI entry point — see the flow header |
-| `04-folder-crud`     | A real create + delete round-trip, strictly scoped to a throwaway folder   |
-| `05-preview`         | File preview (⚠️ environment-dependent — not validated on every build)     |
-| `06-editor`          | A document editor opens                                                    |
-| `07-offline-pin`     | Pin a folder for offline and verify the menu state                         |
-| `08-share-internal`  | The share sheet opens for a folder (non-mutating)                          |
-| `09-favorite-toggle` | Favourite → present in Favoris → un-favourite → absent from Favoris        |
-| `12-offline-toggle`  | Pin → the menu shows "Remove from offline" → unpin                         |
-| `16-share-recipient` | Adds a recipient by email, checks the row, revokes it, deletes the folder  |
+| Flow                      | What it checks                                                             |
+| ------------------------- | -------------------------------------------------------------------------- |
+| `01-launch-browse`        | The app launches and the drive lists folders                               |
+| `02-tabs`                 | The bottom tabs (Drive / Favoris / Récents / Partages / Corbeille) switch  |
+| `03-search`               | Disabled (tag `skip`): /search has no UI entry point — see the flow header |
+| `04-folder-crud`          | A real create + delete round-trip, strictly scoped to a throwaway folder   |
+| `05-preview`              | File preview (⚠️ environment-dependent — not validated on every build)     |
+| `06-editor`               | A document editor opens                                                    |
+| `07-offline-pin`          | Pin a folder for offline and verify the menu state                         |
+| `08-share-internal`       | The share sheet opens for a folder (non-mutating)                          |
+| `09-favorite-toggle`      | Favourite → present in Favoris → un-favourite → absent from Favoris        |
+| `12-offline-toggle`       | Pin → the menu shows "Remove from offline" → unpin                         |
+| `17-empty-folder-refresh` | An empty folder keeps its empty state while the list refetches             |
+| `16-share-recipient`      | Adds a recipient by email, checks the row, revokes it, deletes the folder  |
 
 On the **iOS simulator**, the `openDrive` subflow cannot run: a Debug build
 loses its session at every cold start, so the `launchApp` it begins with lands on

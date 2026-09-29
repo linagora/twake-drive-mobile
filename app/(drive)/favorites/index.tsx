@@ -20,6 +20,7 @@ import { isFavorite } from '@/files/favorites'
 import { openFileFromList } from '@/files/openFromList'
 import { surfaceOpenError } from '@/files/errors'
 import { fetchNextPage } from '@/drive/paging'
+import { isFirstLoad } from '@/client/queryLoading'
 
 // A trashed folder keeps its cozyMetadata.favorite flag. cozy-stack does NOT
 // reliably set a top-level `trashed` boolean on it, but a trashed item always
@@ -50,15 +51,6 @@ export default function FavoritesScreen() {
   // entries become redundant anyway once isFavorite filters the refreshed data.
   const [removedIds, setRemovedIds] = useState<Set<string>>(new Set())
   const [refreshing, setRefreshing] = useState(false)
-  // The list refetches on every focus, and binding the full-screen loading
-  // state to that made it replace the list on each pass. Only the first load
-  // gets it.
-  const [loadedOnce, setLoadedOnce] = useState(false)
-
-  useEffect(() => {
-    if (query.fetchStatus === 'loaded') setLoadedOnce(true)
-  }, [query.fetchStatus])
-
   const onRefresh = useCallback((): void => {
     setRefreshing(true)
     void Promise.resolve(queryRef.current.fetch()).finally(() => setRefreshing(false))
@@ -122,7 +114,7 @@ export default function FavoritesScreen() {
   return (
     <ScreenContainer>
       <AppBar title={t('drive.favorites')} onLogout={logout} />
-      {!loadedOnce && query.fetchStatus === 'loading' && data.length === 0 ? (
+      {isFirstLoad(query) && data.length === 0 ? (
         <LoadingState />
       ) : query.fetchStatus === 'failed' ? (
         <ErrorState
