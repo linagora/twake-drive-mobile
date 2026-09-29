@@ -62,4 +62,20 @@ printf 'hello from the e2e stack\n' | curl -fsS -X POST \
   -H "Host: $DOMAIN" -H "Authorization: Bearer $TOKEN" \
   -H 'Content-Type: text/plain' --data-binary @- >/dev/null
 
+# A handful of documents replicate in a blink, and a replica that is already
+# settled hides everything a busy sync does to the screens. Seed enough that a
+# run always has one running: 12 folders of 25 files.
+echo "Seeding a busy instance"
+for d in $(seq 1 12); do
+  DIR_ID="$(curl -fsS -X POST "http://localhost/files/$ROOT?Type=directory&Name=Dossier-$d" \
+    -H "Host: $DOMAIN" -H "Authorization: Bearer $TOKEN" |
+    sed -n 's/.*"id":"\([^"]*\)".*/\1/p' | head -1)"
+  for f in $(seq 1 25); do
+    printf 'e2e seed %s/%s\n' "$d" "$f" | curl -fsS -X POST \
+      "http://localhost/files/$DIR_ID?Type=file&Name=fichier-$f.txt" \
+      -H "Host: $DOMAIN" -H "Authorization: Bearer $TOKEN" \
+      -H 'Content-Type: text/plain' --data-binary @- >/dev/null
+  done
+done
+
 echo "Instance ready: http://$DOMAIN"

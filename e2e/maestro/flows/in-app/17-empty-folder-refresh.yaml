@@ -11,11 +11,9 @@ env:
 # blink. A sync landing changes does that on its own; a pull to refresh is the
 # same refetch, asked for by hand.
 #
-# The check is `loading-state` never showing after the first load, repeated
-# over several pulls. Measured limit: against a warm local replica the refetch
-# is shorter than Maestro's look, so this flow still passed on a build with the
-# bug put back. It guards the screen, not the timing; the regression itself is
-# pinned by the unit tests.
+# Assertions alone do not catch it: against a warm replica the swap is shorter
+# than the time Maestro takes to look, and this flow passed on a build with the
+# bug put back. Hence the recording, which is checked frame by frame.
 - runFlow: ../../subflows/openDrive.yaml
 - tapOn:
     id: 'drive-fab'
@@ -31,20 +29,22 @@ env:
 - extendedWaitUntil:
     visible: 'Aucun fichier dans ce dossier'
     timeout: 12000
-- repeat:
-    times: 3
-    commands:
-      - swipe:
-          start: '50%, 35%'
-          end: '50%, 75%'
-      - assertNotVisible:
-          id: 'loading-state'
-      - assertVisible: 'Aucun fichier dans ce dossier'
-      - assertNotVisible:
-          id: 'loading-state'
-      - assertVisible: 'Aucun fichier dans ce dossier'
+# pull to refresh, then hold still and film it: a list that swaps its empty
+# state for the loading state and back leaves nothing for an assertion to
+# catch, but every frame of it is in the recording.
+# e2e/scripts/check-recording.mjs fails the run when this window is not still.
+- swipe:
+    start: '50%, 35%'
+    end: '50%, 75%'
 - waitForAnimationToEnd
-- assertVisible: 'Aucun fichier dans ce dossier'
+- startRecording: 17-empty-folder
+- repeat:
+    times: 12
+    commands:
+      - assertVisible: 'Aucun fichier dans ce dossier'
+      - assertNotVisible:
+          id: 'loading-state'
+- stopRecording
 # cleanup: back out and delete the throwaway
 - tapOn:
     id: 'appbar-back-button'
