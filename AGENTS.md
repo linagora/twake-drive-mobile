@@ -51,6 +51,8 @@ naming, so mobile stays visually coherent with the web products.
   `react-native-paper` progressively. When you build a reusable piece, factor it in
   that direction rather than scattering one-off styles.
 - Don't invent a parallel visual language — mirror the web's tokens.
+- Colours come from **`@linagora/twake-css`** (`palette.json`): it is that token
+  reference shipped as data, not a web library, so it is imported directly.
 
 ### Native code is duplicated iOS/Android on purpose (for now)
 
