@@ -15,6 +15,9 @@ jest.mock('cozy-client', () => ({
     this.options = opts
     this.registerPlugin = jest.fn().mockResolvedValue(undefined)
     this.login = jest.fn().mockResolvedValue(undefined)
+    this.on = jest.fn()
+    this.removeListener = jest.fn()
+    this.getStackClient = jest.fn().mockReturnValue({ token: null })
   }),
   StackLink: jest.fn().mockImplementation(function (this: any) {
     this.name = 'stack'

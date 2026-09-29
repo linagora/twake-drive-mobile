@@ -27,6 +27,8 @@ jest.mock('cozy-client', () => ({
     registerPlugin: jest.fn(),
     login: jest.fn().mockResolvedValue(undefined),
     logout: jest.fn(),
+    on: jest.fn(),
+    removeListener: jest.fn(),
     // createClient() runs triggerPouchReplication, which does
     // client.links.find(...); an empty array lets it no-op gracefully here.
     links: []
