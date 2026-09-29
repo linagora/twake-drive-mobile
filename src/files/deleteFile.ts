@@ -1,5 +1,6 @@
 import type CozyClient from 'cozy-client'
 
+import { persistStackDoc } from '@/pouchdb/persistStackDoc'
 import { triggerPouchReplication } from '@/pouchdb/triggerReplication'
 
 import { holdUntilSynced } from './holdUntilSynced'
@@ -27,6 +28,7 @@ export const softDeleteEntry = async (client: CozyClient, entry: DeletableEntry)
   const collection = client.collection(doctype) as unknown as DestroyingCollection
   const { data } = await collection.destroy({ _id: entry._id, _rev: entry._rev, _type: doctype })
   if (data) {
+    await persistStackDoc(client, { ...data, _type: data._type ?? doctype })
     client.setData({ [doctype]: [data] })
     holdUntilSynced(client, data)
   }
