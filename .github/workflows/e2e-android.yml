@@ -110,6 +110,12 @@ jobs:
             # Android baseline is committed once these are eyeballed.
             CAPTURE_ONLY=1 FLOWS=e2e/maestro/flows/01-visual-tour.yaml EXCLUDE_EXTRA=none ./e2e/scripts/run-visual.sh android || true
 
+      # The flows that film a window where nothing is driven: anything moving in
+      # one of those is the app changing its mind on its own, which no assertion
+      # is fast enough to catch.
+      - name: Check the recordings held still
+        run: node e2e/scripts/check-recording.mjs --dir "$HOME/.maestro/tests"
+
       - name: Collect what the run left behind
         if: always()
         run: |
@@ -117,6 +123,8 @@ jobs:
           cp /tmp/maestro-report.xml /tmp/e2e-artifacts/ 2>/dev/null || true
           cp -r ~/.maestro/tests /tmp/e2e-artifacts/maestro-tests 2>/dev/null || true
           cp -r e2e/maestro/screenshots/current /tmp/e2e-artifacts/screenshots 2>/dev/null || true
+          find "$HOME/.maestro/tests" -name '*.mp4' -exec cp {} /tmp/e2e-artifacts/ \; 2>/dev/null || true
+          find "$HOME/.maestro/tests" -type d -name '*-changes' -exec cp -r {} /tmp/e2e-artifacts/ \; 2>/dev/null || true
           docker compose -f e2e/stack/docker-compose.yml logs --no-color > /tmp/e2e-artifacts/stack.log 2>&1 || true
 
       - name: Upload them
