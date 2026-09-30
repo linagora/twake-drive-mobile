@@ -4,6 +4,7 @@ tags:
   - disposable
 env:
   RECIPIENT: 'e2e-recipient@example.org'
+  MENU_SUFFIX: ''
 ---
 # The #391 regression: a folder opened from the Partages tab offered no way to
 # create anything, because only FilesScreen ever rendered a FAB.
@@ -20,21 +21,23 @@ env:
 # lands on SharedDriveScreen, where every create is scoped to
 # /sharings/drives/<id>.
 #
-# Names are written into the `id:` selectors: Maestro substitutes a variable in
-# a text selector but not in an id one.
+# Names are written into the `id:` selectors, and carry no hyphen: iOS
+# inputText eats a '-' (same reason as 09 and 12). MENU_SUFFIX is
+# -container-outer-layer on iOS, where the bare folder-actions id is ambiguous;
+# run-ios.sh passes it.
 - runFlow: ../../subflows/openDrive.yaml
 # a throwaway folder to turn into a drive
 - tapOn:
     id: 'drive-fab'
 - tapOn: 'Nouveau dossier'
-- inputText: 'E2E-shared-create'
+- inputText: 'E2Eshareddrive'
 - pressKey: Enter
 - extendedWaitUntil:
-    visible: 'E2E-shared-create'
+    visible: 'E2Eshareddrive'
     timeout: 12000
 # share it by email — same steps as 16-share-recipient, minus the revoke
 - tapOn:
-    id: 'folder-actions:E2E-shared-create'
+    id: 'folder-actions:E2Eshareddrive${MENU_SUFFIX}'
 - tapOn:
     id: 'action-share'
 - waitForAnimationToEnd
@@ -62,9 +65,9 @@ env:
 - tapOn:
     id: 'sharings-tab-by-me'
 - extendedWaitUntil:
-    visible: 'E2E-shared-create'
+    visible: 'E2Eshareddrive'
     timeout: 25000
-- tapOn: 'E2E-shared-create'
+- tapOn: 'E2Eshareddrive'
 - waitForAnimationToEnd
 # the regression guard: this screen used to render no FAB at all
 - extendedWaitUntil:
@@ -79,10 +82,10 @@ env:
 - assertNotVisible: 'Raccourci'
 - assertNotVisible: 'Nouveau document Docs'
 - tapOn: 'Nouveau dossier'
-- inputText: 'E2E-inside-drive'
+- inputText: 'E2Einsidedrive'
 - pressKey: Enter
 # the create goes to /sharings/drives/<id>, and the screen reloads its own
 # listing rather than reading the store
 - extendedWaitUntil:
-    visible: 'E2E-inside-drive'
+    visible: 'E2Einsidedrive'
     timeout: 25000
