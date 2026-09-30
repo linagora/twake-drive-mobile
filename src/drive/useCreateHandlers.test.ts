@@ -122,10 +122,10 @@ describe('useCreateHandlers inside a shared drive', () => {
     expect(mockOptimisticFiles).not.toHaveBeenCalled()
   })
 
-  it('asks the screen to refresh its own listing', async () => {
+  it('hands the screen what it created, to show it before the listing has it', async () => {
     const onCreated = jest.fn()
     await handlers({ ...deps, onCreated }).createFolderNamed('Foo')
-    expect(onCreated).toHaveBeenCalled()
+    expect(onCreated).toHaveBeenCalledWith({ _id: 'new', name: 'Foo', type: 'directory' })
   })
 })
 

@@ -23,7 +23,13 @@ export interface CreateHandlersDeps {
   driveId?: string
   notify: (message: string) => void
   /** Screens holding their listing in local state refresh it from here. */
-  onCreated?: () => void
+  onCreated?: (created?: CreatedEntry) => void
+}
+
+export interface CreatedEntry {
+  _id: string
+  name: string
+  type: 'directory' | 'file'
 }
 
 export interface CreateHandlers {
@@ -54,7 +60,7 @@ export const useCreateHandlers = ({
           optimisticCreated({ ...created, name: created.name ?? '' }, dirId, type)
         ])
       }
-      onCreated?.()
+      onCreated?.({ _id: created._id, name: created.name ?? '', type })
     }
 
     return {
