@@ -4,7 +4,7 @@ import { FAB } from 'react-native-paper'
 import { useTranslation } from 'react-i18next'
 
 import { CreateActionName, createActionNames } from './createActions'
-import { useCreateHandlers } from './useCreateHandlers'
+import { CreatedEntry, useCreateHandlers } from './useCreateHandlers'
 
 import { cozyTokens } from '@/ui/theme'
 import { CozyIcon } from '@/ui/icons/CozyIcon'
@@ -26,7 +26,7 @@ interface Props {
   notify: (message: string) => void
   /** Screens that hold their listing in local state rather than in a cozy
    *  query refresh it from here; the store-backed ones do not need it. */
-  onCreated?: () => void
+  onCreated?: (created?: CreatedEntry) => void
   /** Hidden while a multi-selection is running, as the FAB would overlap it. */
   hidden?: boolean
 }

@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useFocusEffect, useLocalSearchParams } from 'expo-router'
 import { useClient } from 'cozy-client'
 import { useTranslation } from 'react-i18next'
@@ -7,6 +7,7 @@ import { DriveChild, normalizeDriveChild } from './sharedDriveChild'
 
 import { AppBar } from '@/ui/AppBar'
 import { CreateMenu } from '@/drive/CreateMenu'
+import { CreatedEntry } from '@/drive/useCreateHandlers'
 import { useHasWriteAccess } from '@/sharing/useHasWriteAccess'
 import { useGuardedPush } from '@/ui/useGuardedPush'
 import { useTabBack } from '@/ui/useTabBack'
@@ -69,6 +70,7 @@ export const SharedDriveScreen = ({ basePath }: Props): React.ReactElement => {
 
   const [folder, setFolder] = useState<{ name: string } | null>(null)
   const [children, setChildren] = useState<DriveChild[] | null>(null)
+  const [created, setCreated] = useState<DriveChild[]>([])
   const [folderError, setFolderError] = useState<unknown>(null)
   const [folderLoading, setFolderLoading] = useState(false)
 
@@ -124,6 +126,21 @@ export const SharedDriveScreen = ({ basePath }: Props): React.ReactElement => {
       setFolderLoading(false)
     }
   }, [client, driveId, currentFolderId, currentDrive?.owner])
+
+  useEffect(() => setCreated([]), [currentFolderId])
+
+  const onCreated = useCallback(
+    (entry?: CreatedEntry) => {
+      if (entry) setCreated(prev => [...prev, entry])
+      void reloadFolder()
+    },
+    [reloadFolder]
+  )
+
+  const listed = useMemo(() => {
+    const ids = new Set((children ?? []).map(child => child._id))
+    return [...(children ?? []), ...created.filter(entry => !ids.has(entry._id))]
+  }, [children, created])
 
   useFocusEffect(
     useCallback(() => {
@@ -200,7 +217,7 @@ export const SharedDriveScreen = ({ basePath }: Props): React.ReactElement => {
         />
       ) : (
         <FileListView
-          items={children ?? []}
+          items={listed}
           keyExtractor={item => item._id}
           renderItem={renderChild}
           loading={folderLoading && children === null}
@@ -217,7 +234,7 @@ export const SharedDriveScreen = ({ basePath }: Props): React.ReactElement => {
           driveId={writeScope}
           canWrite={canWrite}
           notify={actions.notify}
-          onCreated={reloadFolder}
+          onCreated={onCreated}
         />
       ) : null}
       {actions.dialogs}
