@@ -23,6 +23,7 @@ interface Props {
   onSingleTap?: () => void
   onLoad?: () => void
   onError?: (err: unknown) => void
+  testID?: string
 }
 
 /**
@@ -41,7 +42,8 @@ export const ZoomableImage = ({
   placeholderUri,
   onSingleTap,
   onLoad,
-  onError
+  onError,
+  testID
 }: Props): React.ReactElement => {
   const { width, height } = useWindowDimensions()
   const scale = useSharedValue(1)
@@ -161,6 +163,7 @@ export const ZoomableImage = ({
     <GestureDetector gesture={composed}>
       <Animated.View style={[StyleSheet.absoluteFill, animatedStyle]}>
         <Image
+          testID={testID}
           source={{ uri, headers }}
           placeholder={placeholderUri ? { uri: placeholderUri } : undefined}
           placeholderContentFit="contain"

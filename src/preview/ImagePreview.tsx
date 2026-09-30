@@ -16,6 +16,7 @@ export const ImagePreview = ({ source, thumbnailUrl }: Props): React.ReactElemen
   return (
     <View style={styles.container}>
       <ZoomableImage
+        testID="preview-image"
         uri={source.uri}
         headers={source.headers}
         placeholderUri={thumbnailUrl}

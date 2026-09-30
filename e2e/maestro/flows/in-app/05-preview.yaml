@@ -4,11 +4,9 @@ tags:
 env:
   PREVIEW_FILE: 'sample.jpg'
 ---
-# ⚠️ NOT validated on the current build. Requires:
-#   (a) an accessible image fixture ${PREVIEW_FILE} (the test account root
-#       only had folders → drop in an image or point to a known file);
-#   (b) a FRESH BUILD with the testID `preview-image`: the preview screen is
-#       "chromeless" (image/video/pdf) → no text anchor on the current build.
+# Opens the image the disposable instance seeds. The preview is chromeless --
+# no text to anchor on -- so it is the image itself that answers, through the
+# testID ImagePreview hands to ZoomableImage.
 - runFlow: ../../subflows/openDrive.yaml
 - tapOn: '${PREVIEW_FILE}'
 - extendedWaitUntil:
