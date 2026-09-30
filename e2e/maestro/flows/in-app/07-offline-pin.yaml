@@ -27,18 +27,21 @@ onFlowComplete:
     visible: '${output.file.name}'
     timeout: 30000
 - extendedWaitUntil:
-    visible: 'Disponible hors ligne'
+    visible:
+      id: 'pinned-badge:downloaded'
     timeout: 60000
 - tapOn:
     id: 'appbar-back-button'
 - tapOn:
     id: 'folder-actions:${output.folder.name}'
 - waitForAnimationToEnd
-- assertVisible: 'Retirer du hors-ligne'
+- assertVisible:
+    id: 'action-unpin'
 - tapOn:
-    id: 'action-pin'
+    id: 'action-unpin'
 - waitForAnimationToEnd
 - tapOn:
     id: 'folder-actions:${output.folder.name}'
 - waitForAnimationToEnd
-- assertVisible: 'Garder hors-ligne'
+- assertVisible:
+    id: 'action-pin'

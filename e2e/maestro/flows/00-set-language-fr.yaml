@@ -40,5 +40,6 @@ tags:
     id: 'appbar-back-button'
     optional: true
 - extendedWaitUntil:
-    visible: 'Mon Drive.*'
+    visible:
+      id: 'tab-files'
     timeout: 15000

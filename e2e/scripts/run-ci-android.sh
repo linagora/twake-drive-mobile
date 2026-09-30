@@ -60,9 +60,8 @@ echo "::group::00-welcome"
 if run 00-welcome "$FLOWS_DIR/00-welcome.yaml"; then PASSED+=(00-welcome); else FAILED+=(00-welcome); fi
 echo "::endgroup::"
 
-echo "::group::Setup: sign in, then French"
-if ! run 00-login-instance "$FLOWS_DIR/00-login-instance.yaml" ||
-  ! run 00-set-language-fr "$FLOWS_DIR/00-set-language-fr.yaml"; then
+echo "::group::Setup: sign in"
+if ! run 00-login-instance "$FLOWS_DIR/00-login-instance.yaml"; then
   echo "::endgroup::"
   echo "::error::Setup failed: no flow can run without a session."
   exit 1

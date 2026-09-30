@@ -28,7 +28,7 @@ onFlowComplete:
       id: 'folder-row:${output.folder.name}'
     timeout: 15000
 - tapOn:
-    text: 'Corbeille.*'
+    id: 'tab-trash'
 - extendedWaitUntil:
     visible: '${output.folder.name}'
     timeout: 30000
@@ -41,7 +41,7 @@ onFlowComplete:
     notVisible: '${output.folder.name}'
     timeout: 15000
 - tapOn:
-    text: 'Mon Drive.*'
+    id: 'tab-files'
 - extendedWaitUntil:
     visible:
       id: 'folder-row:${output.folder.name}'

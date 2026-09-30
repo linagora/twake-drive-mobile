@@ -23,7 +23,7 @@ onFlowComplete:
 - tapOn:
     id: 'action-favorite'
 - tapOn:
-    text: 'Favoris.*'
+    id: 'tab-favorites'
 - extendedWaitUntil:
     visible: '${output.folder.name}'
     timeout: 30000

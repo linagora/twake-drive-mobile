@@ -20,7 +20,8 @@ onFlowComplete:
     id: 'folder-row:${output.folder.name}'
 - waitForAnimationToEnd
 - extendedWaitUntil:
-    visible: 'Aucun fichier dans ce dossier'
+    visible:
+      id: 'empty-state'
     timeout: 15000
 - swipe:
     start: '50%, 35%'
@@ -30,7 +31,8 @@ onFlowComplete:
 - repeat:
     times: 30
     commands:
-      - assertVisible: 'Aucun fichier dans ce dossier'
+      - assertVisible:
+          id: 'empty-state'
       - assertNotVisible:
           id: 'loading-state'
 - waitForAnimationToEnd

@@ -13,11 +13,16 @@ onFlowComplete:
 - runFlow: ../../subflows/openDrive.yaml
 - tapOn:
     id: 'drive-fab'
-- tapOn: 'Nouveau dossier'
+- tapOn:
+    id: 'create-folder'
+- tapOn:
+    id: 'create-folder-name-input'
 - inputText: '${FOLDER_NAME}'
-- pressKey: Enter
+- tapOn:
+    id: 'create-folder-submit'
 - extendedWaitUntil:
-    visible: '${FOLDER_NAME}'
+    visible:
+      id: 'folder-row:${FOLDER_NAME}'
     timeout: 15000
 - tapOn:
     id: 'folder-actions:${FOLDER_NAME}'
@@ -28,5 +33,6 @@ onFlowComplete:
 - tapOn:
     id: 'confirm-delete-submit'
 - extendedWaitUntil:
-    notVisible: '${FOLDER_NAME}'
+    notVisible:
+      id: 'folder-row:${FOLDER_NAME}'
     timeout: 15000

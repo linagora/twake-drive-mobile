@@ -24,7 +24,8 @@ onFlowComplete:
 - tapOn:
     id: 'action-pin'
 - extendedWaitUntil:
-    visible: 'Disponible hors ligne'
+    visible:
+      id: 'pinned-badge:downloaded'
     timeout: 60000
 
 - setAirplaneMode: enabled
