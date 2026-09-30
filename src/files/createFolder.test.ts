@@ -80,3 +80,25 @@ describe('createFolder', () => {
     expect(triggerPouchReplication).not.toHaveBeenCalled()
   })
 })
+
+describe('createFolder in a shared drive', () => {
+  it('scopes the files collection to the drive', async () => {
+    const create = jest
+      .fn()
+      .mockResolvedValue({ data: { _id: 'new', name: 'Foo', type: 'directory' } })
+    const collection = jest.fn().mockReturnValue({ create })
+    const client = { collection } as unknown as import('cozy-client').default
+    await createFolder(client, 'Foo', 'parent-id', 'drive-1')
+    expect(collection).toHaveBeenCalledWith('io.cozy.files', { driveId: 'drive-1' })
+  })
+
+  it('leaves the collection unscoped without a drive', async () => {
+    const create = jest
+      .fn()
+      .mockResolvedValue({ data: { _id: 'new', name: 'Foo', type: 'directory' } })
+    const collection = jest.fn().mockReturnValue({ create })
+    const client = { collection } as unknown as import('cozy-client').default
+    await createFolder(client, 'Foo', 'parent-id')
+    expect(collection).toHaveBeenCalledWith('io.cozy.files', {})
+  })
+})

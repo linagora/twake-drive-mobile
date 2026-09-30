@@ -47,3 +47,13 @@ describe('createCozyNote', () => {
     expect(triggerPouchReplication).not.toHaveBeenCalled()
   })
 })
+
+describe('createCozyNote in a shared drive', () => {
+  it('scopes the notes collection to the drive', async () => {
+    const create = jest.fn().mockResolvedValue({ data: { _id: 'n1', attributes: { name: 'New' } } })
+    const collection = jest.fn().mockReturnValue({ create })
+    const client = { collection } as unknown as import('cozy-client').default
+    await createCozyNote(client, 'parent-id', 'drive-1')
+    expect(collection).toHaveBeenCalledWith('io.cozy.notes', { driveId: 'drive-1' })
+  })
+})

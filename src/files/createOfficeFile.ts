@@ -2,6 +2,7 @@ import { File } from 'expo-file-system'
 import { Asset } from 'expo-asset'
 import type CozyClient from 'cozy-client'
 
+import { driveScope } from '@/files/driveScope'
 import { triggerPouchReplication } from '@/pouchdb/triggerReplication'
 
 export type OfficeFileClass = 'text' | 'sheet' | 'slide'
@@ -59,7 +60,8 @@ export const createOfficeFile = async (
   client: CozyClient,
   fileClass: OfficeFileClass,
   name: string,
-  dirId: string
+  dirId: string,
+  driveId?: string
 ): Promise<CreatedOfficeFile> => {
   const tpl = TEMPLATES[fileClass]
   const finalName = buildFinalName(name, tpl.ext)
@@ -69,7 +71,10 @@ export const createOfficeFile = async (
   if (!asset.localUri) throw new Error('Template asset unavailable')
   const buffer = await new File(asset.localUri).arrayBuffer()
 
-  const collection = client.collection('io.cozy.files') as unknown as FilesCollection
+  const collection = client.collection(
+    'io.cozy.files',
+    driveScope(driveId)
+  ) as unknown as FilesCollection
   const result = await collection.createFile(buffer, {
     name: finalName,
     dirId,

@@ -1,5 +1,6 @@
 import type CozyClient from 'cozy-client'
 
+import { driveScope } from '@/files/driveScope'
 import { triggerPouchReplication } from '@/pouchdb/triggerReplication'
 
 export class FolderConflictError extends Error {
@@ -26,12 +27,16 @@ interface FilesCollection {
 export const createFolder = async (
   client: CozyClient,
   name: string,
-  dirId: string
+  dirId: string,
+  driveId?: string
 ): Promise<CreatedFolder> => {
   const trimmed = name.trim()
   if (!trimmed) throw new Error('Folder name cannot be empty')
 
-  const collection = client.collection('io.cozy.files') as unknown as FilesCollection
+  const collection = client.collection(
+    'io.cozy.files',
+    driveScope(driveId)
+  ) as unknown as FilesCollection
 
   try {
     const result = await collection.create({
