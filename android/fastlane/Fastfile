@@ -1,3 +1,5 @@
+require 'json'
+
 default_platform(:android)
 
 # Twake Drive Android release lanes. Signing config is env-driven in
@@ -7,6 +9,12 @@ default_platform(:android)
 PACKAGE_NAME = "com.linagora.twakedrive"
 METADATA_PATH = "./fastlane/metadata/android"
 METADATA_DIR = File.expand_path("metadata/android", __dir__)
+
+def listing_version_code
+  app_json = File.expand_path("../../app.json", __dir__)
+  version = JSON.parse(File.read(app_json))["expo"]["version"]
+  version.split("-").first.split(".").inject(0) { |acc, part| acc * 100 + part.to_i } * 100 + 99
+end
 
 def assert_listing_filled
   files = Dir.glob("#{METADATA_DIR}/**/*.txt")
@@ -70,6 +78,8 @@ platform :android do
       json_key: ENV["SUPPLY_JSON_KEY_PATH"],
       package_name: PACKAGE_NAME,
       metadata_path: METADATA_PATH,
+      version_code: listing_version_code,
+      track: "internal",
       skip_upload_aab: true,
       skip_upload_apk: true,
       skip_upload_changelogs: true
