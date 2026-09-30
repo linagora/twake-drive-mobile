@@ -1,5 +1,5 @@
 import { SharedDriveEntry } from './sharedDrives'
-import { buildSharingRows, drivesForTab } from './sharingRows'
+import { buildSharingRows, driveRowMenu, drivesForTab } from './sharingRows'
 
 const drive = (driveId: string, over: Partial<SharedDriveEntry> = {}): SharedDriveEntry => ({
   driveId,
@@ -177,5 +177,28 @@ describe('sorting by date', () => {
       sortDir: 'desc'
     })
     expect(rows.map(r => r.name)).toEqual(['created only', 'updated'])
+  })
+})
+
+describe('driveRowMenu', () => {
+  it('lets the owner open the share sheet on the drive root', () => {
+    expect(driveRowMenu({ owner: true, rootFolderId: 'root-1' })).toEqual({
+      canShare: true,
+      canLeave: false
+    })
+  })
+
+  it('lets a recipient leave instead of sharing', () => {
+    expect(driveRowMenu({ owner: false, rootFolderId: 'root-1' })).toEqual({
+      canShare: false,
+      canLeave: true
+    })
+  })
+
+  it('offers the owner nothing to share while the root folder is unknown', () => {
+    expect(driveRowMenu({ owner: true, rootFolderId: null })).toEqual({
+      canShare: false,
+      canLeave: false
+    })
   })
 })
