@@ -20,6 +20,15 @@ def marketing_version
   JSON.parse(File.read(File.expand_path("../../app.json", __dir__)))["expo"]["version"].to_s
 end
 
+# TestFlight "What to Test" for this version, one file per locale:
+# ios/fastlane/testflight/<version>/<locale>.txt. Empty when there is none.
+def testflight_notes
+  dir = File.expand_path("testflight/#{marketing_version}", __dir__)
+  Dir.glob(File.join(dir, "*.txt")).to_h do |path|
+    [File.basename(path, ".txt"), { whats_new: File.read(path, encoding: "UTF-8").strip }]
+  end
+end
+
 platform :ios do
   # One-off provisioning: create any MISSING match profiles (e.g. a newly-added
   # extension) in WRITE mode, so the readonly release lane can then fetch them.
@@ -111,11 +120,23 @@ platform :ios do
     # First validations: plain internal TestFlight upload — instant, no external
     # "Beta Testers" group or Beta App Review needed. Restore distribute_external +
     # groups once Test Info is filled and the first build cleared Beta review.
-    pilot(
-      api_key: api_key,
-      ipa: "build/TwakeDrive.ipa",
-      skip_waiting_for_build_processing: true
-    )
+    # Notes are attached once App Store Connect has processed the build, so a
+    # version that has some waits for it; one without uploads and returns.
+    notes = testflight_notes
+    if notes.empty?
+      pilot(
+        api_key: api_key,
+        ipa: "build/TwakeDrive.ipa",
+        skip_waiting_for_build_processing: true
+      )
+    else
+      pilot(
+        api_key: api_key,
+        ipa: "build/TwakeDrive.ipa",
+        changelog: (notes["en-US"] || notes.values.first)[:whats_new],
+        localized_build_info: notes
+      )
+    end
   end
 
   desc "Push App Store metadata (binary already uploaded by :distribute)"

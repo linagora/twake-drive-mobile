@@ -1,0 +1,4 @@
+• I documenti Office si aprono sul dispositivo quando il server non ha un editor online.
+• I titoli delle cartelle ora sono centrati e il logo compare solo nelle schermate principali.
+• L'app non chiede più un accesso all'archiviazione che non usava.
+• Se hai attivato i rapporti sugli arresti anomali, ora contengono più dettagli per correggere i problemi.

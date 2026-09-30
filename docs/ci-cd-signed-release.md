@@ -93,6 +93,10 @@ number, which TestFlight only needs to be unique within a version.
   `android/app/build.gradle` — 0.6.1 is `60199` — so add one file per locale
   before cutting the tag. A version with no changelog file uploads without
   notes rather than failing.
+- TestFlight "What to Test" comes from
+  `ios/fastlane/testflight/<version>/<locale>.txt` (e.g. `0.7.0/en-US.txt`).
+  With notes, the lane waits for App Store Connect to process the build before
+  setting them; without, it uploads and returns as before.
 - The first build of a new Play app cannot go through the API: download the
   AAB artefact of a run without upload and send it by hand in the Play
   Console, which also enrols the app in Play App Signing. The service account

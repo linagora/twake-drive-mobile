@@ -1,0 +1,4 @@
+• Office-Dokumente öffnen sich auf Ihrem Gerät, wenn Ihr Server keinen Online-Editor hat.
+• Ordnertitel sind jetzt zentriert, und das Logo erscheint nur noch auf den Hauptbildschirmen.
+• Die App fragt nicht mehr nach Speicherzugriff, den sie nie genutzt hat.
+• Wenn Sie Absturzberichte aktiviert haben, enthalten sie jetzt mehr Details zur Fehlerbehebung.

@@ -1,0 +1,4 @@
+• Office documents open on your device when your server has no online editor.
+• Folder titles are now centred, and the logo only shows on the main screens.
+• The app no longer asks for storage access it never used.
+• If you turned on crash reports, they now carry more details to help fix problems.
