@@ -2,7 +2,7 @@ appId: com.linagora.twakedrive
 tags:
   - inapp
 env:
-  TEST_FOLDER: 'LINAGORA'
+  TEST_FOLDER: 'Documents'
 ---
 # Cross-platform. On iOS the folder has the accessibility "<name>, <localized
 # actions label>" (e.g. "Actions du dossier" in FR) → the regex '${TEST_FOLDER}.*'
