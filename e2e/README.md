@@ -20,7 +20,8 @@ automated — see `flows/00-login.yaml`, excluded from runs).
 1. Launch the app and log in by hand (device / simulator).
 2. iOS simulator: install a build **with the keychain fallback fix** (otherwise SecureStore
    fails on an unsigned build — see DEVICE-NOTES). Build: `gh workflow run build-ios.yml`.
-3. The account must have ≥1 folder at the root (flows 01/03 depend on it).
+3. The flows seed what they act on through the stack, so they run against the e2e
+   stack (`e2e/stack`), not a personal account. See "Independent flows" below.
 
 ## Run
 
@@ -29,6 +30,29 @@ npm run e2e:ios       # iOS simulator (in-app flows)
 npm run e2e:android   # Android device (in-app + cross-app File Provider/Share)
 # a targeted flow (always target the platform if 2 devices are connected):
 maestro --platform ios test e2e/maestro/flows/in-app/02-tabs.yaml
+```
+
+## Independent flows
+
+Every flow can run alone and in any order:
+
+- It starts with `subflows/openDrive.yaml`: network back on, cold start, signed in.
+- It creates its own material through the stack API (`maestro/scripts/seed.js`), under
+  a random name, and reads it back as `${output.<key>.name}`.
+- Its `onFlowComplete` runs `subflows/cleanup.yaml`, which turns airplane mode off and
+  deletes that material, whether the flow passed or not.
+- Only the sign-in (`00-login-instance`) and the language (`00-set-language-fr`) are
+  shared, and they run first.
+
+`05-preview` reads the `sample.jpg` the instance is created with and changes nothing.
+`06-editor` is tagged `onlyoffice`: the e2e stack has no OnlyOffice server.
+
+CI (`.github/workflows/e2e-android.yml`) runs `scripts/run-ci-android.sh` on every pull
+request: one `maestro test` per flow, in a shuffled order printed as a seed in the job
+summary. Replay an order with the `seed` input of a manual dispatch, or locally:
+
+```bash
+E2E_SEED=1234 ./e2e/scripts/run-android.sh e2e/maestro/flows/in-app/11-move.yaml
 ```
 
 ## Device selection (gotcha)
@@ -56,7 +80,8 @@ e2e/
       00-welcome.yaml     # preauth tag (app boot + login form)
       in-app/             # inapp tags (iOS + Android): 01-19
       android/            # android tags: 10 File Provider, 11 Share
-  scripts/                # run-android.sh, run-ios.sh
+    scripts/              # seed.js, cleanup.js (stack API, run by the flows)
+  scripts/                # run-android.sh, run-ios.sh, run-ci-android.sh
   fixtures/               # sample.jpg (share)
   DEVICE-NOTES.md         # device results + recipe + quirks
 ```
@@ -64,7 +89,7 @@ e2e/
 ## Disposable-only flows
 
 A flow tagged `disposable` mutates state it cannot undo through the UI, so
-`config.yaml` excludes it from every run. `19-create-in-shared-drive` is one:
+`config.yaml` excludes it from local runs; CI runs it, its instance is thrown away. `19-create-in-shared-drive` is one:
 sharing a folder by email turns it into a shared drive, and no row in the
 Partages list carries an action menu, so the share can no longer be revoked
 nor the folder deleted from the app.
@@ -103,10 +128,3 @@ To finish the login by hand, against the throwaway instance only:
 
 Step 2 widens what the registered OAuth client accepts as a redirect, so keep it
 to an instance from `e2e/stack`.
-
-## Status & scope
-
-See `DEVICE-NOTES.md`. In short: 01-04 + 00-welcome **green cross-platform**; 10 File
-Provider **green on Android**; 05/06 (preview/editor) and 07 (offline-pin iOS) + 11 (Share auto)
-= to be finalized (fixtures / selectors). The keychain fallback fix unblocks **iOS auth on
-the simulator without a real device**.

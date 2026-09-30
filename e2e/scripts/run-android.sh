@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
-# Local E2E smoke on an Android device (adb). Prerequisite: app installed AND
-# already logged in (see e2e/README.md). Never uninstalls (keeps the session).
+# Local E2E on an Android device (adb), against the e2e stack: the flows seed
+# what they act on through it. Signs in, then runs every flow on its own, like
+# CI (run-ci-android.sh). Never uninstalls.
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 
 DEVICE="$(adb devices | awk 'NR>1 && $2=="device"{print $1; exit}')"
@@ -14,13 +15,7 @@ if [ -n "${APK_PATH:-}" ]; then
   adb -s "$DEVICE" install -r "$APK_PATH"
 fi
 
-# Seed the fixture image for the share flow
-adb -s "$DEVICE" shell mkdir -p /sdcard/Pictures/E2E >/dev/null 2>&1 || true
-adb -s "$DEVICE" push "$ROOT/e2e/fixtures/sample.jpg" /sdcard/Pictures/E2E/sample.jpg
-adb -s "$DEVICE" shell am broadcast -a android.intent.action.MEDIA_SCANNER_SCAN_FILE \
-  -d file:///sdcard/Pictures/E2E/sample.jpg >/dev/null
-
-# In-app + android cross-app suites; the manual login is excluded.
-maestro --platform android test "$ROOT/e2e/maestro/flows" \
-  --include-tags inapp,android \
-  --exclude-tags login,disposable
+INSTANCE_DOMAIN="${INSTANCE_DOMAIN:-alice.10-0-2-2.nip.io}" \
+  INSTANCE_PASSPHRASE="${INSTANCE_PASSPHRASE:-cozycozy}" \
+  STACK_CONTAINER="${STACK_CONTAINER:-$(docker ps -qf name=stack | head -1)}" \
+  "$ROOT/e2e/scripts/run-ci-android.sh" "$@"
