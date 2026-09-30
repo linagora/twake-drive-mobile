@@ -37,14 +37,18 @@ env:
     start: '50%, 35%'
     end: '50%, 75%'
 - waitForAnimationToEnd
+# screenrecord needs material and a moment to flush: a window this short came
+# back empty once, which reads as a broken check rather than a still screen.
 - startRecording: 17-empty-folder
 - repeat:
-    times: 12
+    times: 30
     commands:
       - assertVisible: 'Aucun fichier dans ce dossier'
       - assertNotVisible:
           id: 'loading-state'
+- waitForAnimationToEnd
 - stopRecording
+- waitForAnimationToEnd
 # cleanup: back out and delete the throwaway
 - tapOn:
     id: 'appbar-back-button'
