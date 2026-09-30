@@ -69,10 +69,14 @@ printf 'hello from the e2e stack\n' | curl -fsS -X POST \
 
 # A handful of documents replicate in a blink, and a replica that is already
 # settled hides everything a busy sync does to the screens. Seed enough that a
-# run always has one running: 12 folders of 25 files.
+# run always has one running: 12 folders of 25 files, under one root folder so
+# the flows still see what they create at the top of the drive.
 echo "Seeding a busy instance"
+BULK_ID="$(curl -fsS -X POST "http://localhost/files/$ROOT?Type=directory&Name=Charge" \
+  -H "Host: $DOMAIN" -H "Authorization: Bearer $TOKEN" |
+  sed -n 's/.*"id":"\([^"]*\)".*/\1/p' | head -1)"
 for d in $(seq 1 12); do
-  DIR_ID="$(curl -fsS -X POST "http://localhost/files/$ROOT?Type=directory&Name=Dossier-$d" \
+  DIR_ID="$(curl -fsS -X POST "http://localhost/files/$BULK_ID?Type=directory&Name=Dossier-$d" \
     -H "Host: $DOMAIN" -H "Authorization: Bearer $TOKEN" |
     sed -n 's/.*"id":"\([^"]*\)".*/\1/p' | head -1)"
   for f in $(seq 1 25); do
