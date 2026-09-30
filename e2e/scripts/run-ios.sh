@@ -23,11 +23,20 @@ if [ -n "${INSTANCE_URL:-}" ]; then
     -e INSTANCE_PASSPHRASE="${INSTANCE_PASSPHRASE:-cozycozy}"
 fi
 
+# The flows seed what they act on through the stack (e2e/maestro/scripts/seed.js).
+DOMAIN="${INSTANCE_URL:-http://127.0.0.1}"
+DOMAIN="${DOMAIN#*://}"
+STACK="${STACK_CONTAINER:-$(docker ps -qf name=stack | head -1)}"
+TOKEN="$(docker exec "$STACK" cozy-stack instances token-cli "$DOMAIN" io.cozy.files | tr -d '\r\n')"
+
 # On iOS, XCUITest exposes a row's menu button under three ids
 # (folder-actions:<name>, -container, -container-outer-layer); the bare id is
 # ambiguous, so target the outer layer. Android's resource-id is unique (suffix
 # stays empty). Flows read ${MENU_SUFFIX} for the folder-actions selector.
 maestro --platform ios test "$ROOT/e2e/maestro/flows" \
   --include-tags inapp \
-  --exclude-tags login,disposable \
-  -e MENU_SUFFIX=-container-outer-layer
+  --exclude-tags login,disposable,onlyoffice \
+  -e MENU_SUFFIX=-container-outer-layer \
+  -e STACK_URL=http://localhost \
+  -e STACK_HOST="$DOMAIN" \
+  -e STACK_TOKEN="$TOKEN"

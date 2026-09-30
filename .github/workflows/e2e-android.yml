@@ -12,9 +12,13 @@ on:
   workflow_dispatch:
     inputs:
       flows:
-        description: 'Maestro paths to run, space separated (the login flow first)'
+        description: 'Flows or directories to run, space separated (empty: all of them; sign-in is always run first)'
         required: false
-        default: 'e2e/maestro/flows/00-login-instance.yaml e2e/maestro/flows/00-set-language-fr.yaml e2e/maestro/flows/in-app/'
+        default: ''
+      seed:
+        description: 'Order seed to replay, from the summary of an earlier run'
+        required: false
+        default: ''
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -107,12 +111,8 @@ jobs:
 
       - name: Run the flows
         env:
-          # A pull request runs what the disposable instance can actually
-          # answer. The rest of the suite expects material only a real account
-          # has (a LINAGORA folder, sample.jpg, sample.docx, Notes), or leaves
-          # the app somewhere the next flow does not expect. A dispatch still
-          # runs everything, which is how that list gets shorter.
-          FLOWS: ${{ inputs.flows || 'e2e/maestro/flows/00-login-instance.yaml e2e/maestro/flows/00-set-language-fr.yaml e2e/maestro/flows/in-app/02-tabs.yaml e2e/maestro/flows/in-app/11-move.yaml e2e/maestro/flows/in-app/12-offline-toggle.yaml e2e/maestro/flows/in-app/18-shares-root-has-no-create.yaml' }}
+          FLOWS: ${{ inputs.flows }}
+          E2E_SEED: ${{ inputs.seed }}
         uses: ReactiveCircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
         with:
           api-level: 30
@@ -126,14 +126,9 @@ jobs:
           script: |
             adb install -r android/app/build/outputs/apk/release/app-release.apk
             adb shell pm clear com.linagora.twakedrive || true
-            # Unquoted on purpose: a dispatch passes several paths, and the
-            # session the login flow leaves behind only lives for this one
-            # emulator run, so the flows that need it come along with it.
             # shellcheck disable=SC2086
-            maestro test --env INSTANCE_URL="http://$INSTANCE_DOMAIN" --env INSTANCE_PASSPHRASE="$INSTANCE_PASSPHRASE" --format junit --output /tmp/maestro-report.xml $FLOWS
-            # The app is signed in by the flow above, so the tour can walk it and
-            # leave a screenshot at every stop. Captured, not compared: an
-            # Android baseline is committed once these are eyeballed.
+            STACK_CONTAINER="$(docker compose -f e2e/stack/docker-compose.yml ps -q stack)" ./e2e/scripts/run-ci-android.sh $FLOWS
+            # Captured, not compared: an Android baseline is committed once these are eyeballed.
             CAPTURE_ONLY=1 FLOWS=e2e/maestro/flows/01-visual-tour.yaml EXCLUDE_EXTRA=none ./e2e/scripts/run-visual.sh android || true
 
       # The flows that film a window where nothing is driven: anything moving in
@@ -143,13 +138,18 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y ffmpeg
 
       - name: Check the recordings held still
-        run: node e2e/scripts/check-recording.mjs --dir "$HOME/.maestro/tests"
+        run: |
+          if find "$HOME/.maestro/tests" -name '*.mp4' | grep -q .; then
+            node e2e/scripts/check-recording.mjs --dir "$HOME/.maestro/tests"
+          else
+            echo "No flow of this run films anything."
+          fi
 
       - name: Collect what the run left behind
         if: always()
         run: |
           mkdir -p /tmp/e2e-artifacts
-          cp /tmp/maestro-report.xml /tmp/e2e-artifacts/ 2>/dev/null || true
+          cp -r /tmp/maestro-reports /tmp/e2e-artifacts/ 2>/dev/null || true
           cp -r ~/.maestro/tests /tmp/e2e-artifacts/maestro-tests 2>/dev/null || true
           cp -r e2e/maestro/screenshots/current /tmp/e2e-artifacts/screenshots 2>/dev/null || true
           find "$HOME/.maestro/tests" -name '*.mp4' -exec cp {} /tmp/e2e-artifacts/ \; 2>/dev/null || true
