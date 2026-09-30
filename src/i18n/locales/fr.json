@@ -275,7 +275,15 @@
       "withMe": "Avec moi",
       "byMe": "Par moi",
       "drives": "Drives",
-      "driveFileSyncing": "Ce document est en cours de synchronisation, réessayez dans un instant"
+      "driveFileSyncing": "Ce document est en cours de synchronisation, réessayez dans un instant",
+      "leave": {
+        "action": "Quitter le drive partagé",
+        "confirmTitle": "Quitter ce drive partagé ?",
+        "confirmBody": "« {{name}} » ne sera plus accessible. Son propriétaire pourra vous le repartager.",
+        "confirm": "Quitter",
+        "success": "Vous avez quitté « {{name}} »",
+        "error": "Impossible de quitter ce drive partagé"
+      }
     },
     "emptySharedByMe": "Vous ne partagez aucun fichier",
     "viewer": {

@@ -257,7 +257,15 @@
       "withMe": "Với tôi",
       "byMe": "Bởi tôi",
       "drives": "Drive",
-      "driveFileSyncing": "Tài liệu này đang được đồng bộ, hãy thử lại sau giây lát"
+      "driveFileSyncing": "Tài liệu này đang được đồng bộ, hãy thử lại sau giây lát",
+      "leave": {
+        "action": "Rời drive được chia sẻ",
+        "confirmTitle": "Rời drive được chia sẻ này?",
+        "confirmBody": "“{{name}}” sẽ không còn truy cập được. Chủ sở hữu có thể chia sẻ lại cho bạn.",
+        "confirm": "Rời",
+        "success": "Bạn đã rời “{{name}}”",
+        "error": "Không thể rời drive được chia sẻ này"
+      }
     },
     "emptySharedByMe": "Bạn chưa chia sẻ tệp nào",
     "viewer": {

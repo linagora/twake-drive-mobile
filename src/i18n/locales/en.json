@@ -266,7 +266,15 @@
       "withMe": "With me",
       "byMe": "By me",
       "drives": "Drives",
-      "driveFileSyncing": "This document is still syncing, try again in a moment"
+      "driveFileSyncing": "This document is still syncing, try again in a moment",
+      "leave": {
+        "action": "Leave the shared drive",
+        "confirmTitle": "Leave this shared drive?",
+        "confirmBody": "“{{name}}” will no longer be accessible. Its owner can share it with you again.",
+        "confirm": "Leave",
+        "success": "You have left “{{name}}”",
+        "error": "Could not leave this shared drive"
+      }
     },
     "emptySharedByMe": "You are not sharing any file",
     "viewer": {

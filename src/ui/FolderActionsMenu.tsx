@@ -19,7 +19,13 @@ interface Props {
   onDelete?: (folder: FolderItem) => void
   onTogglePin?: (folder: FolderItem) => void
   onMove?: (folder: FolderItem) => void
+  /** Recipient side of a shared drive: the owner revokes from the share sheet,
+   *  a recipient leaves instead. Mirrors twake-drive web's leaveSharedDrive. */
+  onLeave?: (folder: FolderItem) => void
   onFavoriteChange?: () => void
+  /** A shared drive row stands for a sharing, not for a document of ours:
+   *  favouriting it would write on a doc the list does not really hold. */
+  canFavorite?: boolean
   /** Anchor testID, so a list row and a grid tile can be told apart in tests. */
   testID?: string
 }
@@ -36,7 +42,9 @@ export const FolderActionsMenu = ({
   onDelete,
   onTogglePin,
   onMove,
+  onLeave,
   onFavoriteChange,
+  canFavorite = true,
   testID
 }: Props): React.ReactElement => {
   const { t } = useTranslation()
@@ -133,33 +141,48 @@ export const FolderActionsMenu = ({
           }}
         />
       ) : null}
-      <Menu.Item
-        disabled={!isOnline}
-        leadingIcon={() => (
-          <CozyIcon
-            name={isFavorite(folder as Parameters<typeof isFavorite>[0]) ? 'star' : 'starOutline'}
-            size={24}
-            color={theme.colors.onSurface}
-          />
-        )}
-        title={t(
-          isFavorite(folder as Parameters<typeof isFavorite>[0])
-            ? 'drive.fileMeta.unfavorite'
-            : 'drive.fileMeta.favorite'
-        )}
-        testID="action-favorite"
-        onPress={() => {
-          setMenuVisible(false)
-          if (!client) return
-          const next = !isFavorite(folder as Parameters<typeof isFavorite>[0])
-          void toggleFavorite(client, folder as Parameters<typeof toggleFavorite>[1], next)
-            .then(() => {
-              triggerPouchReplication(client)
-              onFavoriteChange?.()
-            })
-            .catch(e => console.error('[FolderRow] toggleFavorite failed', e))
-        }}
-      />
+      {canFavorite ? (
+        <Menu.Item
+          disabled={!isOnline}
+          leadingIcon={() => (
+            <CozyIcon
+              name={isFavorite(folder as Parameters<typeof isFavorite>[0]) ? 'star' : 'starOutline'}
+              size={24}
+              color={theme.colors.onSurface}
+            />
+          )}
+          title={t(
+            isFavorite(folder as Parameters<typeof isFavorite>[0])
+              ? 'drive.fileMeta.unfavorite'
+              : 'drive.fileMeta.favorite'
+          )}
+          testID="action-favorite"
+          onPress={() => {
+            setMenuVisible(false)
+            if (!client) return
+            const next = !isFavorite(folder as Parameters<typeof isFavorite>[0])
+            void toggleFavorite(client, folder as Parameters<typeof toggleFavorite>[1], next)
+              .then(() => {
+                triggerPouchReplication(client)
+                onFavoriteChange?.()
+              })
+              .catch(e => console.error('[FolderRow] toggleFavorite failed', e))
+          }}
+        />
+      ) : null}
+      {onLeave ? (
+        <Menu.Item
+          leadingIcon={() => <CozyIcon name="logout" size={24} color={theme.colors.error} />}
+          title={t('drive.sharings.leave.action')}
+          titleStyle={{ color: theme.colors.error }}
+          testID="action-leave-drive"
+          disabled={!isOnline}
+          onPress={() => {
+            setMenuVisible(false)
+            onLeave(folder)
+          }}
+        />
+      ) : null}
     </Menu>
   )
 }
@@ -171,4 +194,5 @@ export const hasFolderActions = (props: Omit<Props, 'folder' | 'testID'>): boole
   !!props.onRestore ||
   !!props.onDelete ||
   (!!props.onTogglePin && isKeepOfflineEnabled()) ||
-  !!props.onMove
+  !!props.onMove ||
+  !!props.onLeave
