@@ -55,7 +55,7 @@ export const PinnedBadge = ({ entry, size = 12, testID }: Props): React.ReactEle
         : theme.colors.primary
   return (
     <View
-      testID={testID}
+      testID={testID ? `${testID}:${entry.state}` : undefined}
       accessible
       accessibilityRole="image"
       accessibilityLabel={t(labelForState(entry.state))}

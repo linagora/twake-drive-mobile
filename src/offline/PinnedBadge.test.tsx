@@ -35,23 +35,23 @@ describe('PinnedBadge', () => {
     const { queryByTestId } = wrap(
       <PinnedBadge entry={entry('downloaded')} testID="pinned-badge" />
     )
-    expect(queryByTestId('pinned-badge')).toBeNull()
+    expect(queryByTestId(/^pinned-badge:/)).toBeNull()
   })
 
   it('renders nothing when entry is undefined', () => {
     const { queryByTestId, root } = wrap(<PinnedBadge entry={undefined} testID="pinned-badge" />)
-    expect(queryByTestId('pinned-badge')).toBeNull()
+    expect(queryByTestId(/^pinned-badge:/)).toBeNull()
     expect(root).toBeDefined() // PaperProvider still mounted, but the badge itself is absent
   })
   it('renders for downloaded state', () => {
     const { queryByTestId } = wrap(
       <PinnedBadge entry={entry('downloaded')} testID="pinned-badge" />
     )
-    expect(queryByTestId('pinned-badge')).not.toBeNull()
+    expect(queryByTestId(/^pinned-badge:/)).not.toBeNull()
   })
   it('renders for failed state', () => {
     const { queryByTestId } = wrap(<PinnedBadge entry={entry('failed')} testID="pinned-badge" />)
-    expect(queryByTestId('pinned-badge')).not.toBeNull()
+    expect(queryByTestId(/^pinned-badge:/)).not.toBeNull()
   })
 
   // The badge carried no label, so "available offline" was never announced (#275).

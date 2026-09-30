@@ -52,6 +52,7 @@ function DriveTabs() {
           name="files"
           options={{
             title: t('drive.myDrive'),
+            tabBarButtonTestID: 'tab-files',
             tabBarIcon: ({ color, size }) => <CozyIcon name="cloud2" color={color} size={size} />
           }}
         />
@@ -59,6 +60,7 @@ function DriveTabs() {
           name="favorites"
           options={{
             title: t('drive.favorites'),
+            tabBarButtonTestID: 'tab-favorites',
             tabBarIcon: ({ color, size }) => <CozyIcon name="star" color={color} size={size} />
           }}
         />
@@ -66,6 +68,7 @@ function DriveTabs() {
           name="recent"
           options={{
             title: t('drive.recent'),
+            tabBarButtonTestID: 'tab-recent',
             tabBarIcon: ({ color, size }) => (
               <CozyIcon name="clockOutline" color={color} size={size} />
             )
@@ -75,6 +78,7 @@ function DriveTabs() {
           name="shared"
           options={{
             title: t('drive.shares'),
+            tabBarButtonTestID: 'tab-shared',
             tabBarIcon: ({ color, size }) => (
               <CozyIcon name="shareExternal" color={color} size={size} />
             )
@@ -84,6 +88,7 @@ function DriveTabs() {
           name="trash"
           options={{
             title: t('drive.trash'),
+            tabBarButtonTestID: 'tab-trash',
             tabBarIcon: ({ color, size }) => <CozyIcon name="trash" color={color} size={size} />
           }}
         />
