@@ -107,7 +107,12 @@ jobs:
 
       - name: Run the flows
         env:
-          FLOWS: ${{ inputs.flows || 'e2e/maestro/flows/00-login-instance.yaml e2e/maestro/flows/00-set-language-fr.yaml e2e/maestro/flows/in-app/' }}
+          # A pull request runs what the disposable instance can actually
+          # answer. The rest of the suite expects material only a real account
+          # has (a LINAGORA folder, sample.jpg, sample.docx, Notes), or leaves
+          # the app somewhere the next flow does not expect. A dispatch still
+          # runs everything, which is how that list gets shorter.
+          FLOWS: ${{ inputs.flows || 'e2e/maestro/flows/00-login-instance.yaml e2e/maestro/flows/00-set-language-fr.yaml e2e/maestro/flows/in-app/02-tabs.yaml e2e/maestro/flows/in-app/11-move.yaml e2e/maestro/flows/in-app/12-offline-toggle.yaml e2e/maestro/flows/in-app/18-shares-root-has-no-create.yaml' }}
         uses: ReactiveCircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
         with:
           api-level: 30
