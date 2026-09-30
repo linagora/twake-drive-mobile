@@ -24,6 +24,9 @@ import { darkTheme, lightTheme } from '@/ui/theme'
 import { darkNavigationTheme, lightNavigationTheme } from '@/ui/navigationTheme'
 import { withInterFonts } from '@/ui/fonts'
 import { attachRevocationListener } from '@/auth/revocationListener'
+import { adoptStoredToken } from '@/auth/adoptStoredToken'
+import { useKeepTokenInStep } from '@/auth/useKeepTokenInStep'
+import { triggerPouchReplication } from '@/pouchdb/triggerReplication'
 import { ErrorBoundary } from '@/ui/ErrorBoundary'
 import { AuthTransitionOverlay } from '@/ui/AuthTransitionOverlay'
 import { PiPSessionProvider } from '@/preview/PiPSession'
@@ -49,10 +52,23 @@ const InnerLayout = () => {
     Inter_700Bold
   })
 
+  useKeepTokenInStep(client)
+
   useEffect(() => {
     if (!client) return
     return attachRevocationListener(client, () => {
-      void logout({ expired: true })
+      // The extension refreshes on its own and stores what the stack rotated,
+      // so a token this client presented may simply have been spent. Read the
+      // keychain before ending the session over it.
+      void adoptStoredToken(client)
+        .then(adopted => {
+          if (adopted) {
+            triggerPouchReplication(client, undefined, { immediate: true })
+            return
+          }
+          void logout({ expired: true })
+        })
+        .catch(() => logout({ expired: true }))
     })
   }, [client, logout])
 
