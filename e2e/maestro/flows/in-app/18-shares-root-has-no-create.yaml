@@ -1,0 +1,23 @@
+appId: com.linagora.twakedrive
+tags:
+  - inapp
+---
+# NON-MUTATING. The root of the Partages tab lists sharings, not a directory,
+# so it must offer no create button. Guards the write-access gate from the
+# other side: the FAB now renders on the shares screens, and this is where it
+# must stay away.
+- runFlow: ../../subflows/openDrive.yaml
+- tapOn:
+    text: 'Partages.*'
+# the sub-tabs only exist at the root of the tab, so they are the marker that
+# the list settled before anything is asserted absent
+- extendedWaitUntil:
+    visible:
+      id: 'sharings-tab-with-me'
+    timeout: 15000
+- assertNotVisible:
+    id: 'drive-fab'
+- tapOn:
+    id: 'sharings-tab-by-me'
+- assertNotVisible:
+    id: 'drive-fab'
