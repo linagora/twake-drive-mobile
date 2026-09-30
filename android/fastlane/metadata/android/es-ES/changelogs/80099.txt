@@ -1,0 +1,4 @@
+• Los drives compartidos ahora tienen un menú de acciones: salir de un recurso compartido recibido o volver a abrir las opciones de uno que te pertenece.
+• También puedes salir de un drive compartido desde la fila de su carpeta.
+• Ahora puedes crear archivos y carpetas en una carpeta compartida contigo, incluida la raíz de un drive compartido.
+• La opción de idioma «Sistema» ahora da el mismo resultado en toda la aplicación.

@@ -1,0 +1,4 @@
+• Shared drives now carry an action menu: leave a share you received, or reopen the sharing options on one you own.
+• You can also leave a shared drive straight from its folder row.
+• You can now create files and folders in a folder shared with you, including at the root of a shared drive.
+• Choosing "System" for the language now gives the same result everywhere in the app.

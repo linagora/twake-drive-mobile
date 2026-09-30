@@ -1,0 +1,4 @@
+• I drive condivisi hanno ora un menu azioni: lasciare una condivisione ricevuta o riaprire le opzioni di condivisione di una tua condivisione.
+• Puoi anche lasciare un drive condiviso direttamente dalla riga della sua cartella.
+• Ora puoi creare file e cartelle in una cartella condivisa con te, anche nella radice di un drive condiviso.
+• L'opzione lingua «Sistema» dà ora lo stesso risultato in tutta l'app.

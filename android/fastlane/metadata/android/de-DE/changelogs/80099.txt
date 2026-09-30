@@ -1,0 +1,4 @@
+• Geteilte Drives haben jetzt ein Aktionsmenü: eine erhaltene Freigabe verlassen oder die Freigabeoptionen einer eigenen Freigabe erneut öffnen.
+• Sie können einen geteilten Drive auch direkt in seiner Ordnerzeile verlassen.
+• Sie können jetzt Dateien und Ordner in einem mit Ihnen geteilten Ordner anlegen, auch im Stammverzeichnis eines geteilten Drives.
+• Die Sprachoption „System“ liefert jetzt überall in der App dasselbe Ergebnis.
