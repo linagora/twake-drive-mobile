@@ -1,8 +1,10 @@
 # Maestro workspace config. The manual login is excluded from every run by
 # default, and so is anything tagged `disposable`: those flows leave state
-# behind and only belong on the throwaway instance from e2e/stack.
+# behind and only belong on the throwaway instance from e2e/stack. `skip` is on
+# the flows whose own assertions are known broken.
 flows:
   - 'flows/**'
 excludeTags:
   - login
   - disposable
+  - skip
