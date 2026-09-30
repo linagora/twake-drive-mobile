@@ -15,12 +15,24 @@ onFlowComplete:
       SEED: '[{"key":"folder","kind":"folder","prefix":"E2E-import"}]'
 - launchApp:
     stopApp: true
-- tapOn: 'Show roots|Afficher les racines'
-- tapOn: 'Downloads|Téléchargements'
+- tapOn:
+    id: 'com.android.documentsui:id/option_menu_search'
+- inputText: 'e2e-share'
+- pressKey: Enter
+- waitForAnimationToEnd
+- tapOn:
+    text: 'List view|Affichage en liste'
+    optional: true
 - extendedWaitUntil:
     visible: '${SHARED_IMAGE}'
-    timeout: 15000
-- longPressOn: '${SHARED_IMAGE}'
+    timeout: 20000
+# a long press starts a drag; a tap on the icon selects
+- tapOn:
+    id: 'com.android.documentsui:id/icon'
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible: 'Share|Partager'
+    timeout: 10000
 - tapOn: 'Share|Partager'
 - tapOn: 'Twake Drive'
 - extendedWaitUntil:

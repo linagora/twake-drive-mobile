@@ -62,12 +62,8 @@ onFlowComplete:
 - tapOn:
     id: 'drive-fab'
 - waitForAnimationToEnd
-# inside a drive the stack refuses a shortcut, and the Docs bridge writes on
-# our own instance, so neither is offered
-- assertNotVisible:
-    id: 'create-shortcut'
-- assertNotVisible:
-    id: 'create-docs'
+# a drive we own keeps its files on our instance, so the whole menu is
+# offered; the recipient side, where it is trimmed, needs a second instance
 - tapOn:
     id: 'create-folder'
 - tapOn:

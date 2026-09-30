@@ -37,3 +37,12 @@ onFlowComplete:
           id: 'loading-state'
 - waitForAnimationToEnd
 - stopRecording
+# screenrecord finalises the file after stopRecording: the flow must not end
+# on it, or the video comes back empty
+- waitForAnimationToEnd
+- tapOn:
+    id: 'appbar-back-button'
+- extendedWaitUntil:
+    visible:
+      id: 'folder-row:${output.folder.name}'
+    timeout: 15000

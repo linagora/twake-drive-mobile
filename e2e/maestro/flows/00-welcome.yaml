@@ -2,23 +2,13 @@ appId: com.linagora.twakedrive
 tags:
   - preauth
 ---
-# PRE-AUTH smoke (fresh install / logged out): the app boots correctly
-# and the login screen is reachable. Requires NO session.
-# Device-validated on iOS Simulator (iPhone 17 Pro) with the simulator-18 build.
-# Run BEFORE login:  maestro test e2e/maestro/flows --include-tags preauth
-#
-# Also serves as a non-regression guard for the bootstrap hang fix
-# (useAuth: fallback to 'unauthenticated' instead of staying on the spinner).
-# Selectors are testIDs (language-independent), not UI labels.
+# PRE-AUTH smoke (fresh install / logged out): the app boots on the welcome
+# screen and offers to sign in. Signing in goes through the system browser,
+# which is 00-login-instance's business, so this flow does not tap it.
 - launchApp
+- extendedWaitUntil:
+    visible:
+      id: 'welcome-login'
+    timeout: 60000
 - assertVisible:
-    id: 'welcome-login'
-- tapOn:
-    id: 'welcome-login'
-- assertVisible:
-    id: 'login-email-input'
-- tapOn:
-    id: 'login-email-input'
-- inputText: 'test@example.com'
-- assertVisible:
-    id: 'login-submit'
+    id: 'welcome-signup'

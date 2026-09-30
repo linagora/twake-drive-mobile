@@ -12,7 +12,7 @@ onFlowComplete:
 - runScript:
     file: ../../scripts/seed.js
     env:
-      SEED: '[{"key":"file","kind":"file","prefix":"E2E-dl","ext":"txt","content":"lu depuis la copie locale\n"}]'
+      SEED: '[{"key":"file","kind":"file","prefix":"E2E-dl","ext":"txt","content":"lu depuis la copie locale"}]'
 - runFlow: ../../subflows/openDrive.yaml
 - extendedWaitUntil:
     visible:
