@@ -71,7 +71,7 @@ export const FolderActionsMenu = ({
         <Menu.Item
           leadingIcon={() => <CozyIcon name="cloud2" size={24} color={theme.colors.onSurface} />}
           title={t(isPinned ? 'drive.offline.unpin' : 'drive.offline.pin')}
-          testID="action-pin"
+          testID={isPinned ? 'action-unpin' : 'action-pin'}
           disabled={!isPinned && !isOnline}
           onPress={() => {
             setMenuVisible(false)

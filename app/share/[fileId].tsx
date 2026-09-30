@@ -448,7 +448,9 @@ export default function ShareRoute() {
 
         {/* Recipients section */}
         <View style={styles.section}>
-          <Text variant="titleSmall">{t('drive.share.recipientsTitle')}</Text>
+          <Text variant="titleSmall" testID="share-recipients-title">
+            {t('drive.share.recipientsTitle')}
+          </Text>
           {recipientViews.length === 0 ? (
             <Text variant="bodySmall" style={styles.sectionHint}>
               —
@@ -580,7 +582,7 @@ export default function ShareRoute() {
         </View>
 
         <View style={styles.footer}>
-          <Button mode="outlined" onPress={close}>
+          <Button mode="outlined" onPress={close} testID="share-close">
             {t('common.close')}
           </Button>
         </View>

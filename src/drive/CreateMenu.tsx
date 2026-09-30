@@ -131,6 +131,7 @@ export const CreateMenu = ({
         : ICONS[name],
       label: t(LABELS[name]),
       accessibilityLabel: t(LABELS[name]),
+      testID: `create-${name}`,
       onPress: onPressFor(name)
     }
   })

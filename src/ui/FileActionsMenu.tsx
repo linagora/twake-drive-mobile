@@ -75,7 +75,7 @@ export const FileActionsMenu = ({
         <Menu.Item
           leadingIcon={() => <CozyIcon name="cloud2" size={24} color={theme.colors.onSurface} />}
           title={t(isDirectPin ? 'drive.offline.unpin' : 'drive.offline.pin')}
-          testID="action-pin"
+          testID={isDirectPin ? 'action-unpin' : 'action-pin'}
           disabled={!isDirectPin && !isOnline}
           onPress={() => {
             setMenuVisible(false)

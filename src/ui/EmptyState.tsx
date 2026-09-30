@@ -11,7 +11,7 @@ interface Props {
 export const EmptyState = ({ icon = 'fileTypeFolder', message }: Props) => {
   const theme = useTheme()
   return (
-    <View style={styles.container}>
+    <View style={styles.container} testID="empty-state">
       <CozyIcon name={icon} size={64} color={theme.colors.onSurfaceVariant} />
       <Text variant="bodyLarge" style={styles.message}>
         {message}

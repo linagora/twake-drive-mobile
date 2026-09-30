@@ -102,7 +102,7 @@ describe('FileGridItem', () => {
       parentFolderPins: []
     })
     render(wrap(<FileGridItem file={file} onPress={() => {}} />))
-    expect(screen.getByTestId('pinned-badge')).toBeOnTheScreen()
+    expect(screen.getByTestId(/^pinned-badge:/)).toBeOnTheScreen()
   })
 
   it('renders the offline badge when a folder is kept offline', () => {
@@ -116,12 +116,12 @@ describe('FileGridItem', () => {
       failed: 0
     })
     render(wrap(<FileGridItem file={folder} onPress={() => {}} />))
-    expect(screen.getByTestId('pinned-badge')).toBeOnTheScreen()
+    expect(screen.getByTestId(/^pinned-badge:/)).toBeOnTheScreen()
   })
 
   it('renders no offline badge when the item is not kept offline', () => {
     render(wrap(<FileGridItem file={file} onPress={() => {}} />))
-    expect(screen.queryByTestId('pinned-badge')).toBeNull()
+    expect(screen.queryByTestId(/^pinned-badge:/)).toBeNull()
   })
 })
 
