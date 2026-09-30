@@ -1,40 +1,32 @@
 appId: com.linagora.twakedrive
 tags:
   - inapp
-env:
-  FOLDER_NAME: 'E2E-smoke'
+onFlowComplete:
+  - runFlow: ../../subflows/cleanup.yaml
 ---
-# In-app SHARE — validates the share sheet OPENS for a folder. NON-MUTATING: it
-# only views the sheet then closes (no public link created, no recipient added).
-# The exact row's menu is opened via the per-folder `folder-actions:<name>`
-# testID — never a `rightOf` selector (that resolves to the wrong row).
+# The share sheet opens for a folder and closes without sharing anything.
+- runScript:
+    file: ../../scripts/seed.js
+    env:
+      SEED: '[{"key":"folder","kind":"folder","prefix":"E2E-sheet"}]'
 - runFlow: ../../subflows/openDrive.yaml
-# create a throwaway target
-- tapOn:
-    id: 'drive-fab'
-- tapOn: 'Nouveau dossier'
-- inputText: '${FOLDER_NAME}'
-- pressKey: Enter
 - extendedWaitUntil:
-    visible: '${FOLDER_NAME}'
-    timeout: 12000
-# open its menu -> Partager
+    visible:
+      id: 'folder-row:${output.folder.name}'
+    timeout: 60000
 - tapOn:
-    id: 'folder-actions:${FOLDER_NAME}'
-- tapOn: 'Partager'
-# assert the share screen rendered (folder name + link + recipients sections)
-- extendedWaitUntil:
-    visible: 'Lien public'
-    timeout: 10000
-- assertVisible: 'Ajouter un destinataire'
-- assertVisible: '${FOLDER_NAME}'
-# close without creating any share
-- tapOn: 'Fermer'
-# cleanup: delete the throwaway via selection (safe, exact target)
-- longPressOn:
-    text: '${FOLDER_NAME}'
-- tapOn:
-    id: 'selection-delete'
+    id: 'folder-actions:${output.folder.name}'
 - waitForAnimationToEnd
 - tapOn:
-    id: 'confirm-delete-submit'
+    id: 'action-share'
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible: 'Lien public'
+    timeout: 20000
+- assertVisible: 'Ajouter un destinataire'
+- assertVisible: '${output.folder.name}'
+- tapOn: 'Fermer'
+- extendedWaitUntil:
+    visible:
+      id: 'folder-row:${output.folder.name}'
+    timeout: 15000

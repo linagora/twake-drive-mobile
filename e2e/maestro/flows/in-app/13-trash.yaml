@@ -1,64 +1,48 @@
 appId: com.linagora.twakedrive
 tags:
   - inapp
-  - skip
-env:
-  FOLDER_NAME: 'Tqx'
+onFlowComplete:
+  - runFlow: ../../subflows/cleanup.yaml
 ---
-# ⚠️ Tagged `skip`. The assertions here name a folder the flow types, and
-# synthetic typing drops characters: `Tqx` lands as `Tx`, `Mqx` as `Mx`. The
-# rework is to act on material the stack seeds — the disposable instance
-# already creates a folder and a file — so nothing the flow asserts on has to
-# be typed.
-# fail every run.
-# Trash: a deleted folder leaves the drive, shows up in Corbeille, and comes
-# back where it was when it is restored.
-#
-# Throwaway name, short on purpose: synthetic typing drops characters, at
-# random positions (see 09-favorite-toggle). The folder ends in the trash; the
-# trash is never emptied here, that would reach beyond this flow's own material.
+# A deleted folder leaves the drive, shows in Corbeille, and is back in the
+# drive once restored.
+- runScript:
+    file: ../../scripts/seed.js
+    env:
+      SEED: '[{"key":"folder","kind":"folder","prefix":"E2E-trash"}]'
 - runFlow: ../../subflows/openDrive.yaml
-- tapOn:
-    id: 'drive-fab'
-- tapOn: 'Nouveau dossier'
-- inputText: '${FOLDER_NAME}'
-- pressKey: Enter
-- waitForAnimationToEnd:
-    timeout: 8000
 - extendedWaitUntil:
-    visible: '${FOLDER_NAME}.*'
-    timeout: 12000
+    visible:
+      id: 'folder-row:${output.folder.name}'
+    timeout: 60000
 - tapOn:
-    id: 'folder-actions:${FOLDER_NAME}'
-- tapOn: 'Supprimer'
+    id: 'folder-actions:${output.folder.name}'
+- waitForAnimationToEnd
+- tapOn:
+    id: 'action-delete'
 - waitForAnimationToEnd
 - tapOn:
     id: 'confirm-delete-submit'
 - extendedWaitUntil:
-    notVisible: '${FOLDER_NAME}'
+    notVisible:
+      id: 'folder-row:${output.folder.name}'
     timeout: 15000
 - tapOn:
-    id: 'tab-trash'
+    text: 'Corbeille.*'
 - extendedWaitUntil:
-    visible: '${FOLDER_NAME}.*'
-    timeout: 15000
+    visible: '${output.folder.name}'
+    timeout: 30000
 - tapOn:
-    id: 'folder-actions:${FOLDER_NAME}'
-- tapOn: 'Restaurer'
-- extendedWaitUntil:
-    notVisible: '${FOLDER_NAME}'
-    timeout: 15000
-- tapOn:
-    id: 'tab-files'
-- extendedWaitUntil:
-    visible: '${FOLDER_NAME}.*'
-    timeout: 15000
-- tapOn:
-    id: 'folder-actions:${FOLDER_NAME}'
-- tapOn: 'Supprimer'
+    id: 'folder-actions:${output.folder.name}'
 - waitForAnimationToEnd
 - tapOn:
-    id: 'confirm-delete-submit'
+    id: 'action-restore'
 - extendedWaitUntil:
-    notVisible: '${FOLDER_NAME}'
+    notVisible: '${output.folder.name}'
     timeout: 15000
+- tapOn:
+    text: 'Mon Drive.*'
+- extendedWaitUntil:
+    visible:
+      id: 'folder-row:${output.folder.name}'
+    timeout: 30000

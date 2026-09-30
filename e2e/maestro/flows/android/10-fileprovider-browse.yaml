@@ -1,18 +1,21 @@
-appId: com.google.android.apps.nbu.files
+appId: com.android.documentsui
 tags:
   - android
 env:
   PROVIDER_LABEL: 'Twake Drive'
-  EXPECT_FOLDER: 'LINAGORA'
+onFlowComplete:
+  - runFlow: ../../subflows/cleanup.yaml
 ---
-# Cross-app File Provider (SAF / DocumentsProvider). DEVICE-VALIDATED on Pixel via
-# « Files by Google »: Home → « Autre espace de stockage » → « Twake Drive »
-# → the REAL drive content is shown (folders listed cross-app).
-#
-# Prerequisite: Twake app LOGGED IN — the provider root appears ONLY if a
-# session is active (queryRoots returns 0 rows without creds, cf. native).
-# ${EXPECT_FOLDER} must be a real folder at the drive root.
-- launchApp
-- tapOn: 'Autre espace de stockage'
-- tapOn: '${PROVIDER_LABEL}'
-- assertVisible: '${EXPECT_FOLDER}'
+# The DocumentsProvider lists the drive in the system file picker. Its root
+# only shows while a session exists (queryRoots returns nothing without one).
+- runScript:
+    file: ../../scripts/seed.js
+    env:
+      SEED: '[{"key":"folder","kind":"folder","prefix":"E2E-saf"}]'
+- launchApp:
+    stopApp: true
+- tapOn: 'Show roots|Afficher les racines'
+- tapOn: '.*${PROVIDER_LABEL}.*'
+- extendedWaitUntil:
+    visible: '${output.folder.name}'
+    timeout: 30000

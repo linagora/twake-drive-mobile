@@ -1,6 +1,12 @@
 appId: com.linagora.twakedrive
 ---
-# Brings the app to the drive root, pre-auth session assumed active.
-# launchApp cold-restarts → lands on the Mon Drive tab by default.
-- launchApp
+# Cold-starts the app on the drive root, online, with the session the setup
+# flow left.
+- runFlow:
+    when:
+      platform: Android
+    commands:
+      - setAirplaneMode: disabled
+- launchApp:
+    stopApp: true
 - runFlow: assertLoggedIn.yaml

@@ -4,40 +4,26 @@ tags:
   - disposable
 env:
   RECIPIENT: 'e2e-recipient@example.org'
-  MENU_SUFFIX: ''
+  INSIDE: 'Dedans'
+onFlowComplete:
+  - runFlow: ../../subflows/cleanup.yaml
 ---
-# The #391 regression: a folder opened from the Partages tab offered no way to
-# create anything, because only FilesScreen ever rendered a FAB.
+# #391: a folder opened from Partages offers to create inside it.
 #
-# ⚠️ TAGGED `disposable`, EXCLUDED FROM THE DEFAULT RUN (see config.yaml). It
-# LEAVES A SHARED FOLDER BEHIND: once the folder becomes a drive, no row in the
-# Partages list carries an action menu, so the share cannot be revoked through
-# the UI and the folder cannot be deleted. Run it against the throwaway
-# instance from e2e/stack, never against a real drive.
-#
-# Sharing by email on an instance with drive.federated-shared-folder.enabled
-# turns the folder into a shared drive we own, which leaves Mon Drive
-# (withoutSharedDriveRoots) and shows up under Partages > Par moi. Opening it
-# lands on SharedDriveScreen, where every create is scoped to
-# /sharings/drives/<id>.
-#
-# Names are written into the `id:` selectors, and carry no hyphen: iOS
-# inputText eats a '-' (same reason as 09 and 12). MENU_SUFFIX is
-# -container-outer-layer on iOS, where the bare folder-actions id is ambiguous;
-# run-ios.sh passes it.
+# Tagged `disposable`: once shared by email the folder is a shared drive, and
+# nothing in the UI revokes it, so it only runs on the throwaway instance.
+- runScript:
+    file: ../../scripts/seed.js
+    env:
+      SEED: '[{"key":"folder","kind":"folder","prefix":"E2E-drive"}]'
 - runFlow: ../../subflows/openDrive.yaml
-# a throwaway folder to turn into a drive
-- tapOn:
-    id: 'drive-fab'
-- tapOn: 'Nouveau dossier'
-- inputText: 'E2Eshareddrive'
-- pressKey: Enter
 - extendedWaitUntil:
-    visible: 'E2Eshareddrive'
-    timeout: 12000
-# share it by email — same steps as 16-share-recipient, minus the revoke
+    visible:
+      id: 'folder-row:${output.folder.name}'
+    timeout: 60000
 - tapOn:
-    id: 'folder-actions:E2Eshareddrive${MENU_SUFFIX}'
+    id: "folder-actions:${output.folder.name}${MENU_SUFFIX || ''}"
+- waitForAnimationToEnd
 - tapOn:
     id: 'action-share'
 - waitForAnimationToEnd
@@ -49,8 +35,6 @@ env:
 - tapOn:
     id: 'share-email-input'
 - inputText: '${RECIPIENT}'
-# tapping outside the field dismisses the keyboard, which would otherwise sit
-# over the send button
 - tapOn: 'Destinataires'
 - tapOn:
     id: 'share-send'
@@ -59,17 +43,15 @@ env:
       id: 'recipient-row'
     timeout: 25000
 - tapOn: 'Fermer'
-# it is a drive now: find it under Par moi
 - tapOn:
     text: 'Partages.*'
 - tapOn:
     id: 'sharings-tab-by-me'
 - extendedWaitUntil:
-    visible: 'E2Eshareddrive'
-    timeout: 25000
-- tapOn: 'E2Eshareddrive'
+    visible: '${output.folder.name}'
+    timeout: 30000
+- tapOn: '${output.folder.name}'
 - waitForAnimationToEnd
-# the regression guard: this screen used to render no FAB at all
 - extendedWaitUntil:
     visible:
       id: 'drive-fab'
@@ -77,15 +59,13 @@ env:
 - tapOn:
     id: 'drive-fab'
 - waitForAnimationToEnd
-# inside a drive the stack refuses a shortcut create, and the Docs bridge
-# writes on our own instance, so neither entry is offered
+# inside a drive the stack refuses a shortcut, and the Docs bridge writes on
+# our own instance, so neither is offered
 - assertNotVisible: 'Raccourci'
 - assertNotVisible: 'Nouveau document Docs'
 - tapOn: 'Nouveau dossier'
-- inputText: 'E2Einsidedrive'
+- inputText: '${INSIDE}'
 - pressKey: Enter
-# the create goes to /sharings/drives/<id>, and the screen reloads its own
-# listing rather than reading the store
 - extendedWaitUntil:
-    visible: 'E2Einsidedrive'
+    visible: '${INSIDE}'
     timeout: 25000

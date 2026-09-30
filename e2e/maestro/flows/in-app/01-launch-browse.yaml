@@ -1,18 +1,27 @@
 appId: com.linagora.twakedrive
 tags:
   - inapp
-env:
-  TEST_FOLDER: 'Documents'
+onFlowComplete:
+  - runFlow: ../../subflows/cleanup.yaml
 ---
-# Cross-platform. On iOS the folder has the accessibility "<name>, <localized
-# actions label>" (e.g. "Actions du dossier" in FR) → the regex '${TEST_FOLDER}.*'
-# matches iOS AND Android because it only anchors on the name, never on that label
-# (now localized: NEVER select it by text — the actions button is targeted by
-# testID id: 'folder-actions'). Back via the testID appbar-back-button (iOS has
-# no hardware back button).
+# Opens a folder, sees what it holds, and comes back to the root.
+- runScript:
+    file: ../../scripts/seed.js
+    env:
+      SEED: '[{"key":"folder","kind":"folder","prefix":"E2E-browse"},{"key":"file","kind":"file","prefix":"E2E-inside","ext":"txt","parent":"folder"}]'
 - runFlow: ../../subflows/openDrive.yaml
+- extendedWaitUntil:
+    visible:
+      id: 'folder-row:${output.folder.name}'
+    timeout: 60000
 - tapOn:
-    text: '${TEST_FOLDER}.*'
+    id: 'folder-row:${output.folder.name}'
+- extendedWaitUntil:
+    visible: '${output.file.name}'
+    timeout: 30000
 - tapOn:
     id: 'appbar-back-button'
-- runFlow: ../../subflows/assertLoggedIn.yaml
+- extendedWaitUntil:
+    visible:
+      id: 'folder-row:${output.folder.name}'
+    timeout: 15000

@@ -1,44 +1,31 @@
 appId: com.linagora.twakedrive
 tags:
   - inapp
-env:
-  FOLDER_NAME: 'E2E-empty'
+onFlowComplete:
+  - runFlow: ../../subflows/cleanup.yaml
 ---
-# An empty folder keeps its empty state while the list refetches.
-#
-# With nothing to list, the empty state is the only thing on screen, so a
-# refetch that swaps it for the loading state makes the icon and the text
-# blink. A sync landing changes does that on its own; a pull to refresh is the
-# same refetch, asked for by hand.
-#
-# Assertions alone do not catch it: against a warm replica the swap is shorter
-# than the time Maestro takes to look, and this flow passed on a build with the
-# bug put back. Hence the recording, which is checked frame by frame.
+# An empty folder keeps its empty state while the list refetches. The swap to
+# the loading state is shorter than an assertion can see, so the window is
+# filmed and e2e/scripts/check-recording.mjs checks it frame by frame.
+- runScript:
+    file: ../../scripts/seed.js
+    env:
+      SEED: '[{"key":"folder","kind":"folder","prefix":"E2E-empty"}]'
 - runFlow: ../../subflows/openDrive.yaml
-- tapOn:
-    id: 'drive-fab'
-- tapOn: 'Nouveau dossier'
-- waitForAnimationToEnd
-- inputText: '${FOLDER_NAME}'
-- pressKey: Enter
 - extendedWaitUntil:
-    visible: '${FOLDER_NAME}'
-    timeout: 12000
-- tapOn: '${FOLDER_NAME}'
+    visible:
+      id: 'folder-row:${output.folder.name}'
+    timeout: 60000
+- tapOn:
+    id: 'folder-row:${output.folder.name}'
 - waitForAnimationToEnd
 - extendedWaitUntil:
     visible: 'Aucun fichier dans ce dossier'
-    timeout: 12000
-# pull to refresh, then hold still and film it: a list that swaps its empty
-# state for the loading state and back leaves nothing for an assertion to
-# catch, but every frame of it is in the recording.
-# e2e/scripts/check-recording.mjs fails the run when this window is not still.
+    timeout: 15000
 - swipe:
     start: '50%, 35%'
     end: '50%, 75%'
 - waitForAnimationToEnd
-# screenrecord needs material and a moment to flush: a window this short came
-# back empty once, which reads as a broken check rather than a still screen.
 - startRecording: 17-empty-folder
 - repeat:
     times: 30
@@ -48,19 +35,3 @@ env:
           id: 'loading-state'
 - waitForAnimationToEnd
 - stopRecording
-- waitForAnimationToEnd
-# cleanup: back out and delete the throwaway
-- tapOn:
-    id: 'appbar-back-button'
-- extendedWaitUntil:
-    visible: '${FOLDER_NAME}'
-    timeout: 12000
-- tapOn:
-    id: 'folder-actions:${FOLDER_NAME}'
-- tapOn: 'Supprimer'
-- waitForAnimationToEnd
-- tapOn:
-    id: 'confirm-delete-submit'
-- extendedWaitUntil:
-    notVisible: '${FOLDER_NAME}'
-    timeout: 15000
