@@ -9,6 +9,12 @@ jest.mock('@sentry/react-native', () => ({
   captureException: (...args: unknown[]) => mockCaptureException(...args)
 }))
 
+const mockCaptureConsole = jest.fn((options: unknown) => ({ name: 'CaptureConsole', options }))
+
+jest.mock('@sentry/core', () => ({
+  captureConsoleIntegration: (options: unknown) => mockCaptureConsole(options)
+}))
+
 jest.mock('react-native-mmkv', () => {
   const store = new Map<string, string>()
   return {
@@ -88,6 +94,18 @@ describe('initCrashReporting', () => {
     expect(options.dist).toBe('42')
     expect(options.environment).toBe('production')
   })
+
+  it('reports console errors', () => {
+    initCrashReporting()
+    setCrashReportsEnabled(true)
+
+    const options = mockInit.mock.calls[0][0] as { integrations: unknown[] }
+    expect(mockCaptureConsole).toHaveBeenCalledWith({ levels: ['error'] })
+    expect(options.integrations).toContainEqual({
+      name: 'CaptureConsole',
+      options: { levels: ['error'] }
+    })
+  })
 })
 
 describe('scrubUrl', () => {
@@ -138,6 +156,28 @@ describe('beforeSend', () => {
     )
     expect(event.user).toBeUndefined()
     expect(event.server_name).toBeUndefined()
+  })
+
+  it('hides a local file path', () => {
+    setCrashReportsEnabled(true)
+
+    const event = beforeSend({
+      message: 'Could not copy file:///var/mobile/Documents/rapport%20annuel.docx'
+    } as never) as unknown as { message: string }
+
+    expect(event.message).toBe('Could not copy [local file]')
+  })
+
+  it('scrubs an address inside a console message', () => {
+    setCrashReportsEnabled(true)
+
+    const event = beforeSend({
+      message: 'Fetch failed: https://alice.twake.app/files/abc?code=zzz (500)'
+    } as never) as unknown as { message: string }
+
+    expect(event.message).toBe(
+      'Fetch failed: https://[instance]/files/abc?code=%5Bredacted%5D (500)'
+    )
   })
 })
 
