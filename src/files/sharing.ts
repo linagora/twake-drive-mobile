@@ -24,6 +24,9 @@ export interface SharingRule {
   values?: string[]
   doctype?: string
   title?: string
+  add?: string
+  update?: string
+  remove?: string
 }
 
 export interface SharingMember {
@@ -42,6 +45,7 @@ export interface SharingDoc {
     members?: SharingMember[]
     active?: boolean
     owner?: boolean
+    drive?: boolean
     description?: string
     created_at?: string
     updated_at?: string
@@ -50,6 +54,7 @@ export interface SharingDoc {
   rules?: SharingRule[]
   members?: SharingMember[]
   owner?: boolean
+  drive?: boolean
   created_at?: string
   updated_at?: string
 }
