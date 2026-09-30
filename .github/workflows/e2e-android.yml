@@ -9,7 +9,7 @@ on:
       flows:
         description: 'Maestro paths to run, space separated (the login flow first)'
         required: false
-        default: 'e2e/maestro/flows/00-login-instance.yaml e2e/maestro/flows/in-app/'
+        default: 'e2e/maestro/flows/00-login-instance.yaml e2e/maestro/flows/00-set-language-fr.yaml e2e/maestro/flows/in-app/'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -86,7 +86,7 @@ jobs:
 
       - name: Run the flows
         env:
-          FLOWS: ${{ inputs.flows || 'e2e/maestro/flows/00-login-instance.yaml e2e/maestro/flows/in-app/' }}
+          FLOWS: ${{ inputs.flows || 'e2e/maestro/flows/00-login-instance.yaml e2e/maestro/flows/00-set-language-fr.yaml e2e/maestro/flows/in-app/' }}
         uses: ReactiveCircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
         with:
           api-level: 30
@@ -96,9 +96,7 @@ jobs:
           cores: 4
           ram-size: 4096M
           disable-animations: true
-          # French device: the flows select on the app's French labels, and the
-          # app follows the device before anything else.
-          emulator-options: -no-snapshot -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -prop persist.sys.locale=fr-FR -prop persist.sys.language=fr -prop persist.sys.country=FR
+          emulator-options: -no-snapshot -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           script: |
             adb install -r android/app/build/outputs/apk/release/app-release.apk
             adb shell pm clear com.linagora.twakedrive || true
