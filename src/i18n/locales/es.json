@@ -30,7 +30,8 @@
     "crashReportsDescription": "Envía los detalles técnicos de un fallo para poder corregirlo. Ningún nombre de archivo, ningún nombre de carpeta, ninguna dirección de tu servidor.",
     "logoutTitle": "¿Cerrar sesión?",
     "logoutMessage": "Los archivos guardados sin conexión y los documentos que ha abierto permanecen en este dispositivo. Bórrelos si no es suyo.",
-    "logoutAndErase": "Cerrar sesión y borrar"
+    "logoutAndErase": "Cerrar sesión y borrar",
+    "termsOfService": "Condiciones generales de uso"
   },
   "auth": {
     "welcomeTitle": "Bienvenido a Twake Drive",

@@ -30,7 +30,8 @@
     "crashReportsDescription": "Sends the technical details of a crash so it can be fixed. No file name, no folder name, no address of your server.",
     "logoutTitle": "Log out?",
     "logoutMessage": "The files kept offline and the documents you have opened stay on this device. Erase them if it is not yours to keep.",
-    "logoutAndErase": "Log out and erase"
+    "logoutAndErase": "Log out and erase",
+    "termsOfService": "Terms of service"
   },
   "auth": {
     "welcomeTitle": "Welcome to Twake Drive",

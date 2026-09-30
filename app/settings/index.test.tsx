@@ -60,6 +60,11 @@ jest.mock('@/account/useLegalNotice', () => ({
   useLegalNoticeUrl: () => mockLegalNoticeUrl
 }))
 
+let mockTosUrl = 'https://twake.app/en/terms-of-use/'
+jest.mock('@/account/useTos', () => ({
+  useTosUrl: () => mockTosUrl
+}))
+
 const mockOpenBrowser = jest.fn()
 jest.mock('expo-web-browser', () => ({
   openBrowserAsync: (...args: unknown[]) => mockOpenBrowser(...args)
@@ -85,6 +90,7 @@ describe('SettingsIndex', () => {
   beforeEach(() => {
     mockUser = { initials: 'MM', loading: false }
     mockLegalNoticeUrl = undefined
+    mockTosUrl = 'https://twake.app/en/terms-of-use/'
     mockLogout.mockReset()
     mockOpenBrowser.mockReset()
     mockDeleteAccount.mockReset()
@@ -167,6 +173,21 @@ describe('SettingsIndex', () => {
       fireEvent.press(getByTestId('settings-delete-account'))
       fireEvent.press(getByTestId('delete-account-dialog-cancel'))
       expect(mockDeleteAccount).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('terms of service', () => {
+    it('opens the address the hook builds, in the in-app browser', () => {
+      mockTosUrl = 'https://files.cozycloud.cc/TOS-20240101.pdf'
+      const { getByTestId } = renderScreen()
+      fireEvent.press(getByTestId('settings-tos'))
+      expect(mockOpenBrowser).toHaveBeenCalledWith('https://files.cozycloud.cc/TOS-20240101.pdf')
+    })
+
+    it('shows the row even when the instance pins no revision', () => {
+      const { getByTestId } = renderScreen()
+      fireEvent.press(getByTestId('settings-tos'))
+      expect(mockOpenBrowser).toHaveBeenCalledWith('https://twake.app/en/terms-of-use/')
     })
   })
 

@@ -30,7 +30,8 @@
     "crashReportsDescription": "Envoie les détails techniques d'un plantage pour qu'il soit corrigé. Aucun nom de fichier, aucun nom de dossier, aucune adresse de votre serveur.",
     "logoutTitle": "Se déconnecter ?",
     "logoutMessage": "Les fichiers gardés hors ligne et les documents que vous avez ouverts restent sur cet appareil. Effacez-les s'il ne vous appartient pas.",
-    "logoutAndErase": "Se déconnecter et effacer"
+    "logoutAndErase": "Se déconnecter et effacer",
+    "termsOfService": "Conditions générales d'utilisation"
   },
   "auth": {
     "welcomeTitle": "Bienvenue sur Twake Drive",

@@ -16,6 +16,7 @@ import { useCurrentUser } from '@/account/useCurrentUser'
 import { useDeleteAccount } from '@/account/useDeleteAccount'
 import { setCrashReportsEnabled, useCrashReportsEnabled } from '@/monitoring/crashReportsPreference'
 import { useLegalNoticeUrl } from '@/account/useLegalNotice'
+import { useTosUrl } from '@/account/useTos'
 import { getLocalePreference, LOCALE_SYSTEM } from '@/preferences/localePreference'
 import { localeDisplayName } from '@/i18n/localeNames'
 import { useThemePreference, ThemePref } from '@/preferences/themePreference'
@@ -31,6 +32,7 @@ export default function SettingsIndex(): React.ReactElement {
   const deleteAccount = useDeleteAccount()
   const crashReports = useCrashReportsEnabled()
   const legalNoticeUrl = useLegalNoticeUrl()
+  const tosUrl = useTosUrl()
   const [deleteAccountAsked, setDeleteAccountAsked] = React.useState(false)
   const [logoutAsked, setLogoutAsked] = React.useState(false)
   const localePref = getLocalePreference()
@@ -114,6 +116,13 @@ export default function SettingsIndex(): React.ReactElement {
               onPress={() => void WebBrowser.openBrowserAsync(legalNoticeUrl)}
             />
           ) : null}
+          <SettingsRow
+            testID="settings-tos"
+            title={t('settings.termsOfService')}
+            icon="info"
+            trailing="chevron"
+            onPress={() => void WebBrowser.openBrowserAsync(tosUrl)}
+          />
           <SettingsRow
             testID="settings-logout"
             title={t('common.logout')}
