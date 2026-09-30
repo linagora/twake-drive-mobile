@@ -39,6 +39,9 @@ export interface FileSharingStatus {
 interface ContextValue {
   loaded: boolean
   byId: Map<string, FileSharingEntry>
+  /** Raw sharings, kept because write access on a shared drive is looked up
+   *  by sharing id rather than by file id. */
+  sharings: SharingDoc[]
   /**
    * Trigger a re-fetch and return a promise that resolves once the provider
    * has applied the fresh data. Callers can await this to keep their
@@ -51,6 +54,7 @@ interface ContextValue {
 export const SharingContext = createContext<ContextValue>({
   loaded: false,
   byId: new Map(),
+  sharings: [],
   refresh: () => Promise.resolve()
 })
 
@@ -145,6 +149,7 @@ interface PermissionsCollectionApi {
 export const SharingProvider = ({ children }: { children: React.ReactNode }) => {
   const client = useClient()
   const [byId, setById] = useState<Map<string, FileSharingEntry>>(new Map())
+  const [sharings, setSharings] = useState<SharingDoc[]>([])
   const [loaded, setLoaded] = useState(false)
   const [refreshTick, setRefreshTick] = useState(0)
   // Pending awaiters for the in-flight (or next) refresh. We resolve all of
@@ -170,6 +175,7 @@ export const SharingProvider = ({ children }: { children: React.ReactNode }) => 
 
         const map = buildByIdMap(sharingsResp.data ?? [], permsResp.data ?? [])
         setById(map)
+        setSharings(sharingsResp.data ?? [])
         setLoaded(true)
       } catch (e) {
         console.error('[SharingProvider] load failed', e)
@@ -197,7 +203,10 @@ export const SharingProvider = ({ children }: { children: React.ReactNode }) => 
     return promise
   }, [])
 
-  const value = useMemo<ContextValue>(() => ({ loaded, byId, refresh }), [loaded, byId, refresh])
+  const value = useMemo<ContextValue>(
+    () => ({ loaded, byId, sharings, refresh }),
+    [loaded, byId, sharings, refresh]
+  )
 
   return <SharingContext.Provider value={value}>{children}</SharingContext.Provider>
 }
