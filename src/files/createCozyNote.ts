@@ -1,5 +1,6 @@
 import type CozyClient from 'cozy-client'
 
+import { driveScope } from '@/files/driveScope'
 import { triggerPouchReplication } from '@/pouchdb/triggerReplication'
 
 export interface CreatedNote {
@@ -22,8 +23,15 @@ interface NotesCollection {
  * create a new `io.cozy.notes` document inside `dirId`. The stack is the
  * one that fills in defaults (title, schema...). Returns the new note id.
  */
-export const createCozyNote = async (client: CozyClient, dirId: string): Promise<CreatedNote> => {
-  const collection = client.collection('io.cozy.notes') as unknown as NotesCollection
+export const createCozyNote = async (
+  client: CozyClient,
+  dirId: string,
+  driveId?: string
+): Promise<CreatedNote> => {
+  const collection = client.collection(
+    'io.cozy.notes',
+    driveScope(driveId)
+  ) as unknown as NotesCollection
   const result = await collection.create({ dir_id: dirId })
   triggerPouchReplication(client, 'io.cozy.files')
   triggerPouchReplication(client, 'io.cozy.notes')

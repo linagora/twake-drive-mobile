@@ -1,5 +1,6 @@
 import type CozyClient from 'cozy-client'
 
+import { driveScope } from '@/files/driveScope'
 import { triggerPouchReplication } from '@/pouchdb/triggerReplication'
 
 export interface CreatedDrawing {
@@ -38,11 +39,15 @@ export const buildDrawingName = (rawName: string): string => {
 export const createExcalidrawFile = async (
   client: CozyClient,
   name: string,
-  dirId: string
+  dirId: string,
+  driveId?: string
 ): Promise<CreatedDrawing> => {
   const finalName = buildDrawingName(name)
   const bytes = new TextEncoder().encode(emptyScene())
-  const collection = client.collection('io.cozy.files') as unknown as FilesCollection
+  const collection = client.collection(
+    'io.cozy.files',
+    driveScope(driveId)
+  ) as unknown as FilesCollection
   const result = await collection.createFile(bytes.buffer as ArrayBuffer, {
     name: finalName,
     dirId,

@@ -46,3 +46,13 @@ describe('createExcalidrawFile', () => {
     )
   })
 })
+
+describe('createExcalidrawFile in a shared drive', () => {
+  it('scopes the files collection to the drive', async () => {
+    const createFile = jest.fn().mockResolvedValue({ data: { _id: 'd1' } })
+    const collection = jest.fn().mockReturnValue({ createFile })
+    const client = { collection } as unknown as CozyClient
+    await createExcalidrawFile(client, 'Sketch', 'parent-id', 'drive-1')
+    expect(collection).toHaveBeenCalledWith('io.cozy.files', { driveId: 'drive-1' })
+  })
+})

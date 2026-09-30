@@ -106,3 +106,13 @@ describe('createOfficeFile', () => {
     expect(triggerPouchReplication).not.toHaveBeenCalled()
   })
 })
+
+describe('createOfficeFile in a shared drive', () => {
+  it('scopes the files collection to the drive', async () => {
+    const createFile = jest.fn().mockResolvedValue({ data: { _id: 'o1' } })
+    const collection = jest.fn().mockReturnValue({ createFile })
+    const client = { collection } as unknown as import('cozy-client').default
+    await createOfficeFile(client, 'text', 'Report', 'parent-id', 'drive-1')
+    expect(collection).toHaveBeenCalledWith('io.cozy.files', { driveId: 'drive-1' })
+  })
+})
