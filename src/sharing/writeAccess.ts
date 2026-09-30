@@ -89,12 +89,7 @@ export const hasWriteAccess = (
 ): boolean => {
   if (driveId) {
     const drive = state.sharings.find(sharing => sharing._id === driveId)
-    if (sharedDriveSharingType(drive, instanceUri) !== TWO_WAY) return false
-    // Inside a drive only its root folder carries a sharing of its own, and
-    // the web withholds write actions there from a recipient
-    // (`hasWriteAccessExceptSharedDriveRootFolder` in its Toolbar).
-    const rootEntry = state.byId.get(docId)
-    return !(rootEntry?.sharing && !rootEntry.isOwner)
+    return sharedDriveSharingType(drive, instanceUri) === TWO_WAY
   }
 
   const entry = state.byId.get(docId)
