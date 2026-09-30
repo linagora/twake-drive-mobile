@@ -52,7 +52,9 @@ onFlowComplete:
 - assertVisible:
     id: 'action-move'
     enabled: false
-- pressKey: back
+# a tap beside the menu closes it; back would leave the app
+- tapOn:
+    id: 'offline-banner'
 - waitForAnimationToEnd
 
 - tapOn:
