@@ -113,6 +113,9 @@ jobs:
       # The flows that film a window where nothing is driven: anything moving in
       # one of those is the app changing its mind on its own, which no assertion
       # is fast enough to catch.
+      - name: Install ffmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
       - name: Check the recordings held still
         run: node e2e/scripts/check-recording.mjs --dir "$HOME/.maestro/tests"
 
