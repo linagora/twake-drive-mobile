@@ -12,7 +12,7 @@ import CozyClient from 'cozy-client'
 import { certifyFlagship as certifyFlagshipModule } from './certifyFlagship'
 import { createClient } from '@/client/createClient'
 import i18n, { resolveDeviceLanguage } from '@/i18n'
-import { mirrorSessionToNative } from '@/native/twakeAuthBridge'
+import { clearNativeSession, mirrorSessionToNative } from '@/native/twakeAuthBridge'
 import { destroyLocalData } from '@/pouchdb/destroyLocalData'
 import { setAccountScope } from '@/storage/accountScope'
 import { clearSession, getSession, saveSession } from './tokenStorage'
@@ -78,6 +78,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         await clearSessionLeftByAPreviousInstall()
         const session = await getSession()
         if (!session) {
+          await clearNativeSession()
           setState({ status: 'unauthenticated', client: null })
           return
         }

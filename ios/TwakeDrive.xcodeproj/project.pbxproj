@@ -43,6 +43,8 @@
 		D9667730EDA746E78E76BD72 /* CozyFile.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE5D1D5E6C1B4D8EAF119CA8 /* CozyFile.swift */; };
 		E3C5870010564AECBF5A6F2C /* CozyFilesApi.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45C4845487E245F780E1F34C /* CozyFilesApi.swift */; };
 		F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F11748412D0307B40044C1D9 /* AppDelegate.swift */; };
+		BE5372F74AA6E18DD0297D35 /* TwakeFileProviderDomain.m in Sources */ = {isa = PBXBuildFile; fileRef = E8E1C0A6DBDF6778F367D912 /* TwakeFileProviderDomain.m */; };
+		2F79BF57B06EEB2795C159A9 /* TwakeFileProviderDomain.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F2ED475A1A85B1873A97064 /* TwakeFileProviderDomain.swift */; };
 		F1E1BF243138470285BA718F /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDE3437028BA4902966362A6 /* ShareViewController.swift */; };
 		F98382C3F29B4FAEABBDE66D /* ItemMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4643DCA0AA95481784AD3902 /* ItemMapper.swift */; };
 /* End PBXBuildFile section */
@@ -126,6 +128,8 @@
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 		EE5D1D5E6C1B4D8EAF119CA8 /* CozyFile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CozyFile.swift; sourceTree = "<group>"; };
 		F11748412D0307B40044C1D9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = TwakeDrive/AppDelegate.swift; sourceTree = "<group>"; };
+		E8E1C0A6DBDF6778F367D912 /* TwakeFileProviderDomain.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; name = TwakeFileProviderDomain.m; path = TwakeDrive/TwakeFileProviderDomain.m; sourceTree = "<group>"; };
+		9F2ED475A1A85B1873A97064 /* TwakeFileProviderDomain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = TwakeFileProviderDomain.swift; path = TwakeDrive/TwakeFileProviderDomain.swift; sourceTree = "<group>"; };
 		F11748442D0722820044C1D9 /* TwakeDrive-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "TwakeDrive-Bridging-Header.h"; path = "TwakeDrive/TwakeDrive-Bridging-Header.h"; sourceTree = "<group>"; };
 		FAF70364A958432A838C4A87 /* SmokeTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmokeTest.swift; sourceTree = "<group>"; };
 		FCA38D6E763341A0BE4A1F91 /* TwakeDriveFileProviderExt.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; name = TwakeDriveFileProviderExt.appex; path = TwakeDriveFileProviderExt.appex; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -178,6 +182,8 @@
 			isa = PBXGroup;
 			children = (
 				F11748412D0307B40044C1D9 /* AppDelegate.swift */,
+				E8E1C0A6DBDF6778F367D912 /* TwakeFileProviderDomain.m */,
+				9F2ED475A1A85B1873A97064 /* TwakeFileProviderDomain.swift */,
 				F11748442D0722820044C1D9 /* TwakeDrive-Bridging-Header.h */,
 				BB2F792B24A3F905000567C9 /* Supporting */,
 				13B07FB51A68108700A75B9A /* Images.xcassets */,
@@ -615,6 +621,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */,
+				BE5372F74AA6E18DD0297D35 /* TwakeFileProviderDomain.m in Sources */,
+				2F79BF57B06EEB2795C159A9 /* TwakeFileProviderDomain.swift in Sources */,
 				709E49B0B9D174F0F10578B0 /* ExpoModulesProvider.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
