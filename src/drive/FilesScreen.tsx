@@ -1,12 +1,12 @@
 import React, { useCallback, useMemo, useState } from 'react'
 import { FlatList, RefreshControl, StyleSheet, View } from 'react-native'
-import * as WebBrowser from 'expo-web-browser'
-import { FAB } from 'react-native-paper'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useClient, useQuery } from 'cozy-client'
 import { useTranslation } from 'react-i18next'
 
 import { AppBar } from '@/ui/AppBar'
+import { CreateMenu } from '@/drive/CreateMenu'
+import { useHasWriteAccess } from '@/sharing/useHasWriteAccess'
 import { fetchNextPage } from '@/drive/paging'
 import { withoutSharedDriveRoots } from '@/files/sharedDriveDocuments'
 import { useGuardedPush } from '@/ui/useGuardedPush'
@@ -26,32 +26,18 @@ import { useViewMode } from '@/ui/useViewMode'
 import { cozyTokens } from '@/ui/theme'
 import { SortControl } from '@/ui/SortControl'
 import { useFolderSort } from '@/ui/useFolderSort'
-import { CreateFolderDialog } from '@/ui/CreateFolderDialog'
 import { SyncBanner } from '@/ui/SyncBanner'
-import { CreatableFileClass, CreateOfficeFileDialog } from '@/ui/CreateOfficeFileDialog'
-import { CreateShortcutDialog } from '@/ui/CreateShortcutDialog'
-import { CozyIcon } from '@/ui/icons/CozyIcon'
 import { ConfirmDeleteDialog } from '@/ui/ConfirmDeleteDialog'
 import { RenameDialog } from '@/ui/RenameDialog'
 import { useMultiSelect } from '@/ui/useMultiSelect'
 import { useAuth } from '@/auth/useAuth'
 import { getErrorMessageKey } from '@/utils/errorMessages'
-import { createFolder } from '@/files/createFolder'
-import { createCozyNote } from '@/files/createCozyNote'
-import { createOfficeFile } from '@/files/createOfficeFile'
-import { createShortcut } from '@/files/createShortcut'
-import { buildCozyAppUrl } from '@/files/cozyAppLink'
-import { createExcalidrawFile } from '@/files/createExcalidrawFile'
 import { triggerPouchReplication } from '@/pouchdb/triggerReplication'
-import { useWebEditor } from '@/viewer/useWebEditor'
 import { softDeleteEntry } from '@/files/deleteFile'
 import { optimisticFiles } from '@/files/optimisticFiles'
-import { optimisticCreated } from '@/files/optimisticCreated'
 import { renameEntry } from '@/files/renameEntry'
 import { openFileFromList } from '@/files/openFromList'
 import { surfaceOpenError } from '@/files/errors'
-import { useFlag } from '@/client/useFlag'
-import { OFFICE_FLAGS, officeEnabledFrom } from '@/viewer/viewerFlags'
 import { useIsOnline } from '@/network/useIsOnline'
 import { requireOnline } from '@/network/requireOnline'
 import { useOfflineActions } from '@/offline/useOfflineActions'
@@ -92,11 +78,6 @@ export const FilesScreen = ({ basePath }: FilesScreenProps): React.ReactElement 
           ? [rawPath]
           : undefined
   const [refreshing, setRefreshing] = useState(false)
-  const [createFolderVisible, setCreateFolderVisible] = useState(false)
-  const openEditor = useWebEditor()
-  const [creatingClass, setCreatingClass] = useState<CreatableFileClass | null>(null)
-  const [createShortcutVisible, setCreateShortcutVisible] = useState(false)
-  const [fabOpen, setFabOpen] = useState(false)
   const [bulkConfirmVisible, setBulkConfirmVisible] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const actions = useFileRowActions({ screen: 'FilesScreen' })
@@ -120,16 +101,13 @@ export const FilesScreen = ({ basePath }: FilesScreenProps): React.ReactElement 
     [offlineActions]
   )
   const client = useClient()
-  const docsEnabled = !!useFlag('drive.lasuitedocs.enabled')
-  const officeEnabled = officeEnabledFrom(
-    useFlag(OFFICE_FLAGS.touchScreen),
-    useFlag(OFFICE_FLAGS.legacy)
-  )
-  const excalidrawEnabled = !!useFlag('drive.excalidraw.enabled')
   const isOnline = useIsOnline()
 
   const isRoot = !path || path.length === 0
   const currentDirId = isRoot ? ROOT_DIR_ID : path![path!.length - 1]
+  // Received shares list here too, and the stack refuses a create in one that
+  // was shared read only.
+  const canWrite = useHasWriteAccess(currentDirId)
 
   // The sort is part of the query: sorting a page that was fetched in another
   // order would only sort what is already on screen.
@@ -159,63 +137,6 @@ export const FilesScreen = ({ basePath }: FilesScreenProps): React.ReactElement 
       setRefreshing(false)
     }
   }, [foldersQuery, filesQuery])
-
-  const handleCreate = async (name: string) => {
-    if (!requireOnline(isOnline, actions.notify, t)) return
-    if (!client) throw new Error('No client')
-    const created = await createFolder(client, name, currentDirId)
-    optimisticFiles(client, [optimisticCreated(created, currentDirId, 'directory')])
-    setCreateFolderVisible(false)
-  }
-
-  const handleCreateOffice = async (name: string) => {
-    if (!requireOnline(isOnline, actions.notify, t)) return
-    if (!client || !creatingClass) throw new Error('No client or class')
-    const cls = creatingClass
-    const created =
-      cls === 'excalidraw'
-        ? await createExcalidrawFile(client, name, currentDirId)
-        : await createOfficeFile(client, cls, name, currentDirId)
-    optimisticFiles(client, [optimisticCreated(created, currentDirId, 'file')])
-    setCreatingClass(null)
-    if (cls === 'excalidraw') return
-    void openEditor({ _id: created._id, name: created.name })
-  }
-
-  const handleCreateNote = async (): Promise<void> => {
-    if (!requireOnline(isOnline, actions.notify, t)) return
-    if (!client) return
-    try {
-      const created = await createCozyNote(client, currentDirId)
-      optimisticFiles(client, [optimisticCreated(created, currentDirId, 'file')])
-      await openEditor({ _id: created._id, name: created.name ?? '' })
-    } catch (e) {
-      console.error('[FilesScreen] note creation failed', e)
-    }
-  }
-
-  const handleCreateDocs = async (): Promise<void> => {
-    if (!requireOnline(isOnline, actions.notify, t)) return
-    if (!client) return
-    try {
-      const stackUri = client.getStackClient().uri as string
-      // Docs documents are created by the Docs frontend on its own backend,
-      // which a Drive token cannot reach; its bridge route owns the creation.
-      const url = buildCozyAppUrl(stackUri, 'docs', `/bridge/docs/new/${currentDirId}`)
-      await WebBrowser.openBrowserAsync(url)
-      triggerPouchReplication(client, 'io.cozy.files')
-    } catch (e) {
-      console.error('[FilesScreen] docs creation failed', e)
-    }
-  }
-
-  const handleCreateShortcut = async (name: string, url: string): Promise<void> => {
-    if (!requireOnline(isOnline, actions.notify, t)) return
-    if (!client) throw new Error('No client')
-    const created = await createShortcut(client, currentDirId, name, url)
-    optimisticFiles(client, [optimisticCreated(created, currentDirId, 'file')])
-    setCreateShortcutVisible(false)
-  }
 
   const confirmBulkDelete = async (): Promise<void> => {
     if (!requireOnline(isOnline, actions.notify, t)) return
@@ -356,73 +277,6 @@ export const FilesScreen = ({ basePath }: FilesScreenProps): React.ReactElement 
     return [...data, ...pad]
   }, [data, mode])
 
-  const fabActions = [
-    {
-      icon: 'folder-plus',
-      label: t('drive.createMenu.folder'),
-      accessibilityLabel: t('drive.createMenu.folder'),
-      onPress: () => setCreateFolderVisible(true)
-    },
-    {
-      icon: 'note-text',
-      label: t('drive.createMenu.note'),
-      accessibilityLabel: t('drive.createMenu.note'),
-      onPress: () => void handleCreateNote()
-    },
-    ...(docsEnabled
-      ? [
-          {
-            icon: 'file-document-edit',
-            label: t('drive.createMenu.docs'),
-            accessibilityLabel: t('drive.createMenu.docs'),
-            onPress: () => void handleCreateDocs()
-          }
-        ]
-      : []),
-    ...(officeEnabled
-      ? [
-          {
-            icon: 'file-document-outline',
-            label: t('drive.createMenu.text'),
-            accessibilityLabel: t('drive.createMenu.text'),
-            onPress: () => setCreatingClass('text')
-          },
-          {
-            icon: 'file-table-outline',
-            label: t('drive.createMenu.sheet'),
-            accessibilityLabel: t('drive.createMenu.sheet'),
-            onPress: () => setCreatingClass('sheet')
-          },
-          {
-            icon: 'file-presentation-box',
-            label: t('drive.createMenu.slide'),
-            accessibilityLabel: t('drive.createMenu.slide'),
-            onPress: () => setCreatingClass('slide')
-          }
-        ]
-      : []),
-    ...(excalidrawEnabled
-      ? [
-          {
-            icon: (p: { size: number; color?: string }) => (
-              <CozyIcon name="excalidraw" size={p.size} color={p.color} />
-            ),
-            label: t('drive.createMenu.excalidraw'),
-            accessibilityLabel: t('drive.createMenu.excalidraw'),
-            onPress: () => setCreatingClass('excalidraw')
-          }
-        ]
-      : []),
-    {
-      icon: (p: { size: number; color?: string }) => (
-        <CozyIcon name="deviceBrowser" size={p.size} color={p.color} />
-      ),
-      label: t('drive.createMenu.shortcut'),
-      accessibilityLabel: t('drive.createMenu.shortcut'),
-      onPress: () => setCreateShortcutVisible(true)
-    }
-  ]
-
   return (
     <ScreenContainer>
       <AppBar
@@ -494,33 +348,11 @@ export const FilesScreen = ({ basePath }: FilesScreenProps): React.ReactElement 
           contentContainerStyle={styles.listContent}
         />
       </View>
-      <FAB.Group
-        style={styles.fabGroup}
-        testID="drive-fab"
-        open={fabOpen}
-        visible={!selection.isSelecting && isOnline}
-        icon={fabOpen ? 'close' : 'plus'}
-        // The app's main action carries only an icon: without a label a screen
-        // reader announces it as "Button".
-        accessibilityLabel={t(fabOpen ? 'common.close' : 'drive.createMenu.open')}
-        actions={fabActions}
-        onStateChange={({ open }) => setFabOpen(open)}
-      />
-      <CreateFolderDialog
-        visible={createFolderVisible}
-        onDismiss={() => setCreateFolderVisible(false)}
-        onSubmit={handleCreate}
-      />
-      <CreateOfficeFileDialog
-        visible={creatingClass !== null}
-        fileClass={creatingClass}
-        onDismiss={() => setCreatingClass(null)}
-        onSubmit={handleCreateOffice}
-      />
-      <CreateShortcutDialog
-        visible={createShortcutVisible}
-        onDismiss={() => setCreateShortcutVisible(false)}
-        onSubmit={handleCreateShortcut}
+      <CreateMenu
+        dirId={currentDirId}
+        canWrite={canWrite}
+        hidden={selection.isSelecting}
+        notify={actions.notify}
       />
       <ConfirmDeleteDialog
         visible={bulkConfirmVisible}
@@ -537,7 +369,6 @@ export const FilesScreen = ({ basePath }: FilesScreenProps): React.ReactElement 
 const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { flex: 1 },
-  fabGroup: { zIndex: cozyTokens.zIndex.fab },
   listContent: { paddingBottom: cozyTokens.fabClearance },
   gridPlaceholder: { flex: 1, margin: 4 },
   toolbar: {
