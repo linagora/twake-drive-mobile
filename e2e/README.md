@@ -75,6 +75,35 @@ Run those against the throwaway instance from `e2e/stack` only:
 ./e2e/scripts/maestro.sh test e2e/maestro/flows/in-app/19-create-in-shared-drive.yaml
 ```
 
+## Android emulator: the login flow cannot finish locally
+
+`flows/00-login-instance.yaml` is green in CI but stalls on a local emulator that
+ships Chrome. After the authorize page, the stack redirects to
+`https://links.twake.app/drive?code=...`, and Chrome loads that URL instead of
+handing it to the app, even though the domain is verified:
+
+```bash
+adb shell pm get-app-links com.linagora.twakedrive   # links.twake.app: verified
+```
+
+The CI emulator runs an AOSP image with no Chrome at all, which is why it never
+hits this. Re-sending the redirect with `am start` does not help either: the app
+task is only brought to the front and the VIEW intent is never delivered.
+
+To finish the login by hand, against the throwaway instance only:
+
+1. Read the pending authorize URL, which carries the client id, the state and
+   the PKCE challenge:
+   `adb shell dumpsys activity activities | grep -o "dat=http[^ }]*"`
+2. Add `twakedrive://` to that client's `redirect_uris` in CouchDB, under
+   `<instance-prefix>/io-cozy-oauth-clients`.
+3. Reopen the authorize URL with `redirect_uri=twakedrive%3A%2F%2F` and tap
+   Authorize. Chrome hands a custom scheme to the app, and the token exchange
+   still succeeds.
+
+Step 2 widens what the registered OAuth client accepts as a redirect, so keep it
+to an instance from `e2e/stack`.
+
 ## Status & scope
 
 See `DEVICE-NOTES.md`. In short: 01-04 + 00-welcome **green cross-platform**; 10 File
