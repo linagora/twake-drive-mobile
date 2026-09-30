@@ -24,7 +24,12 @@ export function resolveLanguage(
 }
 
 export function getLocalePreference(): string {
-  return storage?.getString(STORAGE_KEY) ?? LOCALE_SYSTEM
+  const stored = storage?.getString(STORAGE_KEY)
+  if (stored) return stored
+  // The e2e build runs on an emulator the runner creates in English, and every
+  // flow selects on the French labels. A preference is the only answer both the
+  // cold launch and useSyncInstanceLocale honour, and only that build sets it.
+  return process.env.EXPO_PUBLIC_E2E === '1' ? 'fr' : LOCALE_SYSTEM
 }
 
 export function setLocalePreference(pref: string): void {
