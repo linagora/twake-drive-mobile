@@ -5,6 +5,8 @@ set -euo pipefail
 # signs into that instance first (00-login-instance); without it, the app must
 # already be logged in. Against the local e2e stack: INSTANCE_URL=http://127.0.0.1
 # (see docs/e2e-testing.md).
+# The tag list is spelled out here because a --exclude-tags on the command line
+# replaces the one config.yaml declares rather than adding to it.
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 SIM="${SIMULATOR:-booted}"
 
@@ -27,5 +29,5 @@ fi
 # stays empty). Flows read ${MENU_SUFFIX} for the folder-actions selector.
 maestro --platform ios test "$ROOT/e2e/maestro/flows" \
   --include-tags inapp \
-  --exclude-tags login \
+  --exclude-tags login,disposable \
   -e MENU_SUFFIX=-container-outer-layer
