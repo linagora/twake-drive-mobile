@@ -1,0 +1,174 @@
+import React, { useState } from 'react'
+import { StyleSheet } from 'react-native'
+import { FAB } from 'react-native-paper'
+import { useTranslation } from 'react-i18next'
+
+import { CreateActionName, createActionNames } from './createActions'
+import { useCreateHandlers } from './useCreateHandlers'
+
+import { cozyTokens } from '@/ui/theme'
+import { CozyIcon } from '@/ui/icons/CozyIcon'
+import { CreateFolderDialog } from '@/ui/CreateFolderDialog'
+import { CreatableFileClass, CreateOfficeFileDialog } from '@/ui/CreateOfficeFileDialog'
+import { CreateShortcutDialog } from '@/ui/CreateShortcutDialog'
+import { useFlag } from '@/client/useFlag'
+import { OFFICE_FLAGS, officeEnabledFrom } from '@/viewer/viewerFlags'
+import { useIsOnline } from '@/network/useIsOnline'
+
+interface Props {
+  /** Directory the new document lands in. */
+  dirId: string
+  /** Set when the directory is browsed through `/sharings/drives/<id>`: every
+   *  create is then scoped to that drive instead of our own instance. */
+  driveId?: string
+  /** Whether the current member may write here — see `hasWriteAccess`. */
+  canWrite: boolean
+  notify: (message: string) => void
+  /** Screens that hold their listing in local state rather than in a cozy
+   *  query refresh it from here; the store-backed ones do not need it. */
+  onCreated?: () => void
+  /** Hidden while a multi-selection is running, as the FAB would overlap it. */
+  hidden?: boolean
+}
+
+const ICONS: Record<CreateActionName, string> = {
+  folder: 'folder-plus',
+  note: 'note-text',
+  docs: 'file-document-edit',
+  text: 'file-document-outline',
+  sheet: 'file-table-outline',
+  slide: 'file-presentation-box',
+  excalidraw: 'excalidraw',
+  shortcut: 'deviceBrowser'
+}
+
+const LABELS: Record<CreateActionName, string> = {
+  folder: 'drive.createMenu.folder',
+  note: 'drive.createMenu.note',
+  docs: 'drive.createMenu.docs',
+  text: 'drive.createMenu.text',
+  sheet: 'drive.createMenu.sheet',
+  slide: 'drive.createMenu.slide',
+  excalidraw: 'drive.createMenu.excalidraw',
+  shortcut: 'drive.createMenu.shortcut'
+}
+
+const CUSTOM_ICONS: Partial<Record<CreateActionName, 'excalidraw' | 'deviceBrowser'>> = {
+  excalidraw: 'excalidraw',
+  shortcut: 'deviceBrowser'
+}
+
+export const CreateMenu = ({
+  dirId,
+  driveId,
+  canWrite,
+  notify,
+  onCreated,
+  hidden = false
+}: Props): React.ReactElement | null => {
+  const { t } = useTranslation()
+  const isOnline = useIsOnline()
+
+  const [fabOpen, setFabOpen] = useState(false)
+  const [createFolderVisible, setCreateFolderVisible] = useState(false)
+  const [createShortcutVisible, setCreateShortcutVisible] = useState(false)
+  const [creatingClass, setCreatingClass] = useState<CreatableFileClass | null>(null)
+
+  const docsEnabled = !!useFlag('drive.lasuitedocs.enabled')
+  const officeEnabled = officeEnabledFrom(
+    useFlag(OFFICE_FLAGS.touchScreen),
+    useFlag(OFFICE_FLAGS.legacy)
+  )
+  const excalidrawEnabled = !!useFlag('drive.excalidraw.enabled')
+
+  const handlers = useCreateHandlers({ dirId, driveId, notify, onCreated })
+
+  const handleCreateFolder = async (name: string): Promise<void> => {
+    await handlers.createFolderNamed(name)
+    setCreateFolderVisible(false)
+  }
+
+  const handleCreateOffice = async (name: string): Promise<void> => {
+    if (!creatingClass) return
+    await handlers.createOfficeNamed(creatingClass, name)
+    setCreatingClass(null)
+  }
+
+  const handleCreateShortcut = async (name: string, url: string): Promise<void> => {
+    await handlers.createShortcutNamed(name, url)
+    setCreateShortcutVisible(false)
+  }
+
+  const onPressFor = (name: CreateActionName): (() => void) => {
+    switch (name) {
+      case 'folder':
+        return () => setCreateFolderVisible(true)
+      case 'note':
+        return () => void handlers.createNote()
+      case 'docs':
+        return () => void handlers.createDocs()
+      case 'shortcut':
+        return () => setCreateShortcutVisible(true)
+      default:
+        return () => setCreatingClass(name)
+    }
+  }
+
+  if (!canWrite) return null
+
+  const actions = createActionNames({
+    driveId,
+    docsEnabled,
+    officeEnabled,
+    excalidrawEnabled
+  }).map(name => {
+    const custom = CUSTOM_ICONS[name]
+    return {
+      icon: custom
+        ? (p: { size: number; color?: string }) => (
+            <CozyIcon name={custom} size={p.size} color={p.color} />
+          )
+        : ICONS[name],
+      label: t(LABELS[name]),
+      accessibilityLabel: t(LABELS[name]),
+      onPress: onPressFor(name)
+    }
+  })
+
+  return (
+    <>
+      <FAB.Group
+        style={styles.fabGroup}
+        testID="drive-fab"
+        open={fabOpen}
+        visible={!hidden && isOnline}
+        icon={fabOpen ? 'close' : 'plus'}
+        // The app's main action carries only an icon: without a label a screen
+        // reader announces it as "Button".
+        accessibilityLabel={t(fabOpen ? 'common.close' : 'drive.createMenu.open')}
+        actions={actions}
+        onStateChange={({ open }) => setFabOpen(open)}
+      />
+      <CreateFolderDialog
+        visible={createFolderVisible}
+        onDismiss={() => setCreateFolderVisible(false)}
+        onSubmit={handleCreateFolder}
+      />
+      <CreateOfficeFileDialog
+        visible={creatingClass !== null}
+        fileClass={creatingClass}
+        onDismiss={() => setCreatingClass(null)}
+        onSubmit={handleCreateOffice}
+      />
+      <CreateShortcutDialog
+        visible={createShortcutVisible}
+        onDismiss={() => setCreateShortcutVisible(false)}
+        onSubmit={handleCreateShortcut}
+      />
+    </>
+  )
+}
+
+const styles = StyleSheet.create({
+  fabGroup: { zIndex: cozyTokens.zIndex.fab }
+})
