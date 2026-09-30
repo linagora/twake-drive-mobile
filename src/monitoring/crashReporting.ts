@@ -1,5 +1,6 @@
 import Constants from 'expo-constants'
 import * as Sentry from '@sentry/react-native'
+import { captureConsoleIntegration } from '@sentry/core'
 
 import { areCrashReportsEnabled, onCrashReportsPreferenceChange } from './crashReportsPreference'
 
@@ -41,9 +42,13 @@ export const scrubUrl = (value: string): string => {
   }
 }
 
+const URL_PATTERN = /https?:\/\/[^\s"'<>()]+/gi
+const LOCAL_PATH_PATTERN = /file:\/\/[^\s"'<>()]+/gi
+
 const scrubStrings = (value: unknown, depth = 0): unknown => {
   if (depth > 6) return value
-  if (typeof value === 'string') return /^https?:\/\//i.test(value) ? scrubUrl(value) : value
+  if (typeof value === 'string')
+    return value.replace(URL_PATTERN, scrubUrl).replace(LOCAL_PATH_PATTERN, '[local file]')
   if (Array.isArray(value)) return value.map(item => scrubStrings(item, depth + 1))
   if (value && typeof value === 'object') {
     return Object.fromEntries(
@@ -80,6 +85,7 @@ const options = (): Parameters<typeof Sentry.init>[0] => ({
   sendDefaultPii: false,
   // React warnings are not incidents, the same reflex as the web client.
   ignoreErrors: [/^Warning: /],
+  integrations: [captureConsoleIntegration({ levels: ['error'] })],
   beforeSend
 })
 
