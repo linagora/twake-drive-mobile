@@ -83,9 +83,14 @@ tags:
     when:
       visible: 'Autoriser|Authorize'
     commands:
+      # The page carries the word three times -- the heading, the bold word
+      # inside the paragraph, and the button -- so the tap is anchored under
+      # that paragraph. Its English wording is "By electing Authorize, you
+      # accept that the application obtains access", with no "you authorize"
+      # in it, so the anchor has to name both.
       - tapOn:
           text: 'Autoriser|Authorize'
-          below: '.*(autorisez|you authorize).*'
+          below: '.*(vous autorisez|you accept that the application).*'
           retryTapIfNoChange: true
 # Back in the app, on the drive.
 - extendedWaitUntil:
