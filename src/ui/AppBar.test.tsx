@@ -60,11 +60,18 @@ describe('AppBar close action', () => {
   })
 })
 
-test('AppBar affiche le TwakeLogo à côté du titre', () => {
-  const { getByText, UNSAFE_getByType } = render(wrap(<AppBar title="Mes fichiers" />))
-  expect(getByText('Mes fichiers')).toBeTruthy()
-  // TwakeLogo renders an Svg root; verify it is present in the tree.
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const Svg = require('react-native-svg').default
-  expect(UNSAFE_getByType(Svg)).toBeTruthy()
+test('AppBar affiche le logo quand il n’y a pas de retour', () => {
+  render(wrap(<AppBar title="Mes fichiers" />))
+  expect(screen.getByTestId('appbar-title')).toHaveTextContent('Mes fichiers')
+  expect(screen.getByTestId('appbar-logo')).toBeOnTheScreen()
+})
+
+test('AppBar masque le logo à côté d’une flèche retour', () => {
+  render(wrap(<AppBar title="Mes fichiers" onBack={jest.fn()} />))
+  expect(screen.queryByTestId('appbar-logo')).toBeNull()
+})
+
+test('AppBar masque le logo à côté d’une croix de fermeture', () => {
+  render(wrap(<AppBar title="Mes fichiers" onClose={jest.fn()} />))
+  expect(screen.queryByTestId('appbar-logo')).toBeNull()
 })

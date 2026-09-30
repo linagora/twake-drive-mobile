@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { Pressable, StyleSheet, View } from 'react-native'
-import { Appbar, Avatar, Menu, useTheme } from 'react-native-paper'
+import { Appbar, Avatar, Menu, Text, useTheme } from 'react-native-paper'
 import { useTranslation } from 'react-i18next'
 import { useRouter } from 'expo-router'
 
@@ -122,10 +122,17 @@ export const AppBar = ({ title, onBack, onClose, onLogout, selection, sheet }: P
           testID="appbar-close-button"
         />
       ) : null}
-      <View style={styles.logo}>
-        <TwakeLogo size={cozyTokens.logoSize.appBar} />
+      {onBack || onClose ? null : (
+        <View style={styles.logo} testID="appbar-logo">
+          <TwakeLogo size={cozyTokens.logoSize.appBar} />
+        </View>
+      )}
+      <View style={styles.title} pointerEvents="none">
+        <Text variant="titleLarge" numberOfLines={1} testID="appbar-title">
+          {title}
+        </Text>
       </View>
-      <Appbar.Content title={title} />
+      <View style={styles.spacer} />
       {onLogout ? (
         <Menu
           visible={menuVisible}
@@ -185,5 +192,14 @@ const styles = StyleSheet.create({
     marginLeft: cozyTokens.spacing.xs,
     marginRight: cozyTokens.spacing.xs,
     justifyContent: 'center'
+  },
+  title: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: cozyTokens.appBarSideSlot
+  },
+  spacer: {
+    flex: 1
   }
 })

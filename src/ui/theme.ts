@@ -35,6 +35,8 @@ export const cozyTokens = {
   /** Height of the app bar, matching Paper's MD3 small header, so a surface
    *  that has to sit below it does not guess. */
   appBarHeight: 64,
+  /** Room kept on each side of the centred app bar title for its actions. */
+  appBarSideSlot: 56,
   /** Room a list has to leave below its last row for the floating button
    *  that hovers over it: the FAB plus its margins. */
   fabClearance: 88,
