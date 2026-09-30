@@ -78,17 +78,26 @@ export function useFileSearch(term: string, enabled: boolean): FileSearchState {
     const termLower = term.toLowerCase()
     const stack = client.getStackClient() as unknown as MinimalStackClient
 
+    const findPage = async (bookmark?: string) => {
+      const request = buildFilePageFindRequest(bookmark)
+      try {
+        return await stack.fetchJSON('POST', '/data/io.cozy.files/_find', request)
+      } catch (err) {
+        if (!/no_index|no_usable_index/.test((err as Error)?.message ?? '')) throw err
+        await stack.fetchJSON('POST', '/data/io.cozy.files/_index', {
+          index: { fields: ['name'] }
+        })
+        return stack.fetchJSON('POST', '/data/io.cozy.files/_find', request)
+      }
+    }
+
     const run = async (): Promise<void> => {
       const matches: FileQueryResult[] = []
       let bookmark: string | undefined
       let pages = 0
 
       while (pages < FILE_SEARCH_MAX_PAGES && matches.length < FILE_SEARCH_RESULT_LIMIT) {
-        const res = await stack.fetchJSON(
-          'POST',
-          '/data/io.cozy.files/_find',
-          buildFilePageFindRequest(bookmark)
-        )
+        const res = await findPage(bookmark)
 
         // Drop stale responses (user typed a new term or reloaded)
         if (id !== reqId.current) return
