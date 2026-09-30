@@ -53,13 +53,6 @@ jest.mock('@/auth/useAuth', () => ({
   useAuth: () => ({ logout: mockLogout })
 }))
 
-// The legal notice row reads the instance settings through cozy-client, which
-// this isolated render has no client for.
-let mockLegalNoticeUrl: string | undefined
-jest.mock('@/account/useLegalNotice', () => ({
-  useLegalNoticeUrl: () => mockLegalNoticeUrl
-}))
-
 let mockTosUrl = 'https://twake.app/en/terms-of-use/'
 jest.mock('@/account/useTos', () => ({
   useTosUrl: () => mockTosUrl
@@ -89,7 +82,6 @@ const renderScreen = () =>
 describe('SettingsIndex', () => {
   beforeEach(() => {
     mockUser = { initials: 'MM', loading: false }
-    mockLegalNoticeUrl = undefined
     mockTosUrl = 'https://twake.app/en/terms-of-use/'
     mockLogout.mockReset()
     mockOpenBrowser.mockReset()
@@ -188,20 +180,6 @@ describe('SettingsIndex', () => {
       const { getByTestId } = renderScreen()
       fireEvent.press(getByTestId('settings-tos'))
       expect(mockOpenBrowser).toHaveBeenCalledWith('https://twake.app/en/terms-of-use/')
-    })
-  })
-
-  describe('legal notice', () => {
-    it('opens the address the instance names, in the in-app browser', () => {
-      mockLegalNoticeUrl = 'https://twake.app/legal'
-      const { getByTestId } = renderScreen()
-      fireEvent.press(getByTestId('settings-legal-notice'))
-      expect(mockOpenBrowser).toHaveBeenCalledWith('https://twake.app/legal')
-    })
-
-    it('hides the row when the instance names no legal notice', () => {
-      const { queryByTestId } = renderScreen()
-      expect(queryByTestId('settings-legal-notice')).toBeNull()
     })
   })
 })

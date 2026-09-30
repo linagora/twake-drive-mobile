@@ -15,7 +15,6 @@ import { SettingsSection } from '@/ui/SettingsSection'
 import { useCurrentUser } from '@/account/useCurrentUser'
 import { useDeleteAccount } from '@/account/useDeleteAccount'
 import { setCrashReportsEnabled, useCrashReportsEnabled } from '@/monitoring/crashReportsPreference'
-import { useLegalNoticeUrl } from '@/account/useLegalNotice'
 import { useTosUrl } from '@/account/useTos'
 import { getLocalePreference, LOCALE_SYSTEM } from '@/preferences/localePreference'
 import { localeDisplayName } from '@/i18n/localeNames'
@@ -31,7 +30,6 @@ export default function SettingsIndex(): React.ReactElement {
   const { logout } = useAuth()
   const deleteAccount = useDeleteAccount()
   const crashReports = useCrashReportsEnabled()
-  const legalNoticeUrl = useLegalNoticeUrl()
   const tosUrl = useTosUrl()
   const [deleteAccountAsked, setDeleteAccountAsked] = React.useState(false)
   const [logoutAsked, setLogoutAsked] = React.useState(false)
@@ -107,15 +105,6 @@ export default function SettingsIndex(): React.ReactElement {
 
         <SettingsSection title={t('settings.about')}>
           <SettingsRow title={t('settings.version')} description={version} />
-          {legalNoticeUrl ? (
-            <SettingsRow
-              testID="settings-legal-notice"
-              title={t('settings.legalNotice')}
-              icon="info"
-              trailing="chevron"
-              onPress={() => void WebBrowser.openBrowserAsync(legalNoticeUrl)}
-            />
-          ) : null}
           <SettingsRow
             testID="settings-tos"
             title={t('settings.termsOfService')}
