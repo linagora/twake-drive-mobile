@@ -54,6 +54,8 @@ jest.mock('@/i18n', () => ({
 
 import i18n, { resolveDeviceLanguage } from '@/i18n'
 import * as tokenStorage from './tokenStorage'
+import * as twakeAuthBridge from '@/native/twakeAuthBridge'
+import * as freshInstall from './freshInstall'
 import * as oidcFlow from './oidcFlow'
 import * as autodiscovery from './autodiscovery'
 import * as registerSessionMod from './registerSession'
@@ -103,6 +105,19 @@ describe('useAuth', () => {
       </AuthProvider>
     )
     await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('unauthenticated'))
+  })
+
+  it('clears what the native side holds when a launch finds no session', async () => {
+    jest.spyOn(freshInstall, 'clearSessionLeftByAPreviousInstall').mockResolvedValue(false)
+    jest.spyOn(tokenStorage, 'getSession').mockResolvedValue(null)
+    const clearNative = jest.spyOn(twakeAuthBridge, 'clearNativeSession')
+    render(
+      <AuthProvider>
+        <Probe />
+      </AuthProvider>
+    )
+    await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('unauthenticated'))
+    expect(clearNative).toHaveBeenCalled()
   })
 
   it('falls back to unauthenticated when the initial session read fails (no permanent loading)', async () => {

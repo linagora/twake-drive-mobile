@@ -1,5 +1,4 @@
 import Expo
-import FileProvider
 import React
 import ReactAppDependencyProvider
 
@@ -30,18 +29,7 @@ public class AppDelegate: ExpoAppDelegate {
       launchOptions: launchOptions)
 #endif
 
-    registerFileProviderDomain()
-
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
-  }
-
-  private func registerFileProviderDomain() {
-    let identifier = NSFileProviderDomainIdentifier(rawValue: "twake-drive")
-    NSFileProviderManager.getDomainsWithCompletionHandler { domains, _ in
-      if domains.contains(where: { $0.identifier == identifier }) { return }
-      let domain = NSFileProviderDomain(identifier: identifier, displayName: "Twake Drive")
-      NSFileProviderManager.add(domain) { _ in }
-    }
   }
 
   // Linking API
