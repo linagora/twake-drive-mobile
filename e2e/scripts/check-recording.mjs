@@ -125,6 +125,28 @@ for (const video of videos) {
     .sort()
     .map(f => join(frames, f))
   if (files.length < 3) {
+    // screenrecord only emits a frame when the screen changes: a screen that
+    // never moved leaves a single frame, which is the still screen we want
+    const emitted = Number(
+      execFileSync('ffprobe', [
+        '-v',
+        'error',
+        '-count_frames',
+        '-select_streams',
+        'v:0',
+        '-show_entries',
+        'stream=nb_read_frames',
+        '-of',
+        'csv=p=0',
+        video
+      ])
+        .toString()
+        .trim()
+    )
+    if (emitted === 1) {
+      console.log(`${basename(video, '.mp4')}: a single frame, the screen never changed`)
+      continue
+    }
     failures.push(`${video}: only ${files.length} frame(s), nothing to compare`)
     continue
   }
