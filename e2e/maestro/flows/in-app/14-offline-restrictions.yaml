@@ -2,30 +2,34 @@ appId: com.linagora.twakedrive
 tags:
   - inapp
   - android
-env:
-  FILE: 'readme.txt'
-  FOLDER: 'Documents'
+onFlowComplete:
+  - runFlow: ../../subflows/cleanup.yaml
 ---
-# Offline: the app says so, and the writes it cannot carry out are refused
-# rather than attempted. There is no offline queue (see requireOnline).
-#
-# Airplane mode is an Android-only Maestro command, hence the `android` tag.
-# The flow puts the radio back whatever it asserted, so a failure in the middle
-# does not leave the emulator offline for the flows that follow — the last two
-# steps run even on success, and a failing run is followed by `cleanup`.
-#
-# The material is what the disposable instance seeds (e2e/stack/setup.sh):
-# a `Documents` folder and a `readme.txt` file at the root. Nothing is typed.
+# Offline, the app says so, offers no create, greys out the writes it cannot
+# carry out (there is no offline queue, see requireOnline), and still browses
+# the local replica. Airplane mode is Android only; cleanup.yaml turns it off
+# again whether the flow passed or not.
+- runScript:
+    file: ../../scripts/seed.js
+    env:
+      SEED: '[{"key":"folder","kind":"folder","prefix":"E2E-ro"},{"key":"inner","kind":"file","prefix":"E2E-ro-inner","ext":"txt","parent":"folder"},{"key":"file","kind":"file","prefix":"E2E-ro","ext":"txt"}]'
 - runFlow: ../../subflows/openDrive.yaml
 - extendedWaitUntil:
-    visible: '${FILE}'
-    timeout: 20000
+    visible:
+      id: 'file-row:${output.file.name}'
+    timeout: 60000
+# the folder's content reaches the replica before the radio goes off
+- tapOn:
+    id: 'folder-row:${output.folder.name}'
+- extendedWaitUntil:
+    visible: '${output.inner.name}'
+    timeout: 30000
+- tapOn:
+    id: 'appbar-back-button'
 - assertVisible:
     id: 'drive-fab'
 
 - setAirplaneMode: enabled
-
-# The banner names the state, and creating is not offered at all.
 - extendedWaitUntil:
     visible:
       id: 'offline-banner'
@@ -33,57 +37,26 @@ env:
 - assertNotVisible:
     id: 'drive-fab'
 
-# Renaming: the dialog opens, the write is refused on submit.
 - tapOn:
-    id: 'file-actions:${FILE}'
+    id: 'file-actions:${output.file.name}'
 - waitForAnimationToEnd
-- tapOn:
+- assertVisible:
     id: 'action-rename'
-- waitForAnimationToEnd
-- tapOn:
-    id: 'rename-name-input'
-- inputText: 'x'
-- tapOn:
-    id: 'rename-submit'
-- extendedWaitUntil:
-    visible: 'Disponible quand vous serez en ligne'
-    timeout: 15000
-- assertVisible: '${FILE}'
-
-# Trashing: same, the entry is still there afterwards.
-- tapOn:
-    id: 'file-actions:${FILE}'
-- waitForAnimationToEnd
-- tapOn:
+    enabled: false
+- assertVisible:
     id: 'action-delete'
-- waitForAnimationToEnd
-- tapOn:
-    id: 'confirm-delete-submit'
-- extendedWaitUntil:
-    visible: 'Disponible quand vous serez en ligne'
-    timeout: 15000
-- assertVisible: '${FILE}'
-
-# Sharing needs the stack for every step, so it is refused before opening.
-- tapOn:
-    id: 'file-actions:${FILE}'
-- waitForAnimationToEnd
-- tapOn:
+    enabled: false
+- assertVisible:
     id: 'action-share'
-- extendedWaitUntil:
-    visible: 'Disponible quand vous serez en ligne'
-    timeout: 15000
-
-# Browsing still works: the local replica serves the folder.
-- tapOn: '${FOLDER}'
-- waitForAnimationToEnd:
-    timeout: 8000
-- tapOn:
-    id: 'appbar-back-button'
+    enabled: false
+- assertVisible:
+    id: 'action-move'
+    enabled: false
+- pressKey: back
 - waitForAnimationToEnd
 
-- setAirplaneMode: disabled
+- tapOn:
+    id: 'folder-row:${output.folder.name}'
 - extendedWaitUntil:
-    visible:
-      id: 'drive-fab'
-    timeout: 60000
+    visible: '${output.inner.name}'
+    timeout: 15000

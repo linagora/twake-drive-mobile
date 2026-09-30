@@ -1,23 +1,43 @@
-appId: com.google.android.apps.nbu.files
+appId: com.android.documentsui
 tags:
   - android
+env:
+  SHARED_IMAGE: 'e2e-share.jpg'
+onFlowComplete:
+  - runFlow: ../../subflows/cleanup.yaml
 ---
-# ⚠️ DISCOVERY on device required. run-android.sh already pushes
-# /sdcard/Pictures/E2E/sample.jpg. Open a deterministic gallery (recommended:
-# "Files" com.google.android.apps.nbu.files), share the image to "Twake Drive",
-# then confirm the in-app import.
-#
-# The in-app QUEUE is deterministic: the import flow ends with the
-# "Importer ici" button (FolderPicker, testID folder-picker-confirm on a fresh build) →
-# "Fichier importé" snackbar (auto-dismiss ~600 ms → we assert the closing of
-# the import screen rather than the snackbar).
-- launchApp
-- tapOn:
-    text: 'sample.jpg'
-    optional: true
-- tapOn:
-    text: 'Partager|Share'
+# Shares an image from the system file picker to Twake Drive and imports it
+# into a folder of its own. The runner pushes the image to Download
+# (e2e/scripts/run-ci-android.sh).
+- runScript:
+    file: ../../scripts/seed.js
+    env:
+      SEED: '[{"key":"folder","kind":"folder","prefix":"E2E-import"}]'
+- launchApp:
+    stopApp: true
+- tapOn: 'Show roots|Afficher les racines'
+- tapOn: 'Downloads|Téléchargements'
+- extendedWaitUntil:
+    visible: '${SHARED_IMAGE}'
+    timeout: 15000
+- longPressOn: '${SHARED_IMAGE}'
+- tapOn: 'Share|Partager'
 - tapOn: 'Twake Drive'
-# --- inside the Twake app (import flow) ---
-- tapOn: 'Importer ici'
-- assertNotVisible: 'Importer ici'
+- extendedWaitUntil:
+    visible:
+      id: 'folder-picker-confirm'
+    timeout: 60000
+- scrollUntilVisible:
+    element:
+      id: 'folder-picker-row:${output.folder.name}'
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: 'folder-picker-row:${output.folder.name}'
+- waitForAnimationToEnd
+- tapOn:
+    id: 'folder-picker-confirm'
+- extendedWaitUntil:
+    notVisible:
+      id: 'folder-picker-confirm'
+    timeout: 60000

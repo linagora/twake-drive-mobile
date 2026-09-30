@@ -4,12 +4,14 @@ tags:
 env:
   PREVIEW_FILE: 'sample.jpg'
 ---
-# Opens the image the disposable instance seeds. The preview is chromeless --
-# no text to anchor on -- so it is the image itself that answers, through the
-# testID ImagePreview hands to ZoomableImage.
+# Opens the image the instance is created with (e2e/stack/setup.sh). Read
+# only: nothing here changes it.
 - runFlow: ../../subflows/openDrive.yaml
+- extendedWaitUntil:
+    visible: '${PREVIEW_FILE}'
+    timeout: 30000
 - tapOn: '${PREVIEW_FILE}'
 - extendedWaitUntil:
     visible:
       id: 'preview-image'
-    timeout: 10000
+    timeout: 20000

@@ -1,49 +1,52 @@
 appId: com.linagora.twakedrive
 tags:
   - inapp
-env:
-  FILE: 'readme.txt'
-  DESTINATION: 'Documents'
+onFlowComplete:
+  - runFlow: ../../subflows/cleanup.yaml
 ---
-# Move: the moved row leaves the list at once and is found inside the
-# destination. The picker it goes through walks into folders only (#172).
-#
-# Acts on what the disposable instance seeds (e2e/stack/setup.sh): a
-# `Documents` folder and a `readme.txt` file at the root. Nothing is typed —
-# synthetic typing drops characters, which is what had this flow skipped.
-# The file is moved back to the root at the end, so a rerun starts clean.
+# A moved file leaves the list at once and is found in the destination; the
+# picker walks into folders only (#172), and back up through its own button.
+- runScript:
+    file: ../../scripts/seed.js
+    env:
+      SEED: '[{"key":"dest","kind":"folder","prefix":"E2E-dest"},{"key":"file","kind":"file","prefix":"E2E-move","ext":"txt"}]'
 - runFlow: ../../subflows/openDrive.yaml
 - extendedWaitUntil:
-    visible: '${FILE}'
-    timeout: 20000
+    visible:
+      id: 'file-row:${output.file.name}'
+    timeout: 60000
 
-# Root → Documents
 - tapOn:
-    id: 'file-actions:${FILE}'
+    id: 'file-actions:${output.file.name}'
 - waitForAnimationToEnd
 - tapOn:
     id: 'action-move'
 - waitForAnimationToEnd:
     timeout: 8000
+- scrollUntilVisible:
+    element:
+      id: 'folder-picker-row:${output.dest.name}'
+    direction: DOWN
+    timeout: 20000
 - tapOn:
-    id: 'folder-picker-row:${DESTINATION}'
+    id: 'folder-picker-row:${output.dest.name}'
 - waitForAnimationToEnd
 - tapOn:
     id: 'folder-picker-confirm'
 - extendedWaitUntil:
-    notVisible: '${FILE}'
+    notVisible:
+      id: 'file-row:${output.file.name}'
     timeout: 20000
 
-# It is inside the destination.
 - tapOn:
-    id: 'folder-row:${DESTINATION}'
+    id: 'folder-row:${output.dest.name}'
 - extendedWaitUntil:
-    visible: '${FILE}'
+    visible:
+      id: 'file-row:${output.file.name}'
     timeout: 20000
 
-# Documents → root, through the picker's own way up.
 - tapOn:
-    id: 'file-actions:${FILE}'
+    id: 'file-actions:${output.file.name}'
 - waitForAnimationToEnd
 - tapOn:
     id: 'action-move'
@@ -55,10 +58,12 @@ env:
 - tapOn:
     id: 'folder-picker-confirm'
 - extendedWaitUntil:
-    notVisible: '${FILE}'
+    notVisible:
+      id: 'file-row:${output.file.name}'
     timeout: 20000
 - tapOn:
     id: 'appbar-back-button'
 - extendedWaitUntil:
-    visible: '${FILE}'
+    visible:
+      id: 'file-row:${output.file.name}'
     timeout: 20000

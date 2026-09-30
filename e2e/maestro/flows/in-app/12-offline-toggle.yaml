@@ -2,28 +2,32 @@ appId: com.linagora.twakedrive
 tags:
   - inapp
 env:
-  FOLDER: 'E2Eoff'
   MENU_SUFFIX: ''
+onFlowComplete:
+  - runFlow: ../../subflows/cleanup.yaml
 ---
-# Offline: pin → the menu shows "Retirer du hors-ligne" (pinned) → unpin → the menu
-# shows "Garder hors-ligne" again. (The local PURGE of the blobs on unpin is covered by
-# the OfflineFilesStore unit test — the E2E cannot inspect the filesystem.)
+# The menu follows the pin: "Retirer du hors-ligne" once kept offline, "Garder
+# hors-ligne" once released. The local purge on unpin is covered by the
+# OfflineFilesStore unit test.
+- runScript:
+    file: ../../scripts/seed.js
+    env:
+      SEED: '[{"key":"folder","kind":"folder","prefix":"E2E-off"}]'
 - runFlow: ../../subflows/openDrive.yaml
-- tapOn: { id: 'drive-fab' }
-- tapOn: 'Nouveau dossier'
-- inputText: '${FOLDER}'
-- pressKey: Enter
-- extendedWaitUntil: { visible: '${FOLDER}', timeout: 20000 }
-- tapOn: { id: 'folder-actions:${FOLDER}${MENU_SUFFIX}' }
+- extendedWaitUntil:
+    visible:
+      id: 'folder-row:${output.folder.name}'
+    timeout: 60000
+- tapOn:
+    id: 'folder-actions:${output.folder.name}${MENU_SUFFIX}'
 - waitForAnimationToEnd
 - tapOn: 'Garder hors-ligne'
-- tapOn: { id: 'folder-actions:${FOLDER}${MENU_SUFFIX}' }
+- tapOn:
+    id: 'folder-actions:${output.folder.name}${MENU_SUFFIX}'
 - waitForAnimationToEnd
 - assertVisible: 'Retirer du hors-ligne'
 - tapOn: 'Retirer du hors-ligne'
-- tapOn: { id: 'folder-actions:${FOLDER}${MENU_SUFFIX}' }
+- tapOn:
+    id: 'folder-actions:${output.folder.name}${MENU_SUFFIX}'
 - waitForAnimationToEnd
 - assertVisible: 'Garder hors-ligne'
-- tapOn: 'Supprimer'
-- waitForAnimationToEnd
-- tapOn: { id: 'confirm-delete-submit' }

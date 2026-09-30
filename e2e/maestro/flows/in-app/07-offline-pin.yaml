@@ -1,27 +1,44 @@
 appId: com.linagora.twakedrive
 tags:
   - inapp
-env:
-  PIN_TARGET: 'Documents'
+onFlowComplete:
+  - runFlow: ../../subflows/cleanup.yaml
 ---
-# Keeps a folder offline and puts it back, on a folder the disposable instance
-# seeds rather than one a developer happens to have.
-#
-# The row's own menu, never `rightOf`: that selector resolves to a neighbour and
-# has acted on the wrong row before (see 04-folder-crud). MENU_SUFFIX comes from
-# the runner as an expression default, not an `env:` entry, because `-e` does
-# not override what a flow declares for itself.
+# Keeping a folder offline downloads what it holds: the file inside carries
+# the "available offline" badge. Then the folder is released again.
+- runScript:
+    file: ../../scripts/seed.js
+    env:
+      SEED: '[{"key":"folder","kind":"folder","prefix":"E2E-pin"},{"key":"file","kind":"file","prefix":"E2E-pinned","ext":"txt","parent":"folder"}]'
 - runFlow: ../../subflows/openDrive.yaml
-# Pin
-- tapOn:
-    id: "folder-actions:${PIN_TARGET}${MENU_SUFFIX || ''}"
-- tapOn: 'Garder hors-ligne'
-- waitForAnimationToEnd
-# The state has toggled: the menu now offers "Retirer du hors-ligne"
-- tapOn:
-    id: "folder-actions:${PIN_TARGET}${MENU_SUFFIX || ''}"
 - extendedWaitUntil:
-    visible: 'Retirer du hors-ligne'
-    timeout: 10000
-# Restore (unpin)
-- tapOn: 'Retirer du hors-ligne'
+    visible:
+      id: 'folder-row:${output.folder.name}'
+    timeout: 60000
+- tapOn:
+    id: 'folder-actions:${output.folder.name}'
+- waitForAnimationToEnd
+- tapOn:
+    id: 'action-pin'
+- waitForAnimationToEnd
+- tapOn:
+    id: 'folder-row:${output.folder.name}'
+- extendedWaitUntil:
+    visible: '${output.file.name}'
+    timeout: 30000
+- extendedWaitUntil:
+    visible: 'Disponible hors ligne'
+    timeout: 60000
+- tapOn:
+    id: 'appbar-back-button'
+- tapOn:
+    id: 'folder-actions:${output.folder.name}'
+- waitForAnimationToEnd
+- assertVisible: 'Retirer du hors-ligne'
+- tapOn:
+    id: 'action-pin'
+- waitForAnimationToEnd
+- tapOn:
+    id: 'folder-actions:${output.folder.name}'
+- waitForAnimationToEnd
+- assertVisible: 'Garder hors-ligne'

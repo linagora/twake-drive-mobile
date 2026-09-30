@@ -2,32 +2,36 @@ appId: com.linagora.twakedrive
 tags:
   - inapp
 env:
-  FOLDER: 'E2Efav'
   MENU_SUFFIX: ''
+onFlowComplete:
+  - runFlow: ../../subflows/cleanup.yaml
 ---
-# Favorite: add → present in Favoris → remove → ABSENT from Favoris (validates the
-# refetch + optimistic removal fix). Throwaway without a hyphen (iOS inputText eats the '-').
-# waitForAnimationToEnd after each menu opening (otherwise the iOS animation misses the
-# item tap). MENU_SUFFIX = -container-outer-layer on iOS (via run-ios.sh).
+# A folder added to the favourites shows in Favoris, and leaves it once
+# removed. MENU_SUFFIX is -container-outer-layer on iOS (run-ios.sh).
+- runScript:
+    file: ../../scripts/seed.js
+    env:
+      SEED: '[{"key":"folder","kind":"folder","prefix":"E2E-fav"}]'
 - runFlow: ../../subflows/openDrive.yaml
-- tapOn: { id: 'drive-fab' }
-- tapOn: 'Nouveau dossier'
-- inputText: '${FOLDER}'
-- pressKey: Enter
-- extendedWaitUntil: { visible: '${FOLDER}', timeout: 20000 }
-- tapOn: { id: 'folder-actions:${FOLDER}${MENU_SUFFIX}' }
+- extendedWaitUntil:
+    visible:
+      id: 'folder-row:${output.folder.name}'
+    timeout: 60000
+- tapOn:
+    id: 'folder-actions:${output.folder.name}${MENU_SUFFIX}'
 - waitForAnimationToEnd
-- tapOn: 'Ajouter aux favoris'
-- tapOn: { text: 'Favoris.*' }
-- swipe: { start: '50%, 35%', end: '50%, 75%' }
-- extendedWaitUntil: { visible: '${FOLDER}', timeout: 25000 }
-- tapOn: { id: 'folder-actions:${FOLDER}${MENU_SUFFIX}' }
+- tapOn:
+    id: 'action-favorite'
+- tapOn:
+    text: 'Favoris.*'
+- extendedWaitUntil:
+    visible: '${output.folder.name}'
+    timeout: 30000
+- tapOn:
+    id: 'folder-actions:${output.folder.name}${MENU_SUFFIX}'
 - waitForAnimationToEnd
-- tapOn: 'Retirer des favoris'
-- extendedWaitUntil: { notVisible: '${FOLDER}', timeout: 20000 }
-- tapOn: { text: 'Mon Drive.*' }
-- tapOn: { id: 'folder-actions:${FOLDER}${MENU_SUFFIX}' }
-- waitForAnimationToEnd
-- tapOn: 'Supprimer'
-- waitForAnimationToEnd
-- tapOn: { id: 'confirm-delete-submit' }
+- tapOn:
+    id: 'action-favorite'
+- extendedWaitUntil:
+    notVisible: '${output.folder.name}'
+    timeout: 30000
