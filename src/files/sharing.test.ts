@@ -13,6 +13,7 @@ import {
   findSharingForFile,
   getLinkEditingRights,
   getRecipients,
+  leaveSharedDrive,
   revokePublicLink,
   revokeSharingMember
 } from './sharing'
@@ -672,5 +673,21 @@ describe('recipient contact reuse (existing contact instead of a throwaway)', ()
       recipients: [{ _id: 'existing-contact-9', _type: 'io.cozy.contacts' }],
       readOnlyRecipients: []
     })
+  })
+})
+
+describe('leaveSharedDrive', () => {
+  it('revokes the current instance from the drive sharing', async () => {
+    const revokeSelf = jest.fn().mockResolvedValue(undefined)
+    const client = makeClient({ 'io.cozy.sharings': { revokeSelf } })
+    await leaveSharedDrive(client, 'drive-1')
+    expect(revokeSelf).toHaveBeenCalledWith({ _id: 'drive-1' })
+  })
+
+  it('replicates the sharings so the drive drops out of the list', async () => {
+    const revokeSelf = jest.fn().mockResolvedValue(undefined)
+    const client = makeClient({ 'io.cozy.sharings': { revokeSelf } })
+    await leaveSharedDrive(client, 'drive-1')
+    expect(triggerPouchReplication).toHaveBeenCalledWith(client, 'io.cozy.sharings')
   })
 })
