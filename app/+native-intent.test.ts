@@ -16,6 +16,18 @@ describe('redirectSystemPath', () => {
     )
   })
 
+  it('opens the route a link of ours names', () => {
+    expect(redirectSystemPath({ path: 'twakedrive:///search', initial: false })).toBe(
+      'twakedrive:///search'
+    )
+  })
+
+  it('sends the custom-scheme callback without slashes to the drive', () => {
+    expect(redirectSystemPath({ path: 'twakedrive:?code=abc', initial: true })).toBe(
+      '/(drive)/files'
+    )
+  })
+
   it('leaves an ordinary route alone', () => {
     expect(redirectSystemPath({ path: '/(drive)/files/abc', initial: false })).toBe(
       '/(drive)/files/abc'
