@@ -1,0 +1,23 @@
+# Apple Silicon override: `docker compose -f docker-compose.yml -f docker-compose.arm64.yml up -d`.
+#
+# cozy/cozy-app-dev only exists for amd64, and the CouchDB it bundles crashes
+# under emulation (Rosetta included). The stack itself runs fine emulated, so it
+# keeps its image and talks to a native CouchDB instead; its own script skips
+# starting the bundled one when COUCHDB_URL is set.
+services:
+  couchdb:
+    image: couchdb:3.3
+    environment:
+      COUCHDB_USER: admin
+      COUCHDB_PASSWORD: password
+  stack:
+    platform: linux/amd64
+    depends_on: [couchdb]
+    entrypoint: ['/usr/bin/cozy-app-dev.sh', '-f', '/data/cozy-storage']
+    environment:
+      COUCHDB_URL: http://admin:password@couchdb:5984/
+      COZY_ADMIN_HOST: 127.0.0.1
+      COZY_KONNECTORS_CMD: /usr/bin/konnector-node-run.sh
+    ports: !override
+      - '80:8080'
+      - '6060:6060'

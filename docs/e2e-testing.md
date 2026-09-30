@@ -20,7 +20,30 @@ lightweight ("smoke") and assume an **already-authenticated** app.
   - **Android** — a device/emulator with the app installed and authenticated
     (`adb devices` lists it).
   - **iOS** — a booted simulator with the app installed and authenticated.
-- The suite does **not** sign in for you. Log in once, then run the flows.
+- Either log in once by hand, or let the run sign into the local e2e stack
+  (below).
+
+### Signing in automatically on the iOS simulator
+
+`00-login-instance.yaml` signs a development build into a local stack, the way
+the Android workflow does on CI.
+
+```bash
+cd e2e/stack
+# Apple Silicon: the image's bundled CouchDB crashes under emulation, so add
+# the override, which runs a native CouchDB next to it.
+docker compose -f docker-compose.yml -f docker-compose.arm64.yml up -d
+./setup.sh 127.0.0.1 cozycozy
+cd ../..
+INSTANCE_URL=http://127.0.0.1 npm run e2e:ios
+```
+
+The instance is named `127.0.0.1` on purpose: iOS only lets an app speak plain
+HTTP to IP addresses, `.local` and dot-less names, and cozy-stack cannot serve
+an instance whose domain has no dot (`localhost` panics on the authorize page).
+The flow clears the app's state first, so the simulator loses whatever session
+it had. `INSTANCE_URL` must be passed with `-e`: Maestro does not let it
+override a value a flow declares itself.
 
 ## Running
 

@@ -1,9 +1,6 @@
 appId: com.linagora.twakedrive
 tags:
   - ci-login
-env:
-  INSTANCE_URL: 'http://alice.10-0-2-2.nip.io'
-  INSTANCE_PASSPHRASE: 'cozycozy'
 ---
 # Signs the app into the disposable instance the e2e stack serves, through the
 # development-only "instance address" entry point: the app runs the stack's own
@@ -12,6 +9,23 @@ env:
 # the stack is reachable over plain HTTP.
 - launchApp:
     clearState: true
+# A development build: clearing the state also forgot the Metro server, and the
+# dev client greets a fresh install with its menu, which covers the app.
+- runFlow:
+    when:
+      visible: 'DEVELOPMENT SERVERS'
+    commands:
+      - tapOn: 'http://localhost:8081'
+      - extendedWaitUntil:
+          visible: '.*developer menu.*'
+          timeout: 120000
+      - tapOn: 'Continue'
+      - extendedWaitUntil:
+          visible: 'Connected to:'
+          timeout: 10000
+      - tapOn:
+          point: '91%,47%'
+      - waitForAnimationToEnd
 # An emulator under load can raise "isn't responding" over the screen.
 - repeat:
     times: 12
@@ -33,28 +47,46 @@ env:
     id: 'welcome-dev-instance-link'
 - tapOn:
     id: 'dev-instance-uri-input'
-- inputText: '${INSTANCE_URL}'
+- inputText: "${INSTANCE_URL || 'http://alice.10-0-2-2.nip.io'}"
 - tapOn:
     id: 'dev-instance-submit'
+# iOS asks before the app may open its authentication session.
+- runFlow:
+    when:
+      visible: '.*(souhaite utiliser|wants to use).*'
+    commands:
+      - tapOn:
+          text: 'Continuer|Continue'
+          below: '.*(souhaite utiliser|wants to use).*'
 - runFlow:
     when:
       visible: 'Wait'
     commands:
       - tapOn: 'Wait'
-# The stack's own login page, in the system browser.
+# The stack's own login page, in the system browser. On iOS that browser keeps
+# the stack's session cookie across runs, and goes straight to the permissions.
 - extendedWaitUntil:
-    visible: 'Mot de passe|Password'
+    visible: 'Mot de passe|Password|Autoriser.*|Authorize.*'
     timeout: 60000
-- tapOn: 'Mot de passe|Password'
-- inputText: '${INSTANCE_PASSPHRASE}'
-- pressKey: Enter
+- runFlow:
+    when:
+      visible: 'Mot de passe|Password'
+    commands:
+      - tapOn: 'Mot de passe|Password'
+      - inputText: "${INSTANCE_PASSPHRASE || 'cozycozy'}"
+      - pressKey: Enter
 # The stack's permission page. The e2e stack skips the flagship certification,
 # so this is the only thing between the password and the app.
+- waitForAnimationToEnd:
+    timeout: 10000
 - runFlow:
     when:
       visible: 'Autoriser|Authorize'
     commands:
-      - tapOn: 'Autoriser|Authorize'
+      - tapOn:
+          text: 'Autoriser|Authorize'
+          below: '.*(autorisez|you authorize).*'
+          retryTapIfNoChange: true
 # Back in the app, on the drive.
 - extendedWaitUntil:
     visible:
