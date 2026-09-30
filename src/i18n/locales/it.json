@@ -30,7 +30,8 @@
     "crashReportsDescription": "Invia i dettagli tecnici di un arresto anomalo perché possa essere corretto. Nessun nome di file, nessun nome di cartella, nessun indirizzo del tuo server.",
     "logoutTitle": "Disconnettersi?",
     "logoutMessage": "I file mantenuti offline e i documenti che hai aperto restano su questo dispositivo. Cancellali se non ti appartiene.",
-    "logoutAndErase": "Disconnetti ed elimina"
+    "logoutAndErase": "Disconnetti ed elimina",
+    "termsOfService": "Condizioni generali di utilizzo"
   },
   "auth": {
     "welcomeTitle": "Benvenuto in Twake Drive",
