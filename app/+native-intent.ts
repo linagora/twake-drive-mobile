@@ -1,5 +1,7 @@
 import { isOurRedirect } from '@/auth/redirectUri'
 
+const isCallback = (path: string): boolean => path.includes('?') || !path.startsWith('twakedrive:')
+
 /**
  * Where a link handed to the app by the OS lands.
  *
@@ -9,7 +11,7 @@ import { isOurRedirect } from '@/auth/redirectUri'
  */
 export function redirectSystemPath({ path }: { path: string; initial: boolean }): string {
   try {
-    if (isOurRedirect(path)) return '/(drive)/files'
+    if (isOurRedirect(path) && isCallback(path)) return '/(drive)/files'
     if (path.includes('dataUrl=')) return '/(drive)/files'
     return path
   } catch {
