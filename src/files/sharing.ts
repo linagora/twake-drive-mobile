@@ -380,6 +380,19 @@ export const revokeSharingMember = async (
 }
 
 /**
+ * Leave a shared drive somebody shared with us.
+ *
+ * The recipient counterpart of revoking a member: twake-drive web splits the
+ * two the same way, `leaveSharedDrive` against `revokeSelf` for a recipient
+ * and the share modal for the owner.
+ */
+export const leaveSharedDrive = async (client: CozyClient, driveId: string): Promise<void> => {
+  await getSharings(client).revokeSelf({ _id: driveId })
+  triggerPouchReplication(client, 'io.cozy.sharings')
+  triggerPouchReplication(client, 'io.cozy.files')
+}
+
+/**
  * Compute the absolute index in `members` for a recipient given its position
  * in the recipients-only array (what the UI displays).
  */
