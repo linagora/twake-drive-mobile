@@ -6,6 +6,8 @@ import { useTranslation } from 'react-i18next'
 import { DriveChild, normalizeDriveChild } from './sharedDriveChild'
 
 import { AppBar } from '@/ui/AppBar'
+import { CreateMenu } from '@/drive/CreateMenu'
+import { useHasWriteAccess } from '@/sharing/useHasWriteAccess'
 import { useGuardedPush } from '@/ui/useGuardedPush'
 import { useTabBack } from '@/ui/useTabBack'
 import { ScreenContainer } from '@/ui/ScreenContainer'
@@ -71,11 +73,15 @@ export const SharedDriveScreen = ({ basePath }: Props): React.ReactElement => {
   const [folderLoading, setFolderLoading] = useState(false)
 
   const currentDrive = (drives ?? []).find(drive => drive.driveId === driveId)
+  // A drive we own holds its files on our own instance: they are reached
+  // without the drive-scoped routes, exactly as the row actions do below.
+  const writeScope = currentDrive?.owner ? undefined : driveId
   const actions = useFileRowActions({
     screen: 'SharedDriveScreen',
-    driveId: currentDrive?.owner ? undefined : driveId,
+    driveId: writeScope,
     can: { rename: false, delete: false }
   })
+  const canWrite = useHasWriteAccess(isRoot ? undefined : currentFolderId, writeScope)
 
   const reloadDrives = useCallback(async () => {
     if (!client) return
@@ -205,6 +211,15 @@ export const SharedDriveScreen = ({ basePath }: Props): React.ReactElement => {
           emptyMessage="drive.emptyFolder"
         />
       )}
+      {!isRoot ? (
+        <CreateMenu
+          dirId={currentFolderId}
+          driveId={writeScope}
+          canWrite={canWrite}
+          notify={actions.notify}
+          onCreated={reloadFolder}
+        />
+      ) : null}
       {actions.dialogs}
     </ScreenContainer>
   )

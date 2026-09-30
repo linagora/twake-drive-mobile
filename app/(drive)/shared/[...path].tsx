@@ -6,6 +6,8 @@ import { useClient, useQuery } from 'cozy-client'
 import { useTranslation } from 'react-i18next'
 
 import { AppBar } from '@/ui/AppBar'
+import { CreateMenu } from '@/drive/CreateMenu'
+import { useHasWriteAccess } from '@/sharing/useHasWriteAccess'
 import { useGuardedPush } from '@/ui/useGuardedPush'
 import { useTabBack } from '@/ui/useTabBack'
 import { ScreenContainer } from '@/ui/ScreenContainer'
@@ -68,6 +70,10 @@ export default function SharedScreen() {
 
   const isRoot = !path || path.length === 0
   const safeCurrentDirId = isRoot ? 'io.cozy.files.root-dir' : path![path!.length - 1]
+
+  // The root of this tab lists sharings, not a directory: there is nothing to
+  // create in until a folder is opened.
+  const canWrite = useHasWriteAccess(isRoot ? undefined : safeCurrentDirId)
 
   const { sort } = useFolderSort()
   const sharingContext = useContext(SharingContext)
@@ -345,6 +351,7 @@ export default function SharedScreen() {
               : 'drive.emptyShared'
         }
       />
+      <CreateMenu dirId={safeCurrentDirId} canWrite={canWrite} notify={actions.notify} />
       {actions.dialogs}
     </ScreenContainer>
   )
