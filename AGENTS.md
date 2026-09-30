@@ -89,12 +89,25 @@ The app ships in **7 languages**. Every user-facing string goes through an i18n 
   (`en`, `fr`, `es`, `it`, `de`, `vi`, `ru`) **before merge** — use a machine
   translation as a placeholder if needed, but no locale is left missing the key.
 
-### Tests: e2e is not run automatically (yet)
+### Tests: e2e runs against a throwaway instance, not a real account
 
-Maestro e2e flows exist under `e2e/maestro/` but need a device/simulator and an
-authenticated app, so **agents do not run them** as part of their loop. Keep
-`npm test`, `npm run typecheck`, `npm run lint` green — that is the required bar.
-Wiring Maestro into CI on pull requests is a planned task, not yet done.
+`npm test`, `npm run typecheck` and `npm run lint` stay the required bar for
+every change.
+
+The Maestro flows under `e2e/maestro/` **are runnable**, agents included: the
+login is no longer manual. `e2e/stack` brings up a disposable cozy-stack and
+`00-login-instance.yaml` signs a development build into it, on the iOS
+simulator as well as the Android emulator. The recipe lives in
+**[docs/e2e-testing.md](docs/e2e-testing.md)** — don't duplicate it here.
+
+- **Point the flows at that stack, never at a real account.** Many of them
+  mutate, and some cannot undo what they do.
+- A flow that can't clean up after itself is tagged `disposable` and excluded in
+  `e2e/maestro/config.yaml`. Tag a new one the same way rather than leaving
+  state behind.
+- Maestro is still **not part of pull-request CI**: `e2e-android.yml` is
+  `workflow_dispatch` only. Playing a flow is a deliberate step, not an
+  automatic gate.
 
 ## Quick checklist before you open a PR
 
