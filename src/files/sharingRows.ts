@@ -33,6 +33,21 @@ export const drivesForTab = (drives: SharedDriveEntry[], tab: SharingsTab): Shar
     tab === 'drives' ? drive.orgDrive : !drive.orgDrive && drive.owner === (tab === 'by-me')
   )
 
+/**
+ * Which menu entries a shared-drive row carries.
+ *
+ * twake-drive web splits the two sides: the owner reopens the share modal and
+ * revokes a recipient from there (`shareSharedDrive`), a recipient leaves the
+ * drive instead (`leaveSharedDrive`, on `!isOwner`). Sharing needs the root
+ * folder, since that is the document the sheet is opened on.
+ */
+export const driveRowMenu = (
+  drive: Pick<SharedDriveEntry, 'owner' | 'rootFolderId'>
+): { canShare: boolean; canLeave: boolean } => ({
+  canShare: drive.owner && !!drive.rootFolderId,
+  canLeave: !drive.owner
+})
+
 const defaultFileDate = (file: SharingRowFile): string | undefined =>
   file.updated_at ?? file.created_at
 
