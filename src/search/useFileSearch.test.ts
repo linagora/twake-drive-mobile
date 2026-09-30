@@ -87,6 +87,22 @@ describe('useFileSearch', () => {
     expect(result.current.data).toHaveLength(0)
   })
 
+  it('creates the name index and retries when the instance has none', async () => {
+    const fetchJSON = setupFetchJSON()
+    fetchJSON
+      .mockRejectedValueOnce(
+        new Error('{"error":"no_index","reason":"no matching index found, create an index"}')
+      )
+      .mockResolvedValueOnce({})
+      .mockReturnValueOnce(singlePage([makeDoc('report.pdf')]))
+    const { result } = renderHook(() => useFileSearch('report', true))
+    await waitFor(() => expect(result.current.status).toBe('success'))
+    expect(fetchJSON).toHaveBeenNthCalledWith(2, 'POST', '/data/io.cozy.files/_index', {
+      index: { fields: ['name'] }
+    })
+    expect(result.current.data.map(d => d.name)).toEqual(['report.pdf'])
+  })
+
   it('filters "contains" case-insensitively', async () => {
     const fetchJSON = setupFetchJSON()
     fetchJSON.mockReturnValueOnce(
