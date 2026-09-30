@@ -1,0 +1,88 @@
+appId: com.linagora.twakedrive
+tags:
+  - inapp
+  - disposable
+env:
+  RECIPIENT: 'e2e-recipient@example.org'
+---
+# The #391 regression: a folder opened from the Partages tab offered no way to
+# create anything, because only FilesScreen ever rendered a FAB.
+#
+# ⚠️ TAGGED `disposable`, EXCLUDED FROM THE DEFAULT RUN (see config.yaml). It
+# LEAVES A SHARED FOLDER BEHIND: once the folder becomes a drive, no row in the
+# Partages list carries an action menu, so the share cannot be revoked through
+# the UI and the folder cannot be deleted. Run it against the throwaway
+# instance from e2e/stack, never against a real drive.
+#
+# Sharing by email on an instance with drive.federated-shared-folder.enabled
+# turns the folder into a shared drive we own, which leaves Mon Drive
+# (withoutSharedDriveRoots) and shows up under Partages > Par moi. Opening it
+# lands on SharedDriveScreen, where every create is scoped to
+# /sharings/drives/<id>.
+#
+# Names are written into the `id:` selectors: Maestro substitutes a variable in
+# a text selector but not in an id one.
+- runFlow: ../../subflows/openDrive.yaml
+# a throwaway folder to turn into a drive
+- tapOn:
+    id: 'drive-fab'
+- tapOn: 'Nouveau dossier'
+- inputText: 'E2E-shared-create'
+- pressKey: Enter
+- extendedWaitUntil:
+    visible: 'E2E-shared-create'
+    timeout: 12000
+# share it by email — same steps as 16-share-recipient, minus the revoke
+- tapOn:
+    id: 'folder-actions:E2E-shared-create'
+- tapOn:
+    id: 'action-share'
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible: 'Lien public'
+    timeout: 20000
+- tapOn:
+    id: 'share-add-recipient'
+- tapOn:
+    id: 'share-email-input'
+- inputText: '${RECIPIENT}'
+# tapping outside the field dismisses the keyboard, which would otherwise sit
+# over the send button
+- tapOn: 'Destinataires'
+- tapOn:
+    id: 'share-send'
+- extendedWaitUntil:
+    visible:
+      id: 'recipient-row'
+    timeout: 25000
+- tapOn: 'Fermer'
+# it is a drive now: find it under Par moi
+- tapOn:
+    text: 'Partages.*'
+- tapOn:
+    id: 'sharings-tab-by-me'
+- extendedWaitUntil:
+    visible: 'E2E-shared-create'
+    timeout: 25000
+- tapOn: 'E2E-shared-create'
+- waitForAnimationToEnd
+# the regression guard: this screen used to render no FAB at all
+- extendedWaitUntil:
+    visible:
+      id: 'drive-fab'
+    timeout: 20000
+- tapOn:
+    id: 'drive-fab'
+- waitForAnimationToEnd
+# inside a drive the stack refuses a shortcut create, and the Docs bridge
+# writes on our own instance, so neither entry is offered
+- assertNotVisible: 'Raccourci'
+- assertNotVisible: 'Nouveau document Docs'
+- tapOn: 'Nouveau dossier'
+- inputText: 'E2E-inside-drive'
+- pressKey: Enter
+# the create goes to /sharings/drives/<id>, and the screen reloads its own
+# listing rather than reading the store
+- extendedWaitUntil:
+    visible: 'E2E-inside-drive'
+    timeout: 25000

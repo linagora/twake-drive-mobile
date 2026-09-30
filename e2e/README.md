@@ -49,16 +49,30 @@ Labels/accessibility differ iOS↔Android. Rules (details in `DEVICE-NOTES.md`):
 ```
 e2e/
   maestro/
-    config.yaml           # excludes login from runs
+    config.yaml           # excludes login and disposable from runs
     subflows/             # assertLoggedIn, openDrive, cleanup
     flows/
       00-login.yaml       # login tag (semi-manual, excluded)
       00-welcome.yaml     # preauth tag (app boot + login form)
-      in-app/             # inapp tags (iOS + Android): 01-07
+      in-app/             # inapp tags (iOS + Android): 01-19
       android/            # android tags: 10 File Provider, 11 Share
   scripts/                # run-android.sh, run-ios.sh
   fixtures/               # sample.jpg (share)
   DEVICE-NOTES.md         # device results + recipe + quirks
+```
+
+## Disposable-only flows
+
+A flow tagged `disposable` mutates state it cannot undo through the UI, so
+`config.yaml` excludes it from every run. `19-create-in-shared-drive` is one:
+sharing a folder by email turns it into a shared drive, and no row in the
+Partages list carries an action menu, so the share can no longer be revoked
+nor the folder deleted from the app.
+
+Run those against the throwaway instance from `e2e/stack` only:
+
+```bash
+./e2e/scripts/maestro.sh test e2e/maestro/flows/in-app/19-create-in-shared-drive.yaml
 ```
 
 ## Status & scope
