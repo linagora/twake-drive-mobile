@@ -1,7 +1,7 @@
 const mockFlag = jest.fn()
 jest.mock('cozy-flags', () => ({ __esModule: true, default: (name: string) => mockFlag(name) }))
 
-import { isViewerEnabled, VIEWER_FLAGS } from './viewerFlags'
+import { isViewerEnabled, officeEnabledFrom, VIEWER_FLAGS } from './viewerFlags'
 
 describe('isViewerEnabled', () => {
   const dev = __DEV__
@@ -33,5 +33,17 @@ describe('isViewerEnabled', () => {
     expect(isViewerEnabled('markdown')).toBe(false)
     mockFlag.mockReturnValue(true)
     expect(isViewerEnabled('markdown')).toBe(true)
+  })
+})
+
+describe('officeEnabledFrom', () => {
+  it('follows the touch screen flag when the instance sets it', () => {
+    expect(officeEnabledFrom(false, true)).toBe(false)
+    expect(officeEnabledFrom(true, false)).toBe(true)
+  })
+
+  it('falls back to the legacy flag otherwise', () => {
+    expect(officeEnabledFrom(null, true)).toBe(true)
+    expect(officeEnabledFrom(undefined, null)).toBe(false)
   })
 })

@@ -1,3 +1,8 @@
+let mockOfficeFlag: unknown = true
+jest.mock('cozy-flags', () => ({
+  __esModule: true,
+  default: (name: string) => (name === 'drive.onlyoffice.enabled' ? mockOfficeFlag : null)
+}))
 const mockReadDocumentBytes = jest.fn()
 const mockReadDocumentPathWithName = jest.fn()
 jest.mock('./documentBytes', () => ({
@@ -111,6 +116,19 @@ describe('DocumentViewer', () => {
     await waitFor(() => expect(screen.getByTestId('document-viewer-edit')).toBeOnTheScreen())
     fireEvent.press(screen.getByTestId('document-viewer-edit'))
     await waitFor(() => expect(mockOpenEditor).toHaveBeenCalled())
+  })
+
+  it('offers no editor for an office document when OnlyOffice is off', async () => {
+    mockOfficeFlag = null
+    mockReadDocumentPathWithName.mockResolvedValue('file:///cache/open/f3-rapport.docx')
+    show({
+      _id: 'f3',
+      name: 'rapport.docx',
+      mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    })
+    await waitFor(() => expect(mockOpenInViewer).toHaveBeenCalled())
+    expect(screen.queryByTestId('document-viewer-edit')).toBeNull()
+    mockOfficeFlag = true
   })
 
   it('leaves the edit button out of reach offline', async () => {

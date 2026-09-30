@@ -1,5 +1,5 @@
 import { isCozyNoteFile, isDocsNoteFile, isOfficeFile } from '@/files/fileTypes'
-import { isViewerEnabled, ViewerKind } from './viewerFlags'
+import { isOfficeEnabled, isViewerEnabled, ViewerKind } from './viewerFlags'
 
 export interface ViewableDocument {
   name: string
@@ -42,5 +42,6 @@ export const localViewerFor = (file: ViewableDocument): ViewerKind | null => {
 /** Whether this document also has a web editor to offer behind an Edit button. */
 export const hasWebEditor = (file: ViewableDocument): boolean => {
   const kind = viewerKindOf(file)
-  return kind === 'note' || kind === 'docsNote' || kind === 'office' || kind === 'excalidraw'
+  if (kind === 'office') return isOfficeEnabled()
+  return kind === 'note' || kind === 'docsNote' || kind === 'excalidraw'
 }
