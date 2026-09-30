@@ -16,16 +16,21 @@ import {
 } from '@/preferences/localePreference'
 import { getLocales } from 'expo-localization'
 
+import { useCurrentUser } from '@/account/useCurrentUser'
+
 export default function LanguageScreen(): React.ReactElement {
   const { t } = useTranslation()
   const router = useRouter()
   const current = getLocalePreference()
   const available = Object.keys(i18n.options.resources ?? {})
+  const { locale: instanceLocale } = useCurrentUser()
 
   const choose = (pref: string): void => {
     setLocalePreference(pref)
     const device = getLocales()[0]?.languageCode ?? undefined
-    const resolved = resolveLanguage(pref, device, available)
+    // Same precedence as useSyncInstanceLocale: the choice, then the instance,
+    // then the device.
+    const resolved = resolveLanguage(pref, instanceLocale ?? device, available)
     // Navigate back FIRST, then switch the language on the next tick.
     // i18n.changeLanguage() synchronously re-renders every useTranslation consumer
     // (including the navigators' screen titles); doing that before/around

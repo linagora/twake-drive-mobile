@@ -1,0 +1,44 @@
+appId: com.linagora.twakedrive
+tags:
+  - setup
+---
+# Put the app in French, the language every in-app flow selects on.
+#
+# The runner creates the emulator in English and the instance locale only
+# reaches the app once its settings replicate, so a run can start in either
+# language. Choosing one through the settings screen is the same thing a user
+# does, and it is what both the cold launch and the instance sync then honour.
+#
+# The account menu comes from react-native-paper, which names its own rows
+# `menu-item` and drops a testID passed to them; the settings row is the first.
+- launchApp
+- tapOn:
+    id: 'appbar-avatar'
+- waitForAnimationToEnd
+- tapOn:
+    id: 'menu-item'
+    index: 0
+- extendedWaitUntil:
+    visible:
+      id: 'settings-language'
+    timeout: 15000
+- tapOn:
+    id: 'settings-language'
+- extendedWaitUntil:
+    visible:
+      id: 'settings-language-fr'
+    timeout: 15000
+- tapOn:
+    id: 'settings-language-fr'
+# choosing a language navigates back on its own, so only the settings screen
+# is left to dismiss
+- waitForAnimationToEnd
+- tapOn:
+    id: 'appbar-close-button'
+    optional: true
+- tapOn:
+    id: 'appbar-back-button'
+    optional: true
+- extendedWaitUntil:
+    visible: 'Mon Drive.*'
+    timeout: 15000
