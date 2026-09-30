@@ -1,0 +1,4 @@
+• Les espaces partagés ont désormais un menu d'actions : quitter un partage reçu, ou rouvrir les options de partage d'un espace dont vous êtes propriétaire.
+• Vous pouvez aussi quitter un espace partagé directement depuis la ligne de son dossier.
+• Vous pouvez créer des fichiers et des dossiers dans un dossier partagé avec vous, y compris à la racine d'un espace partagé.
+• Le choix « Système » pour la langue donne désormais le même résultat partout dans l'app.

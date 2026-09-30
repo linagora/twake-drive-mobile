@@ -1,0 +1,4 @@
+• Drive được chia sẻ nay có menu thao tác: rời khỏi một chia sẻ bạn nhận được, hoặc mở lại tùy chọn chia sẻ của chia sẻ bạn sở hữu.
+• Bạn cũng có thể rời khỏi Drive được chia sẻ ngay từ dòng thư mục của nó.
+• Bạn có thể tạo tệp và thư mục trong thư mục được chia sẻ với bạn, kể cả ở thư mục gốc của Drive được chia sẻ.
+• Tùy chọn ngôn ngữ "Hệ thống" nay cho cùng một kết quả trên toàn ứng dụng.
