@@ -1,0 +1,4 @@
+• Los documentos de ofimática se abren en tu dispositivo cuando tu servidor no tiene editor en línea.
+• Los títulos de carpeta ahora están centrados y el logo solo aparece en las pantallas principales.
+• La app ya no pide un acceso al almacenamiento que nunca usaba.
+• Si activaste los informes de errores, ahora incluyen más detalles para corregir problemas.

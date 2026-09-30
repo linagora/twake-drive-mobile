@@ -1,0 +1,4 @@
+• Tài liệu văn phòng mở ngay trên thiết bị khi máy chủ của bạn không có trình soạn thảo trực tuyến.
+• Tiêu đề thư mục giờ được căn giữa, và logo chỉ hiện trên các màn hình chính.
+• Ứng dụng không còn xin quyền truy cập bộ nhớ mà nó chưa từng dùng.
+• Nếu bạn đã bật báo cáo sự cố, báo cáo giờ có thêm chi tiết để sửa lỗi.

@@ -1,0 +1,4 @@
+• Les documents bureautiques s'ouvrent sur votre appareil quand votre serveur n'a pas d'éditeur en ligne.
+• Les titres de dossier sont désormais centrés, et le logo n'apparaît plus que sur les écrans principaux.
+• L'app ne demande plus un accès au stockage qu'elle n'utilisait pas.
+• Si vous avez activé les rapports de plantage, ils contiennent plus de détails pour corriger les problèmes.

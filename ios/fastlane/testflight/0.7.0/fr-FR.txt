@@ -1,0 +1,5 @@
+• Les documents bureautiques s'ouvrent sur votre appareil quand votre serveur n'a pas d'éditeur en ligne.
+• Les titres de dossier sont désormais centrés, et le logo n'apparaît plus que sur les écrans principaux.
+• Vous n'êtes plus déconnecté après avoir utilisé Twake Drive depuis l'app Fichiers.
+• La déconnexion retire désormais Twake Drive de l'app Fichiers.
+• Si vous avez activé les rapports de plantage, ils contiennent plus de détails pour corriger les problèmes.
