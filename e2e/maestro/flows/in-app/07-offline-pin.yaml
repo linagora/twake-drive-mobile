@@ -2,28 +2,24 @@ appId: com.linagora.twakedrive
 tags:
   - inapp
 env:
-  PIN_TARGET: 'Notes'
+  PIN_TARGET: 'Documents'
 ---
-# Selectors: the folder actions button is targeted by testID
-# (id: 'folder-actions', language-independent); "Garder hors-ligne" /
-# "Retirer du hors-ligne" remain FR labels VALIDATED on device. Assertion
-# by menu state change (text-based), so device-ready WITHOUT a fresh build
-# (does not use the pinned-badge testID).
+# Keeps a folder offline and puts it back, on a folder the disposable instance
+# seeds rather than one a developer happens to have.
 #
-# ⚠️ Pinning TRIGGERS A DOWNLOAD of the content: point PIN_TARGET at a
-# SMALL folder (or a file). The flow pins then immediately unpins.
+# The row's own menu, never `rightOf`: that selector resolves to a neighbour and
+# has acted on the wrong row before (see 04-folder-crud). MENU_SUFFIX comes from
+# the runner as an expression default, not an `env:` entry, because `-e` does
+# not override what a flow declares for itself.
 - runFlow: ../../subflows/openDrive.yaml
 # Pin
 - tapOn:
-    id: 'folder-actions'
-    rightOf:
-      text: '${PIN_TARGET}'
+    id: "folder-actions:${PIN_TARGET}${MENU_SUFFIX || ''}"
 - tapOn: 'Garder hors-ligne'
+- waitForAnimationToEnd
 # The state has toggled: the menu now offers "Retirer du hors-ligne"
 - tapOn:
-    id: 'folder-actions'
-    rightOf:
-      text: '${PIN_TARGET}'
+    id: "folder-actions:${PIN_TARGET}${MENU_SUFFIX || ''}"
 - extendedWaitUntil:
     visible: 'Retirer du hors-ligne'
     timeout: 10000

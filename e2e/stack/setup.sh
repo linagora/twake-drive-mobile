@@ -19,12 +19,10 @@ for _ in $(seq 1 60); do
 done
 curl -fsS "http://localhost/version" | head -1
 
-# The image creates the instance named by COZY_STACK_HOST on startup; this
-# only has to wait for it, and create it when the domain differs.
-for _ in $(seq 1 60); do
-  run instances show "$DOMAIN" >/dev/null 2>&1 && break
-  sleep 2
-done
+# The image creates an instance of its own on startup, and names it
+# `$COZY_STACK_HOST:$COZY_STACK_PORT` unless the port is 80 — so the one a run
+# signs into is almost never the one already there, and waiting for it to
+# appear only wasted two minutes before creating it.
 if ! run instances show "$DOMAIN" >/dev/null 2>&1; then
   echo "Creating $DOMAIN"
   run instances add "$DOMAIN" \
@@ -66,6 +64,14 @@ printf 'hello from the e2e stack\n' | curl -fsS -X POST \
   "http://localhost/files/$ROOT?Type=file&Name=readme.txt" \
   -H "Host: $DOMAIN" -H "Authorization: Bearer $TOKEN" \
   -H 'Content-Type: text/plain' --data-binary @- >/dev/null
+
+# 05-preview opens an image, and an instance the flows can rely on has to carry
+# one: the fixture the Android share flow already uses.
+echo "Seeding an image"
+curl -fsS -X POST "http://localhost/files/$ROOT?Type=file&Name=sample.jpg" \
+  -H "Host: $DOMAIN" -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: image/jpeg' \
+  --data-binary "@$(dirname "$0")/../fixtures/sample.jpg" >/dev/null
 
 # A handful of documents replicate in a blink, and a replica that is already
 # settled hides everything a busy sync does to the screens. Seed enough that a
