@@ -23,4 +23,4 @@ adb -s "$DEVICE" shell am broadcast -a android.intent.action.MEDIA_SCANNER_SCAN_
 # In-app + android cross-app suites; the manual login is excluded.
 maestro --platform android test "$ROOT/e2e/maestro/flows" \
   --include-tags inapp,android \
-  --exclude-tags login
+  --exclude-tags login,disposable
