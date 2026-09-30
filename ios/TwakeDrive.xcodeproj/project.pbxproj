@@ -326,6 +326,7 @@
 				ABB11ECBFEA99C97A15D13BD /* [CP] Embed Pods Frameworks */,
 				087C49475BF1449E8B0467E5 /* Embed Foundation Extensions */,
 				FB5FED8B51684D60B5BB5A8F /* Embed Foundation Extensions */,
+				D71F4A3C9B2E48D5A0C61E77 /* Strip dev-server Info.plist keys */,
 			);
 			buildRules = (
 			);
@@ -440,6 +441,21 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
+		D71F4A3C9B2E48D5A0C61E77 /* Strip dev-server Info.plist keys */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			name = "Strip dev-server Info.plist keys";
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# The local-network keys exist only so the dev client can find Metro over\n# Bonjour. A shipped build never does, and the prompt they carry talks about a\n# development server, so they are stripped from anything but Debug.\nset -e\ncase \"$CONFIGURATION\" in\n  *Debug*) exit 0 ;;\nesac\nPLIST=\"${TARGET_BUILD_DIR}/${INFOPLIST_PATH}\"\n[ -f \"$PLIST\" ] || exit 0\n/usr/libexec/PlistBuddy -c \"Delete :NSLocalNetworkUsageDescription\" \"$PLIST\" 2>/dev/null || true\n/usr/libexec/PlistBuddy -c \"Delete :NSBonjourServices\" \"$PLIST\" 2>/dev/null || true\n";
+		};
 		00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
