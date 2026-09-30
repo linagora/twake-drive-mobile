@@ -45,6 +45,10 @@ interface Props {
   onDelete?: (folder: FolderItem) => void
   onTogglePin?: (folder: FolderItem) => void
   onMove?: (folder: FolderItem) => void
+  /** Recipient side of a shared drive: leaving replaces the owner's revoke. */
+  onLeave?: (folder: FolderItem) => void
+  /** Off for a row that stands for a sharing rather than a document of ours. */
+  canFavorite?: boolean
   /** Called after a favorite toggle so the parent can refetch its query — the
    * lists are non-reactive, so without this a removed favorite lingers. */
   onFavoriteChange?: () => void
@@ -63,6 +67,8 @@ export const FolderRow = ({
   onDelete,
   onTogglePin,
   onMove,
+  onLeave,
+  canFavorite,
   onFavoriteChange,
   testID
 }: Props) => {
@@ -75,7 +81,8 @@ export const FolderRow = ({
   const folderOfflineState = useOfflineFolderState(folder._id)
   const isPinned = folderOfflineState.pinned
   const hasMenu =
-    hasFolderActions({ onShare, onRename, onRestore, onDelete, onTogglePin, onMove }) && !selected
+    hasFolderActions({ onShare, onRename, onRestore, onDelete, onTogglePin, onMove, onLeave }) &&
+    !selected
 
   const description =
     isPinned && folderOfflineState.downloading > 0
@@ -140,6 +147,8 @@ export const FolderRow = ({
             onDelete={onDelete}
             onTogglePin={onTogglePin}
             onMove={onMove}
+            onLeave={onLeave}
+            canFavorite={canFavorite}
             onFavoriteChange={onFavoriteChange}
           />
         ) : (

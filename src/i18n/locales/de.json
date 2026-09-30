@@ -266,7 +266,15 @@
       "withMe": "Mit mir",
       "byMe": "Von mir",
       "drives": "Drives",
-      "driveFileSyncing": "Dieses Dokument wird noch synchronisiert, versuchen Sie es gleich erneut"
+      "driveFileSyncing": "Dieses Dokument wird noch synchronisiert, versuchen Sie es gleich erneut",
+      "leave": {
+        "action": "Geteiltes Drive verlassen",
+        "confirmTitle": "Dieses geteilte Drive verlassen?",
+        "confirmBody": "„{{name}}“ ist dann nicht mehr zugänglich. Die Eigentümerin oder der Eigentümer kann es erneut mit Ihnen teilen.",
+        "confirm": "Verlassen",
+        "success": "Sie haben „{{name}}“ verlassen",
+        "error": "Das geteilte Drive konnte nicht verlassen werden"
+      }
     },
     "emptySharedByMe": "Sie teilen derzeit keine Datei",
     "viewer": {

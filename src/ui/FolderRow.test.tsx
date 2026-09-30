@@ -142,3 +142,59 @@ describe('FolderRow', () => {
     })
   })
 })
+
+describe('FolderRow on a shared drive row', () => {
+  beforeEach(() => mockFlag.mockReturnValue(undefined))
+
+  const openMenu = (): void => {
+    fireEvent.press(screen.getByTestId('folder-actions:Documents'))
+  }
+
+  it('offers leaving when onLeave is provided', () => {
+    render(wrap(<FolderRow folder={folder} onPress={jest.fn()} onLeave={jest.fn()} />))
+    openMenu()
+    expect(screen.getByTestId('action-leave-drive')).toBeOnTheScreen()
+  })
+
+  it('calls onLeave with the folder', () => {
+    const onLeave = jest.fn()
+    render(wrap(<FolderRow folder={folder} onPress={jest.fn()} onLeave={onLeave} />))
+    openMenu()
+    fireEvent.press(screen.getByTestId('action-leave-drive'))
+    expect(onLeave).toHaveBeenCalledWith(folder)
+  })
+
+  it('renders the menu for onLeave alone', () => {
+    render(wrap(<FolderRow folder={folder} onPress={jest.fn()} onLeave={jest.fn()} />))
+    expect(screen.getByTestId('folder-actions:Documents')).toBeOnTheScreen()
+  })
+
+  it('leaves no leave entry without the handler', () => {
+    render(wrap(<FolderRow folder={folder} onPress={jest.fn()} onShare={jest.fn()} />))
+    openMenu()
+    expect(screen.queryByTestId('action-leave-drive')).toBeNull()
+  })
+
+  it('drops the favourite entry when the row stands for a sharing', () => {
+    render(
+      <PaperProvider>
+        <FolderRow folder={folder} onPress={jest.fn()} onShare={jest.fn()} canFavorite={false} />
+      </PaperProvider>
+    )
+    openMenu()
+    expect(screen.queryByTestId('action-favorite')).toBeNull()
+  })
+
+  it('keeps the favourite entry on an ordinary folder', () => {
+    render(wrap(<FolderRow folder={folder} onPress={jest.fn()} onShare={jest.fn()} />))
+    openMenu()
+    expect(screen.getByTestId('action-favorite')).toBeOnTheScreen()
+  })
+
+  it('disables leaving while offline', () => {
+    mockOnline = false
+    render(wrap(<FolderRow folder={folder} onPress={jest.fn()} onLeave={jest.fn()} />))
+    openMenu()
+    expect(screen.getByTestId('action-leave-drive')).toBeDisabled()
+  })
+})

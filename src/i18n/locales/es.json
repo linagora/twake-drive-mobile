@@ -275,7 +275,15 @@
       "withMe": "Conmigo",
       "byMe": "Por mí",
       "drives": "Drives",
-      "driveFileSyncing": "Este documento se está sincronizando, inténtalo de nuevo en un momento"
+      "driveFileSyncing": "Este documento se está sincronizando, inténtalo de nuevo en un momento",
+      "leave": {
+        "action": "Salir del drive compartido",
+        "confirmTitle": "¿Salir de este drive compartido?",
+        "confirmBody": "«{{name}}» ya no estará accesible. Su propietario podrá volver a compartirlo contigo.",
+        "confirm": "Salir",
+        "success": "Has salido de «{{name}}»",
+        "error": "No se ha podido salir de este drive compartido"
+      }
     },
     "emptySharedByMe": "No estás compartiendo ningún archivo",
     "viewer": {
