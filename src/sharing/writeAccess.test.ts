@@ -176,8 +176,18 @@ describe('hasWriteAccess', () => {
     expect(hasWriteAccess(state([]), 'anyFolder', 'drive1', ME)).toBe(false)
   })
 
-  it('refuses writing at the root folder of a drive shared with the instance', () => {
+  it('allows a recipient to write at the root folder of a shared drive', () => {
     const drive = sharing({ drive: true, members: [{ status: 'ready', instance: ME }] }, 'drive1')
+    expect(
+      hasWriteAccess(state([drive], [['root', { sharing: drive }]]), 'root', 'drive1', ME)
+    ).toBe(true)
+  })
+
+  it('still refuses that root folder when the member joined read only', () => {
+    const drive = sharing(
+      { drive: true, members: [{ status: 'ready', instance: ME, read_only: true }] },
+      'drive1'
+    )
     expect(
       hasWriteAccess(state([drive], [['root', { sharing: drive }]]), 'root', 'drive1', ME)
     ).toBe(false)
