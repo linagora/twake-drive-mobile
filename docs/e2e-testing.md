@@ -87,6 +87,12 @@ Cross-platform selectors are the tricky part. What works on both platforms:
 
 ## Gotchas
 
+- **File Provider domains cannot be exercised on the iOS simulator.**
+  `NSFileProviderManager.add` fails there with `NSPOSIXErrorDomain 22` wrapping
+  `libfssync.VFSFileError cannotSetXattr("com.apple.fileproviderd")`, and Files
+  lists the provider whether a domain was registered or not. Anything about
+  Twake Drive appearing in or leaving Files has to be checked on a device.
+
 - **`pressKey: Enter` does not submit** the "New folder" dialog — tap the confirm
   button instead (creating a folder purely with `Enter` fails).
 - **`-e KEY=VALUE` is ignored** when the flow declares an `env:` block (the block
