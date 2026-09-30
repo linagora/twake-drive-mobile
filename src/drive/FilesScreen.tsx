@@ -51,6 +51,7 @@ import { renameEntry } from '@/files/renameEntry'
 import { openFileFromList } from '@/files/openFromList'
 import { surfaceOpenError } from '@/files/errors'
 import { useFlag } from '@/client/useFlag'
+import { OFFICE_FLAGS, officeEnabledFrom } from '@/viewer/viewerFlags'
 import { useIsOnline } from '@/network/useIsOnline'
 import { requireOnline } from '@/network/requireOnline'
 import { useOfflineActions } from '@/offline/useOfflineActions'
@@ -120,7 +121,10 @@ export const FilesScreen = ({ basePath }: FilesScreenProps): React.ReactElement 
   )
   const client = useClient()
   const docsEnabled = !!useFlag('drive.lasuitedocs.enabled')
-  const officeEnabled = !!useFlag('drive.onlyoffice.enabled')
+  const officeEnabled = officeEnabledFrom(
+    useFlag(OFFICE_FLAGS.touchScreen),
+    useFlag(OFFICE_FLAGS.legacy)
+  )
   const excalidrawEnabled = !!useFlag('drive.excalidraw.enabled')
   const isOnline = useIsOnline()
 

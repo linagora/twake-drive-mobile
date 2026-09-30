@@ -1,4 +1,8 @@
 jest.mock('cozy-flags', () => ({ __esModule: true, default: jest.fn() }))
+const mockOpenFileNatively = jest.fn()
+jest.mock('./openFile', () => ({
+  openFileNatively: (...a: unknown[]) => mockOpenFileNatively(...a)
+}))
 
 import type CozyClient from 'cozy-client'
 import flag from 'cozy-flags'
@@ -13,7 +17,9 @@ const router = { push: jest.fn() } as unknown as Router
 describe('openFileFromList', () => {
   beforeEach(() => {
     jest.clearAllMocks()
-    mockFlag.mockReturnValue(false)
+    mockFlag.mockImplementation((name: string) =>
+      name === 'drive.onlyoffice.enabled' ? true : null
+    )
   })
 
   it('hands the Docs bridge the external id the document is addressed by', async () => {
@@ -63,6 +69,26 @@ describe('openFileFromList', () => {
 
     expect(openEditor).toHaveBeenCalledWith(
       expect.objectContaining({ _id: 'f3', name: 'rapport.docx' }),
+      undefined
+    )
+  })
+
+  it('opens an office document on the device when OnlyOffice is off', async () => {
+    mockFlag.mockReturnValue(null)
+    const openEditor = jest.fn().mockResolvedValue(undefined)
+
+    await openFileFromList(
+      client,
+      router,
+      { _id: 'f5', name: 'rapport.docx' },
+      undefined,
+      openEditor
+    )
+
+    expect(openEditor).not.toHaveBeenCalled()
+    expect(mockOpenFileNatively).toHaveBeenCalledWith(
+      client,
+      expect.objectContaining({ _id: 'f5', name: 'rapport.docx' }),
       undefined
     )
   })

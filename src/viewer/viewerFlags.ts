@@ -12,6 +12,20 @@ export const VIEWER_FLAGS = {
   office: 'drive.mobile.viewer.office.enabled'
 } as const
 
+export const OFFICE_FLAGS = {
+  touchScreen: 'drive.office.touchScreen.enabled',
+  legacy: 'drive.onlyoffice.enabled'
+} as const
+
+/** Mirrors twake-drive's isOfficeEnabled on a touch screen. */
+export const officeEnabledFrom = (touchScreen: unknown, legacy: unknown): boolean => {
+  if (touchScreen !== null && touchScreen !== undefined) return !!touchScreen
+  return !!legacy
+}
+
+export const isOfficeEnabled = (): boolean =>
+  officeEnabledFrom(flag(OFFICE_FLAGS.touchScreen), flag(OFFICE_FLAGS.legacy))
+
 export type ViewerKind = keyof typeof VIEWER_FLAGS
 
 /**

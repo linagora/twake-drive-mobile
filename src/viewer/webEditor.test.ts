@@ -1,3 +1,8 @@
+let mockOfficeFlag: unknown = true
+jest.mock('cozy-flags', () => ({
+  __esModule: true,
+  default: (name: string) => (name === 'drive.onlyoffice.enabled' ? mockOfficeFlag : null)
+}))
 import type CozyClient from 'cozy-client'
 
 const mockFetchURL = jest.fn()
@@ -34,6 +39,12 @@ describe('webEditorKindOf', () => {
     expect(webEditorKindOf({ _id: '2', name: 'a.docs-note' })).toBe('docs')
     expect(webEditorKindOf(docx)).toBe('office')
     expect(webEditorKindOf({ _id: '4', name: 'schéma.excalidraw' })).toBe('excalidraw')
+  })
+
+  it('claims no office document when OnlyOffice is off', () => {
+    mockOfficeFlag = null
+    expect(webEditorKindOf(docx)).toBeNull()
+    mockOfficeFlag = true
   })
 
   it('recognises an office document by its extension, before the stack typed it', () => {

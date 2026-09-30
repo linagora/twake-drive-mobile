@@ -4,6 +4,7 @@ import * as WebBrowser from 'expo-web-browser'
 import { buildCozyAppUrl } from '@/files/cozyAppLink'
 import { isCozyNoteFile, isDocsNoteFile, isOfficeFile } from '@/files/fileTypes'
 import { refreshDocumentFromStack } from '@/files/refreshDocument'
+import { isOfficeEnabled } from './viewerFlags'
 
 export interface EditableDocument {
   _id: string
@@ -19,7 +20,9 @@ const OFFICE_EXTENSIONS = /\.(docx|xlsx|pptx|odt|ods|odp)$/i
 export const webEditorKindOf = (file: EditableDocument): WebEditorKind | null => {
   if (isCozyNoteFile(file.name)) return 'note'
   if (isDocsNoteFile(file.name)) return 'docs'
-  if (isOfficeFile(file.mime) || OFFICE_EXTENSIONS.test(file.name)) return 'office'
+  if (isOfficeFile(file.mime) || OFFICE_EXTENSIONS.test(file.name)) {
+    return isOfficeEnabled() ? 'office' : null
+  }
   if (/\.excalidraw$/i.test(file.name)) return 'excalidraw'
   return null
 }
