@@ -28,23 +28,26 @@ onFlowComplete:
     id: 'action-share'
 - waitForAnimationToEnd
 - extendedWaitUntil:
-    visible: 'Lien public'
+    visible:
+      id: 'share-recipients-title'
     timeout: 20000
 - tapOn:
     id: 'share-add-recipient'
 - tapOn:
     id: 'share-email-input'
 - inputText: '${RECIPIENT}'
-- tapOn: 'Destinataires'
+- tapOn:
+    id: 'share-recipients-title'
 - tapOn:
     id: 'share-send'
 - extendedWaitUntil:
     visible:
       id: 'recipient-row'
     timeout: 25000
-- tapOn: 'Fermer'
 - tapOn:
-    text: 'Partages.*'
+    id: 'share-close'
+- tapOn:
+    id: 'tab-shared'
 - tapOn:
     id: 'sharings-tab-by-me'
 - extendedWaitUntil:
@@ -61,11 +64,17 @@ onFlowComplete:
 - waitForAnimationToEnd
 # inside a drive the stack refuses a shortcut, and the Docs bridge writes on
 # our own instance, so neither is offered
-- assertNotVisible: 'Raccourci'
-- assertNotVisible: 'Nouveau document Docs'
-- tapOn: 'Nouveau dossier'
+- assertNotVisible:
+    id: 'create-shortcut'
+- assertNotVisible:
+    id: 'create-docs'
+- tapOn:
+    id: 'create-folder'
+- tapOn:
+    id: 'create-folder-name-input'
 - inputText: '${INSIDE}'
-- pressKey: Enter
+- tapOn:
+    id: 'create-folder-submit'
 - extendedWaitUntil:
     visible: '${INSIDE}'
     timeout: 25000

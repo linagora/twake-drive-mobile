@@ -17,7 +17,8 @@ tags:
 # baseline, which the compare script reports rather than passing silently.
 - launchApp
 - extendedWaitUntil:
-    visible: 'Mon Drive.*'
+    visible:
+      id: 'tab-files'
     timeout: 120000
 - runFlow: ../subflows/dismissDevWarnings.yaml
 - waitForAnimationToEnd

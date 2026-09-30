@@ -21,11 +21,14 @@ onFlowComplete:
     id: 'action-share'
 - waitForAnimationToEnd
 - extendedWaitUntil:
-    visible: 'Lien public'
+    visible:
+      id: 'share-recipients-title'
     timeout: 20000
-- assertVisible: 'Ajouter un destinataire'
+- assertVisible:
+    id: 'share-add-recipient'
 - assertVisible: '${output.folder.name}'
-- tapOn: 'Fermer'
+- tapOn:
+    id: 'share-close'
 - extendedWaitUntil:
     visible:
       id: 'folder-row:${output.folder.name}'

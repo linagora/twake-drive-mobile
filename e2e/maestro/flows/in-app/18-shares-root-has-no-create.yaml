@@ -8,7 +8,7 @@ tags:
 # must stay away.
 - runFlow: ../../subflows/openDrive.yaml
 - tapOn:
-    text: 'Partages.*'
+    id: 'tab-shared'
 # the sub-tabs only exist at the root of the tab, so they are the marker that
 # the list settled before anything is asserted absent
 - extendedWaitUntil:

@@ -2,18 +2,17 @@ appId: com.linagora.twakedrive
 tags:
   - inapp
 ---
-# Tabs by regex ('<Tab>.*' matches iOS "Récents, tab, 3 of 7" + Android "Récents").
+# Walks every tab and comes back to Mon Drive.
 - runFlow: ../../subflows/openDrive.yaml
 - tapOn:
-    text: 'Récents.*'
+    id: 'tab-recent'
 - tapOn:
-    text: 'Favoris.*'
+    id: 'tab-favorites'
 - tapOn:
-    text: 'Corbeille.*'
+    id: 'tab-trash'
 - tapOn:
-    text: 'Mon Drive.*'
-# The tab bar always shows "Mon Drive" (the regex tolerates the iOS suffix).
+    id: 'tab-files'
 - extendedWaitUntil:
     visible:
-      text: 'Mon Drive.*'
+      id: 'tab-files'
     timeout: 8000

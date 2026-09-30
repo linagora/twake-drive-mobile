@@ -6,8 +6,8 @@ env:
 onFlowComplete:
   - runFlow: ../../subflows/cleanup.yaml
 ---
-# The menu follows the pin: "Retirer du hors-ligne" once kept offline, "Garder
-# hors-ligne" once released. The local purge on unpin is covered by the
+# The menu follows the pin: action-unpin once kept offline, action-pin once
+# released. The local purge on unpin is covered by the
 # OfflineFilesStore unit test.
 - runScript:
     file: ../../scripts/seed.js
@@ -21,13 +21,15 @@ onFlowComplete:
 - tapOn:
     id: 'folder-actions:${output.folder.name}${MENU_SUFFIX}'
 - waitForAnimationToEnd
-- tapOn: 'Garder hors-ligne'
+- tapOn:
+    id: 'action-pin'
 - tapOn:
     id: 'folder-actions:${output.folder.name}${MENU_SUFFIX}'
 - waitForAnimationToEnd
-- assertVisible: 'Retirer du hors-ligne'
-- tapOn: 'Retirer du hors-ligne'
+- tapOn:
+    id: 'action-unpin'
 - tapOn:
     id: 'folder-actions:${output.folder.name}${MENU_SUFFIX}'
 - waitForAnimationToEnd
-- assertVisible: 'Garder hors-ligne'
+- assertVisible:
+    id: 'action-pin'

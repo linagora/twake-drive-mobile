@@ -41,8 +41,7 @@ Every flow can run alone and in any order:
   a random name, and reads it back as `${output.<key>.name}`.
 - Its `onFlowComplete` runs `subflows/cleanup.yaml`, which turns airplane mode off and
   deletes that material, whether the flow passed or not.
-- Only the sign-in (`00-login-instance`) and the language (`00-set-language-fr`) are
-  shared, and they run first.
+- Only the sign-in (`00-login-instance`) is shared, and it runs first.
 
 `05-preview` reads the `sample.jpg` the instance is created with and changes nothing.
 `06-editor` is tagged `onlyoffice`: the e2e stack has no OnlyOffice server.
@@ -64,8 +63,12 @@ With **two devices connected**, `maestro test` auto-selects one (often the Andro
 
 Labels/accessibility differ iOS↔Android. Rules (details in `DEVICE-NOTES.md`):
 
-- Tabs / folders: text regex `{ text: 'Récents.*' }`, `{ text: 'name.*' }`.
-- Buttons / fields: **testIDs** (`appbar-back-button`, `drive-fab`, `search-input`…).
+- Anything the app draws: a **testID** (`tab-files`, `drive-fab`, `action-unpin`,
+  `folder-row:<name>`, `pinned-badge:downloaded`…), never a label: labels change with the
+  language, testIDs do not, so the flows run in any language. A state the flow checks
+  goes into the testID (`action-pin` / `action-unpin`).
+- Text only for what the app does not draw (the stack's login page, DocumentsUI, Files)
+  and for the names of the files a flow seeded.
 - Back: `{ id: 'appbar-back-button' }` (no `pressKey: Back` — iOS has no hardware back).
 
 ## Structure
