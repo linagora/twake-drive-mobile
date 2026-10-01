@@ -20,3 +20,12 @@ services:
       - '80:8080'
       - '5984:5984'
       - '6060:6060'
+  # The sign-up portal a logout visits, see portal.js. The emulator reaches it
+  # through 10.0.2.2 like the stack.
+  portal:
+    image: node:20-alpine
+    command: ['node', '/portal.js']
+    volumes:
+      - ./portal.js:/portal.js:ro
+    ports:
+      - '8090:8090'
