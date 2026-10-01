@@ -202,6 +202,7 @@ export const SharedDriveScreen = ({ basePath }: Props): React.ReactElement => {
         title={title}
         onBack={isRoot ? undefined : goBack}
         onLogout={isRoot ? logout : undefined}
+        showSearch
       />
       {isRoot ? (
         <FileListView

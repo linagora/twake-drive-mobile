@@ -26,9 +26,16 @@ const wrap = (ui: React.ReactElement) => (
 )
 
 describe('AppBar', () => {
-  it('renders no search button', () => {
+  it('opens the search from its button', () => {
+    mockPush.mockClear()
+    render(wrap(<AppBar title="Mes fichiers" showSearch />))
+    fireEvent.press(screen.getByTestId('appbar-search-button'))
+    expect(mockPush).toHaveBeenCalledWith('/search')
+    expect(screen.getByLabelText('drive.search.action')).toBeOnTheScreen()
+  })
+
+  it('renders no search button unless asked', () => {
     render(wrap(<AppBar title="Mes fichiers" />))
-    expect(screen.queryByLabelText('drive.search.action')).toBeNull()
     expect(screen.queryByTestId('appbar-search-button')).toBeNull()
   })
 

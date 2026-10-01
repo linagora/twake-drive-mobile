@@ -343,6 +343,7 @@ export default function SharedScreen() {
         title={currentDirName}
         onBack={isRoot ? undefined : goBack}
         onLogout={isRoot ? logout : undefined}
+        showSearch
       />
       {isRoot ? (
         <SegmentedButtons
