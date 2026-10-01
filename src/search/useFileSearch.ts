@@ -27,15 +27,14 @@ interface RankedResult {
 
 class SearchUnavailableError extends Error {}
 
-let reported = false
+const reportedMessages = new Set<string>()
 
-const reportOnce = (error: unknown): void => {
+const reportOncePerMessage = (error: unknown): void => {
   if (error instanceof SearchUnavailableError) return
-  if (reported) return
-  reported = true
-  reportCaughtError(error instanceof Error ? error : new Error(String(error)), {
-    area: 'search'
-  })
+  const reportable = error instanceof Error ? error : new Error(String(error))
+  if (reportedMessages.has(reportable.message)) return
+  reportedMessages.add(reportable.message)
+  reportCaughtError(reportable, { area: 'search' })
 }
 
 const searchDatabase = async (
@@ -56,15 +55,6 @@ const searchDatabase = async (
   }
 }
 
-/**
- * File name search on the local replicas: the personal drive and every
- * replicated shared drive. Works offline and issues no network request.
- *
- * Out-of-order responses are dropped via a monotonic request id so fast typing
- * never leaves a stale result on screen.
- *
- * Idle when `enabled` is false (caller sets this when the search term is empty).
- */
 export function useFileSearch(term: string, enabled: boolean): FileSearchState {
   const client = useClient()
   const [state, setState] = useState<{
@@ -106,8 +96,8 @@ export function useFileSearch(term: string, enabled: boolean): FileSearchState {
     }
 
     run().catch((err: unknown) => {
-      reportOnce(err)
       if (id !== reqId.current) return
+      reportOncePerMessage(err)
       setState({ status: 'error', data: [], error: err })
     })
   }, [client, term, enabled, reloadToken])
