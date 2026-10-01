@@ -80,6 +80,26 @@ describe('ensureFileNameIndex', () => {
     expect(sqlOf(execute).filter(sql => sql.includes('CREATE VIRTUAL TABLE'))).toHaveLength(1)
   })
 
+  it('reports not ready, without creating, when it may not create', async () => {
+    const { db, execute } = makeDb(adapterReady(false))
+    await expect(ensureFileNameIndex(db, { mayCreate: false })).resolves.toBe(false)
+    expect(sqlOf(execute).every(sql => sql.startsWith('SELECT 1 AS found'))).toBe(true)
+  })
+
+  it('reports an intact index ready when it may not create', async () => {
+    const { db } = makeDb(adapterReady(true))
+    await expect(ensureFileNameIndex(db, { mayCreate: false })).resolves.toBe(true)
+  })
+
+  it('reads the schema outside the transaction', async () => {
+    const execute = jest.fn(async (sql: string) => ({ rows: adapterReady(false)(sql) }))
+    const inTransaction = jest.fn(async (_sql: string) => ({ rows: [] }))
+    const db: SearchDb = { execute, transaction: async fn => fn({ execute: inTransaction }) }
+    await ensureFileNameIndex(db)
+    expect(sqlOf(inTransaction).some(sql => sql.includes('sqlite_master'))).toBe(false)
+    expect(sqlOf(execute).every(sql => sql.includes('sqlite_master'))).toBe(true)
+  })
+
   it('tries again after a failure', async () => {
     const { db, execute } = makeDb(adapterReady(false))
     execute.mockRejectedValueOnce(new Error('no such module: fts5'))

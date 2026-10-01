@@ -33,9 +33,15 @@ jest.mock('@/pouchdb/triggerReplication', () => ({
   triggerPouchReplication: jest.fn()
 }))
 
+jest.mock('@/search/searchDatabases', () => ({
+  ensureAllFileNameIndexes: jest.fn(async () => undefined),
+  setReplicating: jest.fn()
+}))
+
 import CozyClient from 'cozy-client'
 import PouchLink from 'cozy-pouch-link'
 import { triggerPouchReplication } from '@/pouchdb/triggerReplication'
+import { ensureAllFileNameIndexes, setReplicating } from '@/search/searchDatabases'
 import { createClient } from './createClient'
 
 const mockCozyClient = CozyClient as unknown as jest.Mock
@@ -51,6 +57,8 @@ describe('createClient', () => {
     mockCozyClient.mockClear()
     ;(PouchLink as unknown as jest.Mock).mockClear()
     ;(triggerPouchReplication as jest.Mock).mockClear()
+    ;(ensureAllFileNameIndexes as jest.Mock).mockClear()
+    ;(setReplicating as jest.Mock).mockClear()
   })
 
   it('instantiates CozyClient with the session uri + oauth opts', async () => {
@@ -87,6 +95,49 @@ describe('createClient', () => {
     await createClient(session)
     expect(triggerPouchReplication).toHaveBeenCalledWith(expect.anything(), undefined, {
       immediate: true
+    })
+  })
+
+  describe('replication events', () => {
+    const emit = (client: { on: jest.Mock }, event: string): void => {
+      const listeners = client.on.mock.calls.filter(call => call[0] === event)
+      ;(listeners[listeners.length - 1][1] as () => void)()
+    }
+
+    it('starts with no replication flagged', async () => {
+      await createClient(session)
+      expect((setReplicating as jest.Mock).mock.calls).toEqual([[false]])
+    })
+
+    it('flags the replication when a sync starts', async () => {
+      const client = (await createClient(session)) as unknown as { on: jest.Mock }
+      emit(client, 'pouchlink:sync:start')
+      expect(setReplicating).toHaveBeenLastCalledWith(true)
+      expect(ensureAllFileNameIndexes).not.toHaveBeenCalled()
+    })
+
+    it('clears the flag when a sync is stopped', async () => {
+      const client = (await createClient(session)) as unknown as { on: jest.Mock }
+      emit(client, 'pouchlink:sync:stop')
+      expect(setReplicating).toHaveBeenLastCalledWith(false)
+      expect(ensureAllFileNameIndexes).not.toHaveBeenCalled()
+    })
+
+    it('clears the flag, then ensures every name index, when a sync ends', async () => {
+      const client = (await createClient(session)) as unknown as { on: jest.Mock }
+      emit(client, 'pouchlink:sync:end')
+      expect(setReplicating).toHaveBeenLastCalledWith(false)
+      expect(ensureAllFileNameIndexes).toHaveBeenCalledWith(client)
+      expect((setReplicating as jest.Mock).mock.invocationCallOrder[0]).toBeLessThan(
+        (ensureAllFileNameIndexes as jest.Mock).mock.invocationCallOrder[0]
+      )
+    })
+
+    it('registers each search listener once', async () => {
+      const client = (await createClient(session)) as unknown as { on: jest.Mock }
+      const events = client.on.mock.calls.map(call => call[0] as string)
+      expect(events.filter(event => event === 'pouchlink:sync:start')).toHaveLength(1)
+      expect(events.filter(event => event === 'pouchlink:sync:stop')).toHaveLength(1)
     })
   })
 })

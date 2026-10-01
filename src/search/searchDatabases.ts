@@ -20,6 +20,14 @@ interface SearchLink {
   ) => { db?: SearchDb | null } | null
 }
 
+let replicating = false
+
+export const setReplicating = (value: boolean): void => {
+  replicating = value
+}
+
+export const isReplicating = (): boolean => replicating
+
 export const getSearchDatabases = (client: CozyClient): SearchDatabase[] => {
   const link = getPouchLink(client) as unknown as SearchLink | null
   if (!link) return []

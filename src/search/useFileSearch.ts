@@ -5,7 +5,7 @@ import { FileQueryResult } from '@/client/queries'
 import { reportCaughtError } from '@/monitoring/crashReporting'
 
 import { ensureFileNameIndex, FileNameHit, searchFileNames } from './fileNameIndex'
-import { getSearchDatabases, SearchDatabase } from './searchDatabases'
+import { getSearchDatabases, isReplicating, SearchDatabase } from './searchDatabases'
 
 export type SearchStatus = 'idle' | 'loading' | 'success' | 'error'
 
@@ -40,7 +40,7 @@ const searchDatabase = async (
   term: string
 ): Promise<RankedResult[]> => {
   try {
-    if (!(await ensureFileNameIndex(db))) return []
+    if (!(await ensureFileNameIndex(db, { mayCreate: !isReplicating() }))) return []
     const hits: FileNameHit[] = await searchFileNames(db, term, FILE_SEARCH_RESULT_LIMIT)
     return hits.map(({ doc, rank }) => ({ doc: driveId ? { ...doc, driveId } : doc, rank }))
   } catch (error) {
