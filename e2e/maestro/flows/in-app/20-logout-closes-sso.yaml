@@ -1,0 +1,38 @@
+appId: com.linagora.twakedrive
+tags:
+  - inapp
+# The flows after this one need the session back, whether it passed or not,
+# and a replica that has caught up: a flow started during the first sync of a
+# fresh sign-in does not see what it seeds in time. Something seeded after the
+# sign-in showing up says the sync is past it.
+onFlowComplete:
+  - runFlow: ../00-login-instance.yaml
+  - runScript:
+      file: ../../scripts/seed.js
+      env:
+        SEED: '[{"key":"settled","kind":"folder","prefix":"E2E-settled"}]'
+  - extendedWaitUntil:
+      visible:
+        id: 'folder-row:${output.settled.name}'
+      timeout: 180000
+  - runFlow: ../../subflows/cleanup.yaml
+---
+# Signing out opens the sign-up portal's logout page in the system browser, so
+# the next login asks which account to use, and the browser closes by itself:
+# the welcome screen is only reachable once it is gone. The e2e stack points
+# the `signup.url` flag to a stand-in portal (e2e/stack/portal.js).
+- runFlow: ../../subflows/openDrive.yaml
+- runScript:
+    file: ../../scripts/portalLogouts.js
+- tapOn:
+    id: 'appbar-avatar'
+- tapOn:
+    id: 'appbar-logout'
+- extendedWaitUntil:
+    visible:
+      id: 'welcome-login'
+    timeout: 60000
+- runScript:
+    file: ../../scripts/portalLogouts.js
+    env:
+      MORE_THAN: ${output.portalLogouts}

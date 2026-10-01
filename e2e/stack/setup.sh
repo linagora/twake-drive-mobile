@@ -5,10 +5,14 @@ set -euo pipefail
 # have something to look at.
 #
 # Usage: e2e/stack/setup.sh [domain] [passphrase]
+# Env: STACK_CONTAINER, PORTAL_URL
 
 DOMAIN="${1:-alice.10-0-2-2.nip.io}"
 PASSPHRASE="${2:-cozycozy}"
 STACK="${STACK_CONTAINER:-e2e-stack-1}"
+# Where the device reaches the stand-in portal of docker-compose.yml: 10.0.2.2
+# from an Android emulator, 127.0.0.1 from an iOS simulator.
+PORTAL="${PORTAL_URL:-http://10.0.2.2:8090}"
 
 run() { docker exec "$STACK" cozy-stack "$@"; }
 
@@ -37,6 +41,7 @@ fi
 # drive.federated-shared-folder.enabled are the two the app reads to share by
 # email through a shared drive; the rest is kept as the web sets it so both
 # clients face the same instance.
+# signup.url is the portal a logout visits to close the SSO session.
 # The image creates the instance in English, the app follows the instance
 # locale, and every flow selects on the French labels.
 echo "Setting the instance locale"
@@ -44,6 +49,7 @@ run instances modify "$DOMAIN" --locale fr
 
 echo "Setting the feature flags"
 run features flags --domain "$DOMAIN" '{
+  "signup.url": "'"$PORTAL"'",
   "cozy.hide-sharing-cozy-to-cozy": true,
   "drive.shared-drive.enabled": true,
   "drive.federated-shared-folder.enabled": true,

@@ -173,6 +173,7 @@ export const AppBar = ({ title, onBack, onClose, onLogout, selection, sheet }: P
               onLogout()
             }}
             title={t('common.logout')}
+            testID="appbar-logout"
             leadingIcon={() => (
               <CozyIcon
                 name="logout"
