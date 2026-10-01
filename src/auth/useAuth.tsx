@@ -15,6 +15,7 @@ import { createClient } from '@/client/createClient'
 import i18n, { resolveDeviceLanguage } from '@/i18n'
 import { clearNativeSession, mirrorSessionToNative } from '@/native/twakeAuthBridge'
 import { destroyLocalData } from '@/pouchdb/destroyLocalData'
+import { dropAllFileNameIndexes } from '@/search/searchDatabases'
 import { setAccountScope } from '@/storage/accountScope'
 import { clearSession, getSession, saveSession } from './tokenStorage'
 import { wipeDeviceData } from './wipeDeviceData'
@@ -159,6 +160,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const logout = useCallback(
     async (options?: { expired?: boolean; wipe?: boolean }): Promise<void> => {
       const signupUrl = flag('signup.url') as string | undefined
+      if (clientRef.current) await dropAllFileNameIndexes(clientRef.current)
       setState(prev => {
         if (prev.client) {
           Promise.resolve(prev.client.logout()).catch(() => {
@@ -201,6 +203,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       const session = await getSession()
       if (!session) return
+      if (clientRef.current) await dropAllFileNameIndexes(clientRef.current)
       await destroyLocalData(clientRef.current ?? undefined)
       clientRef.current = null
       setState({ status: 'loading', client: null })

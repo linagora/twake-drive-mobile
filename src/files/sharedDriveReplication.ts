@@ -1,6 +1,8 @@
 import type CozyClient from 'cozy-client'
 import { createMMKV } from 'react-native-mmkv'
 
+import { dropSharedDriveFileNameIndex } from '@/search/searchDatabases'
+
 import { fetchSharedDrives, SharedDriveEntry } from './sharedDrives'
 
 const SHARED_DRIVE_DOCTYPE = 'io.cozy.files.shareddrives'
@@ -105,6 +107,7 @@ const unregisterSharedDrive = async (client: CozyClient, driveId: string): Promi
   if (!pouchLink?.removeDoctype) return
   const doctype = sharedDriveDoctype(driveId)
   if (!pouchLink.doctypes.includes(doctype)) return
+  await dropSharedDriveFileNameIndex(client, driveId)
   await pouchLink.removeDoctype(doctype)
 }
 

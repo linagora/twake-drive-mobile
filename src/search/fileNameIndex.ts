@@ -24,7 +24,7 @@ const NAME = "CASE WHEN json_valid(s.json) THEN json_extract(s.json, '$.name') E
 const REVERSED = `(SELECT group_concat(substr(${NAME}, n, 1), '' ORDER BY n DESC) FROM search_positions WHERE n <= length(${NAME}))`
 
 const indexWinningRevision = (docId: string, winningSeq: string): string =>
-  `INSERT INTO file_names(rowid, name, reversed, doc_id)
+  `INSERT OR REPLACE INTO file_names(rowid, name, reversed, doc_id)
    SELECT s.seq, ${NAME}, ${REVERSED}, ${docId}
    FROM 'by-sequence' s
    WHERE s.seq = ${winningSeq} AND s.deleted = 0 AND ${NAME} IS NOT NULL`
@@ -33,6 +33,7 @@ const CREATE_STATEMENTS = [
   'CREATE TABLE IF NOT EXISTS search_positions(n INTEGER PRIMARY KEY)',
   `WITH RECURSIVE positions(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM positions WHERE n < ${MAX_NAME_LENGTH})
    INSERT OR IGNORE INTO search_positions SELECT n FROM positions`,
+  'DROP TABLE IF EXISTS file_names',
   `CREATE VIRTUAL TABLE IF NOT EXISTS file_names USING fts5(
      name, reversed, doc_id UNINDEXED,
      tokenize = "unicode61 remove_diacritics 2",
@@ -65,38 +66,50 @@ const SEARCH = `SELECT s.json AS json, s.doc_id AS doc_id, s.rev AS rev, f.rank 
    ORDER BY f.rank
    LIMIT ?`
 
-const hasTable = async (execute: Execute, name: string): Promise<boolean> => {
-  const { rows } = await execute(`SELECT 1 AS found FROM sqlite_master WHERE name = '${name}'`)
+const DROP_STATEMENTS = [
+  'DROP TRIGGER IF EXISTS file_names_insert',
+  'DROP TRIGGER IF EXISTS file_names_update',
+  'DROP TRIGGER IF EXISTS file_names_delete',
+  'DROP TABLE IF EXISTS file_names',
+  'DROP TABLE IF EXISTS search_positions'
+]
+
+const hasSchemaObject = async (
+  execute: Execute,
+  type: 'table' | 'trigger',
+  name: string
+): Promise<boolean> => {
+  const { rows } = await execute(
+    `SELECT 1 AS found FROM sqlite_master WHERE type = '${type}' AND name = '${name}'`
+  )
   return rows.length > 0
 }
 
 const createFileNameIndex = async (db: SearchDb): Promise<boolean> => {
-  if (!(await hasTable(db.execute, 'document-store'))) return false
+  if (!(await hasSchemaObject(db.execute, 'table', 'document-store'))) return false
+  if (await hasSchemaObject(db.execute, 'trigger', 'file_names_insert')) return true
   await db.transaction(async tx => {
-    const existed = await hasTable(tx.execute, 'file_names')
     for (const statement of CREATE_STATEMENTS) await tx.execute(statement)
-    if (!existed) await tx.execute(BACKFILL)
+    await tx.execute(BACKFILL)
   })
   return true
 }
 
-const ensured = new WeakMap<SearchDb, Promise<boolean>>()
+const inFlight = new WeakMap<SearchDb, Promise<boolean>>()
 
 export const ensureFileNameIndex = (db: SearchDb): Promise<boolean> => {
-  const pending = ensured.get(db)
+  const pending = inFlight.get(db)
   if (pending) return pending
-  const creation = createFileNameIndex(db).then(
-    ready => {
-      if (!ready) ensured.delete(db)
-      return ready
-    },
-    (error: unknown) => {
-      ensured.delete(db)
-      throw error
-    }
-  )
-  ensured.set(db, creation)
+  const creation = createFileNameIndex(db).finally(() => inFlight.delete(db))
+  inFlight.set(db, creation)
   return creation
+}
+
+export const dropFileNameIndex = async (db: SearchDb): Promise<void> => {
+  await inFlight.get(db)?.catch(() => undefined)
+  await db.transaction(async tx => {
+    for (const statement of DROP_STATEMENTS) await tx.execute(statement)
+  })
 }
 
 const toHit = (row: Record<string, unknown>): FileNameHit | null => {

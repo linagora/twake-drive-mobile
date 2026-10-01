@@ -3,7 +3,7 @@ import type CozyClient from 'cozy-client'
 import { getReplicatedDriveIds, sharedDriveDoctype } from '@/files/sharedDriveReplication'
 import { getPouchLink } from '@/pouchdb/triggerReplication'
 
-import { ensureFileNameIndex, SearchDb } from './fileNameIndex'
+import { dropFileNameIndex, ensureFileNameIndex, SearchDb } from './fileNameIndex'
 
 const FILES_DOCTYPE = 'io.cozy.files'
 
@@ -48,5 +48,36 @@ export const ensureAllFileNameIndexes = async (client: CozyClient): Promise<void
     } catch (e) {
       console.warn('[search] could not index', driveId ?? 'personal drive', e)
     }
+  }
+}
+
+export const dropAllFileNameIndexes = async (client: CozyClient): Promise<void> => {
+  let databases: SearchDatabase[]
+  try {
+    databases = getSearchDatabases(client)
+  } catch (e) {
+    console.warn('[search] could not open the databases', e)
+    return
+  }
+  for (const { db, driveId } of databases) {
+    try {
+      await dropFileNameIndex(db)
+    } catch (e) {
+      console.warn('[search] could not drop the index of', driveId ?? 'personal drive', e)
+    }
+  }
+}
+
+export const dropSharedDriveFileNameIndex = async (
+  client: CozyClient,
+  driveId: string
+): Promise<void> => {
+  try {
+    const link = getPouchLink(client) as unknown as SearchLink | null
+    if (!link?.doctypes.includes(sharedDriveDoctype(driveId))) return
+    const db = link.getQueryEngineFromDoctype(FILES_DOCTYPE, { driveId })?.db
+    if (db) await dropFileNameIndex(db)
+  } catch (e) {
+    console.warn('[search] could not drop the index of', driveId, e)
   }
 }
