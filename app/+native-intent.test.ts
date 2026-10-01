@@ -16,6 +16,12 @@ describe('redirectSystemPath', () => {
     )
   })
 
+  it('sends the end of the SSO logout to the drive, not to a route of that name', () => {
+    expect(redirectSystemPath({ path: 'twakedrive://afterlogout', initial: false })).toBe(
+      '/(drive)/files'
+    )
+  })
+
   it('opens the route a link of ours names', () => {
     expect(redirectSystemPath({ path: 'twakedrive:///search', initial: false })).toBe(
       'twakedrive:///search'

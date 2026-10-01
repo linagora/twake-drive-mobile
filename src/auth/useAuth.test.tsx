@@ -41,6 +41,11 @@ jest.mock('./wipeDeviceData', () => ({
   wipeDeviceData: (...a: unknown[]) => mockWipeDeviceData(...(a as []))
 }))
 
+const mockCloseSsoSession = jest.fn(async () => undefined)
+jest.mock('./ssoLogout', () => ({
+  closeSsoSession: (...a: unknown[]) => mockCloseSsoSession(...(a as []))
+}))
+
 jest.mock('cozy-flags', () => ({
   __esModule: true,
   default: Object.assign(jest.fn(), { plugin: jest.fn() })
@@ -52,6 +57,7 @@ jest.mock('@/i18n', () => ({
   resolveDeviceLanguage: jest.fn(() => 'en')
 }))
 
+import flag from 'cozy-flags'
 import i18n, { resolveDeviceLanguage } from '@/i18n'
 import * as tokenStorage from './tokenStorage'
 import * as twakeAuthBridge from '@/native/twakeAuthBridge'
@@ -95,6 +101,8 @@ describe('useAuth', () => {
     jest.restoreAllMocks()
     // restoreAllMocks leaves jest.fn()s from jest.mock factories alone.
     mockWipeDeviceData.mockClear()
+    mockCloseSsoSession.mockClear()
+    ;(flag as unknown as jest.Mock).mockReset()
   })
 
   it('starts loading then transitions to unauthenticated when no session', async () => {
@@ -224,6 +232,48 @@ describe('useAuth', () => {
     // login screen returns to the device language, dropping the instance locale
     expect(resolveDeviceLanguage).toHaveBeenCalled()
     expect(i18n.changeLanguage).toHaveBeenCalledWith('en')
+  })
+
+  it('a logout the user asked for closes the SSO session too', async () => {
+    ;(flag as unknown as jest.Mock).mockImplementation((name: string) =>
+      name === 'signup.url' ? 'https://sign-up.example.com' : undefined
+    )
+    jest.spyOn(tokenStorage, 'getSession').mockResolvedValue(mockSession)
+    jest.spyOn(tokenStorage, 'clearSession').mockResolvedValue()
+    render(
+      <AuthProvider>
+        <Probe />
+      </AuthProvider>
+    )
+    await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('authenticated'))
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('logout'))
+    })
+
+    await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('unauthenticated'))
+    expect(mockCloseSsoSession).toHaveBeenCalledWith('https://sign-up.example.com')
+  })
+
+  it('a session that ended on its own opens no browser', async () => {
+    ;(flag as unknown as jest.Mock).mockImplementation((name: string) =>
+      name === 'signup.url' ? 'https://sign-up.example.com' : undefined
+    )
+    jest.spyOn(tokenStorage, 'getSession').mockResolvedValue(mockSession)
+    jest.spyOn(tokenStorage, 'clearSession').mockResolvedValue()
+    render(
+      <AuthProvider>
+        <Probe />
+      </AuthProvider>
+    )
+    await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('authenticated'))
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('logout-expired'))
+    })
+
+    await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('unauthenticated'))
+    expect(mockCloseSsoSession).not.toHaveBeenCalled()
   })
 
   // A revocation is somebody else ending the session — most often an admin

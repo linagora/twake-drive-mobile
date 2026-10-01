@@ -1,4 +1,4 @@
-import { isOurRedirect } from '@/auth/redirectUri'
+import { isAfterLogoutRedirect, isOurRedirect } from '@/auth/redirectUri'
 
 const isCallback = (path: string): boolean => path.includes('?') || !path.startsWith('twakedrive:')
 
@@ -12,6 +12,7 @@ const isCallback = (path: string): boolean => path.includes('?') || !path.starts
 export function redirectSystemPath({ path }: { path: string; initial: boolean }): string {
   try {
     if (isOurRedirect(path) && isCallback(path)) return '/(drive)/files'
+    if (isAfterLogoutRedirect(path)) return '/(drive)/files'
     if (path.includes('dataUrl=')) return '/(drive)/files'
     return path
   } catch {
