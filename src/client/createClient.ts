@@ -13,6 +13,7 @@ import {
   resetPerfCounters
 } from '@/pouchdb/perfLogging'
 import { triggerPouchReplication } from '@/pouchdb/triggerReplication'
+import { ensureAllFileNameIndexes } from '@/search/searchDatabases'
 import { setAccountScope } from '@/storage/accountScope'
 import { adoptLegacyFiles, adoptLegacyStores } from '@/storage/legacyAccountData'
 
@@ -66,6 +67,11 @@ export const createClient = async (session: Session): Promise<CozyClient> => {
       () => printPerfSummary('first-sync')
     )
   }
+
+  ;(client as unknown as { on?: (e: string, cb: () => void) => void }).on?.(
+    'pouchlink:sync:end',
+    () => void ensureAllFileNameIndexes(client)
+  )
 
   try {
     await client.registerPlugin(flag.plugin, null)

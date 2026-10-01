@@ -64,7 +64,7 @@ export const getSharedDriveRootIds = (): Set<string> => {
   return rootFolderIds
 }
 
-const getReplicatedDriveIds = (): string[] => readList<string>(REPLICATED_KEY)
+export const getReplicatedDriveIds = (): string[] => readList<string>(REPLICATED_KEY)
 
 const setReplicatedDriveIds = (ids: string[]): void => {
   storage?.set(REPLICATED_KEY, JSON.stringify(ids))
