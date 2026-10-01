@@ -131,18 +131,34 @@ describe('useFileSearch', () => {
     warn.mockRestore()
   })
 
-  it('returns nothing for a database that is not ready', async () => {
+  it('is in error, unreported, when the personal drive is not ready', async () => {
     mockEnsure.mockResolvedValue(false)
     const { result } = renderHook(() => useFileSearch('report', true))
-    await waitFor(() => expect(result.current.status).toBe('success'))
+    await waitFor(() => expect(result.current.status).toBe('error'))
     expect(mockSearch).not.toHaveBeenCalled()
     expect(result.current.data).toHaveLength(0)
+    expect(mockReport).not.toHaveBeenCalled()
   })
 
-  it('is in error when there is no local database', async () => {
+  it('skips silently a shared drive that is not ready', async () => {
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined)
+    mockDatabases.mockReturnValue([{ db: personal }, { db: driveA, driveId: 'a' }])
+    mockEnsure.mockImplementation(async (db: unknown) => db === personal)
+    mockSearch.mockResolvedValue([hit('report.pdf')])
+    const { result } = renderHook(() => useFileSearch('report', true))
+    await waitFor(() => expect(result.current.status).toBe('success'))
+    expect(result.current.data.map(doc => doc.name)).toEqual(['report.pdf'])
+    expect(mockSearch).toHaveBeenCalledTimes(1)
+    expect(warn).not.toHaveBeenCalled()
+    expect(mockReport).not.toHaveBeenCalled()
+    warn.mockRestore()
+  })
+
+  it('is in error, unreported, when there is no local database', async () => {
     mockDatabases.mockReturnValue([])
     const { result } = renderHook(() => useFileSearch('report', true))
     await waitFor(() => expect(result.current.status).toBe('error'))
+    expect(mockReport).not.toHaveBeenCalled()
   })
 
   it('is in error and reports when the personal drive fails', async () => {
