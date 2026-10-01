@@ -295,7 +295,14 @@
     "offlineDownloading": "Downloading for offline use",
     "offlinePending": "Waiting to download for offline use",
     "offlineFailed": "Offline download failed",
-    "offlinePaused": "Offline download paused"
+    "offlinePaused": "Offline download paused",
+    "row": {
+      "file": "file",
+      "folder": "folder",
+      "shared": "shared",
+      "openFile": "Opens the file",
+      "openFolder": "Opens the folder"
+    }
   },
   "errors": {
     "noNetwork": "No connection",

@@ -304,7 +304,14 @@
     "offlineDownloading": "Download per l’uso offline",
     "offlinePending": "In attesa del download offline",
     "offlineFailed": "Download offline non riuscito",
-    "offlinePaused": "Download offline in pausa"
+    "offlinePaused": "Download offline in pausa",
+    "row": {
+      "file": "file",
+      "folder": "cartella",
+      "shared": "condiviso",
+      "openFile": "Apre il file",
+      "openFolder": "Apre la cartella"
+    }
   },
   "errors": {
     "noNetwork": "Nessuna connessione",

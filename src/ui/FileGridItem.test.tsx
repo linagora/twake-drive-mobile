@@ -168,4 +168,18 @@ describe('FileGridItem actions', () => {
     render(wrap(<FileGridItem file={file} onPress={jest.fn()} onShare={jest.fn()} selected />))
     expect(screen.queryByTestId('file-grid-actions')).toBeNull()
   })
+
+  // Selection was a tinted background and nothing else, which no screen reader
+  // can see.
+  it('marks the selected state', () => {
+    render(wrap(<FileGridItem file={file} onPress={jest.fn()} selected />))
+    expect(screen.getByTestId('file-grid-item').props.accessibilityState).toMatchObject({
+      selected: true
+    })
+  })
+
+  it('leaves a tile outside selection mode without a selected state', () => {
+    render(wrap(<FileGridItem file={file} onPress={jest.fn()} />))
+    expect(screen.getByTestId('file-grid-item').props.accessibilityState.selected).toBeUndefined()
+  })
 })

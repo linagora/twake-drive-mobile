@@ -93,6 +93,54 @@ describe('FileRow', () => {
     expect(screen.getByTestId(FILE_MENU)).toBeOnTheScreen()
   })
 
+  // Paper's List.Item carries no accessibility semantics of its own, so
+  // everything a screen reader gets from a row is what the row sets here.
+  describe('accessibility', () => {
+    it('announces the name and the kind of entry', () => {
+      render(wrap(<FileRow file={file} onPress={() => {}} testID="file-row" />))
+      expect(screen.getByTestId('file-row').props.accessibilityLabel).toMatch(
+        /^rapport\.pdf, a11y\.row\.file, /
+      )
+    })
+
+    it('is announced as a button', () => {
+      render(wrap(<FileRow file={file} onPress={() => {}} testID="file-row" />))
+      expect(screen.getByTestId('file-row').props.accessibilityRole).toBe('button')
+    })
+
+    it('says what opening the row does', () => {
+      render(wrap(<FileRow file={file} onPress={() => {}} testID="file-row" />))
+      expect(screen.getByTestId('file-row').props.accessibilityHint).toBe('a11y.row.openFile')
+    })
+
+    // Selection was a tinted background and nothing else.
+    it('marks the selected state', () => {
+      render(wrap(<FileRow file={file} onPress={() => {}} selected testID="file-row" />))
+      expect(screen.getByTestId('file-row').props.accessibilityState).toMatchObject({
+        selected: true
+      })
+    })
+
+    it('leaves an unselected row without a selected state', () => {
+      render(wrap(<FileRow file={file} onPress={() => {}} testID="file-row" />))
+      expect(screen.getByTestId('file-row').props.accessibilityState.selected).toBeUndefined()
+    })
+
+    // The badge is an overlay inside the row; an explicit label on the row
+    // replaces what its children would have contributed, so it has to be said.
+    it('announces that the file is kept offline', () => {
+      ;(useOfflineState as jest.Mock).mockReturnValue({
+        fileId: 'f1',
+        state: 'downloaded',
+        isDirectPin: true
+      })
+      render(wrap(<FileRow file={file} onPress={() => {}} testID="file-row" />))
+      expect(screen.getByTestId('file-row').props.accessibilityLabel).toContain(
+        'a11y.offlineAvailable'
+      )
+    })
+  })
+
   it('renders a Move… menu item when onMove is provided', () => {
     render(wrap(<FileRow file={file} onPress={() => {}} onMove={jest.fn()} />))
     expect(screen.getByTestId(FILE_MENU)).toBeOnTheScreen()

@@ -31,6 +31,25 @@ describe('SettingsRow', () => {
     expect(style.width).toBe(cozyTokens.rowLeadingSlot)
   })
 
+  describe('accessibility', () => {
+    it('announces the title and its description as one label', () => {
+      render(wrap(<SettingsRow testID="row" title="Langue" description="Français" />))
+      expect(screen.getByTestId('row').props.accessibilityLabel).toBe('Langue, Français')
+    })
+
+    it('is announced as a button when it drills down', () => {
+      render(wrap(<SettingsRow testID="row" title="Langue" onPress={jest.fn()} />))
+      expect(screen.getByTestId('row').props.accessibilityRole).toBe('button')
+    })
+
+    // The version row only displays a value; announcing it as a button invites
+    // the user to activate something that does nothing.
+    it('is not announced as a button when it only displays a value', () => {
+      render(wrap(<SettingsRow testID="row" title="Version" description="0.6.3" />))
+      expect(screen.getByTestId('row').props.accessibilityRole).toBeUndefined()
+    })
+  })
+
   it('renders a custom accessory instead of the trailing affordance', () => {
     render(
       wrap(
