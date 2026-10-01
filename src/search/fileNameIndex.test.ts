@@ -82,7 +82,7 @@ describe('searchFileNames', () => {
   it('binds the match expression and restores the document identity', async () => {
     const { db, execute } = makeDb(() => [row('id-1', { name: 'report.pdf', type: 'file' }, -2)])
     const hits = await searchFileNames(db, 'report', 100)
-    expect(execute.mock.calls[0][1]).toEqual(['(name:"report"* OR reversed:"troper"*)', 200])
+    expect(execute.mock.calls[0][1]).toEqual(['(name:"report"* OR reversed:"troper"*)', 102])
     expect(hits).toEqual([
       {
         rank: -2,
@@ -91,14 +91,14 @@ describe('searchFileNames', () => {
     ])
   })
 
-  it('drops trashed documents and the hidden roots', async () => {
-    const { db } = makeDb(() => [
-      row('id-1', { name: 'a', type: 'file', trashed: true }),
+  it('leaves trashed documents to the statement and drops the hidden roots', async () => {
+    const { db, execute } = makeDb(() => [
       row('io.cozy.files.trash-dir', { name: 'a', type: 'directory' }),
       row('id-2', { name: 'a', type: 'file' })
     ])
     const hits = await searchFileNames(db, 'a', 100)
     expect(hits.map(hit => hit.doc._id)).toEqual(['id-2'])
+    expect(execute.mock.calls[0][0]).toContain("json_extract(s.json, '$.trashed')")
   })
 
   it('skips a row without a name or with unreadable JSON', async () => {

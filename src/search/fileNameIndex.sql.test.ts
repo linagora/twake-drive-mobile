@@ -154,11 +154,37 @@ describe('the file name index on a real database', () => {
     expect(countOf(sqlite, 'file_names')).toBe(2)
   })
 
+  it('never returns a trashed document and fills the limit without it', async () => {
+    const { db } = wrap(sqlite)
+    await ensureFileNameIndex(db)
+    for (let i = 0; i < 10; i++) {
+      writeRevision(sqlite, `trashed-${i}`, '1-a', file(`alpha ${i}.pdf`, { trashed: true }))
+    }
+    for (let i = 0; i < 3; i++) writeRevision(sqlite, `kept-${i}`, '1-a', file(`alpha ${i}.pdf`))
+    await expect(idsOf(db, 'alpha', 3)).resolves.toEqual(['kept-0', 'kept-1', 'kept-2'])
+  })
+
   it('leaves the hidden roots out', async () => {
     const { db } = wrap(sqlite)
     await ensureFileNameIndex(db)
     writeRevision(sqlite, 'io.cozy.files.trash-dir', '1-a', file('alpha'))
     writeRevision(sqlite, 'kept', '1-a', file('alpha.pdf'))
     await expect(idsOf(db, 'alpha', 1)).resolves.toEqual(['kept'])
+  })
+
+  it('searches from the full-text table outwards', async () => {
+    const { db, statements } = wrap(sqlite)
+    await ensureFileNameIndex(db)
+    writeRevision(sqlite, 'doc', '1-a', file('alpha.pdf'))
+    await searchFileNames(db, 'alpha', 100)
+    const search = statements.filter(sql => sql.includes('MATCH')).pop() as string
+    const plan = sqlite
+      .prepare(`EXPLAIN QUERY PLAN ${search}`)
+      .all('alpha', 100)
+      .map(step => String(step.detail))
+    expect(plan[0]).toMatch(/^SCAN f VIRTUAL TABLE INDEX/)
+    expect(plan.filter(detail => /^SCAN (s|d)\b/.test(detail))).toEqual([])
+    expect(plan.some(detail => /^SEARCH s USING INTEGER PRIMARY KEY/.test(detail))).toBe(true)
+    expect(plan.some(detail => /^SEARCH d USING INDEX .* \(id=\?\)/.test(detail))).toBe(true)
   })
 })

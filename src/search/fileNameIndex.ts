@@ -55,11 +55,13 @@ const BACKFILL = `INSERT INTO file_names(rowid, name, reversed, doc_id)
    FROM 'document-store' d JOIN 'by-sequence' s ON s.seq = d.winningseq
    WHERE s.deleted = 0 AND ${NAME} IS NOT NULL`
 
+const TRASHED = "CASE WHEN json_valid(s.json) THEN json_extract(s.json, '$.trashed') END"
+
 const SEARCH = `SELECT s.json AS json, s.doc_id AS doc_id, s.rev AS rev, f.rank AS rank
    FROM file_names f
-   JOIN 'by-sequence' s ON s.seq = f.rowid
-   JOIN 'document-store' d ON d.winningseq = s.seq
-   WHERE file_names MATCH ? AND s.deleted = 0
+   CROSS JOIN 'by-sequence' s ON s.seq = f.rowid
+   CROSS JOIN 'document-store' d ON d.id = s.doc_id AND d.winningseq = s.seq
+   WHERE file_names MATCH ? AND s.deleted = 0 AND ${TRASHED} IS NOT TRUE
    ORDER BY f.rank
    LIMIT ?`
 
@@ -120,10 +122,10 @@ export const searchFileNames = async (
 ): Promise<FileNameHit[]> => {
   const match = buildMatchQuery(term)
   if (!match) return []
-  const { rows } = await db.execute(SEARCH, [match, limit * 2])
+  const { rows } = await db.execute(SEARCH, [match, limit + HIDDEN_ROOT_DIR_IDS.length])
   return rows
     .map(toHit)
     .filter((hit): hit is FileNameHit => hit !== null)
-    .filter(hit => !hit.doc.trashed && !HIDDEN_ROOT_DIR_IDS.includes(hit.doc._id))
+    .filter(hit => !HIDDEN_ROOT_DIR_IDS.includes(hit.doc._id))
     .slice(0, limit)
 }
