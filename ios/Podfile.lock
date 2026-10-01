@@ -2912,7 +2912,7 @@ SPEC CHECKSUMS:
   MMKVCore: 3d16ce9f7d411e135020915fde98a056859a1efa
   NitroMmkv: 7a7572934538ba6748e05dffc6ee8b06caad91cc
   NitroModules: 5a0f735f3f834ac1d998c28fc65be992849c30f3
-  op-sqlite: b0afe3430a71f919e18d26076efd6e5e80c5f297
+  op-sqlite: adfee760ec36ac03ea677c136aae69f4cc2f96b0
   OpenSSL-Universal: 9110d21982bb7e8b22a962b6db56a8aa805afde7
   RCTDeprecation: 943572d4be82d480a48f4884f670135ae30bf990
   RCTRequired: 8f3cfc90cc25cf6e420ddb3e7caaaabc57df6043
