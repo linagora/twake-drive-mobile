@@ -1,0 +1,5 @@
+• La recherche se fait désormais sur votre appareil : elle fonctionne hors ligne et répond plus vite.
+• Un résultat issu d'un drive partagé s'ouvre dans ce drive.
+• Les éléments renommés, déplacés, restaurés ou créés restent à jour hors ligne et après un redémarrage.
+• La déconnexion ferme aussi votre session SSO.
+• Les lecteurs d'écran annoncent chaque ligne et son état de sélection.

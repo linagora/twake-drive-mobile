@@ -1,0 +1,6 @@
+• Tìm kiếm giờ chạy ngay trên thiết bị: hoạt động ngoại tuyến và trả kết quả nhanh hơn.
+• Kết quả thuộc một drive được chia sẻ sẽ mở ngay trong drive đó.
+• Tệp chia sẻ đến Twake Drive từ ứng dụng Tệp không còn bị rỗng.
+• Mục được đổi tên, di chuyển, khôi phục hoặc tạo mới luôn được cập nhật khi ngoại tuyến và sau khi khởi động lại.
+• Đăng xuất cũng đóng phiên SSO của bạn.
+• Trình đọc màn hình đọc từng dòng và trạng thái chọn của dòng đó.

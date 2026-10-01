@@ -1,0 +1,6 @@
+• Die Suche läuft jetzt auf Ihrem Gerät: Sie funktioniert offline und antwortet schneller.
+• Ein Treffer aus einem geteilten Drive öffnet sich in diesem Drive.
+• Eine aus der Dateien-App an Twake Drive geteilte Datei kommt nicht mehr leer an.
+• Umbenannte, verschobene, wiederhergestellte oder neue Elemente bleiben offline und nach einem Neustart aktuell.
+• Das Abmelden beendet auch Ihre SSO-Sitzung.
+• Screenreader sagen jede Zeile und ihren Auswahlstatus an.

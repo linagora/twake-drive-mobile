@@ -1,0 +1,6 @@
+• Search now runs on your device: it works offline and answers faster.
+• A search result from a shared drive opens inside that drive.
+• A file shared to Twake Drive from the Files app no longer arrives empty.
+• Renamed, moved, restored or new items stay up to date offline and after a restart.
+• Signing out also closes your single sign-on session.
+• Screen readers announce what each row is and whether it is selected.

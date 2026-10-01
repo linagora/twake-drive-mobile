@@ -1,0 +1,6 @@
+• La búsqueda se hace ahora en tu dispositivo: funciona sin conexión y responde más rápido.
+• Un resultado de un drive compartido se abre dentro de ese drive.
+• Un archivo compartido con Twake Drive desde la app Archivos ya no llega vacío.
+• Los elementos renombrados, movidos, restaurados o creados se mantienen al día sin conexión y tras reiniciar.
+• Cerrar sesión también cierra tu sesión SSO.
+• Los lectores de pantalla anuncian cada fila y si está seleccionada.

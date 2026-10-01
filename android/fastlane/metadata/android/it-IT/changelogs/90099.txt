@@ -1,0 +1,6 @@
+• La ricerca avviene ora sul dispositivo: funziona offline e risponde più in fretta.
+• Un risultato di un drive condiviso si apre all'interno di quel drive.
+• Un file condiviso con Twake Drive dall'app File non arriva più vuoto.
+• Gli elementi rinominati, spostati, ripristinati o creati restano aggiornati offline e dopo un riavvio.
+• La disconnessione chiude anche la sessione SSO.
+• Gli screen reader annunciano ogni riga e se è selezionata.
