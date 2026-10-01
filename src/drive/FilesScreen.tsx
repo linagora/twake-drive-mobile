@@ -283,6 +283,7 @@ export const FilesScreen = ({ basePath }: FilesScreenProps): React.ReactElement 
         title={currentDirName}
         onBack={isRoot ? undefined : goBack}
         onLogout={isRoot ? logout : undefined}
+        showSearch
         selection={
           selection.isSelecting
             ? {

@@ -38,6 +38,7 @@ interface Props {
    */
   onClose?: () => void
   onLogout?: () => void
+  showSearch?: boolean
   /**
    * When set, the AppBar swaps to selection mode: the title shows the
    * count, the back/menu controls are replaced with a close action, and
@@ -51,7 +52,15 @@ interface Props {
   sheet?: boolean
 }
 
-export const AppBar = ({ title, onBack, onClose, onLogout, selection, sheet }: Props) => {
+export const AppBar = ({
+  title,
+  onBack,
+  onClose,
+  onLogout,
+  showSearch,
+  selection,
+  sheet
+}: Props) => {
   const { t } = useTranslation()
   const [menuVisible, setMenuVisible] = useState(false)
   const theme = useTheme()
@@ -133,6 +142,21 @@ export const AppBar = ({ title, onBack, onClose, onLogout, selection, sheet }: P
         </Text>
       </View>
       <View style={styles.spacer} />
+      {showSearch ? (
+        <Appbar.Action
+          animated={false}
+          icon={p => (
+            <CozyIcon
+              name="magnifier"
+              size={p?.size ?? cozyTokens.iconSize.md}
+              color={theme.colors.onSurface}
+            />
+          )}
+          onPress={() => router.push('/search')}
+          accessibilityLabel={t('drive.search.action')}
+          testID="appbar-search-button"
+        />
+      ) : null}
       {onLogout ? (
         <Menu
           visible={menuVisible}
