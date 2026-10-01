@@ -19,6 +19,9 @@
     "e2e:ios:visual": "./e2e/scripts/run-visual.sh ios",
     "e2e:android:visual": "./e2e/scripts/run-visual.sh android"
   },
+  "op-sqlite": {
+    "fts5": true
+  },
   "lint-staged": {
     "*.{ts,tsx}": [
       "eslint --fix",
