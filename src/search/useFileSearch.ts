@@ -25,9 +25,12 @@ interface RankedResult {
   rank: number
 }
 
+class SearchUnavailableError extends Error {}
+
 let reported = false
 
 const reportOnce = (error: unknown): void => {
+  if (error instanceof SearchUnavailableError) return
   if (reported) return
   reported = true
   reportCaughtError(error instanceof Error ? error : new Error(String(error)), {
@@ -40,7 +43,10 @@ const searchDatabase = async (
   term: string
 ): Promise<RankedResult[]> => {
   try {
-    if (!(await ensureFileNameIndex(db, { mayCreate: !isReplicating() }))) return []
+    if (!(await ensureFileNameIndex(db, { mayCreate: !isReplicating() }))) {
+      if (!driveId) throw new SearchUnavailableError('search: the personal drive is not ready')
+      return []
+    }
     const hits: FileNameHit[] = await searchFileNames(db, term, FILE_SEARCH_RESULT_LIMIT)
     return hits.map(({ doc, rank }) => ({ doc: driveId ? { ...doc, driveId } : doc, rank }))
   } catch (error) {
@@ -86,7 +92,7 @@ export function useFileSearch(term: string, enabled: boolean): FileSearchState {
 
     const run = async (): Promise<void> => {
       const databases = getSearchDatabases(client)
-      if (databases.length === 0) throw new Error('search: no local database')
+      if (databases.length === 0) throw new SearchUnavailableError('search: no local database')
       const perDatabase = await Promise.all(
         databases.map(database => searchDatabase(database, term))
       )
