@@ -2,6 +2,11 @@ jest.mock('@/pouchdb/triggerReplication', () => ({
   triggerPouchReplication: jest.fn()
 }))
 
+jest.mock('@/pouchdb/persistStackDoc', () => ({
+  persistStackDoc: jest.fn().mockResolvedValue(undefined)
+}))
+
+import { persistStackDoc } from '@/pouchdb/persistStackDoc'
 import { triggerPouchReplication } from '@/pouchdb/triggerReplication'
 import { moveEntry } from './moveEntry'
 
@@ -39,6 +44,18 @@ describe('moveEntry', () => {
     const client = buildClient({ updateAttributes })
     await moveEntry(client, entry, 'dest')
     expect(triggerPouchReplication).toHaveBeenCalledWith(client, 'io.cozy.files')
+  })
+
+  it('writes the moved document into the local database', async () => {
+    ;(persistStackDoc as jest.Mock).mockClear()
+    const updateAttributes = jest.fn().mockResolvedValue({ data: { _id: 'src', dir_id: 'dest' } })
+    const client = buildClient({ updateAttributes })
+    await moveEntry(client, entry, 'dest')
+    expect(persistStackDoc).toHaveBeenCalledWith(client, {
+      _id: 'src',
+      dir_id: 'dest',
+      _type: 'io.cozy.files'
+    })
   })
 
   it('rethrows non-409 errors', async () => {

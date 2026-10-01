@@ -2,6 +2,11 @@ jest.mock('@/pouchdb/triggerReplication', () => ({
   triggerPouchReplication: jest.fn()
 }))
 
+jest.mock('@/pouchdb/persistStackDoc', () => ({
+  persistStackDoc: jest.fn().mockResolvedValue(undefined)
+}))
+
+import { persistStackDoc } from '@/pouchdb/persistStackDoc'
 import { triggerPouchReplication } from '@/pouchdb/triggerReplication'
 import { createFolder, FolderConflictError } from './createFolder'
 
@@ -78,6 +83,32 @@ describe('createFolder', () => {
     const client = makeClient(create)
     await expect(createFolder(client, 'Foo', 'parent-id')).rejects.toThrow('boom')
     expect(triggerPouchReplication).not.toHaveBeenCalled()
+  })
+})
+
+describe('createFolder and the local database', () => {
+  const created = { _id: 'new', name: 'Foo', type: 'directory' }
+
+  beforeEach(() => {
+    ;(persistStackDoc as jest.Mock).mockClear()
+  })
+
+  it('writes the created folder into the local database', async () => {
+    const create = jest.fn().mockResolvedValue({ data: created })
+    const client = { collection: jest.fn().mockReturnValue({ create }) } as unknown as Parameters<
+      typeof createFolder
+    >[0]
+    await createFolder(client, 'Foo', 'parent-id')
+    expect(persistStackDoc).toHaveBeenCalledWith(client, { ...created, _type: 'io.cozy.files' })
+  })
+
+  it('leaves the personal database alone for a shared drive', async () => {
+    const create = jest.fn().mockResolvedValue({ data: created })
+    const client = { collection: jest.fn().mockReturnValue({ create }) } as unknown as Parameters<
+      typeof createFolder
+    >[0]
+    await createFolder(client, 'Foo', 'parent-id', 'drive-1')
+    expect(persistStackDoc).not.toHaveBeenCalled()
   })
 })
 

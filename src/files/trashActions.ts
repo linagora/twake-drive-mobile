@@ -1,5 +1,6 @@
 import type CozyClient from 'cozy-client'
 
+import { persistStackDoc } from '@/pouchdb/persistStackDoc'
 import { triggerPouchReplication } from '@/pouchdb/triggerReplication'
 
 interface FilesCollection {
@@ -18,6 +19,7 @@ export const restoreEntry = async (
 ): Promise<{ _id: string; name: string }> => {
   const collection = client.collection('io.cozy.files') as unknown as FilesCollection
   const result = await collection.restore(id)
+  await persistStackDoc(client, { ...result.data, _type: 'io.cozy.files' })
   triggerPouchReplication(client, 'io.cozy.files')
   return result.data
 }
