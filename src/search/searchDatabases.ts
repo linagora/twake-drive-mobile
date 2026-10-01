@@ -35,7 +35,14 @@ export const getSearchDatabases = (client: CozyClient): SearchDatabase[] => {
 }
 
 export const ensureAllFileNameIndexes = async (client: CozyClient): Promise<void> => {
-  for (const { db, driveId } of getSearchDatabases(client)) {
+  let databases: SearchDatabase[]
+  try {
+    databases = getSearchDatabases(client)
+  } catch (e) {
+    console.warn('[search] could not open the databases', e)
+    return
+  }
+  for (const { db, driveId } of databases) {
     try {
       await ensureFileNameIndex(db)
     } catch (e) {
