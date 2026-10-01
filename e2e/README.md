@@ -54,6 +54,11 @@ summary. Replay an order with the `seed` input of a manual dispatch, or locally:
 E2E_SEED=1234 ./e2e/scripts/run-android.sh e2e/maestro/flows/in-app/11-move.yaml
 ```
 
+`20-logout-closes-sso` signs out, then signs back in for the flows after it. It needs
+the stand-in portal of `e2e/stack` (`portal.js`, port 8090) and the `signup.url` flag
+`setup.sh` points to it. On an iOS simulator, run `setup.sh` with
+`PORTAL_URL=http://127.0.0.1:8090`.
+
 ## Device selection (gotcha)
 
 With **two devices connected**, `maestro test` auto-selects one (often the Android one).
@@ -81,7 +86,7 @@ e2e/
     flows/
       00-login.yaml       # login tag (semi-manual, excluded)
       00-welcome.yaml     # preauth tag (app boot + login form)
-      in-app/             # inapp tags (iOS + Android): 01-19
+      in-app/             # inapp tags (iOS + Android): 01-20
       android/            # android tags: 10 File Provider, 11 Share
     scripts/              # seed.js, cleanup.js (stack API, run by the flows)
   scripts/                # run-android.sh, run-ios.sh, run-flows.sh
