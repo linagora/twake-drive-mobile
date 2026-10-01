@@ -4,7 +4,7 @@
 // SEED is a JSON list of { key, kind: 'folder' | 'file', prefix, parent?, ext?,
 // content? }. Each entry lands in `output[key]` as { id, name }; `parent` is the
 // key of a folder earlier in the same list.
-// The run passes STACK_URL, STACK_HOST and STACK_TOKEN (e2e/scripts/run-ci-android.sh).
+// The run passes STACK_URL, STACK_HOST and STACK_TOKEN (e2e/scripts/run-flows.sh).
 
 const headers = { Authorization: 'Bearer ' + STACK_TOKEN, Host: STACK_HOST }
 
