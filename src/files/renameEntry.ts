@@ -1,7 +1,8 @@
 import type CozyClient from 'cozy-client'
 
-import { persistStackDoc } from '@/pouchdb/persistStackDoc'
 import { triggerPouchReplication } from '@/pouchdb/triggerReplication'
+
+import { applyStackDoc } from './applyStackDoc'
 
 export class RenameConflictError extends Error {
   constructor(name: string) {
@@ -35,7 +36,7 @@ export const renameEntry = async (
 
   try {
     const result = await collection.updateAttributes(id, { name: trimmed })
-    await persistStackDoc(client, { ...result.data, _type: 'io.cozy.files' })
+    await applyStackDoc(client, result.data)
     triggerPouchReplication(client, 'io.cozy.files')
     return result.data
   } catch (e) {

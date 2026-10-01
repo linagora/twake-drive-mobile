@@ -2,12 +2,13 @@ jest.mock('@/pouchdb/triggerReplication', () => ({
   triggerPouchReplication: jest.fn()
 }))
 
-jest.mock('@/pouchdb/persistStackDoc', () => ({
-  persistStackDoc: jest.fn().mockResolvedValue(undefined)
+jest.mock('./applyStackDoc', () => ({
+  applyStackDoc: jest.fn().mockResolvedValue(undefined)
 }))
 
-import { persistStackDoc } from '@/pouchdb/persistStackDoc'
 import { triggerPouchReplication } from '@/pouchdb/triggerReplication'
+
+import { applyStackDoc } from './applyStackDoc'
 import { restoreEntry, emptyTrash } from './trashActions'
 
 const buildClient = (methods: { restore?: jest.Mock; emptyTrash?: jest.Mock }) =>
@@ -47,15 +48,14 @@ describe('restoreEntry', () => {
     expect(triggerPouchReplication).toHaveBeenCalledWith(client, 'io.cozy.files')
   })
 
-  it('writes the restored document into the local database', async () => {
-    ;(persistStackDoc as jest.Mock).mockClear()
+  it('writes the restored document into the local database and the store', async () => {
+    ;(applyStackDoc as jest.Mock).mockClear()
     const restore = jest.fn().mockResolvedValue({ data: { _id: 'a', name: 'doc' } })
     const client = buildClient({ restore })
     await restoreEntry(client, 'a')
-    expect(persistStackDoc).toHaveBeenCalledWith(client, {
+    expect(applyStackDoc).toHaveBeenCalledWith(client, {
       _id: 'a',
-      name: 'doc',
-      _type: 'io.cozy.files'
+      name: 'doc'
     })
   })
 

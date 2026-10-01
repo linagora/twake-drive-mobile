@@ -2,12 +2,13 @@ jest.mock('@/pouchdb/triggerReplication', () => ({
   triggerPouchReplication: jest.fn()
 }))
 
-jest.mock('@/pouchdb/persistStackDoc', () => ({
-  persistStackDoc: jest.fn().mockResolvedValue(undefined)
+jest.mock('./applyStackDoc', () => ({
+  applyStackDoc: jest.fn().mockResolvedValue(undefined)
 }))
 
-import { persistStackDoc } from '@/pouchdb/persistStackDoc'
 import { triggerPouchReplication } from '@/pouchdb/triggerReplication'
+
+import { applyStackDoc } from './applyStackDoc'
 import { renameEntry, RenameConflictError } from './renameEntry'
 
 const buildClient = (updateAttributes: jest.Mock) =>
@@ -63,15 +64,14 @@ describe('renameEntry', () => {
     expect(triggerPouchReplication).toHaveBeenCalledWith(client, 'io.cozy.files')
   })
 
-  it('writes the renamed document into the local database', async () => {
-    ;(persistStackDoc as jest.Mock).mockClear()
+  it('writes the renamed document into the local database and the store', async () => {
+    ;(applyStackDoc as jest.Mock).mockClear()
     const updateAttributes = jest.fn().mockResolvedValue({ data: { _id: 'abc', name: 'new' } })
     const client = buildClient(updateAttributes)
     await renameEntry(client, 'abc', 'new')
-    expect(persistStackDoc).toHaveBeenCalledWith(client, {
+    expect(applyStackDoc).toHaveBeenCalledWith(client, {
       _id: 'abc',
-      name: 'new',
-      _type: 'io.cozy.files'
+      name: 'new'
     })
   })
 
