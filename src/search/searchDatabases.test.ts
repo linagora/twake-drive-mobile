@@ -18,7 +18,9 @@ import {
   dropAllFileNameIndexes,
   dropSharedDriveFileNameIndex,
   ensureAllFileNameIndexes,
-  getSearchDatabases
+  getSearchDatabases,
+  isReplicating,
+  setReplicating
 } from './searchDatabases'
 
 const mockGetPouchLink = getPouchLink as jest.Mock
@@ -40,6 +42,16 @@ const makeLink = (doctypes: string[]) => ({
 beforeEach(() => {
   jest.clearAllMocks()
   mockReplicated.mockReturnValue([])
+})
+
+describe('isReplicating', () => {
+  it('follows what it was last told', () => {
+    expect(isReplicating()).toBe(false)
+    setReplicating(true)
+    expect(isReplicating()).toBe(true)
+    setReplicating(false)
+    expect(isReplicating()).toBe(false)
+  })
 })
 
 describe('getSearchDatabases', () => {

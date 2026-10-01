@@ -2,7 +2,10 @@ jest.mock('cozy-client', () => ({
   __esModule: true,
   useClient: jest.fn()
 }))
-jest.mock('./searchDatabases', () => ({ getSearchDatabases: jest.fn() }))
+jest.mock('./searchDatabases', () => ({
+  getSearchDatabases: jest.fn(),
+  isReplicating: jest.fn()
+}))
 jest.mock('./fileNameIndex', () => ({
   ensureFileNameIndex: jest.fn(),
   searchFileNames: jest.fn()
@@ -15,12 +18,13 @@ import { useClient } from 'cozy-client'
 import { reportCaughtError } from '@/monitoring/crashReporting'
 
 import { ensureFileNameIndex, searchFileNames } from './fileNameIndex'
-import { getSearchDatabases } from './searchDatabases'
+import { getSearchDatabases, isReplicating } from './searchDatabases'
 import { useFileSearch } from './useFileSearch'
 
 const mockUseClient = useClient as jest.Mock
 const mockDatabases = getSearchDatabases as jest.Mock
 const mockEnsure = ensureFileNameIndex as jest.Mock
+const mockReplicating = isReplicating as jest.Mock
 const mockSearch = searchFileNames as jest.Mock
 const mockReport = reportCaughtError as jest.Mock
 
@@ -37,6 +41,7 @@ beforeEach(() => {
   mockUseClient.mockReturnValue({})
   mockDatabases.mockReturnValue([{ db: personal }])
   mockEnsure.mockResolvedValue(true)
+  mockReplicating.mockReturnValue(false)
   mockSearch.mockResolvedValue([])
 })
 
@@ -73,6 +78,19 @@ describe('useFileSearch', () => {
     expect(mockSearch).toHaveBeenCalledWith(personal, 'report', 100)
     expect(result.current.data.map(doc => doc.name)).toEqual(['report.pdf'])
     expect(result.current.data[0].driveId).toBeUndefined()
+  })
+
+  it('lets the index be created when no replication is running', async () => {
+    const { result } = renderHook(() => useFileSearch('report', true))
+    await waitFor(() => expect(result.current.status).toBe('success'))
+    expect(mockEnsure).toHaveBeenCalledWith(personal, { mayCreate: true })
+  })
+
+  it('does not let the index be created while a replication is running', async () => {
+    mockReplicating.mockReturnValue(true)
+    const { result } = renderHook(() => useFileSearch('report', true))
+    await waitFor(() => expect(result.current.status).toBe('success'))
+    expect(mockEnsure).toHaveBeenCalledWith(personal, { mayCreate: false })
   })
 
   it('merges shared drive hits, tagged with their drive, best rank first then by name', async () => {

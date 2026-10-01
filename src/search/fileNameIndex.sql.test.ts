@@ -271,3 +271,17 @@ describe('dropFileNameIndex', () => {
     await expect(idsOf(db, 'alpha')).resolves.toEqual(['doc'])
   })
 })
+
+describe('ensureFileNameIndex when it may not create', () => {
+  it('reports not ready and creates nothing', async () => {
+    const { db } = wrap(sqlite)
+    await expect(ensureFileNameIndex(db, { mayCreate: false })).resolves.toBe(false)
+    expect(countOf(sqlite, `sqlite_master WHERE name = 'file_names'`)).toBe(0)
+  })
+
+  it('reports ready when the index is intact', async () => {
+    const { db } = wrap(sqlite)
+    await ensureFileNameIndex(db)
+    await expect(ensureFileNameIndex(db, { mayCreate: false })).resolves.toBe(true)
+  })
+})

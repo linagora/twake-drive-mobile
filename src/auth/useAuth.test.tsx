@@ -54,7 +54,8 @@ jest.mock('@/pouchdb/destroyLocalData', () => ({
 const mockDropAllFileNameIndexes = jest.fn(async (..._args: unknown[]) => undefined)
 jest.mock('@/search/searchDatabases', () => ({
   dropAllFileNameIndexes: (...args: unknown[]) => mockDropAllFileNameIndexes(...args),
-  ensureAllFileNameIndexes: jest.fn(async () => undefined)
+  ensureAllFileNameIndexes: jest.fn(async () => undefined),
+  setReplicating: jest.fn()
 }))
 
 jest.mock('cozy-flags', () => ({

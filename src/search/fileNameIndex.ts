@@ -85,9 +85,10 @@ const hasSchemaObject = async (
   return rows.length > 0
 }
 
-const createFileNameIndex = async (db: SearchDb): Promise<boolean> => {
+const createFileNameIndex = async (db: SearchDb, mayCreate: boolean): Promise<boolean> => {
   if (!(await hasSchemaObject(db.execute, 'table', 'document-store'))) return false
   if (await hasSchemaObject(db.execute, 'trigger', 'file_names_insert')) return true
+  if (!mayCreate) return false
   await db.transaction(async tx => {
     for (const statement of CREATE_STATEMENTS) await tx.execute(statement)
     await tx.execute(BACKFILL)
@@ -97,10 +98,14 @@ const createFileNameIndex = async (db: SearchDb): Promise<boolean> => {
 
 const inFlight = new WeakMap<SearchDb, Promise<boolean>>()
 
-export const ensureFileNameIndex = (db: SearchDb): Promise<boolean> => {
+export const ensureFileNameIndex = (
+  db: SearchDb,
+  { mayCreate = true }: { mayCreate?: boolean } = {}
+): Promise<boolean> => {
   const pending = inFlight.get(db)
   if (pending) return pending
-  const creation = createFileNameIndex(db).finally(() => inFlight.delete(db))
+  if (!mayCreate) return createFileNameIndex(db, false)
+  const creation = createFileNameIndex(db, true).finally(() => inFlight.delete(db))
   inFlight.set(db, creation)
   return creation
 }
