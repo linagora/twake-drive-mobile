@@ -1,8 +1,6 @@
 appId: com.linagora.twakedrive
 tags:
   - inapp
-env:
-  MENU_SUFFIX: ''
 onFlowComplete:
   - runFlow: ../../subflows/cleanup.yaml
 ---
@@ -19,17 +17,17 @@ onFlowComplete:
       id: 'folder-row:${output.folder.name}'
     timeout: 60000
 - tapOn:
-    id: 'folder-actions:${output.folder.name}${MENU_SUFFIX}'
+    id: 'folder-actions:${output.folder.name}'
 - waitForAnimationToEnd
 - tapOn:
     id: 'action-pin'
 - tapOn:
-    id: 'folder-actions:${output.folder.name}${MENU_SUFFIX}'
+    id: 'folder-actions:${output.folder.name}'
 - waitForAnimationToEnd
 - tapOn:
     id: 'action-unpin'
 - tapOn:
-    id: 'folder-actions:${output.folder.name}${MENU_SUFFIX}'
+    id: 'folder-actions:${output.folder.name}'
 - waitForAnimationToEnd
 - assertVisible:
     id: 'action-pin'
