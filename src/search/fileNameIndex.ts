@@ -19,13 +19,13 @@ export interface FileNameHit {
 
 const MAX_NAME_LENGTH = 255
 
-const NAME = "json_extract(s.json, '$.name')"
+const NAME = "CASE WHEN json_valid(s.json) THEN json_extract(s.json, '$.name') END"
 
 const REVERSED = `(SELECT group_concat(substr(${NAME}, n, 1), '' ORDER BY n DESC) FROM search_positions WHERE n <= length(${NAME}))`
 
 const indexWinningRevision = (docId: string, winningSeq: string): string =>
-  `INSERT INTO file_names(name, reversed, doc_id)
-   SELECT ${NAME}, ${REVERSED}, ${docId}
+  `INSERT INTO file_names(rowid, name, reversed, doc_id)
+   SELECT s.seq, ${NAME}, ${REVERSED}, ${docId}
    FROM 'by-sequence' s
    WHERE s.seq = ${winningSeq} AND s.deleted = 0 AND ${NAME} IS NOT NULL`
 
@@ -42,23 +42,23 @@ const CREATE_STATEMENTS = [
      ${indexWinningRevision('NEW.id', 'NEW.winningseq')};
    END`,
   `CREATE TRIGGER IF NOT EXISTS file_names_update AFTER UPDATE ON 'document-store' BEGIN
-     DELETE FROM file_names WHERE doc_id = OLD.id;
+     DELETE FROM file_names WHERE rowid = OLD.winningseq;
      ${indexWinningRevision('NEW.id', 'NEW.winningseq')};
    END`,
   `CREATE TRIGGER IF NOT EXISTS file_names_delete AFTER DELETE ON 'document-store' BEGIN
-     DELETE FROM file_names WHERE doc_id = OLD.id;
+     DELETE FROM file_names WHERE rowid = OLD.winningseq;
    END`
 ]
 
-const BACKFILL = `INSERT INTO file_names(name, reversed, doc_id)
-   SELECT ${NAME}, ${REVERSED}, d.id
+const BACKFILL = `INSERT INTO file_names(rowid, name, reversed, doc_id)
+   SELECT s.seq, ${NAME}, ${REVERSED}, d.id
    FROM 'document-store' d JOIN 'by-sequence' s ON s.seq = d.winningseq
    WHERE s.deleted = 0 AND ${NAME} IS NOT NULL`
 
 const SEARCH = `SELECT s.json AS json, s.doc_id AS doc_id, s.rev AS rev, f.rank AS rank
    FROM file_names f
-   JOIN 'document-store' d ON d.id = f.doc_id
-   JOIN 'by-sequence' s ON s.seq = d.winningseq
+   JOIN 'by-sequence' s ON s.seq = f.rowid
+   JOIN 'document-store' d ON d.winningseq = s.seq
    WHERE file_names MATCH ? AND s.deleted = 0
    ORDER BY f.rank
    LIMIT ?`
