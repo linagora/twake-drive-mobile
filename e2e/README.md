@@ -46,7 +46,7 @@ Every flow can run alone and in any order:
 `05-preview` reads the `sample.jpg` the instance is created with and changes nothing.
 `06-editor` is tagged `onlyoffice`: the e2e stack has no OnlyOffice server.
 
-CI (`.github/workflows/e2e-android.yml`) runs `scripts/run-ci-android.sh` on every pull
+CI (`.github/workflows/e2e-android.yml`) runs `scripts/run-flows.sh` on every pull
 request: one `maestro test` per flow, in a shuffled order printed as a seed in the job
 summary. Replay an order with the `seed` input of a manual dispatch, or locally:
 
@@ -84,7 +84,7 @@ e2e/
       in-app/             # inapp tags (iOS + Android): 01-19
       android/            # android tags: 10 File Provider, 11 Share
     scripts/              # seed.js, cleanup.js (stack API, run by the flows)
-  scripts/                # run-android.sh, run-ios.sh, run-ci-android.sh
+  scripts/                # run-android.sh, run-ios.sh, run-flows.sh
   fixtures/               # sample.jpg (share)
   DEVICE-NOTES.md         # device results + recipe + quirks
 ```

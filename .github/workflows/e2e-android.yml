@@ -127,7 +127,7 @@ jobs:
             adb install -r android/app/build/outputs/apk/release/app-release.apk
             adb shell pm clear com.linagora.twakedrive || true
             # shellcheck disable=SC2086
-            STACK_CONTAINER="$(docker compose -f e2e/stack/docker-compose.yml ps -q stack)" ./e2e/scripts/run-ci-android.sh $FLOWS
+            STACK_CONTAINER="$(docker compose -f e2e/stack/docker-compose.yml ps -q stack)" ./e2e/scripts/run-flows.sh $FLOWS
             # Captured, not compared: an Android baseline is committed once these are eyeballed.
             CAPTURE_ONLY=1 FLOWS=e2e/maestro/flows/01-visual-tour.yaml EXCLUDE_EXTRA=none ./e2e/scripts/run-visual.sh android || true
 

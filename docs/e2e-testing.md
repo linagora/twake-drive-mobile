@@ -35,14 +35,14 @@ cd e2e/stack
 docker compose -f docker-compose.yml -f docker-compose.arm64.yml up -d
 ./setup.sh 127.0.0.1 cozycozy
 cd ../..
-INSTANCE_URL=http://127.0.0.1 npm run e2e:ios
+npm run e2e:ios
 ```
 
 The instance is named `127.0.0.1` on purpose: iOS only lets an app speak plain
 HTTP to IP addresses, `.local` and dot-less names, and cozy-stack cannot serve
 an instance whose domain has no dot (`localhost` panics on the authorize page).
 The flow clears the app's state first, so the simulator loses whatever session
-it had. `INSTANCE_URL` must be passed with `-e`: Maestro does not let it
+it had. `INSTANCE_DOMAIN` names another instance; the address is passed with `-e`: Maestro does not let it
 override a value a flow declares itself.
 
 ## Running
@@ -85,11 +85,6 @@ logged-in state) and then exercises one area:
 | `17-empty-folder-refresh` | An empty folder keeps its empty state while the list refetches             |
 | `16-share-recipient`      | Adds a recipient by email, checks the row, revokes it, deletes the folder  |
 
-On the **iOS simulator**, the `openDrive` subflow cannot run: a Debug build
-loses its session at every cold start, so the `launchApp` it begins with lands on
-the welcome screen (see issue #366). Until that is fixed, drive the flows there
-on an app that is already signed in, skipping that first line.
-
 Shared **subflows** live in `flows/subflows/`: `openDrive` (launch + assert logged
 in), `assertLoggedIn`, and `cleanup`.
 
@@ -97,14 +92,13 @@ in), `assertLoggedIn`, and `cleanup`.
 
 Cross-platform selectors are the tricky part. What works on both platforms:
 
-- **Tabs & folders** — match by text **regex** so accessibility-label differences
-  don't matter: `{ text: 'Récents.*' }` matches iOS "Récents, tab, 3 of 7" and
-  Android "Récents".
-- **Buttons** — prefer stable **testIDs**: `drive-fab`, `appbar-back-button`,
-  `confirm-delete-submit`, `selection-delete`.
-- **Per-row folder menu** — target the row's own action button by testID:
-  `folder-actions:<folder name>`. On **iOS** the react-native-paper Menu wraps it,
-  so the addressable id is `folder-actions:<name>-container-outer-layer`.
+- **Anything the app draws** — a **testID**, never a label: `tab-files`,
+  `drive-fab`, `folder-row:<name>`, `file-row:<name>`, `folder-actions:<name>`,
+  `action-unpin`. The same id works on both platforms. On iOS a file row reads
+  as "name, size · date", so its name alone never matches as text.
+- **Create menu entries** — react-native-paper names them `create-folder` on
+  Android and `create-folder-container-outer-layer` on iOS: select with
+  `create-folder(-container-outer-layer)?`.
 - **⚠️ Never use `rightOf` / positional selectors for a row menu.** A positional tap
   once deleted the wrong (real) folders. Always target the row by name.
 

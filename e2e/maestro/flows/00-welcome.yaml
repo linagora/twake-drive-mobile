@@ -5,7 +5,8 @@ tags:
 # PRE-AUTH smoke (fresh install / logged out): the app boots on the welcome
 # screen and offers to sign in. Signing in goes through the system browser,
 # which is 00-login-instance's business, so this flow does not tap it.
-- launchApp
+- launchApp:
+    clearState: true
 - extendedWaitUntil:
     visible:
       id: 'welcome-login'

@@ -4,8 +4,7 @@ Drive the app on the **iOS simulator** without manual reload/nav: E2E runs, and
 perf iteration (trigger a sync, navigate, read the logs, start over).
 
 The login is scripted too: `00-login-instance.yaml` signs a development build
-into the disposable stack from `e2e/stack`, and `run-ios.sh` plays it first when
-`INSTANCE_URL` is set. Recipe in [../../docs/e2e-testing.md](../../docs/e2e-testing.md).
+into the disposable stack from `e2e/stack`, and `run-ios.sh` plays it first. Recipe in [../../docs/e2e-testing.md](../../docs/e2e-testing.md).
 Only `00-login.yaml`, which signs into a **real** account by email code, stays
 manual.
 
@@ -87,7 +86,7 @@ reference, including a regression.
 ## Iteration loop (perf / debug)
 
 1. `npm run ios`, then sign in once (the session persists) — either by hand, or
-   with `INSTANCE_URL=http://127.0.0.1 npm run e2e:ios` against the local stack.
+   with `npm run e2e:ios` against the local stack.
 2. Reload the JS (new src code **or** node_modules):
    `xcrun simctl terminate booted com.linagora.twakedrive && xcrun simctl launch booted com.linagora.twakedrive`
    (Metro re-transpiles the edited files on relaunch — no need for `--clear`).

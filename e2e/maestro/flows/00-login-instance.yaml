@@ -15,7 +15,7 @@ tags:
     when:
       visible: 'DEVELOPMENT SERVERS'
     commands:
-      - tapOn: 'http://localhost:8081'
+      - tapOn: "${METRO_URL || 'http://localhost:8081'}"
       - extendedWaitUntil:
           visible: '.*developer menu.*'
           timeout: 120000

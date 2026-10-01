@@ -1,19 +1,26 @@
 #!/usr/bin/env bash
 set -uo pipefail
 
-# Runs the Android flows against the disposable instance, one `maestro test`
-# per flow, in a shuffled order: a flow that only passes after another one
-# shows up as a failure instead of hiding behind the order.
+# Runs the flows against the disposable instance, one `maestro test` per flow,
+# in a shuffled order: a flow that only passes after another one shows up as a
+# failure instead of hiding behind the order.
 #
-# Usage: e2e/scripts/run-ci-android.sh [flow or directory…]
+# Usage: e2e/scripts/run-flows.sh [flow or directory…]
 # Env: INSTANCE_DOMAIN, INSTANCE_PASSPHRASE, STACK_CONTAINER, and optionally
-# E2E_SEED to replay an order, REPORTS_DIR for the JUnit reports.
+# PLATFORM (android by default, or ios), MAESTRO_DEVICE (a udid), E2E_SEED to
+# replay an order, REPORTS_DIR for the JUnit reports, MAESTRO_ENV for extra
+# `-e NAME=value` pairs.
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 FLOWS_DIR="$ROOT/e2e/maestro/flows"
 REPORTS="${REPORTS_DIR:-/tmp/maestro-reports}"
 SEED="${E2E_SEED:-$RANDOM}"
+PLATFORM="${PLATFORM:-android}"
 SKIPPED_TAGS='login|ci-login|setup|preauth|shipped|visual|ios-files|onlyoffice|skip'
+# airplane mode and DocumentsUI only exist on Android
+[ "$PLATFORM" = ios ] && SKIPPED_TAGS="$SKIPPED_TAGS|android"
+DEVICE_ARGS=(--platform "$PLATFORM")
+[ -n "${MAESTRO_DEVICE:-}" ] && DEVICE_ARGS+=(--udid "$MAESTRO_DEVICE")
 
 mkdir -p "$REPORTS"
 
@@ -29,7 +36,8 @@ tags_of() {
 run() {
   local name="$1"
   shift
-  maestro test \
+  # shellcheck disable=SC2086
+  "$ROOT/e2e/scripts/maestro.sh" "${DEVICE_ARGS[@]}" test ${MAESTRO_ENV:-} \
     --env INSTANCE_URL="http://$INSTANCE_DOMAIN" \
     --env INSTANCE_PASSPHRASE="$INSTANCE_PASSPHRASE" \
     --env STACK_URL="http://localhost" \
@@ -39,7 +47,10 @@ run() {
     "$@"
 }
 
-if [ "$#" -eq 0 ]; then set -- "$FLOWS_DIR/in-app" "$FLOWS_DIR/android"; fi
+if [ "$#" -eq 0 ]; then
+  set -- "$FLOWS_DIR/in-app"
+  [ "$PLATFORM" = android ] && set -- "$@" "$FLOWS_DIR/android"
+fi
 FLOWS=()
 for target in "$@"; do
   while IFS= read -r flow; do
@@ -48,10 +59,12 @@ for target in "$@"; do
   done < <(if [ -d "$target" ]; then find "$target" -name '*.yaml' | sort; else echo "$target"; fi)
 done
 
-adb shell mkdir -p /sdcard/Download
-adb push "$ROOT/e2e/fixtures/sample.jpg" /sdcard/Download/e2e-share.jpg >/dev/null
-adb shell am broadcast -a android.intent.action.MEDIA_SCANNER_SCAN_FILE \
-  -d file:///sdcard/Download/e2e-share.jpg >/dev/null
+if [ "$PLATFORM" = android ]; then
+  adb shell mkdir -p /sdcard/Download
+  adb push "$ROOT/e2e/fixtures/sample.jpg" /sdcard/Download/e2e-share.jpg >/dev/null
+  adb shell am broadcast -a android.intent.action.MEDIA_SCANNER_SCAN_FILE \
+    -d file:///sdcard/Download/e2e-share.jpg >/dev/null
+fi
 
 PASSED=()
 FAILED=()
@@ -78,13 +91,13 @@ while IFS= read -r flow; do ORDERED+=("$flow"); done < <(
 for flow in "${ORDERED[@]}"; do
   name="$(basename "$flow" .yaml)"
   echo "::group::$name"
-  adb shell cmd connectivity airplane-mode disable >/dev/null 2>&1 || true
+  [ "$PLATFORM" = android ] && adb shell cmd connectivity airplane-mode disable >/dev/null 2>&1
   if run "$name" "$flow"; then PASSED+=("$name"); else FAILED+=("$name"); fi
   echo "::endgroup::"
 done
 
 {
-  echo "### E2E Android: ${#PASSED[@]} passed, ${#FAILED[@]} failed"
+  echo "### E2E $PLATFORM: ${#PASSED[@]} passed, ${#FAILED[@]} failed"
   echo
   echo "Order seed \`$SEED\`."
   echo
