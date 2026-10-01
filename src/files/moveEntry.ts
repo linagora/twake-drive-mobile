@@ -1,7 +1,8 @@
 import CozyClient, { Q } from 'cozy-client'
 
-import { persistStackDoc } from '@/pouchdb/persistStackDoc'
 import { triggerPouchReplication } from '@/pouchdb/triggerReplication'
+
+import { applyStackDoc } from './applyStackDoc'
 import { generateUniqueNameWithSuffix } from '@/files/uniqueName'
 
 export interface MoveEntryTarget {
@@ -56,7 +57,7 @@ export const moveEntry = async (
 
   try {
     const result = await collection.updateAttributes(entry._id, { dir_id: destDirId })
-    await persistStackDoc(client, { ...result.data, _type: 'io.cozy.files' })
+    await applyStackDoc(client, result.data)
     triggerPouchReplication(client, 'io.cozy.files')
     return { moved: result.data, renamedTo: null }
   } catch (e) {
@@ -68,7 +69,7 @@ export const moveEntry = async (
       dir_id: destDirId,
       name: uniqueName
     })
-    await persistStackDoc(client, { ...retry.data, _type: 'io.cozy.files' })
+    await applyStackDoc(client, retry.data)
     triggerPouchReplication(client, 'io.cozy.files')
     return { moved: retry.data, renamedTo: uniqueName }
   }

@@ -2,12 +2,13 @@ jest.mock('@/pouchdb/triggerReplication', () => ({
   triggerPouchReplication: jest.fn()
 }))
 
-jest.mock('@/pouchdb/persistStackDoc', () => ({
-  persistStackDoc: jest.fn().mockResolvedValue(undefined)
+jest.mock('./applyStackDoc', () => ({
+  applyStackDoc: jest.fn().mockResolvedValue(undefined)
 }))
 
-import { persistStackDoc } from '@/pouchdb/persistStackDoc'
 import { triggerPouchReplication } from '@/pouchdb/triggerReplication'
+
+import { applyStackDoc } from './applyStackDoc'
 import { moveEntry } from './moveEntry'
 
 interface MockCollection {
@@ -46,15 +47,14 @@ describe('moveEntry', () => {
     expect(triggerPouchReplication).toHaveBeenCalledWith(client, 'io.cozy.files')
   })
 
-  it('writes the moved document into the local database', async () => {
-    ;(persistStackDoc as jest.Mock).mockClear()
+  it('writes the moved document into the local database and the store', async () => {
+    ;(applyStackDoc as jest.Mock).mockClear()
     const updateAttributes = jest.fn().mockResolvedValue({ data: { _id: 'src', dir_id: 'dest' } })
     const client = buildClient({ updateAttributes })
     await moveEntry(client, entry, 'dest')
-    expect(persistStackDoc).toHaveBeenCalledWith(client, {
+    expect(applyStackDoc).toHaveBeenCalledWith(client, {
       _id: 'src',
-      dir_id: 'dest',
-      _type: 'io.cozy.files'
+      dir_id: 'dest'
     })
   })
 
