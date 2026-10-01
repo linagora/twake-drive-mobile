@@ -9,13 +9,18 @@ set -uo pipefail
 # Env: INSTANCE_DOMAIN, INSTANCE_PASSPHRASE, STACK_CONTAINER, and optionally
 # PLATFORM (android by default, or ios), MAESTRO_DEVICE (a udid), E2E_SEED to
 # replay an order, REPORTS_DIR for the JUnit reports, MAESTRO_ENV for extra
-# `-e NAME=value` pairs.
+# `-e NAME=value` pairs, FLOW_TIMEOUT for the seconds a single flow may take
+# before it is killed.
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 FLOWS_DIR="$ROOT/e2e/maestro/flows"
 REPORTS="${REPORTS_DIR:-/tmp/maestro-reports}"
 SEED="${E2E_SEED:-$RANDOM}"
 PLATFORM="${PLATFORM:-android}"
+# Seconds a single flow may take before it is killed. The longest honest flow
+# today is the sign-in at a bit over two minutes, so this leaves ample room
+# while staying far under the job's own cap.
+FLOW_TIMEOUT="${FLOW_TIMEOUT:-480}"
 SKIPPED_TAGS='login|ci-login|setup|preauth|shipped|visual|ios-files|onlyoffice|skip'
 # airplane mode and DocumentsUI only exist on Android
 [ "$PLATFORM" = ios ] && SKIPPED_TAGS="$SKIPPED_TAGS|android"
@@ -33,11 +38,34 @@ tags_of() {
   sed -n '/^---/q; /^tags:/,/^[^ ]/p' "$1" | sed -n 's/^ *- *//p'
 }
 
+# Maestro can wedge before it runs a single command: it picks the device, then
+# never starts the flow and never returns. Unbounded, one such flow eats the
+# rest of the job's budget and the run is killed by the job's own cap, which
+# leaves no report, no summary and no recording check — the whole suite is lost
+# to one hung flow. Bounding each flow turns that into a single failure.
+TIMEOUT_CMD=()
+if command -v timeout >/dev/null 2>&1; then
+  TIMEOUT_CMD=(timeout --kill-after=30 "$FLOW_TIMEOUT")
+elif command -v gtimeout >/dev/null 2>&1; then
+  TIMEOUT_CMD=(gtimeout --kill-after=30 "$FLOW_TIMEOUT")
+else
+  # macOS carries neither; perl is always there. SIGALRM survives the exec, so
+  # the budget applies to maestro itself.
+  TIMEOUT_CMD=(perl -e 'alarm shift @ARGV; exec @ARGV' "$FLOW_TIMEOUT")
+fi
+
+# `timeout` answers 124, perl's SIGALRM leaves 142. Either way the flow was cut
+# off rather than having failed on an assertion, which is worth telling apart in
+# the summary: a hang is a different bug from a broken expectation.
+timed_out() {
+  [ "$1" -eq 124 ] || [ "$1" -eq 142 ] || [ "$1" -eq 137 ]
+}
+
 run() {
   local name="$1"
   shift
   # shellcheck disable=SC2086
-  "$ROOT/e2e/scripts/maestro.sh" "${DEVICE_ARGS[@]}" test ${MAESTRO_ENV:-} \
+  "${TIMEOUT_CMD[@]}" "$ROOT/e2e/scripts/maestro.sh" "${DEVICE_ARGS[@]}" test ${MAESTRO_ENV:-} \
     --env INSTANCE_URL="http://$INSTANCE_DOMAIN" \
     --env INSTANCE_PASSPHRASE="$INSTANCE_PASSPHRASE" \
     --env STACK_URL="http://localhost" \
@@ -45,6 +73,12 @@ run() {
     --env STACK_TOKEN="$(token)" \
     --format junit --output "$REPORTS/$name.xml" \
     "$@"
+  local status=$?
+  if timed_out "$status"; then
+    TIMED_OUT+=("$name")
+    echo "::error::$name was still running after ${FLOW_TIMEOUT}s and was killed."
+  fi
+  return "$status"
 }
 
 if [ "$#" -eq 0 ]; then
@@ -68,6 +102,7 @@ fi
 
 PASSED=()
 FAILED=()
+TIMED_OUT=()
 
 echo "::group::00-welcome"
 if run 00-welcome "$FLOWS_DIR/00-welcome.yaml"; then PASSED+=(00-welcome); else FAILED+=(00-welcome); fi
@@ -96,15 +131,31 @@ for flow in "${ORDERED[@]}"; do
   echo "::endgroup::"
 done
 
+was_timed_out() {
+  local name="$1" other
+  for other in ${TIMED_OUT[@]+"${TIMED_OUT[@]}"}; do
+    [ "$other" = "$name" ] && return 0
+  done
+  return 1
+}
+
 {
-  echo "### E2E $PLATFORM: ${#PASSED[@]} passed, ${#FAILED[@]} failed"
+  echo -n "### E2E $PLATFORM: ${#PASSED[@]} passed, ${#FAILED[@]} failed"
+  [ "${#TIMED_OUT[@]}" -eq 0 ] || echo -n " (${#TIMED_OUT[@]} timed out)"
+  echo
   echo
   echo "Order seed \`$SEED\`."
   echo
   echo "| Flow | Result |"
   echo "|---|---|"
   for name in ${PASSED[@]+"${PASSED[@]}"}; do echo "| $name | ✅ |"; done
-  for name in ${FAILED[@]+"${FAILED[@]}"}; do echo "| $name | ❌ |"; done
+  for name in ${FAILED[@]+"${FAILED[@]}"}; do
+    if was_timed_out "$name"; then
+      echo "| $name | ⏱ killed after ${FLOW_TIMEOUT}s |"
+    else
+      echo "| $name | ❌ |"
+    fi
+  done
 } | tee -a "${GITHUB_STEP_SUMMARY:-/dev/null}"
 
 [ "${#FAILED[@]}" -eq 0 ]
