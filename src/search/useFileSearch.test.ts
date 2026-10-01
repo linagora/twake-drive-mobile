@@ -163,16 +163,45 @@ describe('useFileSearch', () => {
 
   it('is in error and reports when the personal drive fails', async () => {
     mockEnsure.mockRejectedValue(new Error('no such module: fts5'))
-    let isolatedHook: typeof useFileSearch = useFileSearch
-    const react = jest.requireActual('react')
-    jest.isolateModules(() => {
-      jest.doMock('react', () => react)
-      isolatedHook = (require('./useFileSearch') as typeof import('./useFileSearch')).useFileSearch
-    })
-    const { result } = renderHook(() => isolatedHook('report', true))
+    const { result } = renderHook(() => useFileSearch('report', true))
     await waitFor(() => expect(result.current.status).toBe('error'))
     expect((result.current.error as Error).message).toContain('fts5')
     expect(mockReport).toHaveBeenCalledTimes(1)
+    expect(mockReport).toHaveBeenCalledWith(expect.any(Error), { area: 'search' })
+  })
+
+  it('reports an error message once, and a different one again', async () => {
+    mockSearch.mockRejectedValue(new Error('disk image is malformed'))
+    const { result } = renderHook(() => useFileSearch('report', true))
+    await waitFor(() => expect(result.current.status).toBe('error'))
+    act(() => result.current.reload())
+    await waitFor(() => expect(mockSearch).toHaveBeenCalledTimes(2))
+    await waitFor(() => expect(result.current.status).toBe('error'))
+    expect(mockReport).toHaveBeenCalledTimes(1)
+
+    mockSearch.mockRejectedValue(new Error('database is locked'))
+    act(() => result.current.reload())
+    await waitFor(() => expect(mockSearch).toHaveBeenCalledTimes(3))
+    await waitFor(() => expect(mockReport).toHaveBeenCalledTimes(2))
+  })
+
+  it('does not report the failure of a stale request', async () => {
+    let rejectFirst: (error: Error) => void = () => undefined
+    mockSearch
+      .mockImplementationOnce(() => new Promise((_resolve, reject) => (rejectFirst = reject)))
+      .mockResolvedValueOnce([hit('second.pdf')])
+    const { result, rerender } = renderHook(
+      ({ term }: { term: string }) => useFileSearch(term, true),
+      { initialProps: { term: 'first' } }
+    )
+    await waitFor(() => expect(mockSearch).toHaveBeenCalledTimes(1))
+    rerender({ term: 'second' })
+    await waitFor(() => expect(result.current.status).toBe('success'))
+    await act(async () => {
+      rejectFirst(new Error('interrupted'))
+    })
+    expect(result.current.status).toBe('success')
+    expect(mockReport).not.toHaveBeenCalled()
   })
 
   it('drops stale responses when the term changes mid-flight', async () => {
