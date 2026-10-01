@@ -1,8 +1,9 @@
 import React from 'react'
 import { StyleSheet, View } from 'react-native'
-import { List, useTheme } from 'react-native-paper'
+import { useTheme } from 'react-native-paper'
 
 import { CozyIcon } from '@/ui/icons/CozyIcon'
+import { AccessibleRow } from '@/ds/AccessibleRow'
 import { cozyTokens } from '@/ui/theme'
 
 export type SettingsRowTrailing = 'chevron' | 'check' | 'none'
@@ -57,9 +58,10 @@ export const SettingsRow = ({
   }
 
   return (
-    <List.Item
+    <AccessibleRow
       testID={testID}
       title={title}
+      label={[title, description].filter(Boolean).join(', ')}
       titleStyle={destructive ? { color: theme.colors.error } : undefined}
       description={description}
       descriptionNumberOfLines={descriptionLines}

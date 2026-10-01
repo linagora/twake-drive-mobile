@@ -71,6 +71,32 @@ describe('FolderRow', () => {
     expect(screen.getByTestId('folder-actions:Documents')).toBeOnTheScreen()
   })
 
+  describe('accessibility', () => {
+    it('announces the name and that the entry is a folder', () => {
+      render(wrap(<FolderRow folder={folder} onPress={() => {}} testID="folder-row" />))
+      expect(screen.getByTestId('folder-row').props.accessibilityLabel).toBe(
+        'Documents, a11y.row.folder'
+      )
+    })
+
+    it('is announced as a button', () => {
+      render(wrap(<FolderRow folder={folder} onPress={() => {}} testID="folder-row" />))
+      expect(screen.getByTestId('folder-row').props.accessibilityRole).toBe('button')
+    })
+
+    it('says what opening the row does', () => {
+      render(wrap(<FolderRow folder={folder} onPress={() => {}} testID="folder-row" />))
+      expect(screen.getByTestId('folder-row').props.accessibilityHint).toBe('a11y.row.openFolder')
+    })
+
+    it('marks the selected state', () => {
+      render(wrap(<FolderRow folder={folder} onPress={() => {}} selected testID="folder-row" />))
+      expect(screen.getByTestId('folder-row').props.accessibilityState).toMatchObject({
+        selected: true
+      })
+    })
+  })
+
   it('drops the menu when keep-offline is off and it was its only action', () => {
     mockFlag.mockReturnValue(false)
     render(wrap(<FolderRow folder={folder} onPress={jest.fn()} onTogglePin={jest.fn()} />))

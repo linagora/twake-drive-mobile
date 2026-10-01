@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { StyleSheet, View } from 'react-native'
-import { IconButton, List, Menu, useTheme } from 'react-native-paper'
+import { IconButton, Menu, useTheme } from 'react-native-paper'
 import { formatDistanceToNow } from 'date-fns'
 import { useTranslation } from 'react-i18next'
 import { useClient } from 'cozy-client'
@@ -15,9 +15,11 @@ import { useOfflineState } from '@/offline/useOfflineState'
 import { isFavorite, toggleFavorite } from '@/files/favorites'
 import { download } from '@/files/download'
 import { triggerPouchReplication } from '@/pouchdb/triggerReplication'
+import { AccessibleRow } from '@/ds/AccessibleRow'
 import { FileThumbnail } from './FileThumbnail'
 import { FileActionsMenu, hasFileActions } from './FileActionsMenu'
 import { SharedBadge } from './SharedBadge'
+import { composeRowLabel } from './rowLabels'
 
 export interface FileItem {
   _id: string
@@ -107,11 +109,20 @@ export const FileRow = ({
     <View
       style={[styles.rowContainer, selected && { backgroundColor: theme.colors.primaryContainer }]}
     >
-      <List.Item
+      <AccessibleRow
         style={styles.item}
         testID={testID}
         title={file.name}
         description={description}
+        label={composeRowLabel(t, {
+          name: file.name,
+          kind: 'file',
+          description,
+          shared: !!sharingStatus?.isShared,
+          offlineState: offlineEntry?.state
+        })}
+        hint={t('a11y.row.openFile')}
+        selected={selected}
         left={props => (
           <View style={[props.style, styles.leftSlot]}>
             {selected ? (

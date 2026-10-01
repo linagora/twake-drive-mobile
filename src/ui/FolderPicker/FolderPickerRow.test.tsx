@@ -43,6 +43,29 @@ describe('FolderPickerRow', () => {
     expect(onPress).not.toHaveBeenCalled()
   })
 
+  describe('accessibility', () => {
+    it('announces the name and the kind of entry', () => {
+      show(folder, false)
+      expect(screen.getByTestId('folder-picker-row').props.accessibilityLabel).toBe(
+        'Documents, a11y.row.folder'
+      )
+    })
+
+    it('is announced as a button when it can receive the move', () => {
+      show(folder, false)
+      expect(screen.getByTestId('folder-picker-row').props.accessibilityRole).toBe('button')
+    })
+
+    // A dimmed file is unreachable; the dimming is the only cue a sighted user
+    // gets, and a screen reader got none at all.
+    it('marks a row that cannot receive the move as disabled', () => {
+      show(file, true)
+      expect(screen.getByTestId('folder-picker-row').props.accessibilityState).toMatchObject({
+        disabled: true
+      })
+    })
+  })
+
   // Every file carried the generic icon, which is the note icon in another
   // colour, so a picker full of spreadsheets looked full of notes (#274).
   it('gives a file the icon of its type', () => {

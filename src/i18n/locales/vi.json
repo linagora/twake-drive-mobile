@@ -286,7 +286,14 @@
     "offlineDownloading": "Đang tải xuống để dùng ngoại tuyến",
     "offlinePending": "Đang chờ tải xuống ngoại tuyến",
     "offlineFailed": "Tải xuống ngoại tuyến thất bại",
-    "offlinePaused": "Đã tạm dừng tải xuống ngoại tuyến"
+    "offlinePaused": "Đã tạm dừng tải xuống ngoại tuyến",
+    "row": {
+      "file": "tệp",
+      "folder": "thư mục",
+      "shared": "đã chia sẻ",
+      "openFile": "Mở tệp",
+      "openFolder": "Mở thư mục"
+    }
   },
   "errors": {
     "noNetwork": "Không có kết nối",

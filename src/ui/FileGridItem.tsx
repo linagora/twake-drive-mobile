@@ -95,6 +95,7 @@ export function FileGridItem({
       ]}
       accessibilityRole="button"
       accessibilityLabel={file.name}
+      accessibilityState={selected === undefined ? undefined : { selected }}
     >
       <View testID="file-grid-icon" style={styles.iconWrapper}>
         <FileThumbnail file={file} size={THUMBNAIL_SIZE} />

@@ -304,7 +304,14 @@
     "offlineDownloading": "Descargando para uso sin conexión",
     "offlinePending": "Esperando la descarga sin conexión",
     "offlineFailed": "Error al descargar sin conexión",
-    "offlinePaused": "Descarga sin conexión en pausa"
+    "offlinePaused": "Descarga sin conexión en pausa",
+    "row": {
+      "file": "archivo",
+      "folder": "carpeta",
+      "shared": "compartido",
+      "openFile": "Abre el archivo",
+      "openFolder": "Abre la carpeta"
+    }
   },
   "errors": {
     "noNetwork": "Sin conexión",

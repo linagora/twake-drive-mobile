@@ -304,7 +304,14 @@
     "offlineDownloading": "Téléchargement pour le hors ligne",
     "offlinePending": "En attente de téléchargement hors ligne",
     "offlineFailed": "Échec du téléchargement hors ligne",
-    "offlinePaused": "Téléchargement hors ligne en pause"
+    "offlinePaused": "Téléchargement hors ligne en pause",
+    "row": {
+      "file": "fichier",
+      "folder": "dossier",
+      "shared": "partagé",
+      "openFile": "Ouvre le fichier",
+      "openFolder": "Ouvre le dossier"
+    }
   },
   "errors": {
     "noNetwork": "Pas de connexion",

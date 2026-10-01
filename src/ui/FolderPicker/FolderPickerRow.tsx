@@ -1,10 +1,13 @@
 import React from 'react'
 import { StyleSheet, View } from 'react-native'
 import { List, useTheme } from 'react-native-paper'
+import { useTranslation } from 'react-i18next'
 
 import { CozyIcon } from '@/ui/icons/CozyIcon'
 import { FileTypeIcon } from '@/ui/icons/FileTypeIcon'
 import { getFileIcon } from '@/utils/fileIcons'
+import { AccessibleRow } from '@/ds/AccessibleRow'
+import { composeRowLabel } from '@/ui/rowLabels'
 
 export interface FolderPickerRowItem {
   _id: string
@@ -23,11 +26,15 @@ interface Props {
 
 export const FolderPickerRow = ({ item, disabled, onPress, testID }: Props) => {
   const theme = useTheme()
+  const { t } = useTranslation()
   const isFolder = item.type === 'directory'
   return (
-    <List.Item
+    <AccessibleRow
       testID={testID ?? 'folder-picker-row'}
       title={item.name}
+      label={composeRowLabel(t, { name: item.name, kind: isFolder ? 'folder' : 'file' })}
+      hint={isFolder && !disabled ? t('a11y.row.openFolder') : undefined}
+      disabled={disabled}
       titleStyle={disabled ? { color: theme.colors.outline } : undefined}
       left={props => (
         <View style={[props.style, styles.leftSlot, disabled && styles.dimmed]}>

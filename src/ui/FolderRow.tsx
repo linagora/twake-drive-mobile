@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { StyleSheet, View } from 'react-native'
-import { IconButton, List, Menu, useTheme } from 'react-native-paper'
+import { IconButton, Menu, useTheme } from 'react-native-paper'
 import { useTranslation } from 'react-i18next'
 import { useClient } from 'cozy-client'
 
@@ -13,8 +13,10 @@ import { PinnedBadge } from '@/offline/PinnedBadge'
 import { folderBadgeEntry } from '@/offline/folderBadgeEntry'
 import { isFavorite, toggleFavorite } from '@/files/favorites'
 import { triggerPouchReplication } from '@/pouchdb/triggerReplication'
+import { AccessibleRow } from '@/ds/AccessibleRow'
 import { FolderActionsMenu, hasFolderActions } from './FolderActionsMenu'
 import { SharedBadge } from './SharedBadge'
+import { composeRowLabel } from './rowLabels'
 
 export interface FolderItem {
   _id: string
@@ -105,11 +107,22 @@ export const FolderRow = ({
     <View
       style={[styles.rowContainer, selected && { backgroundColor: theme.colors.primaryContainer }]}
     >
-      <List.Item
+      <AccessibleRow
         style={styles.item}
         testID={testID}
         title={folder.name}
         description={description}
+        label={composeRowLabel(t, {
+          name: folder.name,
+          kind: 'folder',
+          description,
+          shared: !!sharingStatus?.isShared,
+          offlineState: folderOfflineState.aggregate
+            ? folderBadgeEntry(folderOfflineState.aggregate).state
+            : undefined
+        })}
+        hint={t('a11y.row.openFolder')}
+        selected={selected}
         onPress={() => onPress(folder)}
         onLongPress={onLongPress ? () => onLongPress(folder) : undefined}
         // Honour the `style` Paper passes to `left` so the folder icon aligns

@@ -184,7 +184,7 @@ export const FilesScreen = ({ basePath }: FilesScreenProps): React.ReactElement 
         <FolderRow
           folder={item}
           testID={`folder-row:${item.name}`}
-          selected={isSelected}
+          selected={selecting ? isSelected : undefined}
           {...folderHandlers}
           onPress={folder => {
             if (selecting) selection.toggle(folder._id)
@@ -201,7 +201,7 @@ export const FilesScreen = ({ basePath }: FilesScreenProps): React.ReactElement 
       <FileRow
         file={{ ...item, size: item.size ?? null }}
         testID={`file-row:${item.name}`}
-        selected={isSelected}
+        selected={selecting ? isSelected : undefined}
         {...fileHandlers}
         onPress={file => {
           if (selecting) selection.toggle(file._id)
@@ -225,7 +225,7 @@ export const FilesScreen = ({ basePath }: FilesScreenProps): React.ReactElement 
     return (
       <FileGridItem
         file={item}
-        selected={isSelected}
+        selected={selecting ? isSelected : undefined}
         {...handlers}
         onInfo={selecting || isFolder ? undefined : file => router.push(`/metadata/${file._id}`)}
         onPress={file => {
