@@ -22,7 +22,7 @@ onFlowComplete:
       id: 'folder-row:${output.folder.name}'
     timeout: 60000
 - tapOn:
-    id: "folder-actions:${output.folder.name}${MENU_SUFFIX || ''}"
+    id: 'folder-actions:${output.folder.name}'
 - waitForAnimationToEnd
 - tapOn:
     id: 'action-share'
@@ -65,7 +65,7 @@ onFlowComplete:
 # a drive we own keeps its files on our instance, so the whole menu is
 # offered; the recipient side, where it is trimmed, needs a second instance
 - tapOn:
-    id: 'create-folder'
+    id: 'create-folder(-container-outer-layer)?'
 - tapOn:
     id: 'create-folder-name-input'
 - inputText: '${INSIDE}'

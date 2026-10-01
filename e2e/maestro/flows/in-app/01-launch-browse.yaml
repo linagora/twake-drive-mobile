@@ -17,7 +17,8 @@ onFlowComplete:
 - tapOn:
     id: 'folder-row:${output.folder.name}'
 - extendedWaitUntil:
-    visible: '${output.file.name}'
+    visible:
+      id: 'file-row:${output.file.name}'
     timeout: 30000
 - tapOn:
     id: 'appbar-back-button'

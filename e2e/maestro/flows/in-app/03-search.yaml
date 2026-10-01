@@ -20,5 +20,5 @@ onFlowComplete:
     id: 'search-input'
 - inputText: '${output.file.name.split("-")[1].split(".")[0]}'
 - extendedWaitUntil:
-    visible: '${output.file.name}'
+    visible: '${output.file.name}.*'
     timeout: 30000
