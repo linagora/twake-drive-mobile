@@ -1,8 +1,9 @@
 import type CozyClient from 'cozy-client'
 
 import { driveScope } from '@/files/driveScope'
-import { persistStackDoc } from '@/pouchdb/persistStackDoc'
 import { triggerPouchReplication } from '@/pouchdb/triggerReplication'
+
+import { applyStackDoc } from './applyStackDoc'
 
 export class FolderConflictError extends Error {
   constructor(name: string) {
@@ -45,7 +46,7 @@ export const createFolder = async (
       dirId,
       type: 'directory'
     })
-    if (!driveId) await persistStackDoc(client, { ...result.data, _type: 'io.cozy.files' })
+    if (!driveId) await applyStackDoc(client, result.data)
     triggerPouchReplication(client, 'io.cozy.files')
     return result.data
   } catch (e) {
