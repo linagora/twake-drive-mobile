@@ -2,6 +2,11 @@ jest.mock('@/pouchdb/triggerReplication', () => ({
   triggerPouchReplication: jest.fn()
 }))
 
+jest.mock('@/pouchdb/persistStackDoc', () => ({
+  persistStackDoc: jest.fn().mockResolvedValue(undefined)
+}))
+
+import { persistStackDoc } from '@/pouchdb/persistStackDoc'
 import { triggerPouchReplication } from '@/pouchdb/triggerReplication'
 import { renameEntry, RenameConflictError } from './renameEntry'
 
@@ -56,6 +61,18 @@ describe('renameEntry', () => {
     const client = buildClient(updateAttributes)
     await renameEntry(client, 'abc', 'new')
     expect(triggerPouchReplication).toHaveBeenCalledWith(client, 'io.cozy.files')
+  })
+
+  it('writes the renamed document into the local database', async () => {
+    ;(persistStackDoc as jest.Mock).mockClear()
+    const updateAttributes = jest.fn().mockResolvedValue({ data: { _id: 'abc', name: 'new' } })
+    const client = buildClient(updateAttributes)
+    await renameEntry(client, 'abc', 'new')
+    expect(persistStackDoc).toHaveBeenCalledWith(client, {
+      _id: 'abc',
+      name: 'new',
+      _type: 'io.cozy.files'
+    })
   })
 
   it('does NOT trigger pouch replication on failure', async () => {

@@ -2,6 +2,11 @@ jest.mock('@/pouchdb/triggerReplication', () => ({
   triggerPouchReplication: jest.fn()
 }))
 
+jest.mock('@/pouchdb/persistStackDoc', () => ({
+  persistStackDoc: jest.fn().mockResolvedValue(undefined)
+}))
+
+import { persistStackDoc } from '@/pouchdb/persistStackDoc'
 import { triggerPouchReplication } from '@/pouchdb/triggerReplication'
 import { restoreEntry, emptyTrash } from './trashActions'
 
@@ -40,6 +45,18 @@ describe('restoreEntry', () => {
     const client = buildClient({ restore })
     await restoreEntry(client, 'a')
     expect(triggerPouchReplication).toHaveBeenCalledWith(client, 'io.cozy.files')
+  })
+
+  it('writes the restored document into the local database', async () => {
+    ;(persistStackDoc as jest.Mock).mockClear()
+    const restore = jest.fn().mockResolvedValue({ data: { _id: 'a', name: 'doc' } })
+    const client = buildClient({ restore })
+    await restoreEntry(client, 'a')
+    expect(persistStackDoc).toHaveBeenCalledWith(client, {
+      _id: 'a',
+      name: 'doc',
+      _type: 'io.cozy.files'
+    })
   })
 
   it('does NOT trigger pouch replication on failure', async () => {
