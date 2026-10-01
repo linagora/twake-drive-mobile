@@ -4,14 +4,14 @@ tags:
 onFlowComplete:
   - runFlow: ../../subflows/cleanup.yaml
 ---
-# Finds a file by part of its name. The screen has no entry point in the UI
-# yet, so it is reached by its deep link.
+# Finds a file by part of its name, from the search button of the drive.
 - runScript:
     file: ../../scripts/seed.js
     env:
       SEED: '[{"key":"file","kind":"file","prefix":"Recherche","ext":"txt"}]'
 - runFlow: ../../subflows/openDrive.yaml
-- openLink: twakedrive:///search
+- tapOn:
+    id: 'appbar-search-button'
 - extendedWaitUntil:
     visible:
       id: 'search-input'
