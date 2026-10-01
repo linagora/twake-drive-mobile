@@ -1,3 +1,4 @@
+import * as FileSystem from 'expo-file-system/legacy'
 import ReactNativeBlobUtil from 'react-native-blob-util'
 import type CozyClient from 'cozy-client'
 
@@ -36,6 +37,18 @@ const dedupeName = (name: string, attempt: number): string => {
 const toLocalPath = (uri: string): string =>
   uri.startsWith('file://') ? decodeURIComponent(uri.slice('file://'.length)) : uri
 
+const toFileUri = (uri: string): string =>
+  uri.startsWith('file://') || uri.startsWith('content://') ? uri : `file://${uri}`
+
+// react-native-blob-util sends an empty body, and the stack creates an empty
+// file, when it cannot open the path it is given.
+const ensureReadable = async (fileUri: string, announcedSize?: number): Promise<void> => {
+  const info = await FileSystem.getInfoAsync(fileUri).catch(() => null)
+  const isEmptyByMistake =
+    info?.exists && fileUri.startsWith('file://') && info.size === 0 && (announcedSize ?? 0) > 0
+  if (!info?.exists || isEmptyByMistake) throw new Error('Shared file is not readable')
+}
+
 interface UploadResponse {
   info: () => { status: number }
   json: () => { data?: { id?: string; _id?: string; attributes?: { name?: string } } }
@@ -50,7 +63,9 @@ export const uploadSharedFile = async (
   const stack = client.getStackClient() as unknown as MinimalStackClient
   const token = stack.getAccessToken()
   if (!token) throw new Error('No access token available')
-  const path = toLocalPath(item.uri)
+  const fileUri = toFileUri(item.uri)
+  await ensureReadable(fileUri, item.size)
+  const path = toLocalPath(fileUri)
   const contentType = item.mimeType || 'application/octet-stream'
 
   for (let attempt = 0; attempt < MAX_DEDUPE; attempt++) {

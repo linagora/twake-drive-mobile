@@ -17,6 +17,10 @@ jest.mock('react-native-blob-util', () => ({
     wrap: (path: string) => ({ __wrapped: path })
   }
 }))
+const mockGetInfo = jest.fn()
+jest.mock('expo-file-system/legacy', () => ({
+  getInfoAsync: (...args: unknown[]) => mockGetInfo(...args)
+}))
 jest.mock('@/pouchdb/triggerReplication', () => ({ triggerPouchReplication: jest.fn() }))
 
 const client = {
@@ -25,7 +29,11 @@ const client = {
 
 const item = { uri: 'file:///tmp/pic.jpg', name: 'pic.jpg', mimeType: 'image/jpeg' }
 
-beforeEach(() => mockFetch.mockReset())
+beforeEach(() => {
+  mockFetch.mockReset()
+  mockGetInfo.mockReset()
+  mockGetInfo.mockResolvedValue({ exists: true, size: 10 })
+})
 
 test('POSTs the file to the folder upload route with a bearer token', async () => {
   mockFetch.mockReturnValueOnce(
@@ -62,4 +70,58 @@ test('reports progress and completion', async () => {
   const seen: number[] = []
   await uploadSharedFile(client, item, 'dir42', f => seen.push(f))
   expect(seen[seen.length - 1]).toBe(1)
+})
+
+const contentItem = {
+  uri: 'content://media/external/images/media/42',
+  name: 'a.jpg',
+  mimeType: 'image/jpeg',
+  size: 20000
+}
+
+test('hands a content:// uri to the uploader as it is', async () => {
+  mockFetch.mockReturnValueOnce(mkResp(201, { data: { id: 'f1' } }))
+  await uploadSharedFile(client, contentItem, 'dir42')
+  expect(mockGetInfo).toHaveBeenCalledWith(contentItem.uri)
+  expect(mockFetch.mock.calls[0][3]).toEqual({ __wrapped: contentItem.uri })
+})
+
+test('does not judge a content:// uri by the size its stream reports', async () => {
+  mockGetInfo.mockResolvedValue({ exists: true, size: 0 })
+  mockFetch.mockReturnValueOnce(mkResp(201, { data: { id: 'f1' } }))
+  await uploadSharedFile(client, contentItem, 'dir42')
+  expect(mockFetch).toHaveBeenCalledTimes(1)
+})
+
+test('inspects the file before sending it', async () => {
+  mockFetch.mockReturnValueOnce(mkResp(201, { data: { id: 'f1' } }))
+  await uploadSharedFile(client, item, 'dir42')
+  expect(mockGetInfo).toHaveBeenCalledWith('file:///tmp/pic.jpg')
+})
+
+test('sends nothing when the file is missing', async () => {
+  mockGetInfo.mockResolvedValue({ exists: false })
+  await expect(uploadSharedFile(client, item, 'dir42')).rejects.toThrow('not readable')
+  expect(mockFetch).not.toHaveBeenCalled()
+})
+
+test('sends nothing when the file cannot be inspected', async () => {
+  mockGetInfo.mockRejectedValue(new Error('EACCES (Permission denied)'))
+  await expect(uploadSharedFile(client, item, 'dir42')).rejects.toThrow('not readable')
+  expect(mockFetch).not.toHaveBeenCalled()
+})
+
+test('sends nothing when the file reads as empty while a size was announced', async () => {
+  mockGetInfo.mockResolvedValue({ exists: true, size: 0 })
+  await expect(uploadSharedFile(client, { ...item, size: 2048 }, 'dir42')).rejects.toThrow(
+    'not readable'
+  )
+  expect(mockFetch).not.toHaveBeenCalled()
+})
+
+test('uploads a file that is genuinely empty', async () => {
+  mockGetInfo.mockResolvedValue({ exists: true, size: 0 })
+  mockFetch.mockReturnValueOnce(mkResp(201, { data: { id: 'f1' } }))
+  await uploadSharedFile(client, { ...item, size: 0 }, 'dir42')
+  expect(mockFetch).toHaveBeenCalledTimes(1)
 })
