@@ -31,6 +31,12 @@ export const isOurRedirect = (url: string): boolean => {
   return url.startsWith(`https://${UNIVERSAL_LINK_HOST}${UNIVERSAL_LINK_PATH}`)
 }
 
+/** Where the sign-up portal sends the browser once it has closed the SSO session. */
+export const AFTER_LOGOUT_REDIRECT = `${CUSTOM_SCHEME_REDIRECT}afterlogout`
+
+export const isAfterLogoutRedirect = (url: string): boolean =>
+  !!url && url.toLowerCase().startsWith(AFTER_LOGOUT_REDIRECT)
+
 /**
  * Repairs the shapes the stack and the browsers hand back: a custom scheme
  * with no slashes, and a trailing hash some browsers append.

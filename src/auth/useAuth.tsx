@@ -8,6 +8,7 @@ import React, {
   useState
 } from 'react'
 import CozyClient from 'cozy-client'
+import flag from 'cozy-flags'
 
 import { certifyFlagship as certifyFlagshipModule } from './certifyFlagship'
 import { createClient } from '@/client/createClient'
@@ -18,6 +19,7 @@ import { setAccountScope } from '@/storage/accountScope'
 import { clearSession, getSession, saveSession } from './tokenStorage'
 import { wipeDeviceData } from './wipeDeviceData'
 import { clearSessionLeftByAPreviousInstall } from './freshInstall'
+import { closeSsoSession } from './ssoLogout'
 import { startOidcFlow } from './oidcFlow'
 import { registerSession } from './registerSession'
 import { registerDirectSession } from './registerDirectSession'
@@ -156,6 +158,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const logout = useCallback(
     async (options?: { expired?: boolean; wipe?: boolean }): Promise<void> => {
+      const signupUrl = flag('signup.url') as string | undefined
       setState(prev => {
         if (prev.client) {
           Promise.resolve(prev.client.logout()).catch(() => {
@@ -174,6 +177,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setAccountScope(null)
       setSessionExpired(!!options?.expired)
       setState({ status: 'unauthenticated', client: null })
+      if (!options?.expired) void closeSsoSession(signupUrl)
       // Drop the instance locale that synced during the session; the login
       // screen returns to the device language, like a cold launch.
       void i18n.changeLanguage(resolveDeviceLanguage())
