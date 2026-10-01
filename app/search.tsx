@@ -16,8 +16,7 @@ import { FolderRow } from '@/ui/FolderRow'
 import { getErrorMessageKey } from '@/utils/errorMessages'
 import { openFileFromList } from '@/files/openFromList'
 import { useDebouncedValue } from '@/search/useDebouncedValue'
-import { useFileSearch } from '@/search/useFileSearch'
-import { FileQueryResult } from '@/client/queries'
+import { SearchResult, useFileSearch } from '@/search/useFileSearch'
 import { useActiveColorScheme } from '@/preferences/themePreference'
 
 const MIN_CHARS = 2
@@ -35,24 +34,31 @@ export default function SearchScreen() {
   const debounced = useDebouncedValue(term.trim(), DEBOUNCE_MS)
   const enabled = debounced.length >= MIN_CHARS
 
-  // Search runs server-side (cozy-stack _find), not against the local PouchDB: the
-  // offline io.cozy.files replica can be hundreds of MB and a $regex "contains" scan
-  // OOM-kills the app on device. See src/search/useFileSearch.ts.
   const search = useFileSearch(debounced, enabled)
   const data = search.data
 
-  const renderItem = ({ item }: { item: FileQueryResult }) => {
+  const renderItem = ({ item }: { item: SearchResult }) => {
     if (item.type === 'directory') {
       return (
-        <FolderRow folder={item} onPress={folder => router.push(`/(drive)/files/${folder._id}`)} />
+        <FolderRow
+          folder={item}
+          onPress={folder =>
+            router.push(
+              item.driveId
+                ? `/(drive)/shared/${item.driveId}/${folder._id}`
+                : `/(drive)/files/${folder._id}`
+            )
+          }
+        />
       )
     }
     return (
       <FileRow
         file={{ ...item, size: item.size ?? null }}
+        driveId={item.driveId}
         onPress={file => {
           if (!client) return
-          void openFileFromList(client, router, file).catch(() => undefined)
+          void openFileFromList(client, router, file, item.driveId).catch(() => undefined)
         }}
       />
     )
@@ -81,7 +87,7 @@ export default function SearchScreen() {
       ) : (
         <FlatList
           data={data}
-          keyExtractor={item => item._id}
+          keyExtractor={item => `${item.driveId ?? ''}:${item._id}`}
           renderItem={renderItem}
           keyboardShouldPersistTaps="handled"
         />
