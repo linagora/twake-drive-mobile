@@ -75,4 +75,17 @@ describe('ensureAllFileNameIndexes', () => {
     expect(mockEnsure).toHaveBeenLastCalledWith(driveA)
     warn.mockRestore()
   })
+
+  it('resolves when the databases cannot be opened', async () => {
+    const link = makeLink(['io.cozy.files'])
+    link.getQueryEngineFromDoctype.mockImplementation(() => {
+      throw new Error('cannot open')
+    })
+    mockGetPouchLink.mockReturnValue(link)
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined)
+    await expect(ensureAllFileNameIndexes(client)).resolves.toBeUndefined()
+    expect(mockEnsure).not.toHaveBeenCalled()
+    expect(warn).toHaveBeenCalledTimes(1)
+    warn.mockRestore()
+  })
 })
