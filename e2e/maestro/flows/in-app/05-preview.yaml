@@ -8,9 +8,11 @@ env:
 # only: nothing here changes it.
 - runFlow: ../../subflows/openDrive.yaml
 - extendedWaitUntil:
-    visible: '${PREVIEW_FILE}'
+    visible:
+      id: 'file-row:${PREVIEW_FILE}'
     timeout: 30000
-- tapOn: '${PREVIEW_FILE}'
+- tapOn:
+    id: 'file-row:${PREVIEW_FILE}'
 - extendedWaitUntil:
     visible:
       id: 'preview-image'

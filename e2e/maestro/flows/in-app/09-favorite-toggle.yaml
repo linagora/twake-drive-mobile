@@ -1,13 +1,11 @@
 appId: com.linagora.twakedrive
 tags:
   - inapp
-env:
-  MENU_SUFFIX: ''
 onFlowComplete:
   - runFlow: ../../subflows/cleanup.yaml
 ---
 # A folder added to the favourites shows in Favoris, and leaves it once
-# removed. MENU_SUFFIX is -container-outer-layer on iOS (run-ios.sh).
+# removed.
 - runScript:
     file: ../../scripts/seed.js
     env:
@@ -18,7 +16,7 @@ onFlowComplete:
       id: 'folder-row:${output.folder.name}'
     timeout: 60000
 - tapOn:
-    id: 'folder-actions:${output.folder.name}${MENU_SUFFIX}'
+    id: 'folder-actions:${output.folder.name}'
 - waitForAnimationToEnd
 - tapOn:
     id: 'action-favorite'
@@ -28,7 +26,7 @@ onFlowComplete:
     visible: '${output.folder.name}'
     timeout: 30000
 - tapOn:
-    id: 'folder-actions:${output.folder.name}${MENU_SUFFIX}'
+    id: 'folder-actions:${output.folder.name}'
 - waitForAnimationToEnd
 - tapOn:
     id: 'action-favorite'

@@ -14,7 +14,7 @@ onFlowComplete:
 - tapOn:
     id: 'drive-fab'
 - tapOn:
-    id: 'create-folder'
+    id: 'create-folder(-container-outer-layer)?'
 - tapOn:
     id: 'create-folder-name-input'
 - inputText: '${FOLDER_NAME}'
