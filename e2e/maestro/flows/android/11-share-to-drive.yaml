@@ -8,7 +8,7 @@ onFlowComplete:
 ---
 # Shares an image from the system file picker to Twake Drive and imports it
 # into a folder of its own. The runner pushes the image to Download
-# (e2e/scripts/run-ci-android.sh).
+# (e2e/scripts/run-flows.sh).
 - runScript:
     file: ../../scripts/seed.js
     env:
