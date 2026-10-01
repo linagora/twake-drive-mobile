@@ -2,7 +2,7 @@ jest.mock('@/client/queries', () => ({
   HIDDEN_ROOT_DIR_IDS: ['io.cozy.files.trash-dir', 'io.cozy.files.shared-drives-dir']
 }))
 
-import { ensureFileNameIndex, searchFileNames, SearchDb } from './fileNameIndex'
+import { dropFileNameIndex, ensureFileNameIndex, searchFileNames, SearchDb } from './fileNameIndex'
 
 type Rows = Record<string, unknown>[]
 
@@ -19,9 +19,11 @@ const makeDb = (answer: (sql: string) => Rows = () => []) => {
 
 const sqlOf = (execute: jest.Mock): string[] => execute.mock.calls.map(call => call[0] as string)
 
-const adapterReady = (indexExists: boolean) => (sql: string) => {
-  if (sql.includes("name = 'document-store'")) return [{ found: 1 }]
-  if (sql.includes("name = 'file_names'")) return indexExists ? [{ found: 1 }] : []
+const adapterReady = (indexIntact: boolean) => (sql: string) => {
+  if (sql.includes("type = 'table' AND name = 'document-store'")) return [{ found: 1 }]
+  if (sql.includes("type = 'trigger' AND name = 'file_names_insert'")) {
+    return indexIntact ? [{ found: 1 }] : []
+  }
   return []
 }
 
@@ -39,28 +41,42 @@ describe('ensureFileNameIndex', () => {
     expect(sqlOf(execute).some(sql => sql.includes('CREATE VIRTUAL TABLE'))).toBe(false)
   })
 
-  it('creates the table, the triggers and backfills when the index is new', async () => {
+  it('rebuilds from scratch when the insert trigger is missing', async () => {
     const { db, execute } = makeDb(adapterReady(false))
     await expect(ensureFileNameIndex(db)).resolves.toBe(true)
-    const sql = sqlOf(execute).join('\n')
+    const statements = sqlOf(execute)
+    const sql = statements.join('\n')
+    expect(statements.indexOf('DROP TABLE IF EXISTS file_names')).toBeGreaterThan(-1)
+    expect(statements.indexOf('DROP TABLE IF EXISTS file_names')).toBeLessThan(
+      statements.findIndex(statement => statement.includes('CREATE VIRTUAL TABLE'))
+    )
     expect(sql).toContain('CREATE VIRTUAL TABLE IF NOT EXISTS file_names USING fts5')
     expect(sql).toContain('unicode61 remove_diacritics 2')
     expect(sql).toContain('CREATE TRIGGER IF NOT EXISTS file_names_insert')
     expect(sql).toContain('CREATE TRIGGER IF NOT EXISTS file_names_update')
     expect(sql).toContain('CREATE TRIGGER IF NOT EXISTS file_names_delete')
+    expect(sql).toContain('INSERT OR REPLACE INTO file_names')
     expect(sql).toContain("FROM 'document-store' d JOIN 'by-sequence' s")
   })
 
-  it('does not backfill an index that already exists', async () => {
+  it('writes nothing when the index is intact', async () => {
     const { db, execute } = makeDb(adapterReady(true))
     await expect(ensureFileNameIndex(db)).resolves.toBe(true)
-    expect(sqlOf(execute).join('\n')).not.toContain("FROM 'document-store' d JOIN 'by-sequence' s")
+    expect(sqlOf(execute).every(sql => sql.startsWith('SELECT 1 AS found'))).toBe(true)
   })
 
-  it('creates the index once for concurrent and repeated calls', async () => {
+  it('shares one creation between concurrent calls', async () => {
     const { db, execute } = makeDb(adapterReady(false))
     await Promise.all([ensureFileNameIndex(db), ensureFileNameIndex(db)])
+    expect(sqlOf(execute).filter(sql => sql.includes('CREATE VIRTUAL TABLE'))).toHaveLength(1)
+  })
+
+  it('checks the database again on every call', async () => {
+    let intact = true
+    const { db, execute } = makeDb(sql => adapterReady(intact)(sql))
     await ensureFileNameIndex(db)
+    intact = false
+    await expect(ensureFileNameIndex(db)).resolves.toBe(true)
     expect(sqlOf(execute).filter(sql => sql.includes('CREATE VIRTUAL TABLE'))).toHaveLength(1)
   })
 
@@ -69,6 +85,31 @@ describe('ensureFileNameIndex', () => {
     execute.mockRejectedValueOnce(new Error('no such module: fts5'))
     await expect(ensureFileNameIndex(db)).rejects.toThrow('fts5')
     await expect(ensureFileNameIndex(db)).resolves.toBe(true)
+  })
+})
+
+describe('dropFileNameIndex', () => {
+  it('drops the three triggers and the two tables', async () => {
+    const { db, execute } = makeDb()
+    await dropFileNameIndex(db)
+    expect(sqlOf(execute)).toEqual([
+      'DROP TRIGGER IF EXISTS file_names_insert',
+      'DROP TRIGGER IF EXISTS file_names_update',
+      'DROP TRIGGER IF EXISTS file_names_delete',
+      'DROP TABLE IF EXISTS file_names',
+      'DROP TABLE IF EXISTS search_positions'
+    ])
+  })
+
+  it('waits for a creation in flight', async () => {
+    const { db, execute } = makeDb(adapterReady(false))
+    const creation = ensureFileNameIndex(db)
+    await dropFileNameIndex(db)
+    await creation
+    const statements = sqlOf(execute)
+    expect(statements.findIndex(sql => sql.includes('DROP TRIGGER'))).toBeGreaterThan(
+      statements.findIndex(sql => sql.includes("FROM 'document-store' d JOIN 'by-sequence' s"))
+    )
   })
 })
 

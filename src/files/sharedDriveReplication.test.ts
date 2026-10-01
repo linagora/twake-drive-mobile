@@ -11,6 +11,11 @@ jest.mock('./sharedDrives', () => ({
   fetchSharedDrives: (...args: unknown[]) => mockFetchSharedDrives(...args)
 }))
 
+const mockDropIndex = jest.fn(async (..._args: unknown[]) => undefined)
+jest.mock('@/search/searchDatabases', () => ({
+  dropSharedDriveFileNameIndex: (...args: unknown[]) => mockDropIndex(...args)
+}))
+
 import {
   getCachedSharedDrives,
   registerSharedDrive,
@@ -57,6 +62,7 @@ describe('shared drive replication', () => {
   beforeEach(() => {
     mockStore.clear()
     mockFetchSharedDrives.mockReset()
+    mockDropIndex.mockClear()
   })
 
   it('registers a drive on its own doctype and syncs it now', async () => {
@@ -110,6 +116,11 @@ describe('shared drive replication', () => {
     ])
     await syncSharedDrives(client2)
     expect(removeDoctype).toHaveBeenCalledWith(sharedDriveDoctype('drive-2'))
+    expect(mockDropIndex).toHaveBeenCalledTimes(1)
+    expect(mockDropIndex).toHaveBeenCalledWith(client2, 'drive-2')
+    expect(mockDropIndex.mock.invocationCallOrder[0]).toBeLessThan(
+      removeDoctype.mock.invocationCallOrder[0]
+    )
     expect(getCachedSharedDrives().map(d => d.driveId)).toEqual(['drive-1'])
   })
 

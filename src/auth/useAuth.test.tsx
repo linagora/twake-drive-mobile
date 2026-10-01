@@ -46,6 +46,17 @@ jest.mock('./ssoLogout', () => ({
   closeSsoSession: (...a: unknown[]) => mockCloseSsoSession(...(a as []))
 }))
 
+const mockDestroyLocalData = jest.fn(async (..._args: unknown[]) => undefined)
+jest.mock('@/pouchdb/destroyLocalData', () => ({
+  destroyLocalData: (...args: unknown[]) => mockDestroyLocalData(...args)
+}))
+
+const mockDropAllFileNameIndexes = jest.fn(async (..._args: unknown[]) => undefined)
+jest.mock('@/search/searchDatabases', () => ({
+  dropAllFileNameIndexes: (...args: unknown[]) => mockDropAllFileNameIndexes(...args),
+  ensureAllFileNameIndexes: jest.fn(async () => undefined)
+}))
+
 jest.mock('cozy-flags', () => ({
   __esModule: true,
   default: Object.assign(jest.fn(), { plugin: jest.fn() })
@@ -57,7 +68,9 @@ jest.mock('@/i18n', () => ({
   resolveDeviceLanguage: jest.fn(() => 'en')
 }))
 
+import CozyClient from 'cozy-client'
 import flag from 'cozy-flags'
+
 import i18n, { resolveDeviceLanguage } from '@/i18n'
 import * as tokenStorage from './tokenStorage'
 import * as twakeAuthBridge from '@/native/twakeAuthBridge'
@@ -83,7 +96,7 @@ const mockSession = {
 }
 
 const Probe = () => {
-  const { status, login, logout, sessionExpired } = useAuth()
+  const { status, login, logout, sessionExpired, devResetAndResync } = useAuth()
   return (
     <>
       <Text testID="status">{status}</Text>
@@ -92,6 +105,7 @@ const Probe = () => {
       <Pressable testID="logout" onPress={() => logout()} />
       <Pressable testID="logout-expired" onPress={() => logout({ expired: true })} />
       <Pressable testID="logout-wipe" onPress={() => logout({ wipe: true })} />
+      <Pressable testID="resync" onPress={() => devResetAndResync()} />
     </>
   )
 }
@@ -103,6 +117,8 @@ describe('useAuth', () => {
     mockWipeDeviceData.mockClear()
     mockCloseSsoSession.mockClear()
     ;(flag as unknown as jest.Mock).mockReset()
+    mockDestroyLocalData.mockClear()
+    mockDropAllFileNameIndexes.mockClear()
   })
 
   it('starts loading then transitions to unauthenticated when no session', async () => {
@@ -328,5 +344,50 @@ describe('useAuth', () => {
     })
 
     await waitFor(() => expect(mockWipeDeviceData).toHaveBeenCalled())
+  })
+
+  it('a logout drops the name indexes before the client destroys its databases', async () => {
+    jest.spyOn(tokenStorage, 'getSession').mockResolvedValue(mockSession)
+    jest.spyOn(tokenStorage, 'clearSession').mockResolvedValue()
+    render(
+      <AuthProvider>
+        <Probe />
+      </AuthProvider>
+    )
+    await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('authenticated'))
+    const clients = (CozyClient as unknown as jest.Mock).mock.results
+    const client = clients[clients.length - 1].value as { logout: jest.Mock }
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('logout'))
+    })
+
+    await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('unauthenticated'))
+    expect(mockDropAllFileNameIndexes).toHaveBeenCalledWith(client)
+    expect(client.logout).toHaveBeenCalledTimes(1)
+    expect(mockDropAllFileNameIndexes.mock.invocationCallOrder[0]).toBeLessThan(
+      client.logout.mock.invocationCallOrder[0]
+    )
+  })
+
+  it('a resync drops the name indexes before the local data is destroyed', async () => {
+    jest.spyOn(tokenStorage, 'getSession').mockResolvedValue(mockSession)
+    render(
+      <AuthProvider>
+        <Probe />
+      </AuthProvider>
+    )
+    await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('authenticated'))
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('resync'))
+    })
+
+    await waitFor(() => expect(mockDestroyLocalData).toHaveBeenCalledTimes(1))
+    expect(mockDropAllFileNameIndexes).toHaveBeenCalledTimes(1)
+    expect(mockDropAllFileNameIndexes.mock.invocationCallOrder[0]).toBeLessThan(
+      mockDestroyLocalData.mock.invocationCallOrder[0]
+    )
+    await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('authenticated'))
   })
 })

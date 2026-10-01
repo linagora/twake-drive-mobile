@@ -2,7 +2,7 @@ jest.mock('@/client/queries', () => ({
   HIDDEN_ROOT_DIR_IDS: ['io.cozy.files.trash-dir', 'io.cozy.files.shared-drives-dir']
 }))
 
-import { ensureFileNameIndex, searchFileNames, SearchDb } from './fileNameIndex'
+import { dropFileNameIndex, ensureFileNameIndex, searchFileNames, SearchDb } from './fileNameIndex'
 
 interface SqliteStatement {
   reader: boolean
@@ -25,6 +25,11 @@ const ADAPTER_SCHEMA = `
   CREATE INDEX IF NOT EXISTS 'by-seq-deleted-idx' ON 'by-sequence' (seq, deleted);
   CREATE UNIQUE INDEX IF NOT EXISTS 'by-seq-doc-id-rev' ON 'by-sequence' (doc_id, rev);
   CREATE INDEX IF NOT EXISTS 'doc-winningseq-idx' ON 'document-store' (winningseq);
+`
+
+const ADAPTER_DESTROY = `
+  DROP TABLE IF EXISTS 'document-store';
+  DROP TABLE IF EXISTS 'by-sequence';
 `
 
 const wrap = (sqlite: SqliteDatabase): { db: SearchDb; statements: string[] } => {
@@ -186,5 +191,83 @@ describe('the file name index on a real database', () => {
     expect(plan.filter(detail => /^SCAN (s|d)\b/.test(detail))).toEqual([])
     expect(plan.some(detail => /^SEARCH s USING INTEGER PRIMARY KEY/.test(detail))).toBe(true)
     expect(plan.some(detail => /^SEARCH d USING INDEX .* \(id=\?\)/.test(detail))).toBe(true)
+  })
+})
+
+describe('the file name index when the adapter destroys its tables', () => {
+  const destroyAndRecreate = (): void => {
+    sqlite.exec(ADAPTER_DESTROY)
+    sqlite.exec(ADAPTER_SCHEMA)
+  }
+
+  it('rebuilds on the same handle, with no stale hit', async () => {
+    const { db } = wrap(sqlite)
+    await ensureFileNameIndex(db)
+    writeRevision(sqlite, 'old-1', '1-a', file('alpha one.pdf'))
+    writeRevision(sqlite, 'old-2', '1-a', file('alpha two.pdf'))
+    destroyAndRecreate()
+    await expect(ensureFileNameIndex(db)).resolves.toBe(true)
+    expect(() => writeRevision(sqlite, 'new-1', '1-a', file('beta one.pdf'))).not.toThrow()
+    expect(() => writeRevision(sqlite, 'new-2', '1-a', file('beta two.pdf'))).not.toThrow()
+    await expect(idsOf(db, 'alpha')).resolves.toEqual([])
+    await expect(idsOf(db, 'beta')).resolves.toEqual(['new-1', 'new-2'])
+  })
+
+  it('rebuilds on a new handle, with no constraint error', async () => {
+    await ensureFileNameIndex(wrap(sqlite).db)
+    writeRevision(sqlite, 'old-1', '1-a', file('alpha one.pdf'))
+    writeRevision(sqlite, 'old-2', '1-a', file('alpha two.pdf'))
+    destroyAndRecreate()
+    writeRevision(sqlite, 'new-0', '1-a', file('beta zero.pdf'))
+    const { db } = wrap(sqlite)
+    await expect(ensureFileNameIndex(db)).resolves.toBe(true)
+    expect(() => writeRevision(sqlite, 'new-1', '1-a', file('beta one.pdf'))).not.toThrow()
+    await expect(idsOf(db, 'alpha')).resolves.toEqual([])
+    await expect(idsOf(db, 'beta')).resolves.toEqual(['new-0', 'new-1'])
+  })
+
+  it('never lets a stale row abort a write', async () => {
+    const { db } = wrap(sqlite)
+    await ensureFileNameIndex(db)
+    sqlite
+      .prepare(`INSERT INTO file_names(rowid, name, reversed, doc_id) VALUES (1, 'x', 'x', 'x')`)
+      .run()
+    expect(() => writeRevision(sqlite, 'doc', '1-a', file('alpha.pdf'))).not.toThrow()
+    await expect(idsOf(db, 'alpha')).resolves.toEqual(['doc'])
+  })
+})
+
+describe('dropFileNameIndex', () => {
+  const searchObjects = (): string[] =>
+    sqlite
+      .prepare(
+        `SELECT name FROM sqlite_master WHERE name LIKE 'file_names%' OR name = 'search_positions'`
+      )
+      .all()
+      .map(row => String(row.name))
+
+  it('removes the triggers and the tables, and leaves the replica writable', async () => {
+    const { db } = wrap(sqlite)
+    await ensureFileNameIndex(db)
+    writeRevision(sqlite, 'doc', '1-a', file('alpha.pdf'))
+    await dropFileNameIndex(db)
+    expect(searchObjects()).toEqual([])
+    expect(() => writeRevision(sqlite, 'doc', '2-b', file('beta.pdf'))).not.toThrow()
+    expect(countOf(sqlite, `'document-store'`)).toBe(1)
+  })
+
+  it('is safe when there is no index', async () => {
+    const { db } = wrap(sqlite)
+    await expect(dropFileNameIndex(db)).resolves.toBeUndefined()
+    await expect(dropFileNameIndex(db)).resolves.toBeUndefined()
+  })
+
+  it('lets the index be created again afterwards', async () => {
+    const { db } = wrap(sqlite)
+    writeRevision(sqlite, 'doc', '1-a', file('alpha.pdf'))
+    await ensureFileNameIndex(db)
+    await dropFileNameIndex(db)
+    await expect(ensureFileNameIndex(db)).resolves.toBe(true)
+    await expect(idsOf(db, 'alpha')).resolves.toEqual(['doc'])
   })
 })
