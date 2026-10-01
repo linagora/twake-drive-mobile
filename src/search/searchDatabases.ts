@@ -1,6 +1,7 @@
 import type CozyClient from 'cozy-client'
 
 import { getReplicatedDriveIds, sharedDriveDoctype } from '@/files/sharedDriveReplication'
+import { getOnlineMonitor } from '@/network/OnlineMonitor'
 import { getPouchLink } from '@/pouchdb/triggerReplication'
 
 import { dropFileNameIndex, ensureFileNameIndex, SearchDb } from './fileNameIndex'
@@ -26,7 +27,7 @@ export const setReplicating = (value: boolean): void => {
   replicating = value
 }
 
-export const isReplicating = (): boolean => replicating
+export const isReplicating = (): boolean => replicating && getOnlineMonitor().getCurrent()
 
 export const getSearchDatabases = (client: CozyClient): SearchDatabase[] => {
   const link = getPouchLink(client) as unknown as SearchLink | null

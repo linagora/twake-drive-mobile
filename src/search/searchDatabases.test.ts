@@ -3,6 +3,7 @@ jest.mock('@/files/sharedDriveReplication', () => ({
   getReplicatedDriveIds: jest.fn(),
   sharedDriveDoctype: (driveId: string) => `io.cozy.files.shareddrives-${driveId}`
 }))
+jest.mock('@/network/OnlineMonitor', () => ({ getOnlineMonitor: jest.fn() }))
 jest.mock('./fileNameIndex', () => ({
   dropFileNameIndex: jest.fn(),
   ensureFileNameIndex: jest.fn()
@@ -11,6 +12,7 @@ jest.mock('./fileNameIndex', () => ({
 import type CozyClient from 'cozy-client'
 
 import { getReplicatedDriveIds } from '@/files/sharedDriveReplication'
+import { getOnlineMonitor } from '@/network/OnlineMonitor'
 import { getPouchLink } from '@/pouchdb/triggerReplication'
 
 import { dropFileNameIndex, ensureFileNameIndex } from './fileNameIndex'
@@ -24,6 +26,7 @@ import {
 } from './searchDatabases'
 
 const mockGetPouchLink = getPouchLink as jest.Mock
+const mockOnlineMonitor = getOnlineMonitor as jest.Mock
 const mockReplicated = getReplicatedDriveIds as jest.Mock
 const mockEnsure = ensureFileNameIndex as jest.Mock
 const mockDrop = dropFileNameIndex as jest.Mock
@@ -46,11 +49,19 @@ beforeEach(() => {
 
 describe('isReplicating', () => {
   it('follows what it was last told', () => {
+    mockOnlineMonitor.mockReturnValue({ getCurrent: () => true })
     expect(isReplicating()).toBe(false)
     setReplicating(true)
     expect(isReplicating()).toBe(true)
     setReplicating(false)
     expect(isReplicating()).toBe(false)
+  })
+
+  it('is false offline, where no replication can be writing', () => {
+    mockOnlineMonitor.mockReturnValue({ getCurrent: () => false })
+    setReplicating(true)
+    expect(isReplicating()).toBe(false)
+    setReplicating(false)
   })
 })
 
