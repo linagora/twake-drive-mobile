@@ -16,8 +16,7 @@ jest.mock('@/search/useDebouncedValue', () => ({
   useDebouncedValue: (v: string) => v
 }))
 
-// The server-side search hook is stubbed so this test targets the screen's
-// state → UI mapping, not the network.
+// The search hook is stubbed so this test targets the screen's state → UI mapping.
 const mockUseFileSearch = jest.fn()
 jest.mock('@/search/useFileSearch', () => ({
   useFileSearch: (...args: unknown[]) => mockUseFileSearch(...args)
@@ -121,6 +120,33 @@ describe('SearchScreen', () => {
     fireEvent.changeText(screen.getByPlaceholderText('drive.search.placeholder'), 'do')
     fireEvent.press(screen.getByText('Docs'))
     expect(mockPush).toHaveBeenCalledWith('/(drive)/files/d1')
+  })
+
+  it("ouvre un dossier d'un drive partagé dans son drive", () => {
+    setSearch({
+      status: 'success',
+      data: [{ _id: 'folder-1', name: 'Dossier', type: 'directory', driveId: 'drive-a' }]
+    })
+    render(<SearchScreen />)
+    fireEvent.changeText(screen.getByPlaceholderText('drive.search.placeholder'), 'do')
+    fireEvent.press(screen.getByText('Dossier'))
+    expect(mockPush).toHaveBeenCalledWith('/(drive)/shared/drive-a/folder-1')
+  })
+
+  it("ouvre un fichier d'un drive partagé avec son drive", () => {
+    setSearch({
+      status: 'success',
+      data: [{ _id: 'file-1', name: 'note.txt', type: 'file', driveId: 'drive-a' }]
+    })
+    render(<SearchScreen />)
+    fireEvent.changeText(screen.getByPlaceholderText('drive.search.placeholder'), 'no')
+    fireEvent.press(screen.getByText('note.txt'))
+    expect(mockOpen).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      expect.objectContaining({ _id: 'file-1' }),
+      'drive-a'
+    )
   })
 
   it("n'affiche PAS l'état vide pendant 'loading'", () => {
