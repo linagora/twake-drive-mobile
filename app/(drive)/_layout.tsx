@@ -11,6 +11,7 @@ import { useFlagsRefresh } from '@/client/useFlagsRefresh'
 import { useSharedDriveReplication } from '@/files/useSharedDriveReplication'
 import { useSyncInstanceLocale } from '@/i18n/useSyncInstanceLocale'
 import { initOfflineSubsystem } from '@/offline/initOffline'
+import { formatBadgeCount, useNewSharesCount } from '@/sharing/newShares'
 import { useAuth } from '@/auth/useAuth'
 import { LoadingState } from '@/ui/LoadingState'
 
@@ -34,6 +35,7 @@ function DriveTabs() {
   useFlagsRefresh()
   useSharedDriveReplication()
   useSyncInstanceLocale()
+  const newSharesCount = useNewSharesCount()
   useEffect(() => {
     if (!client) return
     void initOfflineSubsystem(client)
@@ -79,6 +81,11 @@ function DriveTabs() {
           options={{
             title: t('drive.shares'),
             tabBarButtonTestID: 'tab-shared',
+            tabBarBadge: formatBadgeCount(newSharesCount),
+            tabBarBadgeStyle: {
+              backgroundColor: theme.colors.error,
+              color: theme.colors.onError
+            },
             tabBarIcon: ({ color, size }) => (
               <CozyIcon name="shareExternal" color={color} size={size} />
             )
