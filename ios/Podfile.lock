@@ -335,7 +335,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
-  - op-sqlite (15.0.7):
+  - op-sqlite (18.2.5):
     - hermes-engine
     - RCTRequired
     - RCTTypeSafety
@@ -1705,7 +1705,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
-  - react-native-quick-base64 (3.0.0):
+  - react-native-quick-base64 (3.0.1):
     - hermes-engine
     - RCTRequired
     - RCTTypeSafety
@@ -2912,7 +2912,7 @@ SPEC CHECKSUMS:
   MMKVCore: 3d16ce9f7d411e135020915fde98a056859a1efa
   NitroMmkv: 7a7572934538ba6748e05dffc6ee8b06caad91cc
   NitroModules: 5a0f735f3f834ac1d998c28fc65be992849c30f3
-  op-sqlite: adfee760ec36ac03ea677c136aae69f4cc2f96b0
+  op-sqlite: f37ceaad8ed9485ea098bfa1cbef9749ce42a52f
   OpenSSL-Universal: 9110d21982bb7e8b22a962b6db56a8aa805afde7
   RCTDeprecation: 943572d4be82d480a48f4884f670135ae30bf990
   RCTRequired: 8f3cfc90cc25cf6e420ddb3e7caaaabc57df6043
@@ -2951,7 +2951,7 @@ SPEC CHECKSUMS:
   react-native-get-random-values: d16467cf726c618e9c7a8c3c39c31faa2244bbba
   react-native-netinfo: f852c868bf5175e46165c7e4db48a204a95c3800
   react-native-pdf: dac049a15aec41db452e372f85184d3f15741b12
-  react-native-quick-base64: c08d84d73f4922ac4e073d54c6956edaf5a5025f
+  react-native-quick-base64: a6fd0c1394f9d19c2ec90ab33d91c6b1cef815fc
   react-native-quick-crypto: 1a2467cf17acc57dce5bb076a953978b79e3fd11
   react-native-safe-area-context: 37e680fc4cace3c0030ee46e8987d24f5d3bdab2
   react-native-webview: b29007f4723bca10872028067b07abacfa1cb35a
