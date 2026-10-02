@@ -1,3 +1,4 @@
+import { AppState } from 'react-native'
 import * as WebBrowser from 'expo-web-browser'
 import * as Linking from 'expo-linking'
 
@@ -55,6 +56,51 @@ describe('closeSsoSession', () => {
     wb.openBrowserAsync.mockResolvedValue({ type: 'cancel' })
     await closeSsoSession('https://sso.example.com/oauth2/logout')
     expect(remove).toHaveBeenCalled()
+  })
+
+  describe('on Android, where the tab answers as soon as it is launched', () => {
+    let appStateHandler: (state: string) => void
+    const initialState = AppState.currentState
+
+    beforeEach(() => {
+      jest.spyOn(AppState, 'addEventListener').mockImplementation(((
+        _evt: string,
+        cb: (state: string) => void
+      ) => {
+        appStateHandler = cb
+        return { remove: jest.fn() }
+      }) as never)
+      wb.openBrowserAsync.mockResolvedValue({ type: 'opened' })
+    })
+
+    afterEach(() => {
+      AppState.currentState = initialState
+      jest.restoreAllMocks()
+    })
+
+    it('ends when the app comes back to the front', async () => {
+      AppState.currentState = 'active'
+      let ended = false
+      const done = closeSsoSession('https://sso.example.com/oauth2/logout').then(() => {
+        ended = true
+      })
+      await Promise.resolve()
+      await Promise.resolve()
+      appStateHandler('background')
+      expect(ended).toBe(false)
+      appStateHandler('active')
+      await done
+      expect(ended).toBe(true)
+    })
+
+    it('ends when the tab had already covered the app by the time it answered', async () => {
+      AppState.currentState = 'background'
+      const done = closeSsoSession('https://sso.example.com/oauth2/logout')
+      await Promise.resolve()
+      await Promise.resolve()
+      appStateHandler('active')
+      await expect(done).resolves.toBeUndefined()
+    })
   })
 
   it('never fails the logout when the browser cannot open', async () => {
