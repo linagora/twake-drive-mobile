@@ -37,6 +37,33 @@ describe('buildByIdMap', () => {
     expect(buildByIdMap([s], []).size).toBe(0)
   })
 
+  it('indexes the shortcut of a sharing next to its rule values', () => {
+    const s = sharing({
+      shortcut_id: 'shortcut-a',
+      rules: [{ doctype: 'io.cozy.files', values: ['file-a'] }]
+    })
+    const map = buildByIdMap([s], [])
+    expect(Array.from(map.keys()).sort()).toEqual(['file-a', 'shortcut-a'])
+    expect(map.get('shortcut-a')!.isOwner).toBe(false)
+    expect(map.get('shortcut-a')!.sharing?._id).toBe('s1')
+  })
+
+  // A share that was not accepted yet is inactive, and its rule values are the
+  // owner's ids: the shortcut is the only document to list for it.
+  it('keeps the shortcut of an inactive sharing, and nothing else of it', () => {
+    const s = sharing({
+      active: false,
+      shortcut_id: 'shortcut-a',
+      rules: [{ doctype: 'io.cozy.files', values: ['file-a'] }]
+    })
+    expect(Array.from(buildByIdMap([s], []).keys())).toEqual(['shortcut-a'])
+  })
+
+  it('reads the shortcut from the flattened (non-attributes) shape', () => {
+    const s: SharingDoc = { _id: 's-flat', shortcut_id: 'shortcut-flat', owner: false }
+    expect(buildByIdMap([s], []).has('shortcut-flat')).toBe(true)
+  })
+
   it('maps a file to a sharing entry with owner and recipients', () => {
     const s = sharing({
       owner: true,

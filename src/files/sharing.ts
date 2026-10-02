@@ -46,6 +46,9 @@ export interface SharingDoc {
     active?: boolean
     owner?: boolean
     drive?: boolean
+    /** The `.url` file that stands for the share on the recipient instance
+     *  until it is accepted. */
+    shortcut_id?: string
     description?: string
     created_at?: string
     updated_at?: string
@@ -55,6 +58,7 @@ export interface SharingDoc {
   members?: SharingMember[]
   owner?: boolean
   drive?: boolean
+  shortcut_id?: string
   created_at?: string
   updated_at?: string
 }
