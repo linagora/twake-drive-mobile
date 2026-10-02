@@ -1,10 +1,14 @@
 diff --git a/node_modules/pouchdb-adapter-react-native-sqlite/lib/commonjs/openDatabase.js b/node_modules/pouchdb-adapter-react-native-sqlite/lib/commonjs/openDatabase.js
-index b427570..d23b759 100644
+index b427570..5ec75e9 100644
 --- a/node_modules/pouchdb-adapter-react-native-sqlite/lib/commonjs/openDatabase.js
 +++ b/node_modules/pouchdb-adapter-react-native-sqlite/lib/commonjs/openDatabase.js
-@@ -12,6 +12,7 @@ function openDBSafely(opts) {
+@@ -11,7 +11,11 @@ const cachedDatabases = new Map();
+ function openDBSafely(opts) {
    try {
      const db = (0, _opSqlite.open)(opts);
++    try {
++      db.executeSync('PRAGMA busy_timeout=5000');
++    } catch (e) {}
      const transactionQueue = new _transactionQueue.TransactionQueue(db);
 +    (globalThis.__rnSqliteRawDBs || (globalThis.__rnSqliteRawDBs = new Map())).set(opts.name, db);
      return {
@@ -36,6 +40,20 @@ index 32cb15c..0c55838 100644
        this.run();
      });
    }
+diff --git a/node_modules/pouchdb-adapter-react-native-sqlite/lib/module/openDatabase.js b/node_modules/pouchdb-adapter-react-native-sqlite/lib/module/openDatabase.js
+index 1fefcbf..d2e8863 100644
+--- a/node_modules/pouchdb-adapter-react-native-sqlite/lib/module/openDatabase.js
++++ b/node_modules/pouchdb-adapter-react-native-sqlite/lib/module/openDatabase.js
+@@ -6,6 +6,9 @@ const cachedDatabases = new Map();
+ function openDBSafely(opts) {
+   try {
+     const db = open(opts);
++    try {
++      db.executeSync('PRAGMA busy_timeout=5000');
++    } catch (e) {}
+     const transactionQueue = new TransactionQueue(db);
+     return {
+       db,
 diff --git a/node_modules/pouchdb-adapter-react-native-sqlite/lib/module/transactionQueue.js b/node_modules/pouchdb-adapter-react-native-sqlite/lib/module/transactionQueue.js
 index 82eb2f7..f915d7d 100644
 --- a/node_modules/pouchdb-adapter-react-native-sqlite/lib/module/transactionQueue.js
@@ -62,6 +80,20 @@ index 82eb2f7..f915d7d 100644
        this.run();
      });
    }
+diff --git a/node_modules/pouchdb-adapter-react-native-sqlite/src/openDatabase.ts b/node_modules/pouchdb-adapter-react-native-sqlite/src/openDatabase.ts
+index b1546f9..42ace01 100644
+--- a/node_modules/pouchdb-adapter-react-native-sqlite/src/openDatabase.ts
++++ b/node_modules/pouchdb-adapter-react-native-sqlite/src/openDatabase.ts
+@@ -21,6 +21,9 @@ const cachedDatabases = new Map<string, OpenDatabaseResult>()
+ function openDBSafely(opts: OpenDatabaseOptions): OpenDatabaseResult {
+   try {
+     const db = open(opts)
++    try {
++      db.executeSync('PRAGMA busy_timeout=5000')
++    } catch (e) {}
+     const transactionQueue = new TransactionQueue(db)
+     return { db, transactionQueue }
+   } catch (err: any) {
 diff --git a/node_modules/pouchdb-adapter-react-native-sqlite/src/transactionQueue.ts b/node_modules/pouchdb-adapter-react-native-sqlite/src/transactionQueue.ts
 index bf745ba..1145f8e 100644
 --- a/node_modules/pouchdb-adapter-react-native-sqlite/src/transactionQueue.ts
