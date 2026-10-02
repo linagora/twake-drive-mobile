@@ -21,8 +21,8 @@ onFlowComplete:
 # so the next login asks which account to use. The e2e instance names no SSO
 # logout page of its own, so the app falls back to the sign-up portal the
 # `signup.url` flag points to, a stand-in here (e2e/stack/portal.js). Like the
-# real one it does not send the browser back to the app: it ends on its own
-# login page, the user closes it and finds the welcome screen.
+# real one it sends the browser back to the app, which closes it: the welcome
+# screen is only reachable once the browser is gone.
 - runFlow: ../../subflows/openDrive.yaml
 - runScript:
     file: ../../scripts/portalLogouts.js
@@ -30,19 +30,6 @@ onFlowComplete:
     id: 'appbar-avatar'
 - tapOn:
     id: 'appbar-logout'
-- extendedWaitUntil:
-    visible: 'Portal login'
-    timeout: 60000
-- runFlow:
-    when:
-      platform: Android
-    commands:
-      - back
-- runFlow:
-    when:
-      platform: iOS
-    commands:
-      - tapOn: 'Done|OK|Terminé'
 - extendedWaitUntil:
     visible:
       id: 'welcome-login'
