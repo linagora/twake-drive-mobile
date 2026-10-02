@@ -42,8 +42,12 @@ jest.mock('./wipeDeviceData', () => ({
 }))
 
 const mockCloseSsoSession = jest.fn(async () => undefined)
+const mockSsoLogoutUrl = jest.fn((_client: unknown, signupUrl?: string) =>
+  signupUrl ? `resolved:${signupUrl}` : null
+)
 jest.mock('./ssoLogout', () => ({
-  closeSsoSession: (...a: unknown[]) => mockCloseSsoSession(...(a as []))
+  closeSsoSession: (...a: unknown[]) => mockCloseSsoSession(...(a as [])),
+  ssoLogoutUrl: (client: unknown, signupUrl?: string) => mockSsoLogoutUrl(client, signupUrl)
 }))
 
 const mockDestroyLocalData = jest.fn(async (..._args: unknown[]) => undefined)
@@ -117,6 +121,7 @@ describe('useAuth', () => {
     // restoreAllMocks leaves jest.fn()s from jest.mock factories alone.
     mockWipeDeviceData.mockClear()
     mockCloseSsoSession.mockClear()
+    mockSsoLogoutUrl.mockClear()
     ;(flag as unknown as jest.Mock).mockReset()
     mockDestroyLocalData.mockClear()
     mockDropAllFileNameIndexes.mockClear()
@@ -269,7 +274,11 @@ describe('useAuth', () => {
     })
 
     await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('unauthenticated'))
-    expect(mockCloseSsoSession).toHaveBeenCalledWith('https://sign-up.example.com')
+    expect(mockSsoLogoutUrl).toHaveBeenCalledWith(
+      expect.objectContaining({ logout: expect.any(Function) }),
+      'https://sign-up.example.com'
+    )
+    expect(mockCloseSsoSession).toHaveBeenCalledWith('resolved:https://sign-up.example.com')
   })
 
   it('a session that ended on its own opens no browser', async () => {
