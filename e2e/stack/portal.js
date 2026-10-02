@@ -1,13 +1,12 @@
 // Stands in for the sign-up portal the `signup.url` flag points to. Like the
-// real one, its logout page only follows a redirect it knows and sends any
-// other to its own login page; it counts the visits so a flow can tell the
-// app came by.
+// real one, its logout page is a page whose script sends the browser on, to
+// the redirect it was given when it knows it and to its own login page
+// otherwise; it counts the visits so a flow can tell the app came by.
 
 const http = require('http')
 
-const KNOWN_REDIRECT = /^(cozy:\/\/|https:\/\/)/
-const LOGIN_PAGE =
-  '<!doctype html><meta name="viewport" content="width=device-width"><h1>Portal login</h1>'
+const KNOWN_REDIRECT = /^(twakedrive:\/\/|cozy:\/\/|https:\/\/)/
+const page = body => '<!doctype html><meta name="viewport" content="width=device-width">' + body
 
 let logouts = 0
 
@@ -16,9 +15,10 @@ http
     const url = new URL(req.url, 'http://portal')
     if (url.pathname === '/logout') {
       logouts += 1
-      const target = url.searchParams.get('url') || ''
-      res.writeHead(302, { Location: KNOWN_REDIRECT.test(target) ? target : '/?login' })
-      res.end()
+      const asked = url.searchParams.get('url') || ''
+      const target = KNOWN_REDIRECT.test(asked) ? asked : '/?login'
+      res.writeHead(200, { 'Content-Type': 'text/html' })
+      res.end(page('<script>window.location.replace(' + JSON.stringify(target) + ')</script>'))
       return
     }
     if (url.pathname === '/logouts') {
@@ -28,7 +28,7 @@ http
     }
     if (url.pathname === '/') {
       res.writeHead(200, { 'Content-Type': 'text/html' })
-      res.end(LOGIN_PAGE)
+      res.end(page('<h1>Portal login</h1>'))
       return
     }
     res.writeHead(404)
