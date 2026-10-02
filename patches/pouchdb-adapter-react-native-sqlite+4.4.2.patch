@@ -1,0 +1,36 @@
+diff --git a/node_modules/pouchdb-adapter-react-native-sqlite/lib/commonjs/openDatabase.js b/node_modules/pouchdb-adapter-react-native-sqlite/lib/commonjs/openDatabase.js
+index 6eee52f..823ee49 100644
+--- a/node_modules/pouchdb-adapter-react-native-sqlite/lib/commonjs/openDatabase.js
++++ b/node_modules/pouchdb-adapter-react-native-sqlite/lib/commonjs/openDatabase.js
+@@ -11,6 +11,7 @@ const cachedDatabases = new Map();
+ function openDBSafely(opts) {
+   try {
+     const db = (0, _opSqlite.open)(opts);
++    db.executeSync('PRAGMA busy_timeout = 5000');
+     db.executeSync('PRAGMA journal_mode = WAL');
+     db.executeSync('PRAGMA synchronous = NORMAL');
+     // op-sqlite's build defaults to a 2 MiB page cache
+diff --git a/node_modules/pouchdb-adapter-react-native-sqlite/lib/module/openDatabase.js b/node_modules/pouchdb-adapter-react-native-sqlite/lib/module/openDatabase.js
+index ee43d92..fc73128 100644
+--- a/node_modules/pouchdb-adapter-react-native-sqlite/lib/module/openDatabase.js
++++ b/node_modules/pouchdb-adapter-react-native-sqlite/lib/module/openDatabase.js
+@@ -6,6 +6,7 @@ const cachedDatabases = new Map();
+ function openDBSafely(opts) {
+   try {
+     const db = open(opts);
++    db.executeSync('PRAGMA busy_timeout = 5000');
+     db.executeSync('PRAGMA journal_mode = WAL');
+     db.executeSync('PRAGMA synchronous = NORMAL');
+     // op-sqlite's build defaults to a 2 MiB page cache
+diff --git a/node_modules/pouchdb-adapter-react-native-sqlite/src/openDatabase.ts b/node_modules/pouchdb-adapter-react-native-sqlite/src/openDatabase.ts
+index 548d2f5..ecbbed4 100644
+--- a/node_modules/pouchdb-adapter-react-native-sqlite/src/openDatabase.ts
++++ b/node_modules/pouchdb-adapter-react-native-sqlite/src/openDatabase.ts
+@@ -21,6 +21,7 @@ const cachedDatabases = new Map<string, OpenDatabaseResult>()
+ function openDBSafely(opts: OpenDatabaseOptions): OpenDatabaseResult {
+   try {
+     const db = open(opts)
++    db.executeSync('PRAGMA busy_timeout = 5000')
+     db.executeSync('PRAGMA journal_mode = WAL')
+     db.executeSync('PRAGMA synchronous = NORMAL')
+     // op-sqlite's build defaults to a 2 MiB page cache
