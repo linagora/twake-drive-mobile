@@ -61,7 +61,7 @@ export const closeSsoSession = (logoutUrl: string | null): Promise<void> => {
     WebBrowser.openBrowserAsync(logoutUrl).then(
       result => {
         if (result?.type !== WebBrowser.WebBrowserResultType.OPENED) return finish(false)
-        let wentAway = false
+        let wentAway = AppState.currentState === 'background'
         appState = AppState.addEventListener('change', state => {
           if (state === 'background') wentAway = true
           else if (state === 'active' && wentAway) finish(false)
