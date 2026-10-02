@@ -84,6 +84,7 @@ logged-in state) and then exercises one area:
 | `12-offline-toggle`       | Pin → the menu shows "Remove from offline" → unpin                            |
 | `17-empty-folder-refresh` | An empty folder keeps its empty state while the list refetches                |
 | `16-share-recipient`      | Adds a recipient by email, checks the row, revokes it, deletes the folder     |
+| `21-new-share-badge`      | A received share badges Partages, is listed under "with me", opens, unbadges  |
 
 Shared **subflows** live in `flows/subflows/`: `openDrive` (launch + assert logged
 in), `assertLoggedIn`, and `cleanup`.

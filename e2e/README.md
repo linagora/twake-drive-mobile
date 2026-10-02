@@ -86,9 +86,9 @@ e2e/
     flows/
       00-login.yaml       # login tag (semi-manual, excluded)
       00-welcome.yaml     # preauth tag (app boot + login form)
-      in-app/             # inapp tags (iOS + Android): 01-20
+      in-app/             # inapp tags (iOS + Android): 01-21
       android/            # android tags: 10 File Provider, 11 Share
-    scripts/              # seed.js, cleanup.js (stack API, run by the flows)
+    scripts/              # seed.js, seedReceivedShare.js, cleanup.js (stack API, run by the flows)
   scripts/                # run-android.sh, run-ios.sh, run-flows.sh
   fixtures/               # sample.jpg (share)
   DEVICE-NOTES.md         # device results + recipe + quirks
@@ -101,6 +101,12 @@ A flow tagged `disposable` mutates state it cannot undo through the UI, so
 sharing a folder by email turns it into a shared drive, and no row in the
 Partages list carries an action menu, so the share can no longer be revoked
 nor the folder deleted from the app.
+
+`21-new-share-badge` is another. It needs a share received from someone else,
+and gets one from `maestro/scripts/seedReceivedShare.js`, which sends the
+instance the request an owner's stack announces a share with, so no second
+instance is involved. The cleanup deletes the shortcut; the pending sharing
+behind it stays.
 
 Run those against the throwaway instance from `e2e/stack` only:
 
