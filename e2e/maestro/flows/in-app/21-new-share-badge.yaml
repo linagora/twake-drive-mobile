@@ -1,0 +1,66 @@
+appId: com.linagora.twakedrive
+tags:
+  - inapp
+  - disposable
+onFlowComplete:
+  - runFlow: ../../subflows/cleanup.yaml
+---
+# #409: a share nobody opened yet badges the Partages tab, is listed under
+# "with me" although it was not accepted, and stops counting once opened.
+#
+# Tagged `disposable`: the cleanup deletes the shortcut, but the sharing the
+# stack created next to it stays on the instance, and nothing in the app
+# removes it.
+- runScript:
+    file: ../../scripts/seedReceivedShare.js
+    env:
+      PREFIX: 'E2E-inbox'
+- runFlow: ../../subflows/openDrive.yaml
+# The badge is a text inside the tab button. Android exposes it; on iOS the
+# button is a single accessibility element whose label does not carry it, so
+# the count is only asserted on Android.
+- runFlow:
+    when:
+      platform: Android
+    commands:
+      - extendedWaitUntil:
+          visible: '1'
+          timeout: 60000
+- tapOn:
+    id: 'tab-shared'
+- extendedWaitUntil:
+    visible:
+      id: 'sharings-tab-with-me'
+    timeout: 15000
+- extendedWaitUntil:
+    visible:
+      id: 'file-row:${output.share.name}'
+    timeout: 60000
+- tapOn:
+    id: 'file-row:${output.share.name}'
+# Opening a shortcut hands its url to the browser, which comes over the app
+# when the device has one. Wait for it to, so that it is not raised after the
+# app was brought back.
+- extendedWaitUntil:
+    notVisible:
+      id: 'sharings-tab-with-me'
+    timeout: 15000
+    optional: true
+- launchApp:
+    stopApp: false
+- extendedWaitUntil:
+    visible:
+      id: 'sharings-tab-with-me'
+    timeout: 30000
+# Coming back to the foreground syncs too, so this tells that an opened share
+# stops counting, not which of the two refreshed the shortcut.
+- runFlow:
+    when:
+      platform: Android
+    commands:
+      - extendedWaitUntil:
+          notVisible: '1'
+          timeout: 30000
+# seen, not gone: the share is still waiting to be accepted
+- assertVisible:
+    id: 'file-row:${output.share.name}'

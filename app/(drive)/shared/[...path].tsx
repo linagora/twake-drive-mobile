@@ -179,13 +179,20 @@ export default function SharedScreen() {
         <FolderRow
           folder={item}
           {...actions.folderProps(item)}
+          testID={`folder-row:${item.name}`}
           onPress={folder =>
             guardedPush(`/(drive)/shared/${[...(path ?? []), folder._id].join('/')}`)
           }
         />
       )
     }
-    return <FileRow file={{ ...item, size: item.size ?? null }} {...actions.fileProps(item)} />
+    return (
+      <FileRow
+        file={{ ...item, size: item.size ?? null }}
+        {...actions.fileProps(item)}
+        testID={`file-row:${item.name}`}
+      />
+    )
   }
 
   // A drive whose root is a file opens that file, through the drive routes: it
