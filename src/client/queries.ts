@@ -7,6 +7,9 @@ export const TRASH_DIR_ID = 'io.cozy.files.trash-dir'
 // with the trash-dir) via a partialIndex on the folder query. We filter the
 // same two IDs out client-side here.
 export const SHARED_DRIVES_DIR_ID = 'io.cozy.files.shared-drives-dir'
+// Directory the cozy-stack puts a received share in: its shortcut while the
+// share waits to be accepted, the shared documents afterwards.
+export const SHARED_WITH_ME_DIR_ID = 'io.cozy.files.shared-with-me-dir'
 
 /**
  * IDs of virtual / system directories that should never appear in a regular
@@ -28,8 +31,9 @@ export interface FileQueryResult {
   updated_at?: string
   path?: string
   /** Set by the app that owns the document; the Docs bridge is addressed by
-   *  `externalId`. */
-  metadata?: { externalId?: string }
+   *  `externalId`. `sharing` is on the shortcut of a received share: `new`
+   *  until the stack sees it opened, `seen` afterwards. */
+  metadata?: { externalId?: string; sharing?: { status?: string } }
   cozyMetadata?: {
     /** Instance the document was created on, which tells a shared one apart. */
     createdOn?: string

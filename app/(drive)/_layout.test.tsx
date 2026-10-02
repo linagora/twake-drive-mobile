@@ -7,13 +7,26 @@ jest.mock('expo-router', () => {
   const { Text, View } = require('react-native')
 
   function MockTabsScreen({
+    name,
     options
   }: {
     name: string
-    options?: { title?: string; href?: null; tabBarIcon?: unknown }
+    options?: {
+      title?: string
+      href?: null
+      tabBarIcon?: unknown
+      tabBarBadge?: string | number
+    }
   }) {
     if (options?.href === null || !options?.title) return null
-    return <Text testID="tab-label">{options.title}</Text>
+    return (
+      <>
+        <Text testID="tab-label">{options.title}</Text>
+        {options.tabBarBadge === undefined ? null : (
+          <Text testID={`tab-badge-${name}`}>{options.tabBarBadge}</Text>
+        )}
+      </>
+    )
   }
 
   function MockTabs({ children }: { children: React.ReactNode }) {
@@ -59,6 +72,12 @@ jest.mock('@/offline/initOffline', () => ({
   initOfflineSubsystem: jest.fn()
 }))
 
+let mockNewSharesCount = 0
+jest.mock('@/sharing/newShares', () => ({
+  ...jest.requireActual('@/sharing/newShares'),
+  useNewSharesCount: () => mockNewSharesCount
+}))
+
 import DriveLayout from './_layout'
 import i18n from '@/i18n'
 
@@ -68,6 +87,7 @@ describe('DriveLayout — bottom tabs', () => {
   beforeEach(() => {
     mockAuthStatus = 'authenticated'
     mockClient = {}
+    mockNewSharesCount = 0
   })
 
   it('redirects to the auth stack when there is no client (e.g. after logout)', () => {
@@ -108,5 +128,23 @@ describe('DriveLayout — bottom tabs', () => {
       i18n.t('drive.shares'),
       i18n.t('drive.trash')
     ])
+  })
+
+  it('shows no badge on the shares tab when nothing new was shared', () => {
+    render(wrap(<DriveLayout />))
+    expect(screen.queryByTestId('tab-badge-shared')).toBeNull()
+  })
+
+  it('badges the shares tab with the number of new shares', () => {
+    mockNewSharesCount = 3
+    render(wrap(<DriveLayout />))
+    expect(screen.getByTestId('tab-badge-shared').props.children).toBe(3)
+    expect(screen.queryByTestId('tab-badge-files')).toBeNull()
+  })
+
+  it('caps the badge at 99+ like the web', () => {
+    mockNewSharesCount = 120
+    render(wrap(<DriveLayout />))
+    expect(screen.getByTestId('tab-badge-shared').props.children).toBe('99+')
   })
 })
