@@ -1,6 +1,6 @@
 name: Release Android (signed → Play/Firebase)
 
-# Signed AAB build + Google Play internal track (and optional Firebase APK).
+# Signed AAB build + Google Play closed testing track (and optional Firebase APK).
 # Fires on version tags (vX.Y.Z, pushed by scripts/release.sh) and manual
 # dispatch. Requires the Android signing + Firebase/Play secrets —
 # see docs/ci-cd-signed-release.md.
@@ -15,7 +15,7 @@ on:
         required: false
         default: ''
       publish_to_play_store:
-        description: 'Upload the AAB to Google Play (internal track)'
+        description: 'Upload the AAB to Google Play (the track below)'
         required: false
         type: boolean
         default: true
@@ -29,6 +29,12 @@ on:
         required: false
         type: boolean
         default: false
+      track:
+        description: 'Google Play track to publish to'
+        required: false
+        type: choice
+        default: alpha
+        options: [alpha, internal, beta, production]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -112,7 +118,7 @@ jobs:
           RELEASE_NOTES: ${{ github.event.inputs.release_notes }}
         run: bundle exec fastlane android distribute
 
-      - name: Build signed AAB & upload to Play internal
+      - name: Build signed AAB & upload to Play
         working-directory: android
         env:
           KEYSTORE_PATH: release.keystore
@@ -121,6 +127,7 @@ jobs:
           KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
           SUPPLY_JSON_KEY_PATH: ${{ runner.temp }}/gcp-sa.json
           VERSION_NAME: ${{ steps.version.outputs.marketing }}
+          PLAY_TRACK: ${{ inputs.track || 'alpha' }}
           LANE: ${{ (github.event_name == 'push' || inputs.publish_to_play_store == true) && 'release' || 'build_bundle' }}
         run: bundle exec fastlane android "$LANE"
 
@@ -129,6 +136,7 @@ jobs:
         working-directory: android
         env:
           SUPPLY_JSON_KEY_PATH: ${{ runner.temp }}/gcp-sa.json
+          PLAY_TRACK: ${{ inputs.track || 'alpha' }}
         run: bundle exec fastlane android publish_listing
 
       - name: Upload AAB artifact

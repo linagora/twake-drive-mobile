@@ -21,7 +21,7 @@ directory to the locale that is.
 ## Publishing
 
 Nothing here is pushed by a normal release: the `release` lane skips metadata,
-images and changelogs, so an internal-track build never touches the public page.
+images and changelogs, so a release build never touches the public page.
 
 To publish the listing, run the `Release Android` workflow with `publish_listing`
 checked, or locally:
