@@ -63,6 +63,12 @@ const sharingFilesIds = (s: SharingDoc): string[] => {
   return rules.filter(r => !r.doctype || r.doctype === 'io.cozy.files').flatMap(r => r.values ?? [])
 }
 
+// A share that has not been accepted yet has a single document on the
+// recipient instance, its shortcut: the rule values are still the owner's ids.
+// cozy-sharing indexes it the same way (`getSharingDocIds`).
+const sharingShortcutId = (s: SharingDoc): string | undefined =>
+  s.attributes?.shortcut_id ?? s.shortcut_id
+
 const linkFilesIds = (p: PublicLinkPermission): string[] => {
   const perms = p.attributes?.permissions ?? p.permissions ?? {}
   return Object.values(perms).flatMap(v => v.values ?? [])
@@ -76,7 +82,9 @@ const sharingOwner = (s: SharingDoc): boolean | undefined => s.attributes?.owner
  * Pure builder used by both the provider and its tests. Folds the two
  * server responses into a single `Map<fileId, FileSharingEntry>`.
  *
- * - Sharings whose `active === false` are skipped (mirrors cozy-sharing).
+ * - Sharings whose `active === false` are skipped (mirrors cozy-sharing),
+ *   their shortcut excepted: a share waiting to be accepted is inactive, and
+ *   the shortcut is how it gets listed and opened.
  * - For sharings, `isOwner` becomes true if ANY active sharing for this file
  *   has the owner flag (a file can in theory appear in multiple sharings).
  * - The first non-empty recipient list wins; we don't merge across sharings.
@@ -89,10 +97,10 @@ export const buildByIdMap = (
   const map = new Map<string, FileSharingEntry>()
 
   for (const s of sharings) {
-    if (s.attributes?.active === false) continue
+    const active = s.attributes?.active !== false
     const owner = !!sharingOwner(s)
     const recipients = sharingMembers(s).filter(m => m.status !== 'owner')
-    for (const fid of sharingFilesIds(s)) {
+    for (const fid of [...(active ? sharingFilesIds(s) : []), sharingShortcutId(s)]) {
       if (!fid) continue
       const existing = map.get(fid) ?? { isOwner: false, hasLink: false, recipients: [] }
       map.set(fid, {
