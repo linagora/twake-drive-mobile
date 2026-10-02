@@ -5,12 +5,18 @@
 const { Q } = require('cozy-client/dist/queries/dsl') as typeof import('cozy-client')
 import type CozyClient from 'cozy-client'
 
+import { refreshDocumentFromStack } from './refreshDocument'
+
 interface ShortcutDoc {
   url?: string
-  attributes?: { url?: string }
-  metadata?: {
-    target?: { _id?: string; _type?: string; doctype?: string; app?: string }
-  }
+  attributes?: { url?: string; metadata?: ShortcutMetadata }
+  metadata?: ShortcutMetadata
+}
+
+interface ShortcutMetadata {
+  target?: { _id?: string; _type?: string; doctype?: string; app?: string }
+  /** Only on the shortcut of a received share. */
+  sharing?: { status?: string }
 }
 
 const fetchShortcutDoc = async (client: CozyClient, fileId: string): Promise<ShortcutDoc> => {
@@ -18,7 +24,15 @@ const fetchShortcutDoc = async (client: CozyClient, fileId: string): Promise<Sho
     as: `io.cozy.files.shortcuts/${fileId}`,
     singleDocData: true
   } as unknown as Parameters<CozyClient['query']>[1])) as { data?: ShortcutDoc }
-  return result.data ?? {}
+  const data = result.data ?? {}
+  // The stack marks the shortcut of a received share as seen when it serves
+  // this request. The file document is read back so the new-shares badge
+  // drops now rather than at the next periodic sync. Not awaited: opening the
+  // share does not depend on it.
+  if (data.metadata?.sharing ?? data.attributes?.metadata?.sharing) {
+    void refreshDocumentFromStack(client, fileId)
+  }
+  return data
 }
 
 /**
