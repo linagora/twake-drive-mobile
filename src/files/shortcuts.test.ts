@@ -1,9 +1,19 @@
+const mockRefresh = jest.fn()
+jest.mock('./refreshDocument', () => ({
+  __esModule: true,
+  refreshDocumentFromStack: (...args: unknown[]) => mockRefresh(...args)
+}))
+
 import { fetchShortcutTarget, fetchShortcutUrl } from './shortcuts'
 
 const buildClient = (response: unknown) => {
   const query = jest.fn().mockResolvedValue(response)
   return { client: { query } as never, query }
 }
+
+beforeEach(() => {
+  mockRefresh.mockReset()
+})
 
 describe('fetchShortcutUrl', () => {
   it('queries io.cozy.files.shortcuts with the right shape', async () => {
@@ -28,6 +38,22 @@ describe('fetchShortcutUrl', () => {
   it('returns null when no URL is present', async () => {
     const { client } = buildClient({ data: {} })
     expect(await fetchShortcutUrl(client, 'id')).toBeNull()
+  })
+
+  // The stack flips `metadata.sharing.status` to `seen` while serving the
+  // request, and the local copy only learns it by reading the file back.
+  it('reads the file back when the shortcut is the one of a received share', async () => {
+    const { client } = buildClient({
+      data: { url: 'https://owner.test/preview', metadata: { sharing: { status: 'seen' } } }
+    })
+    expect(await fetchShortcutUrl(client, 'share-1')).toBe('https://owner.test/preview')
+    expect(mockRefresh).toHaveBeenCalledWith(client, 'share-1')
+  })
+
+  it('leaves a plain shortcut alone', async () => {
+    const { client } = buildClient({ data: { url: 'https://example.com/' } })
+    await fetchShortcutUrl(client, 'abc')
+    expect(mockRefresh).not.toHaveBeenCalled()
   })
 })
 
