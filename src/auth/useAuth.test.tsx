@@ -281,6 +281,39 @@ describe('useAuth', () => {
     expect(mockCloseSsoSession).toHaveBeenCalledWith('resolved:https://sign-up.example.com')
   })
 
+  it('stays on the drive until the logout page is closed', async () => {
+    ;(flag as unknown as jest.Mock).mockImplementation((name: string) =>
+      name === 'signup.url' ? 'https://sign-up.example.com' : undefined
+    )
+    let browserClosed: () => void = () => undefined
+    mockCloseSsoSession.mockImplementationOnce(
+      () => new Promise<undefined>(resolve => (browserClosed = () => resolve(undefined)))
+    )
+    jest.spyOn(tokenStorage, 'getSession').mockResolvedValue(mockSession)
+    const clearSpy = jest.spyOn(tokenStorage, 'clearSession').mockResolvedValue()
+    render(
+      <AuthProvider>
+        <Probe />
+      </AuthProvider>
+    )
+    await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('authenticated'))
+    // A first launch clears the session a previous install may have left.
+    clearSpy.mockClear()
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('logout'))
+    })
+    expect(mockCloseSsoSession).toHaveBeenCalled()
+    expect(screen.getByTestId('status')).toHaveTextContent('authenticated')
+    expect(clearSpy).not.toHaveBeenCalled()
+
+    await act(async () => {
+      browserClosed()
+    })
+    await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('unauthenticated'))
+    expect(clearSpy).toHaveBeenCalled()
+  })
+
   it('a session that ended on its own opens no browser', async () => {
     ;(flag as unknown as jest.Mock).mockImplementation((name: string) =>
       name === 'signup.url' ? 'https://sign-up.example.com' : undefined
