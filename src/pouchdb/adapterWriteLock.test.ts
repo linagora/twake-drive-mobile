@@ -120,12 +120,17 @@ describe('adapter write transactions next to a second connection', () => {
     const queue = new TransactionQueue(asOpSqlite(adapter))
     engine.exec('BEGIN IMMEDIATE')
 
-    await expect(
-      queue.push(async tx => {
+    const outcome = await queue
+      .push(async tx => {
         await tx.execute("INSERT INTO docs VALUES ('c', '{}')")
       })
-    ).rejects.toThrow('database is locked')
+      .then(
+        () => 'written',
+        (e: unknown) => String((e as { message?: string }).message)
+      )
 
+    expect(outcome).toContain('database is locked')
     engine.exec('ROLLBACK')
+    expect(adapter.prepare('SELECT id FROM docs').all()).toEqual([{ id: 'a' }])
   })
 })
