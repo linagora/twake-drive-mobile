@@ -160,6 +160,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const logout = useCallback(
     async (options?: { expired?: boolean; wipe?: boolean }): Promise<void> => {
       const logoutUrl = ssoLogoutUrl(clientRef.current, flag('signup.url') as string | undefined)
+      if (!options?.expired) await closeSsoSession(logoutUrl)
       if (clientRef.current) await dropAllFileNameIndexes(clientRef.current)
       setState(prev => {
         if (prev.client) {
@@ -179,7 +180,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setAccountScope(null)
       setSessionExpired(!!options?.expired)
       setState({ status: 'unauthenticated', client: null })
-      if (!options?.expired) void closeSsoSession(logoutUrl)
       // Drop the instance locale that synced during the session; the login
       // screen returns to the device language, like a cold launch.
       void i18n.changeLanguage(resolveDeviceLanguage())
