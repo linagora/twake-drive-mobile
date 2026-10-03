@@ -1,6 +1,6 @@
 import React from 'react'
 import { Provider as PaperProvider } from 'react-native-paper'
-import { fireEvent, render, screen } from '@testing-library/react-native'
+import { fireEvent, render, screen, within } from '@testing-library/react-native'
 
 jest.mock('cozy-client', () => ({
   __esModule: true,
@@ -180,6 +180,25 @@ describe('FileGridItem actions', () => {
 
   it('leaves a tile outside selection mode without a selected state', () => {
     render(wrap(<FileGridItem file={file} onPress={jest.fn()} />))
-    expect(screen.getByTestId('file-grid-item').props.accessibilityState.selected).toBeUndefined()
+    expect(screen.getByTestId('file-grid-item').props.accessibilityState?.selected).toBeUndefined()
+  })
+
+  // The tile is one accessibility element, so iOS merges whatever it contains
+  // and the 3-dot button inside it could not be focused: rename, share, move
+  // and delete were unreachable in grid mode.
+  it('keeps the file action anchor out of the tile element', () => {
+    render(wrap(<FileGridItem file={file} onPress={jest.fn()} onShare={jest.fn()} />))
+    expect(
+      within(screen.getByTestId('file-grid-item')).queryByTestId('file-grid-actions')
+    ).toBeNull()
+    expect(screen.getByTestId('file-grid-actions')).toBeOnTheScreen()
+  })
+
+  it('keeps the folder action anchor out of the tile element', () => {
+    render(wrap(<FileGridItem file={folder} onPress={jest.fn()} onShare={jest.fn()} />))
+    expect(
+      within(screen.getByTestId('file-grid-item')).queryByTestId('folder-grid-actions')
+    ).toBeNull()
+    expect(screen.getByTestId('folder-grid-actions')).toBeOnTheScreen()
   })
 })
