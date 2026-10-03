@@ -1,13 +1,11 @@
 import React, { useState } from 'react'
-import { Dimensions, StyleSheet, View } from 'react-native'
+import { StyleSheet, useWindowDimensions, View } from 'react-native'
 import { Image } from 'expo-image'
 import Pdf from 'react-native-pdf'
 
 import { StreamSource } from '@/files/streamUrl'
 import { cozyTokens } from '@/ui/theme'
 import { ErrorOverlay, LoadingOverlay } from './PreviewOverlays'
-
-const { width: SCREEN_WIDTH } = Dimensions.get('window')
 
 interface Props {
   source: StreamSource
@@ -18,6 +16,7 @@ export const PdfPreview = ({ source, thumbnailUrl }: Props): React.ReactElement 
   const [loaded, setLoaded] = useState(false)
   const [progress, setProgress] = useState(0)
   const [error, setError] = useState<string | null>(null)
+  const { width } = useWindowDimensions()
   return (
     <View style={styles.container}>
       {thumbnailUrl && !loaded ? (
@@ -34,7 +33,7 @@ export const PdfPreview = ({ source, thumbnailUrl }: Props): React.ReactElement 
         enableDoubleTapZoom
         minScale={1}
         maxScale={3}
-        style={[styles.pdf, !loaded && styles.transparent]}
+        style={[styles.pdf, { width }, !loaded && styles.transparent]}
         onLoadProgress={p => setProgress(p)}
         onLoadComplete={() => setLoaded(true)}
         onError={err => {
@@ -53,6 +52,6 @@ export const PdfPreview = ({ source, thumbnailUrl }: Props): React.ReactElement 
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  pdf: { flex: 1, width: SCREEN_WIDTH, backgroundColor: cozyTokens.canvas.background },
+  pdf: { flex: 1, backgroundColor: cozyTokens.canvas.background },
   transparent: { backgroundColor: 'transparent' }
 })
