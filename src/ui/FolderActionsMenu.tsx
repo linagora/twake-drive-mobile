@@ -62,7 +62,7 @@ export const FolderActionsMenu = ({
         <IconButton
           icon={p => <CozyIcon name="dotsVertical" size={p?.size ?? 24} color={p?.color} />}
           onPress={() => setMenuVisible(true)}
-          accessibilityLabel={t('a11y.folderActions')}
+          accessibilityLabel={t('a11y.folderActions', { name: folder.name })}
           testID={testID ?? `folder-actions:${folder.name}`}
         />
       }
