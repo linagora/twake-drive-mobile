@@ -86,24 +86,30 @@ export function FileGridItem({
 
   return (
     <Pressable
-      testID="file-grid-item"
+      accessible={false}
       onPress={() => onPress(file)}
       onLongPress={onLongPress ? () => onLongPress(file) : undefined}
       style={({ pressed }) => [
         ...containerStyle,
         pressed && !selected && { backgroundColor: colors.surfaceVariant }
       ]}
-      accessibilityRole="button"
-      accessibilityLabel={file.name}
-      accessibilityState={selected === undefined ? undefined : { selected }}
     >
-      <View testID="file-grid-icon" style={styles.iconWrapper}>
-        <FileThumbnail file={file} size={THUMBNAIL_SIZE} />
-        <PinnedBadge entry={badgeEntry} testID="pinned-badge" />
+      <View
+        testID="file-grid-item"
+        style={styles.tile}
+        accessible
+        accessibilityRole="button"
+        accessibilityLabel={file.name}
+        accessibilityState={selected === undefined ? undefined : { selected }}
+      >
+        <View testID="file-grid-icon" style={styles.iconWrapper}>
+          <FileThumbnail file={file} size={THUMBNAIL_SIZE} />
+          <PinnedBadge entry={badgeEntry} testID="pinned-badge" />
+        </View>
+        <Text style={[styles.name, { color: colors.onSurface }]} numberOfLines={2}>
+          {file.name}
+        </Text>
       </View>
-      <Text style={[styles.name, { color: colors.onSurface }]} numberOfLines={2}>
-        {file.name}
-      </Text>
       {showActions ? (
         <View style={styles.actionSlot}>
           {isFolder ? (
@@ -143,6 +149,12 @@ const styles = StyleSheet.create({
     flex: 1,
     margin: 4,
     padding: 8,
+    alignItems: 'center'
+  },
+  // Stretched so the icon and the name sit exactly where they did when they
+  // were direct children of the container.
+  tile: {
+    alignSelf: 'stretch',
     alignItems: 'center'
   },
   iconWrapper: {
