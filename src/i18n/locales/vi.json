@@ -278,8 +278,8 @@
   "a11y": {
     "listView": "Xem dạng danh sách",
     "gridView": "Xem dạng lưới",
-    "folderActions": "Tác vụ thư mục",
-    "fileActions": "Tác vụ tệp",
+    "folderActions": "Tác vụ cho thư mục {{name}}",
+    "fileActions": "Tác vụ cho tệp {{name}}",
     "removeRecipient": "Xóa người nhận",
     "account": "Tài khoản và cài đặt",
     "offlineAvailable": "Có sẵn ngoại tuyến",
