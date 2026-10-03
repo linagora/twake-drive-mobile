@@ -287,8 +287,8 @@
   "a11y": {
     "listView": "List view",
     "gridView": "Grid view",
-    "folderActions": "Folder actions",
-    "fileActions": "File actions",
+    "folderActions": "Folder actions for {{name}}",
+    "fileActions": "File actions for {{name}}",
     "removeRecipient": "Remove recipient",
     "account": "Account and settings",
     "offlineAvailable": "Available offline",

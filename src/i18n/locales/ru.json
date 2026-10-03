@@ -305,8 +305,8 @@
   "a11y": {
     "listView": "Список",
     "gridView": "Сетка",
-    "folderActions": "Действия с папкой",
-    "fileActions": "Действия с файлом",
+    "folderActions": "Действия с папкой {{name}}",
+    "fileActions": "Действия с файлом {{name}}",
     "removeRecipient": "Удалить получателя",
     "account": "Аккаунт и настройки",
     "offlineAvailable": "Доступно офлайн",

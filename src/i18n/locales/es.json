@@ -296,8 +296,8 @@
   "a11y": {
     "listView": "Vista de lista",
     "gridView": "Vista de cuadrícula",
-    "folderActions": "Acciones de carpeta",
-    "fileActions": "Acciones de archivo",
+    "folderActions": "Acciones de la carpeta {{name}}",
+    "fileActions": "Acciones del archivo {{name}}",
     "removeRecipient": "Quitar destinatario",
     "account": "Cuenta y ajustes",
     "offlineAvailable": "Disponible sin conexión",
