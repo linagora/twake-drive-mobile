@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Dimensions, StyleSheet, View } from 'react-native'
+import { StyleSheet, useWindowDimensions, View } from 'react-native'
 import { useRouter } from 'expo-router'
 import { VideoView } from 'expo-video'
 import { ActivityIndicator } from 'react-native-paper'
@@ -12,11 +12,10 @@ interface VideoPreviewProps {
   source: StreamSource
 }
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window')
-
 export const VideoPreview = ({ fileId, source }: VideoPreviewProps): React.ReactElement => {
   const router = useRouter()
   const { player, claim, release, setPictureInPicture, isPictureInPicture } = usePiPSession()
+  const { width } = useWindowDimensions()
   // Read the current player status synchronously so the spinner doesn't
   // get stuck when we mount after the player is already loaded (e.g. on
   // PiP restore, where the player has been streaming for a while and the
@@ -50,7 +49,7 @@ export const VideoPreview = ({ fileId, source }: VideoPreviewProps): React.React
     <View style={styles.viewerContainer}>
       <VideoView
         player={player}
-        style={styles.video}
+        style={[styles.video, { width }]}
         contentFit="contain"
         fullscreenOptions={{ enable: true }}
         allowsPictureInPicture
@@ -94,7 +93,7 @@ export const VideoPreview = ({ fileId, source }: VideoPreviewProps): React.React
 
 const styles = StyleSheet.create({
   viewerContainer: { flex: 1 },
-  video: { flex: 1, width: SCREEN_WIDTH, backgroundColor: '#000' },
+  video: { flex: 1, backgroundColor: '#000' },
   overlay: {
     ...StyleSheet.absoluteFillObject,
     alignItems: 'center',
