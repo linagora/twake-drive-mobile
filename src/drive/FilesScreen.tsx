@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react'
-import { FlatList, RefreshControl, StyleSheet, View } from 'react-native'
+import { FlatList, RefreshControl, StyleSheet, useWindowDimensions, View } from 'react-native'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useClient, useQuery } from 'cozy-client'
 import { useTranslation } from 'react-i18next'
@@ -11,6 +11,7 @@ import { fetchNextPage } from '@/drive/paging'
 import { withoutSharedDriveRoots } from '@/files/sharedDriveDocuments'
 import { useGuardedPush } from '@/ui/useGuardedPush'
 import { FileListView } from '@/ui/FileListView'
+import { gridColumnsForWidth } from '@/ui/gridColumns'
 import { useFileRowActions } from '@/files/useFileRowActions'
 import { useTabBack } from '@/ui/useTabBack'
 import { ScreenContainer } from '@/ui/ScreenContainer'
@@ -67,6 +68,7 @@ export const FilesScreen = ({ basePath }: FilesScreenProps): React.ReactElement 
   const goBack = useTabBack(basePath)
   const { t } = useTranslation()
   const { logout } = useAuth()
+  const gridColumns = gridColumnsForWidth(useWindowDimensions().width)
   const params = useLocalSearchParams<{ path?: string | string[] }>()
   const rawPath = params.path
   const path: string[] | undefined =
@@ -326,7 +328,7 @@ export const FilesScreen = ({ basePath }: FilesScreenProps): React.ReactElement 
           items={mode === 'grid' ? gridData : data}
           keyExtractor={(item: FileQueryResult) => item._id}
           renderItem={mode === 'grid' ? renderGridItem : renderItem}
-          numColumns={mode === 'grid' ? 3 : undefined}
+          numColumns={mode === 'grid' ? gridColumns : undefined}
           loading={isFirstLoad(foldersQuery, filesQuery)}
           error={
             foldersQuery.fetchStatus === 'failed' || filesQuery.fetchStatus === 'failed'
