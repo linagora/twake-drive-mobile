@@ -91,8 +91,11 @@ The app ships in **7 languages**. Every user-facing string goes through an i18n 
 
 ### Tests: e2e runs against a throwaway instance, not a real account
 
-`npm test`, `npm run typecheck` and `npm run lint` stay the required bar for
-every change.
+`npm test`, `npm run typecheck`, `npm run lint` and `npm run knip` stay the
+required bar for every change. knip fails on dead code: a file, export or
+dependency nothing uses, or a module only its tests still import. Delete it
+rather than silence it; `knip.jsonc` lists the few things that run without
+being imported.
 
 The Maestro flows under `e2e/maestro/` **are runnable**, agents included: the
 login is no longer manual. `e2e/stack` brings up a disposable cozy-stack and
@@ -117,7 +120,7 @@ simulator as well as the Android emulator. The recipe lives in
 - No password entry in a webview.
 - Native change on one platform only → tracking issue opened for the other.
 - Checked twake-drive (web) for prior art on any stack interaction.
-- `npm test`, `npm run typecheck`, `npm run lint` are green.
+- `npm test`, `npm run typecheck`, `npm run lint`, `npm run knip` are green.
 
 Generic Cozy / React / JS and git-commit conventions are **not** repeated here — they
 live in [twake-guidelines](https://github.com/linagora/twake-guidelines), which this
