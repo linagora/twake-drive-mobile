@@ -110,6 +110,15 @@ const SupportedAudioPlayer = ({
   const ready = status.isLoaded
   const duration = ready ? status.duration : 0
   const position = ready ? status.currentTime : 0
+  const onPlayPause = async (): Promise<void> => {
+    if (status.playing) {
+      player.pause()
+      return
+    }
+    // A finished player stays at its end, and play() from there ends at once.
+    if (status.didJustFinish || (duration > 0 && position >= duration)) await player.seekTo(0)
+    player.play()
+  }
   return (
     <View style={[styles.container, styles.centered]}>
       <View style={styles.card}>
@@ -120,10 +129,7 @@ const SupportedAudioPlayer = ({
           disabled={!ready}
           accessibilityLabel={status.playing ? t('a11y.pause') : t('a11y.play')}
           testID="audio-play-pause"
-          onPress={() => {
-            if (status.playing) player.pause()
-            else player.play()
-          }}
+          onPress={() => void onPlayPause()}
         />
         <Text style={styles.title} numberOfLines={2}>
           {name}
