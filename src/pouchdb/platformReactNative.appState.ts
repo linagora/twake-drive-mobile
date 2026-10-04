@@ -28,6 +28,10 @@ export const listenAppState = (eventEmitter: EventEmitter): void => {
   })
 }
 
+/**
+ * Nothing calls it yet, logout should: see #437.
+ * @public
+ */
 export const stopListeningAppState = (): void => {
   appStateHandler?.remove()
 }

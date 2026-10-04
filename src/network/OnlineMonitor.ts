@@ -133,9 +133,3 @@ export const getOnlineMonitor = (probeUri?: string): OnlineMonitor => {
   }
   return singleton
 }
-
-/** Test only. */
-export const _resetOnlineMonitor = (): void => {
-  singleton?.dispose()
-  singleton = null
-}

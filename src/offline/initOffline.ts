@@ -82,7 +82,10 @@ export const initOfflineSubsystem = async (client: CozyClient): Promise<void> =>
   void reconcileFolderPins(client)
 }
 
-/** Test / logout teardown. */
+/**
+ * Test / logout teardown. Nothing calls it yet, logout should: see #437.
+ * @public
+ */
 export const teardownOfflineSubsystem = (): void => {
   pinReactorStop?.()
   pinReactorStop = undefined

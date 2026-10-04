@@ -109,9 +109,3 @@ export const startPinReactor = (pouch: PouchLike): (() => void) => {
     if (activeChanges === changes) activeChanges = undefined
   }
 }
-
-/** Test only. */
-export const _stopPinReactor = (): void => {
-  activeChanges?.cancel()
-  activeChanges = undefined
-}

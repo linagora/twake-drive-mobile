@@ -9,9 +9,6 @@ import { hasWebEditor } from './documentKind'
 import { EditableDocument, webEditorKindOf } from './webEditor'
 import { useWebEditor } from './useWebEditor'
 
-export type { EditableDocument } from './webEditor'
-export { webEditorKindOf as editorKindFor } from './webEditor'
-
 interface Props {
   file: EditableDocument
   /** Set when the document belongs to a shared drive, whose editor it is. */
