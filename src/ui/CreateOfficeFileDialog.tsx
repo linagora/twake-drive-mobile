@@ -66,6 +66,7 @@ export const CreateOfficeFileDialog = ({ visible, fileClass, onDismiss, onSubmit
           <TextInput
             mode="outlined"
             label={t('drive.createOffice.title')}
+            accessibilityLabel={t('drive.createOffice.title')}
             value={name}
             onChangeText={setName}
             autoFocus
