@@ -105,9 +105,8 @@ simulator as well as the Android emulator. The recipe lives in
 - A flow that can't clean up after itself is tagged `disposable` and excluded in
   `e2e/maestro/config.yaml`. Tag a new one the same way rather than leaving
   state behind.
-- Maestro is still **not part of pull-request CI**: `e2e-android.yml` is
-  `workflow_dispatch` only. Playing a flow is a deliberate step, not an
-  automatic gate.
+- `e2e-android.yml` plays every Android flow on each pull request, against a
+  stack created for the run: a flow you add or change has to pass there.
 
 ## Quick checklist before you open a PR
 
