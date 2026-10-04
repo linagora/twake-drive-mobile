@@ -6,6 +6,7 @@ import { useRouter } from 'expo-router'
 
 import { TwakeLogo } from '@/ui/icons/TwakeLogo'
 import { CozyIcon } from '@/ui/icons/CozyIcon'
+import { LogoutDialog } from '@/ui/LogoutDialog'
 import { useCurrentUser } from '@/account/useCurrentUser'
 import { cozyTokens } from '@/ui/theme'
 import { useSheetTopInset } from './sheetInset'
@@ -37,7 +38,11 @@ interface Props {
    * modal routes (settings) whose root screen dismisses rather than pops.
    */
   onClose?: () => void
-  onLogout?: () => void
+  /**
+   * Shows the account menu. Its logout asks first whether to erase what the
+   * device holds, and hands the answer over.
+   */
+  onLogout?: (options: { wipe: boolean }) => void
   showSearch?: boolean
   /**
    * When set, the AppBar swaps to selection mode: the title shows the
@@ -63,6 +68,7 @@ export const AppBar = ({
 }: Props) => {
   const { t } = useTranslation()
   const [menuVisible, setMenuVisible] = useState(false)
+  const [logoutAsked, setLogoutAsked] = useState(false)
   const theme = useTheme()
   const router = useRouter()
   const { initials, avatarUrl } = useCurrentUser()
@@ -194,7 +200,7 @@ export const AppBar = ({
           <Menu.Item
             onPress={() => {
               setMenuVisible(false)
-              onLogout()
+              setLogoutAsked(true)
             }}
             title={t('common.logout')}
             testID="appbar-logout"
@@ -207,6 +213,16 @@ export const AppBar = ({
             )}
           />
         </Menu>
+      ) : null}
+      {onLogout ? (
+        <LogoutDialog
+          visible={logoutAsked}
+          onLogout={options => {
+            setLogoutAsked(false)
+            onLogout(options)
+          }}
+          onDismiss={() => setLogoutAsked(false)}
+        />
       ) : null}
     </Appbar.Header>
   )

@@ -9,6 +9,7 @@ import * as WebBrowser from 'expo-web-browser'
 import { AccountHeader } from '@/ui/AccountHeader'
 import { AppBar } from '@/ui/AppBar'
 import { ConfirmDialog } from '@/ui/ConfirmDialog'
+import { LogoutDialog } from '@/ui/LogoutDialog'
 import { ScreenContainer } from '@/ui/ScreenContainer'
 import { SettingsRow } from '@/ui/SettingsRow'
 import { SettingsSection } from '@/ui/SettingsSection'
@@ -131,20 +132,11 @@ export default function SettingsIndex(): React.ReactElement {
         </SettingsSection>
       </ScrollView>
 
-      <ConfirmDialog
+      <LogoutDialog
         visible={logoutAsked}
-        testID="logout-dialog"
-        title={t('settings.logoutTitle')}
-        message={t('settings.logoutMessage')}
-        confirmLabel={t('common.logout')}
-        secondaryLabel={t('settings.logoutAndErase')}
-        onSecondary={() => {
+        onLogout={options => {
           setLogoutAsked(false)
-          void logout({ wipe: true })
-        }}
-        onConfirm={() => {
-          setLogoutAsked(false)
-          void logout({ wipe: false })
+          void logout(options)
         }}
         onDismiss={() => setLogoutAsked(false)}
       />
