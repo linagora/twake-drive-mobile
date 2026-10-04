@@ -117,6 +117,7 @@ export default function WelcomeScreen() {
             testID="welcome-org-server-link"
             onPress={goToOrgServerLogin}
             disabled={loading !== null}
+            accessibilityRole="link"
             style={styles.link}
           >
             <Text variant="labelLarge" style={[styles.linkText, { color: theme.colors.primary }]}>
@@ -128,6 +129,7 @@ export default function WelcomeScreen() {
               testID="welcome-dev-instance-link"
               onPress={() => router.push('/(auth)/dev-instance')}
               disabled={loading !== null}
+              accessibilityRole="link"
               style={styles.link}
             >
               <Text

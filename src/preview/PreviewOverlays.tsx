@@ -1,19 +1,31 @@
 import React from 'react'
 import { StyleSheet, View } from 'react-native'
 import { ActivityIndicator, ProgressBar, Text } from 'react-native-paper'
+import { useTranslation } from 'react-i18next'
 
 import { cozyTokens } from '@/ui/theme'
 
-export const LoadingOverlay = ({ progress }: { progress?: number }): React.ReactElement => (
-  <View style={styles.overlay} pointerEvents="none">
-    <ActivityIndicator size="large" color={cozyTokens.canvas.on} />
-    {typeof progress === 'number' ? (
-      <View style={styles.progressWrapper}>
-        <ProgressBar progress={Math.max(0, Math.min(1, progress))} color={cozyTokens.canvas.on} />
-      </View>
-    ) : null}
-  </View>
-)
+export const LoadingOverlay = ({ progress }: { progress?: number }): React.ReactElement => {
+  const { t } = useTranslation()
+  return (
+    <View style={styles.overlay} pointerEvents="none">
+      <ActivityIndicator
+        size="large"
+        color={cozyTokens.canvas.on}
+        accessibilityLabel={t('common.loading')}
+      />
+      {typeof progress === 'number' ? (
+        <View style={styles.progressWrapper}>
+          <ProgressBar
+            progress={Math.max(0, Math.min(1, progress))}
+            color={cozyTokens.canvas.on}
+            accessibilityLabel={t('common.loading')}
+          />
+        </View>
+      ) : null}
+    </View>
+  )
+}
 
 export const ErrorOverlay = ({ message }: { message: string }): React.ReactElement => (
   <View style={styles.overlay} pointerEvents="none">

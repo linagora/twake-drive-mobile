@@ -1,6 +1,7 @@
 import React from 'react'
 import { StyleSheet, View } from 'react-native'
 import { ActivityIndicator, useTheme } from 'react-native-paper'
+import { useTranslation } from 'react-i18next'
 
 /** Opaque, full-bleed loading overlay. Unlike LoadingState (transparent), this
  *  paints a solid themed background so it can sit ON TOP of a WebView and hide
@@ -8,11 +9,12 @@ import { ActivityIndicator, useTheme } from 'react-native-paper'
  *  ready. Meant to be rendered as an absolutely-positioned sibling of the WebView. */
 export const LoadingOverlay = (): React.ReactElement => {
   const theme = useTheme()
+  const { t } = useTranslation()
   return (
     <View
       style={[StyleSheet.absoluteFill, styles.center, { backgroundColor: theme.colors.background }]}
     >
-      <ActivityIndicator animating size="large" />
+      <ActivityIndicator animating size="large" accessibilityLabel={t('common.loading')} />
     </View>
   )
 }
