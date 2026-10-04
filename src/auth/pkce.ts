@@ -6,8 +6,6 @@ import * as Linking from 'expo-linking'
 import { UserCancelledError } from './types'
 import { isOurRedirect, normalizeRedirectUrl as normalize, redirectUri } from './redirectUri'
 
-export { normalizeRedirectUrl } from './redirectUri'
-
 /** Kept as a named export: the callers ask for "the redirect" of this build. */
 export const REDIRECT_URL = redirectUri()
 
