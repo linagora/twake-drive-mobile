@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { StyleSheet, View } from 'react-native'
+import { useTranslation } from 'react-i18next'
 
 import { StreamSource } from '@/files/streamUrl'
 import { ZoomableImage } from '@/ui/ZoomableImage'
@@ -11,6 +12,7 @@ interface Props {
 }
 
 export const ImagePreview = ({ source, thumbnailUrl }: Props): React.ReactElement => {
+  const { t } = useTranslation()
   const [loaded, setLoaded] = useState(false)
   const [error, setError] = useState<string | null>(null)
   return (
@@ -23,8 +25,7 @@ export const ImagePreview = ({ source, thumbnailUrl }: Props): React.ReactElemen
         onLoad={() => setLoaded(true)}
         onError={err => {
           console.error('[ImagePreview] image error', err)
-          const e = err as { error?: string } | null
-          setError(e?.error ?? 'Image error')
+          setError(t('drive.preview.loadFailed'))
         }}
       />
       {error ? (
