@@ -103,6 +103,14 @@ describe('SearchScreen', () => {
     expect(mockUseFileSearch.mock.calls.at(-1)?.[1]).toBe(true)
   })
 
+  it("annonce l'indexation en cours plutôt qu'une erreur", () => {
+    setSearch({ status: 'indexing' })
+    render(<SearchScreen />)
+    fireEvent.changeText(screen.getByPlaceholderText('drive.search.placeholder'), 're')
+    expect(screen.getByText('drive.search.indexing')).toBeTruthy()
+    expect(screen.queryByText('common.retry')).toBeNull()
+  })
+
   it('ouvre un fichier au tap', () => {
     setSearch({
       status: 'success',

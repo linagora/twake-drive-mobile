@@ -266,6 +266,7 @@
       "placeholder": "Buscar en Drive",
       "hint": "Escribe al menos 2 caracteres",
       "empty": "No se encontró ningún archivo",
+      "indexing": "Indexación en curso…",
       "action": "Buscar"
     },
     "open": {

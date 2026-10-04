@@ -131,13 +131,71 @@ describe('useFileSearch', () => {
     warn.mockRestore()
   })
 
-  it('is in error, unreported, when the personal drive is not ready', async () => {
+  it('is indexing, unreported, when the personal drive is not ready', async () => {
     mockEnsure.mockResolvedValue(false)
     const { result } = renderHook(() => useFileSearch('report', true))
-    await waitFor(() => expect(result.current.status).toBe('error'))
+    await waitFor(() => expect(result.current.status).toBe('indexing'))
     expect(mockSearch).not.toHaveBeenCalled()
     expect(result.current.data).toHaveLength(0)
+    expect(result.current.error).toBeNull()
     expect(mockReport).not.toHaveBeenCalled()
+  })
+
+  it('searches on its own once the personal drive is ready', async () => {
+    jest.useFakeTimers()
+    try {
+      mockEnsure.mockResolvedValueOnce(false).mockResolvedValue(true)
+      mockSearch.mockResolvedValue([hit('report.pdf')])
+      const { result } = renderHook(() => useFileSearch('report', true))
+      await waitFor(() => expect(result.current.status).toBe('indexing'))
+      await act(async () => {
+        jest.advanceTimersByTime(2000)
+      })
+      await waitFor(() => expect(result.current.status).toBe('success'))
+      expect(result.current.data.map(doc => doc.name)).toEqual(['report.pdf'])
+      expect(mockSearch).toHaveBeenCalledTimes(1)
+    } finally {
+      jest.useRealTimers()
+    }
+  })
+
+  it('is in error, not indexing, when the retry fails for another reason', async () => {
+    jest.useFakeTimers()
+    try {
+      mockEnsure.mockResolvedValueOnce(false).mockRejectedValue(new Error('disk I/O error'))
+      const { result } = renderHook(() => useFileSearch('report', true))
+      await waitFor(() => expect(result.current.status).toBe('indexing'))
+      await act(async () => {
+        jest.advanceTimersByTime(2000)
+      })
+      await waitFor(() => expect(result.current.status).toBe('error'))
+      expect((result.current.error as Error).message).toBe('disk I/O error')
+      expect(mockReport).toHaveBeenCalledTimes(1)
+    } finally {
+      jest.useRealTimers()
+    }
+  })
+
+  it('drops the pending retry when the term changes', async () => {
+    jest.useFakeTimers()
+    try {
+      mockEnsure.mockResolvedValue(false)
+      const { result, rerender, unmount } = renderHook(
+        ({ term }: { term: string }) => useFileSearch(term, true),
+        { initialProps: { term: 'first' } }
+      )
+      await waitFor(() => expect(result.current.status).toBe('indexing'))
+      rerender({ term: 'second' })
+      await waitFor(() => expect(mockEnsure).toHaveBeenCalledTimes(2))
+      await waitFor(() => expect(result.current.status).toBe('indexing'))
+      unmount()
+      await act(async () => {
+        jest.advanceTimersByTime(10000)
+      })
+      expect(mockEnsure).toHaveBeenCalledTimes(2)
+    } finally {
+      jest.useRealTimers()
+    }
   })
 
   it('skips silently a shared drive that is not ready', async () => {
@@ -154,10 +212,10 @@ describe('useFileSearch', () => {
     warn.mockRestore()
   })
 
-  it('is in error, unreported, when there is no local database', async () => {
+  it('is indexing, unreported, when there is no local database', async () => {
     mockDatabases.mockReturnValue([])
     const { result } = renderHook(() => useFileSearch('report', true))
-    await waitFor(() => expect(result.current.status).toBe('error'))
+    await waitFor(() => expect(result.current.status).toBe('indexing'))
     expect(mockReport).not.toHaveBeenCalled()
   })
 
