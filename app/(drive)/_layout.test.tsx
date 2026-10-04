@@ -72,6 +72,10 @@ jest.mock('@/offline/initOffline', () => ({
   initOfflineSubsystem: jest.fn()
 }))
 
+jest.mock('@/notifications/usePushNotifications', () => ({
+  usePushNotifications: () => undefined
+}))
+
 let mockNewSharesCount = 0
 jest.mock('@/sharing/newShares', () => ({
   ...jest.requireActual('@/sharing/newShares'),
