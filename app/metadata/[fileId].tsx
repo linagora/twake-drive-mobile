@@ -210,6 +210,7 @@ export default function MetadataRoute() {
                 style={styles.localPreview}
                 resizeMode="contain"
                 accessibilityLabel={file.name}
+                accessibilityIgnoresInvertColors
               />
             ) : (
               <FileThumbnail file={file} size={120} />
