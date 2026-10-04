@@ -1,8 +1,7 @@
 import EventEmitter from 'events'
-import { AppState, AppStateStatus, NativeEventSubscription } from 'react-native'
+import { AppState, AppStateStatus } from 'react-native'
 
 let appState = AppState.currentState
-let appStateHandler: NativeEventSubscription | undefined
 
 /**
  * Bridge React Native's AppState to the cozy-pouch-link event emitter.
@@ -19,21 +18,17 @@ let appStateHandler: NativeEventSubscription | undefined
  *  wrong for this version of cozy-pouch-link — when the events were
  *  inverted, the replication loop ran only while the app was in the
  *  background, which is exactly the opposite of what we want.)
+ *
+ * The bridge lives as long as the process, across sessions: each session's
+ * PouchManager removes its own listeners from the emitter when it is
+ * destroyed, so a logout has nothing to stop here.
  */
 export const listenAppState = (eventEmitter: EventEmitter): void => {
-  appStateHandler = AppState.addEventListener('change', nextAppState => {
+  AppState.addEventListener('change', nextAppState => {
     if (isGoingToWakeUp(nextAppState)) eventEmitter.emit('resume')
     if (isGoingToSleep(nextAppState)) eventEmitter.emit('pause')
     appState = nextAppState
   })
-}
-
-/**
- * Nothing calls it yet, logout should: see #437.
- * @public
- */
-export const stopListeningAppState = (): void => {
-  appStateHandler?.remove()
 }
 
 const isGoingToSleep = (next: AppStateStatus): boolean =>

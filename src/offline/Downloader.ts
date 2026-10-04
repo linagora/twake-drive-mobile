@@ -210,6 +210,19 @@ export const Downloader = {
 
   resumeAll(): void {
     pump()
+  },
+
+  /** Ends the session's downloads; init() starts the next one. */
+  async stop(): Promise<void> {
+    opts = undefined
+    unsubOnline?.()
+    unsubSettings?.()
+    unsubOnline = undefined
+    unsubSettings = undefined
+    retryTimers.forEach(t => clearTimeout(t))
+    retryTimers.clear()
+    await Downloader.pauseAll()
+    queue.length = 0
   }
 }
 

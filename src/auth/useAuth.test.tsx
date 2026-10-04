@@ -41,6 +41,11 @@ jest.mock('./wipeDeviceData', () => ({
   wipeDeviceData: (...a: unknown[]) => mockWipeDeviceData(...(a as []))
 }))
 
+const mockTeardownOfflineSubsystem = jest.fn(async () => undefined)
+jest.mock('@/offline/initOffline', () => ({
+  teardownOfflineSubsystem: () => mockTeardownOfflineSubsystem()
+}))
+
 const mockCloseSsoSession = jest.fn(async () => undefined)
 const mockSsoLogoutUrl = jest.fn((_client: unknown, signupUrl?: string) =>
   signupUrl ? `resolved:${signupUrl}` : null
@@ -125,6 +130,7 @@ describe('useAuth', () => {
     ;(flag as unknown as jest.Mock).mockReset()
     mockDestroyLocalData.mockClear()
     mockDropAllFileNameIndexes.mockClear()
+    mockTeardownOfflineSubsystem.mockClear()
   })
 
   it('starts loading then transitions to unauthenticated when no session', async () => {
@@ -429,6 +435,51 @@ describe('useAuth', () => {
     await waitFor(() => expect(mockDestroyLocalData).toHaveBeenCalledTimes(1))
     expect(mockDropAllFileNameIndexes).toHaveBeenCalledTimes(1)
     expect(mockDropAllFileNameIndexes.mock.invocationCallOrder[0]).toBeLessThan(
+      mockDestroyLocalData.mock.invocationCallOrder[0]
+    )
+    await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('authenticated'))
+  })
+
+  // The next sign-in, without the app being killed, sets the offline
+  // subsystem up again for its own account and its own Pouch.
+  it('a logout stops the offline subsystem while the account is still in scope', async () => {
+    jest.spyOn(tokenStorage, 'getSession').mockResolvedValue(mockSession)
+    jest.spyOn(tokenStorage, 'clearSession').mockResolvedValue()
+    render(
+      <AuthProvider>
+        <Probe />
+      </AuthProvider>
+    )
+    await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('authenticated'))
+    const clients = (CozyClient as unknown as jest.Mock).mock.results
+    const client = clients[clients.length - 1].value as { logout: jest.Mock }
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('logout-wipe'))
+    })
+
+    await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('unauthenticated'))
+    expect(mockTeardownOfflineSubsystem).toHaveBeenCalledTimes(1)
+    const teardownAt = mockTeardownOfflineSubsystem.mock.invocationCallOrder[0]
+    expect(teardownAt).toBeLessThan(client.logout.mock.invocationCallOrder[0])
+    expect(teardownAt).toBeLessThan(mockWipeDeviceData.mock.invocationCallOrder[0])
+  })
+
+  it('a resync stops the offline subsystem before the local data is destroyed', async () => {
+    jest.spyOn(tokenStorage, 'getSession').mockResolvedValue(mockSession)
+    render(
+      <AuthProvider>
+        <Probe />
+      </AuthProvider>
+    )
+    await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('authenticated'))
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('resync'))
+    })
+
+    await waitFor(() => expect(mockDestroyLocalData).toHaveBeenCalledTimes(1))
+    expect(mockTeardownOfflineSubsystem.mock.invocationCallOrder[0]).toBeLessThan(
       mockDestroyLocalData.mock.invocationCallOrder[0]
     )
     await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('authenticated'))
