@@ -38,11 +38,3 @@ export interface OfflineSettings {
 export interface OfflineStatus {
   diskFull: boolean
 }
-
-export interface OfflineFolderAggregateState {
-  total: number
-  downloaded: number
-  downloading: number
-  failed: number
-  bytes: number
-}

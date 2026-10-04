@@ -41,13 +41,6 @@ export class UserCancelledError extends Error {
   }
 }
 
-export class DiscoveryError extends Error {
-  constructor(message: string) {
-    super(message)
-    this.name = 'DiscoveryError'
-  }
-}
-
 /**
  * The server could not be reached (or answered 5xx) while resolving the
  * instance. Distinct from "this domain has no Twake configuration": the login
