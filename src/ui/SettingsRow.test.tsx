@@ -48,6 +48,18 @@ describe('SettingsRow', () => {
       render(wrap(<SettingsRow testID="row" title="Version" description="0.6.3" />))
       expect(screen.getByTestId('row').props.accessibilityRole).toBeUndefined()
     })
+
+    it('is announced as a radio button carrying its checked state when it is an option', () => {
+      render(wrap(<SettingsRow testID="row" title="Sombre" radioChecked onPress={jest.fn()} />))
+      const row = screen.getByTestId('row')
+      expect(row.props.accessibilityRole).toBe('radio')
+      expect(row.props.accessibilityState).toEqual(expect.objectContaining({ checked: true }))
+    })
+
+    it('leaves the checked state out of a row that is not an option', () => {
+      render(wrap(<SettingsRow testID="row" title="Langue" onPress={jest.fn()} />))
+      expect(screen.getByTestId('row').props.accessibilityState?.checked).toBeUndefined()
+    })
   })
 
   it('renders a custom accessory instead of the trailing affordance', () => {

@@ -17,6 +17,9 @@ interface Props {
   trailing?: SettingsRowTrailing
   /** Rendered in the trailing slot instead of `trailing` (a Switch, a Button…). */
   accessory?: React.ReactNode
+  /** One option of a single choice, e.g. the theme: announced as a radio
+   *  button, checked or not, since the check icon alone says nothing. */
+  radioChecked?: boolean
   /** Tint the row with the error colour (irreversible actions). */
   destructive?: boolean
   /** Room for a description that has to be read in full, e.g. what a switch
@@ -36,6 +39,7 @@ export const SettingsRow = ({
   icon,
   trailing = 'none',
   accessory,
+  radioChecked,
   destructive,
   onPress,
   testID,
@@ -62,6 +66,8 @@ export const SettingsRow = ({
       testID={testID}
       title={title}
       label={[title, description].filter(Boolean).join(', ')}
+      role={radioChecked !== undefined ? 'radio' : undefined}
+      checked={radioChecked}
       titleStyle={destructive ? { color: theme.colors.error } : undefined}
       description={description}
       descriptionNumberOfLines={descriptionLines}

@@ -96,6 +96,20 @@ describe('SettingsIndex', () => {
     expect(mockSetPref).toHaveBeenCalledWith('dark')
   })
 
+  // The check icon is the only visual cue for the active theme; a screen
+  // reader needs the same information as a checked radio button in a group.
+  it('announces the theme options as a radio group with the current one checked', () => {
+    const { getByTestId } = renderScreen()
+    expect(getByTestId('settings-theme-group').props.accessibilityRole).toBe('radiogroup')
+    for (const key of ['system', 'light', 'dark']) {
+      const row = getByTestId(`settings-theme-${key}`)
+      expect(row.props.accessibilityRole).toBe('radio')
+      expect(row.props.accessibilityState).toEqual(
+        expect.objectContaining({ checked: key === 'system' })
+      )
+    }
+  })
+
   describe('account header', () => {
     it('shows the name as title and the email as description, with the avatar initials', () => {
       mockUser = { name: 'Alice B', email: 'a@b.c', initials: 'AB', loading: false }

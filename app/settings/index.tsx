@@ -1,5 +1,5 @@
 import React from 'react'
-import { ScrollView } from 'react-native'
+import { ScrollView, View } from 'react-native'
 import { Switch } from 'react-native-paper'
 import { useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
@@ -92,15 +92,18 @@ export default function SettingsIndex(): React.ReactElement {
         </SettingsSection>
 
         <SettingsSection title={t('settings.theme')}>
-          {themeOptions.map(o => (
-            <SettingsRow
-              key={o.key}
-              testID={`settings-theme-${o.key}`}
-              title={o.label}
-              trailing={themePref === o.key ? 'check' : 'none'}
-              onPress={() => setThemePref(o.key)}
-            />
-          ))}
+          <View accessibilityRole="radiogroup" testID="settings-theme-group">
+            {themeOptions.map(o => (
+              <SettingsRow
+                key={o.key}
+                testID={`settings-theme-${o.key}`}
+                title={o.label}
+                trailing={themePref === o.key ? 'check' : 'none'}
+                radioChecked={themePref === o.key}
+                onPress={() => setThemePref(o.key)}
+              />
+            ))}
+          </View>
         </SettingsSection>
 
         <SettingsSection title={t('settings.about')}>
