@@ -99,6 +99,7 @@ export const FileThumbnail = ({ file, size = 40 }: Props) => {
             source={{ uri }}
             style={styles.thumb}
             resizeMode="cover"
+            accessibilityIgnoresInvertColors
             onError={() => setErrored(true)}
           />
         </View>
