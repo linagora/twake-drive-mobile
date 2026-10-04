@@ -30,6 +30,8 @@ onFlowComplete:
     id: 'appbar-avatar'
 - tapOn:
     id: 'appbar-logout'
+- tapOn:
+    id: 'logout-dialog-submit'
 - extendedWaitUntil:
     visible:
       id: 'welcome-login'

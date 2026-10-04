@@ -85,9 +85,11 @@ logged-in state) and then exercises one area:
 | `17-empty-folder-refresh` | An empty folder keeps its empty state while the list refetches                |
 | `16-share-recipient`      | Adds a recipient by email, checks the row, revokes it, deletes the folder     |
 | `21-new-share-badge`      | A received share badges Partages, is listed under "with me", opens, unbadges  |
+| `22-logout-asks-to-erase` | The avatar's logout asks; a plain one keeps a pin, an erasing one drops it    |
 
 Shared **subflows** live in `flows/subflows/`: `openDrive` (launch + assert logged
-in), `assertLoggedIn`, and `cleanup`.
+in), `assertLoggedIn`, `signInInstance` (from the welcome screen to the drive,
+without clearing the app), and `cleanup`.
 
 ## Writing flows — selector recipe
 
