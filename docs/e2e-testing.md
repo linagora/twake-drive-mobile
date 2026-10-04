@@ -87,7 +87,7 @@ logged-in state) and then exercises one area:
 | `21-new-share-badge`      | A received share badges Partages, is listed under "with me", opens, unbadges  |
 | `22-logout-asks-to-erase` | The avatar's logout asks; a plain one keeps a pin, an erasing one drops it    |
 
-Shared **subflows** live in `flows/subflows/`: `openDrive` (launch + assert logged
+Shared **subflows** live in `e2e/maestro/subflows/`: `openDrive` (launch + assert logged
 in), `assertLoggedIn`, `signInInstance` (from the welcome screen to the drive,
 without clearing the app), and `cleanup`.
 
