@@ -66,6 +66,7 @@ export const RenameDialog = ({ visible, initialName, type, onDismiss, onSubmit }
             testID="rename-name-input"
             mode="outlined"
             label={t('drive.rename.nameLabel')}
+            accessibilityLabel={t('drive.rename.nameLabel')}
             value={name}
             onChangeText={setName}
             autoFocus
