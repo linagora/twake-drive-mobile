@@ -1,0 +1,1 @@
+• Signing out now comes back to the app on its own: the logout page no longer stays open waiting to be closed by hand.

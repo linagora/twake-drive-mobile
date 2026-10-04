@@ -1,0 +1,1 @@
+• La déconnexion revient maintenant à l'application d'elle-même : la page de déconnexion ne reste plus ouverte en attendant d'être fermée à la main.

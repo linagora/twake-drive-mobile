@@ -1,0 +1,1 @@
+• Die Abmeldung kehrt jetzt von selbst zur App zurück: Die Abmeldeseite bleibt nicht mehr offen, bis sie von Hand geschlossen wird.

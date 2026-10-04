@@ -1,0 +1,1 @@
+• Al cerrar sesión, la aplicación vuelve por sí sola: la página de cierre de sesión ya no se queda abierta esperando a que la cierres a mano.

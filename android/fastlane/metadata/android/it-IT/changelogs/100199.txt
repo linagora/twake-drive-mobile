@@ -1,0 +1,1 @@
+• La disconnessione ora torna all'app da sola: la pagina di disconnessione non resta più aperta in attesa di essere chiusa a mano.
