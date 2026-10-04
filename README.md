@@ -70,6 +70,7 @@ ORG_GRADLE_PROJECT_reactNativeArchitectures=arm64-v8a npm run android
 npm test          # Jest unit tests
 npm run typecheck # TypeScript (tsc)
 npm run lint      # ESLint
+npm run knip      # dead code: unused files, exports, dependencies
 ```
 
 End-to-end tests use [Maestro](https://maestro.mobile.dev/) against a real device
@@ -102,7 +103,7 @@ scripts/        release + native signing helpers
 ## Contributing
 
 1. Branch from `main`.
-2. Keep `npm test`, `npm run typecheck` and `npm run lint` green.
+2. Keep `npm test`, `npm run typecheck`, `npm run lint` and `npm run knip` green.
 3. Open a pull request — CI runs unit tests, type-check, lint, a security scan and
    Android/iOS builds.
 

@@ -1,0 +1,50 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema-jsonc.json",
+  // The Expo, Jest and ESLint plugins find the app, the tests and the lint
+  // config on their own. Listed here: what runs without being imported.
+  "entry": [
+    // Played by Maestro (runScript) and by the e2e shell scripts.
+    "e2e/maestro/scripts/*.js",
+    "e2e/scripts/*.mjs",
+    // Served by e2e/stack/docker-compose.yml.
+    "e2e/stack/portal.js",
+    // Config plugins named in app.json.
+    "plugins/*.js",
+    // Run by hand on the Xcode project.
+    "scripts/*.cjs",
+    // Read by metro.config.js: the stubbed modules and the stub they resolve to.
+    "src/utils/emptyModule.js!",
+    "src/utils/stubbedModules.js!",
+    // The build reads it: `--production` must not count it as tooling.
+    "babel.config.js!"
+  ],
+  // Test tooling, which `--production` leaves out by design. This and the `!`
+  // entries only matter to that run: the default one calls them redundant, and
+  // `npm run knip` silences its hints.
+  "ignore": ["jest/**", "jest.setup.ts"],
+  "ignoreDependencies": [
+    // Aliased by babel.config.js (module-resolver), never imported by name.
+    "@craftzdog/pouchdb-collate-react-native",
+    "@craftzdog/react-native-buffer",
+    "react-native-quick-crypto",
+    "readable-stream",
+    // Imported as the Node built-in name, provided by this package on device.
+    "events",
+    // Native or peer pieces other packages load: the vector icons react-native-paper
+    // falls back to, the fonts expo needs, the stack client cozy-client builds on.
+    "react-native-vector-icons",
+    "@types/react-native-vector-icons",
+    "expo-font",
+    "cozy-stack-client",
+    // Come with expo-router and expo's config plugins, whose versions they have to match.
+    "@react-navigation/native",
+    "xcode",
+    // Expected by knip's expo plugin unless app.json disables updates; the app
+    // ships no OTA updates and does not install it.
+    "expo-updates"
+  ],
+  // Installed outside npm: on the runners, and by e2e/scripts/setup-ios-automation.sh.
+  "ignoreBinaries": ["ffmpeg", "ffprobe", "maestro"],
+  // An export the file itself uses is only one keyword too many, not dead code.
+  "ignoreExportsUsedInFile": true
+}
