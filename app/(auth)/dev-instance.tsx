@@ -87,6 +87,7 @@ export default function DevInstanceScreen() {
         <TextInput
           testID="dev-instance-uri-input"
           label="Instance address"
+          accessibilityLabel="Instance address"
           placeholder="http://alice.localhost:8080"
           value={uri}
           onChangeText={setUri}

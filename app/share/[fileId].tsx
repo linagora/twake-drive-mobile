@@ -473,6 +473,7 @@ export default function ShareRoute() {
                 mode="outlined"
                 testID="share-email-input"
                 label={t('drive.share.emailPlaceholder')}
+                accessibilityLabel={t('drive.share.emailPlaceholder')}
                 value={emailInput}
                 onChangeText={setEmailInput}
                 autoCapitalize="none"

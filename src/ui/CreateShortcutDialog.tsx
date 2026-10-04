@@ -55,6 +55,7 @@ export const CreateShortcutDialog = ({ visible, onDismiss, onSubmit }: Props) =>
           <TextInput
             mode="outlined"
             label={t('drive.createShortcut.nameLabel')}
+            accessibilityLabel={t('drive.createShortcut.nameLabel')}
             value={name}
             onChangeText={setName}
             autoFocus
@@ -65,6 +66,7 @@ export const CreateShortcutDialog = ({ visible, onDismiss, onSubmit }: Props) =>
           <TextInput
             mode="outlined"
             label={t('drive.createShortcut.urlLabel')}
+            accessibilityLabel={t('drive.createShortcut.urlLabel')}
             value={url}
             onChangeText={setUrl}
             disabled={submitting}

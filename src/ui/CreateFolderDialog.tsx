@@ -57,6 +57,7 @@ export const CreateFolderDialog = ({ visible, onDismiss, onSubmit }: Props) => {
             testID="create-folder-name-input"
             mode="outlined"
             label={t('drive.createFolder.nameLabel')}
+            accessibilityLabel={t('drive.createFolder.nameLabel')}
             value={name}
             onChangeText={setName}
             autoFocus

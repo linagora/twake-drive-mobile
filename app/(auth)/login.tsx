@@ -85,6 +85,7 @@ export default function LoginScreen() {
         <TextInput
           testID="login-email-input"
           label={t('auth.emailLabel')}
+          accessibilityLabel={t('auth.emailLabel')}
           placeholder={t('auth.emailPlaceholder')}
           value={email}
           onChangeText={setEmail}
