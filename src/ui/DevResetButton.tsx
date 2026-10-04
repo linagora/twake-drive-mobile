@@ -21,7 +21,7 @@ export const DevResetButton = (): React.ReactElement | null => {
   }
 
   return (
-    <Pressable style={styles.button} onPress={handlePress}>
+    <Pressable style={styles.button} onPress={handlePress} accessibilityRole="button">
       <Text style={styles.label}>{busy ? '…' : 'RESYNC'}</Text>
     </Pressable>
   )
