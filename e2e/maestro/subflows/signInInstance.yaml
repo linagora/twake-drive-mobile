@@ -4,6 +4,17 @@ appId: com.linagora.twakedrive
 # entry point, then the stack's login page answered in the system browser.
 # 00-login-instance.yaml runs it on a cleared app; a flow that signs out can run
 # it again to come back to what the device kept.
+#
+# The browser goes first. An emulator without Chrome answers with WebView
+# Browser Tester, which keeps the tab of the previous sign-in: handed the new
+# authorize page, it loads it, then reloads the old one, whose client the
+# logout unregistered ("the client must be registered").
+- runFlow:
+    when:
+      platform: Android
+    commands:
+      - stopApp: org.chromium.webview_shell
+      - stopApp: com.android.chrome
 - extendedWaitUntil:
     visible:
       id: 'welcome-dev-instance-link'
