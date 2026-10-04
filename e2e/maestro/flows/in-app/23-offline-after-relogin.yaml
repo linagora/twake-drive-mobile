@@ -1,0 +1,78 @@
+appId: com.linagora.twakedrive
+tags:
+  - inapp
+# Same reason as 20-logout-closes-sso.yaml: the flows after this one need a
+# fresh session, and a replica past its first sync.
+onFlowComplete:
+  - runFlow: ../00-login-instance.yaml
+  - runScript:
+      file: ../../scripts/seed.js
+      env:
+        SEED: '[{"key":"settled","kind":"folder","prefix":"E2E-settled"}]'
+  - extendedWaitUntil:
+      visible:
+        id: 'folder-row:${output.settled.name}'
+      timeout: 180000
+  - runFlow: ../../subflows/cleanup.yaml
+---
+# Signing out and back in without the app being killed: keeping things
+# offline still works for the new session. A file that lands in a folder kept
+# offline is downloaded, which only happens if the offline subsystem was set
+# up again and listens to the new session's replica, not the previous one.
+- runScript:
+    file: ../../scripts/seed.js
+    env:
+      SEED: '[{"key":"folder","kind":"folder","prefix":"E2E-relogin"}]'
+- runFlow: ../../subflows/openDrive.yaml
+- extendedWaitUntil:
+    visible:
+      id: 'folder-row:${output.folder.name}'
+    timeout: 60000
+- tapOn:
+    id: 'folder-actions:${output.folder.name}'
+- waitForAnimationToEnd
+- tapOn:
+    id: 'action-pin'
+- waitForAnimationToEnd
+
+- tapOn:
+    id: 'appbar-avatar'
+- tapOn:
+    id: 'appbar-logout'
+- tapOn:
+    id: 'logout-dialog-submit'
+- extendedWaitUntil:
+    visible:
+      id: 'welcome-login'
+    timeout: 60000
+- runFlow: ../../subflows/signInInstance.yaml
+- extendedWaitUntil:
+    visible:
+      id: 'folder-row:${output.folder.name}'
+    timeout: 180000
+
+# Added on the server once the new session runs: it reaches the device through
+# the periodic sync, every 30 seconds.
+- runScript:
+    file: ../../scripts/seed.js
+    env:
+      SEED: '[{"key":"file","kind":"file","prefix":"E2E-relogin","ext":"txt","parent":"folder"}]'
+- tapOn:
+    id: 'folder-row:${output.folder.name}'
+- extendedWaitUntil:
+    visible:
+      id: 'file-row:${output.file.name}'
+    timeout: 120000
+- extendedWaitUntil:
+    visible:
+      id: 'pinned-badge:downloaded'
+    timeout: 120000
+
+- tapOn:
+    id: 'appbar-back-button'
+- tapOn:
+    id: 'folder-actions:${output.folder.name}'
+- waitForAnimationToEnd
+- tapOn:
+    id: 'action-unpin'
+- waitForAnimationToEnd

@@ -70,23 +70,24 @@ happened.
 Each in-app flow opens the drive via the `openDrive` subflow (which asserts the
 logged-in state) and then exercises one area:
 
-| Flow                      | What it checks                                                                |
-| ------------------------- | ----------------------------------------------------------------------------- |
-| `01-launch-browse`        | The app launches and the drive lists folders                                  |
-| `02-tabs`                 | The bottom tabs (Drive / Favoris / Récents / Partages / Corbeille) switch     |
-| `03-search`               | Opens the search from the app bar and finds a seeded file by part of its name |
-| `04-folder-crud`          | A real create + delete round-trip, strictly scoped to a throwaway folder      |
-| `05-preview`              | File preview (⚠️ environment-dependent — not validated on every build)        |
-| `06-editor`               | A document editor opens                                                       |
-| `07-offline-pin`          | Pin a folder for offline and verify the menu state                            |
-| `08-share-internal`       | The share sheet opens for a folder (non-mutating)                             |
-| `09-favorite-toggle`      | Favourite → present in Favoris → un-favourite → absent from Favoris           |
-| `12-offline-toggle`       | Pin → the menu shows "Remove from offline" → unpin                            |
-| `17-empty-folder-refresh` | An empty folder keeps its empty state while the list refetches                |
-| `16-share-recipient`      | Adds a recipient by email, checks the row, revokes it, deletes the folder     |
-| `21-new-share-badge`      | A received share badges Partages, is listed under "with me", opens, unbadges  |
-| `22-logout-asks-to-erase` | The avatar's logout asks; a plain one keeps a pin, an erasing one drops it    |
-| `24-audio-replay`         | A track played to its end plays again from the start on Play                  |
+| Flow                       | What it checks                                                                |
+| -------------------------- | ----------------------------------------------------------------------------- |
+| `01-launch-browse`         | The app launches and the drive lists folders                                  |
+| `02-tabs`                  | The bottom tabs (Drive / Favoris / Récents / Partages / Corbeille) switch     |
+| `03-search`                | Opens the search from the app bar and finds a seeded file by part of its name |
+| `04-folder-crud`           | A real create + delete round-trip, strictly scoped to a throwaway folder      |
+| `05-preview`               | File preview (⚠️ environment-dependent — not validated on every build)        |
+| `06-editor`                | A document editor opens                                                       |
+| `07-offline-pin`           | Pin a folder for offline and verify the menu state                            |
+| `08-share-internal`        | The share sheet opens for a folder (non-mutating)                             |
+| `09-favorite-toggle`       | Favourite → present in Favoris → un-favourite → absent from Favoris           |
+| `12-offline-toggle`        | Pin → the menu shows "Remove from offline" → unpin                            |
+| `17-empty-folder-refresh`  | An empty folder keeps its empty state while the list refetches                |
+| `16-share-recipient`       | Adds a recipient by email, checks the row, revokes it, deletes the folder     |
+| `21-new-share-badge`       | A received share badges Partages, is listed under "with me", opens, unbadges  |
+| `22-logout-asks-to-erase`  | The avatar's logout asks; a plain one keeps a pin, an erasing one drops it    |
+| `23-offline-after-relogin` | Signed out and back in without a restart, a pinned folder still downloads     |
+| `24-audio-replay`          | A track played to its end plays again from the start on Play                  |
 
 Shared **subflows** live in `e2e/maestro/subflows/`: `openDrive` (launch + assert logged
 in), `assertLoggedIn`, `signInInstance` (from the welcome screen to the drive,
