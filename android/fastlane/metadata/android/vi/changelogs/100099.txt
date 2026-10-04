@@ -1,0 +1,5 @@
+• Ứng dụng giờ đây theo hướng của thiết bị và hoạt động ở chế độ ngang.
+• Ở chế độ xem lưới, trình đọc màn hình có thể truy cập menu tác vụ của một ô.
+• Mỗi menu tác vụ cho biết nó thuộc về tệp hay thư mục nào.
+• Các mục chia sẻ đang chờ chấp nhận được liệt kê, và thẻ Chia sẻ hiển thị số lượng mục mới.
+• Việc đồng bộ không còn dừng lại khi cơ sở dữ liệu cục bộ đang bận lúc khởi động.

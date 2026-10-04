@@ -1,0 +1,5 @@
+• Die App folgt jetzt der Geräteausrichtung und funktioniert im Querformat.
+• In der Rasteransicht ist das Aktionsmenü einer Kachel mit einem Screenreader erreichbar.
+• Jedes Aktionsmenü nennt die Datei oder den Ordner, zu der oder dem es gehört.
+• Freigaben, die auf Annahme warten, werden aufgelistet, und der Tab „Freigaben“ zeigt, wie viele neu sind.
+• Die Synchronisierung bricht nicht mehr ab, wenn die lokale Datenbank beim Start belegt ist.

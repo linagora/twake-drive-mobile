@@ -1,0 +1,5 @@
+• The app now follows the device orientation and works in landscape.
+• In grid view, the action menu of a tile can be reached with a screen reader.
+• Each action menu says which file or folder it belongs to.
+• Shares waiting to be accepted are listed, and the Shares tab shows how many are new.
+• Syncing no longer stops when the local database is busy as the app starts.

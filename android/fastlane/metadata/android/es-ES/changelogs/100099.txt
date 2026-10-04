@@ -1,0 +1,5 @@
+• La aplicación ahora sigue la orientación del dispositivo y funciona en horizontal.
+• En la vista de cuadrícula, el menú de acciones de una ficha se puede alcanzar con un lector de pantalla.
+• Cada menú de acciones indica a qué archivo o carpeta pertenece.
+• Los recursos compartidos pendientes de aceptación aparecen en la lista, y la pestaña Compartidos indica cuántos son nuevos.
+• La sincronización ya no se detiene cuando la base de datos local está ocupada al iniciar.

@@ -1,0 +1,5 @@
+• L'app ora segue l'orientamento del dispositivo e funziona in orizzontale.
+• Nella vista a griglia, il menu azioni di una scheda è raggiungibile con uno screen reader.
+• Ogni menu azioni indica il file o la cartella a cui appartiene.
+• Le condivisioni in attesa di accettazione sono elencate e la scheda Condivisioni indica quante sono nuove.
+• La sincronizzazione non si interrompe più quando il database locale è occupato all'avvio.

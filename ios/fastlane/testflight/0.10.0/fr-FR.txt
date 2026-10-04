@@ -1,0 +1,5 @@
+• L'application suit désormais l'orientation de l'appareil et fonctionne en paysage.
+• En vue grille, le menu d'actions d'une tuile est atteignable avec un lecteur d'écran.
+• Chaque menu d'actions indique le fichier ou le dossier auquel il appartient.
+• Les partages en attente d'acceptation sont listés, et l'onglet Partages indique combien sont nouveaux.
+• La synchronisation ne s'arrête plus lorsque la base locale est occupée au démarrage.
