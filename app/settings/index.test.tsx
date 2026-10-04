@@ -86,6 +86,12 @@ jest.mock('@/native/twakeDriveCore', () => ({ backupCore: () => mockBackupCore }
 let mockBackupFlag = true
 jest.mock('@/backup/backupFlag', () => ({ useIsPhotoBackupEnabled: () => mockBackupFlag }))
 
+// The notifications row reads the OS permission through Firebase.
+let mockPushSetting = { available: false, on: false, setOn: jest.fn() }
+jest.mock('@/notifications/pushPermission', () => ({
+  usePushNotificationsSetting: () => mockPushSetting
+}))
+
 // Production wraps every screen in PaperProvider (app/_layout.tsx); the
 // deletion dialog renders through a Paper <Portal>, which needs that host.
 const renderScreen = () =>
@@ -133,6 +139,22 @@ describe('SettingsIndex', () => {
     mockBackupCore = {}
     mockBackupFlag = false
     expect(renderScreen().queryByTestId('settings-backup')).toBeNull()
+  })
+
+  it('has no notifications row while push is not available', () => {
+    const { queryByTestId } = renderScreen()
+    expect(queryByTestId('settings-notifications')).toBeNull()
+  })
+
+  it('shows whether notifications are on and switches them', () => {
+    mockPushSetting = { available: true, on: false, setOn: jest.fn() }
+    const { getByTestId } = renderScreen()
+    const toggle = getByTestId('settings-notifications-switch')
+    expect(toggle.props.value).toBe(false)
+    expect(toggle.props.accessibilityLabel).toBe('Notifications')
+    fireEvent(toggle, 'valueChange', true)
+    expect(mockPushSetting.setOn).toHaveBeenCalledWith(true)
+    mockPushSetting = { available: false, on: false, setOn: jest.fn() }
   })
 
   it('names the crash reports switch after its row', () => {

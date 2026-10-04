@@ -26,6 +26,7 @@ import { useAuth } from '@/auth/useAuth'
 import { isKeepOfflineEnabled } from '@/offline/keepOfflineFlag'
 import { backupCore } from '@/native/twakeDriveCore'
 import { useIsPhotoBackupEnabled } from '@/backup/backupFlag'
+import { usePushNotificationsSetting } from '@/notifications/pushPermission'
 
 const PRIVACY_POLICY_URL = 'https://twake.app/en/privacy-policy/'
 
@@ -41,6 +42,7 @@ export default function SettingsIndex(): React.ReactElement {
   const hasCommonSettings = useHasCommonSettings()
   const openCommonSettings = useOpenCommonSettings()
   const crashReports = useCrashReportsEnabled()
+  const pushNotifications = usePushNotificationsSetting()
   const tosUrl = useTosUrl()
   const [deleteAccountAsked, setDeleteAccountAsked] = React.useState(false)
   const [logoutAsked, setLogoutAsked] = React.useState(false)
@@ -101,6 +103,22 @@ export default function SettingsIndex(): React.ReactElement {
               icon="upload"
               trailing="chevron"
               onPress={() => router.push('/settings/backup')}
+            />
+          ) : null}
+          {pushNotifications.available ? (
+            <SettingsRow
+              testID="settings-notifications"
+              title={t('settings.notifications')}
+              description={t('settings.notificationsDescription')}
+              descriptionLines={3}
+              accessory={
+                <Switch
+                  value={pushNotifications.on}
+                  onValueChange={pushNotifications.setOn}
+                  accessibilityLabel={t('settings.notifications')}
+                  testID="settings-notifications-switch"
+                />
+              }
             />
           ) : null}
         </SettingsSection>

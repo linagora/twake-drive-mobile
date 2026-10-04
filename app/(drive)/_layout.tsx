@@ -13,6 +13,7 @@ import { useSyncInstanceLocale } from '@/i18n/useSyncInstanceLocale'
 import { useBackupPass } from '@/backup/backupPass'
 import { useKeepAwakeWhileBackingUp } from '@/backup/keepAwake'
 import { initOfflineSubsystem } from '@/offline/initOffline'
+import { usePushNotifications } from '@/notifications/usePushNotifications'
 import { formatBadgeCount, useNewSharesCount } from '@/sharing/newShares'
 import { useAuth } from '@/auth/useAuth'
 import { LoadingState } from '@/ui/LoadingState'
@@ -43,6 +44,7 @@ function DriveTabs() {
   useSyncInstanceLocale()
   useBackupPass()
   useKeepAwakeWhileBackingUp()
+  usePushNotifications()
   const newSharesCount = useNewSharesCount()
   useEffect(() => {
     if (!client) return

@@ -35,7 +35,9 @@
     "logoutMessage": "Các tệp được giữ ngoại tuyến và tài liệu bạn đã mở vẫn còn trên thiết bị này. Hãy xóa chúng nếu đây không phải thiết bị của bạn.",
     "logoutAndErase": "Đăng xuất và xóa",
     "privacyPolicy": "Chính sách quyền riêng tư",
-    "termsOfService": "Điều khoản sử dụng"
+    "termsOfService": "Điều khoản sử dụng",
+    "notifications": "Thông báo",
+    "notificationsDescription": "Nhận thông báo khi ai đó chia sẻ tệp hoặc thư mục với bạn."
   },
   "auth": {
     "welcomeTitle": "Chào mừng đến với Twake Drive",
