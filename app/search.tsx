@@ -80,6 +80,8 @@ export default function SearchScreen() {
         <EmptyState message={t('drive.search.hint')} />
       ) : search.status === 'loading' && data.length === 0 ? (
         <LoadingState />
+      ) : search.status === 'indexing' ? (
+        <LoadingState message={t('drive.search.indexing')} />
       ) : search.status === 'error' ? (
         <ErrorState message={t(getErrorMessageKey(search.error))} onRetry={search.reload} />
       ) : data.length === 0 ? (

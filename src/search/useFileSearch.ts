@@ -7,7 +7,7 @@ import { reportCaughtError } from '@/monitoring/crashReporting'
 import { ensureFileNameIndex, FileNameHit, searchFileNames } from './fileNameIndex'
 import { getSearchDatabases, isReplicating, SearchDatabase } from './searchDatabases'
 
-export type SearchStatus = 'idle' | 'loading' | 'success' | 'error'
+export type SearchStatus = 'idle' | 'loading' | 'indexing' | 'success' | 'error'
 
 export type SearchResult = FileQueryResult & { driveId?: string }
 
@@ -20,6 +20,8 @@ export interface FileSearchState {
 
 const FILE_SEARCH_RESULT_LIMIT = 100
 
+const INDEXING_RETRY_MS = 2000
+
 interface RankedResult {
   doc: SearchResult
   rank: number
@@ -30,7 +32,6 @@ class SearchUnavailableError extends Error {}
 const reportedMessages = new Set<string>()
 
 const reportOncePerMessage = (error: unknown): void => {
-  if (error instanceof SearchUnavailableError) return
   const reportable = error instanceof Error ? error : new Error(String(error))
   if (reportedMessages.has(reportable.message)) return
   reportedMessages.add(reportable.message)
@@ -95,11 +96,25 @@ export function useFileSearch(term: string, enabled: boolean): FileSearchState {
       setState({ status: 'success', data, error: null })
     }
 
-    run().catch((err: unknown) => {
-      if (id !== reqId.current) return
-      reportOncePerMessage(err)
-      setState({ status: 'error', data: [], error: err })
-    })
+    let cancelled = false
+    let retry: ReturnType<typeof setTimeout> | undefined
+    const attempt = (): void => {
+      run().catch((err: unknown) => {
+        if (cancelled || id !== reqId.current) return
+        if (err instanceof SearchUnavailableError) {
+          setState({ status: 'indexing', data: [], error: null })
+          retry = setTimeout(attempt, INDEXING_RETRY_MS)
+          return
+        }
+        reportOncePerMessage(err)
+        setState({ status: 'error', data: [], error: err })
+      })
+    }
+    attempt()
+    return () => {
+      cancelled = true
+      clearTimeout(retry)
+    }
   }, [client, term, enabled, reloadToken])
 
   return { ...state, reload }

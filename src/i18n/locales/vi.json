@@ -248,6 +248,7 @@
       "placeholder": "Tìm kiếm trong Drive",
       "hint": "Nhập ít nhất 2 ký tự",
       "empty": "Không tìm thấy tệp nào",
+      "indexing": "Đang lập chỉ mục…",
       "action": "Tìm kiếm"
     },
     "open": {

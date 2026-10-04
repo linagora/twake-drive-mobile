@@ -257,6 +257,7 @@
       "placeholder": "In Drive suchen",
       "hint": "Geben Sie mindestens 2 Zeichen ein",
       "empty": "Keine Datei gefunden",
+      "indexing": "Indizierung läuft…",
       "action": "Suchen"
     },
     "open": {
