@@ -1,5 +1,5 @@
 import React from 'react'
-import { fireEvent, render, screen } from '@testing-library/react-native'
+import { act, fireEvent, render, screen } from '@testing-library/react-native'
 import { Provider as PaperProvider } from 'react-native-paper'
 
 jest.mock('cozy-client', () => ({
@@ -77,4 +77,42 @@ test('falls back to the initials when the avatar cannot be loaded', () => {
 test('shows the initials when the instance has no avatar url yet', () => {
   render(wrap(<AppBar title="Mes fichiers" onLogout={jest.fn()} />))
   expect(screen.getByText('AB')).toBeOnTheScreen()
+})
+
+describe('logging out from the account menu', () => {
+  const openLogout = async (onLogout: jest.Mock): Promise<void> => {
+    render(wrap(<AppBar title="Mes fichiers" onLogout={onLogout} />))
+    fireEvent.press(screen.getByTestId('appbar-avatar'))
+    fireEvent.press(screen.getByTestId('appbar-logout'))
+    // The menu animates its closing; let it settle inside act().
+    await act(() => new Promise(resolve => setTimeout(resolve, 500)))
+  }
+
+  test('asks before leaving, instead of logging out on the tap', async () => {
+    const onLogout = jest.fn()
+    await openLogout(onLogout)
+    expect(onLogout).not.toHaveBeenCalled()
+    expect(screen.getByText('settings.logoutTitle')).toBeOnTheScreen()
+  })
+
+  test('leaves the local data alone on a plain log out', async () => {
+    const onLogout = jest.fn()
+    await openLogout(onLogout)
+    fireEvent.press(screen.getByTestId('logout-dialog-submit'))
+    expect(onLogout).toHaveBeenCalledWith({ wipe: false })
+  })
+
+  test('erases what the device holds when that is the action chosen', async () => {
+    const onLogout = jest.fn()
+    await openLogout(onLogout)
+    fireEvent.press(screen.getByTestId('logout-dialog-secondary'))
+    expect(onLogout).toHaveBeenCalledWith({ wipe: true })
+  })
+
+  test('stays signed in when the question is dismissed', async () => {
+    const onLogout = jest.fn()
+    await openLogout(onLogout)
+    fireEvent.press(screen.getByTestId('logout-dialog-cancel'))
+    expect(onLogout).not.toHaveBeenCalled()
+  })
 })
