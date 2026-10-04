@@ -15,16 +15,6 @@ export const useOfflineState = (fileId: string | undefined): OfflineFileEntry | 
   return entry
 }
 
-export const useOfflineFolderPinned = (dirId: string | undefined): boolean => {
-  const [pinned, setPinned] = useState<boolean>(!!(dirId && OfflineFilesStore.getFolder(dirId)))
-  useEffect(() => {
-    if (!dirId) return
-    setPinned(!!OfflineFilesStore.getFolder(dirId))
-    return OfflineFilesStore.subscribeAll(() => setPinned(!!OfflineFilesStore.getFolder(dirId)))
-  }, [dirId])
-  return pinned
-}
-
 export interface OfflineFolderState {
   pinned: boolean
   /** Aggregated state across the children that match this folder pin. */

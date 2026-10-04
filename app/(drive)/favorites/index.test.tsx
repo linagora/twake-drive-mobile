@@ -55,7 +55,6 @@ jest.mock('@/account/useCurrentUser', () => ({
 // FolderRow / FileRow pull in offline + sharing hooks
 jest.mock('@/offline/useOfflineState', () => ({
   useOfflineState: jest.fn().mockReturnValue(undefined),
-  useOfflineFolderPinned: jest.fn().mockReturnValue(false),
   useOfflineFolderState: jest.fn().mockReturnValue({
     pinned: false,
     aggregate: null,

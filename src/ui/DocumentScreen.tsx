@@ -38,7 +38,7 @@ interface CommonProps {
 
 /** The editor chrome shows no title, so those routes do not have to know one. */
 type Props =
-  | (CommonProps & { chrome?: 'immersive' | 'player'; title: string })
+  | (CommonProps & { chrome?: Exclude<DocumentChrome, 'editor'>; title: string })
   | (CommonProps & { chrome: 'editor'; title?: string })
 
 export const DOCUMENT_BACK_TEST_ID = 'document-back-button'

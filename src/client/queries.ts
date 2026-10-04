@@ -88,27 +88,6 @@ export const folderFilesQuery = (dirId: string, sort?: FolderSortSpec): QueryDef
 export const folderFilesQueryAs = (dirId: string, sort?: FolderSortSpec): string =>
   `io.cozy.files/dir/${dirId}/files/${sortSuffix(sort)}`
 
-export interface SharingRule {
-  title: string
-  doctype: string
-  values: string[]
-}
-
-export interface SharingQueryResult {
-  _id: string
-  _type: string
-  attributes: {
-    description?: string
-    owner?: boolean
-    rules?: SharingRule[]
-    members?: unknown[]
-  }
-}
-
-export const sharedWithMeQuery = (): QueryDefinition =>
-  Q('io.cozy.sharings').where({ owner: false })
-export const sharedWithMeQueryAs = 'io.cozy.sharings/with-me'
-
 // Recent files: an index-backed top-N over `updated_at`.
 //
 // Perf gotcha (fixed here): a `.partialIndex(...)` makes cozy-pouch-link derive
@@ -179,21 +158,6 @@ export const filesByIdsQuery = (ids: string[]): QueryDefinition =>
     .getByIds(ids)
     .sortBy([{ type: 'asc' }, { name: 'asc' }])
 export const filesByIdsQueryAs = (ids: string[]): string => `io.cozy.files/byIds/${ids.join('-')}`
-
-// Reachable contacts: those that have at least one email or one cozy URL and
-// are not trashed. Mirrors cozy-sharing's `buildReachableContactsQuery` so the
-// mobile autocomplete uses the same dataset as the web ShareAutosuggest.
-export const reachableContactsQuery = (): QueryDefinition =>
-  Q('io.cozy.contacts')
-    .where({ _id: { $gt: null } })
-    .partialIndex({
-      trashed: { $or: [{ $eq: false }, { $exists: false }] },
-      $or: [{ cozy: { $not: { $size: 0 } } }, { email: { $not: { $size: 0 } } }]
-    })
-    .indexFields(['_id'])
-    .limitBy(1000)
-
-export const reachableContactsQueryAs = 'io.cozy.contacts/reachable'
 
 export interface ContactQueryResult {
   _id: string

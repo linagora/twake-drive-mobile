@@ -14,7 +14,6 @@ jest.mock('cozy-client', () => ({
 }))
 
 jest.mock('@/offline/useOfflineState', () => ({
-  useOfflineFolderPinned: jest.fn().mockReturnValue(false),
   useOfflineFolderState: jest.fn().mockReturnValue({
     pinned: false,
     aggregate: null,
