@@ -106,6 +106,7 @@ export const MarkdownView = ({
               style={styles.image}
               resizeMode="contain"
               accessibilityLabel={token.content || undefined}
+              accessibilityIgnoresInvertColors
             />
           )
           break
