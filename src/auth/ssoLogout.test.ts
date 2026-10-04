@@ -119,12 +119,14 @@ describe('ssoLogoutUrl', () => {
   const clientHolding = (instance: unknown) =>
     ({ getQueryFromState: jest.fn(() => ({ data: instance })) }) as never
 
-  it("is the instance's own SSO logout page when the stack names one", () => {
+  // Opened bare, the page has nothing to send the browser back to, so it sits
+  // there until the user closes it by hand.
+  it("is the instance's own SSO logout page, told where to send the browser back", () => {
     const client = clientHolding({
       attributes: { oidc_logout_url: 'https://sso.example.com/oauth2/logout' }
     })
     expect(ssoLogoutUrl(client, 'https://sign-up.example.com')).toBe(
-      'https://sso.example.com/oauth2/logout'
+      'https://sso.example.com/oauth2/logout?url=twakedrive://afterlogout'
     )
     expect((client as { getQueryFromState: jest.Mock }).getQueryFromState).toHaveBeenCalledWith(
       'io.cozy.settings/instance'
@@ -134,10 +136,30 @@ describe('ssoLogoutUrl', () => {
   it('reads the instance settings whichever shape the store holds them in', () => {
     expect(
       ssoLogoutUrl(clientHolding({ oidc_logout_url: 'https://sso.example.com/out' }), undefined)
-    ).toBe('https://sso.example.com/out')
+    ).toBe('https://sso.example.com/out?url=twakedrive://afterlogout')
     expect(
       ssoLogoutUrl(clientHolding([{ oidc_logout_url: 'https://sso.example.com/out' }]), undefined)
-    ).toBe('https://sso.example.com/out')
+    ).toBe('https://sso.example.com/out?url=twakedrive://afterlogout')
+  })
+
+  it('keeps a query the logout page already carries', () => {
+    expect(
+      ssoLogoutUrl(
+        clientHolding({ oidc_logout_url: 'https://sso.example.com/out?ctx=a' }),
+        undefined
+      )
+    ).toBe('https://sso.example.com/out?ctx=a&url=twakedrive://afterlogout')
+  })
+
+  it('does not ask twice when the stack already named a return address', () => {
+    expect(
+      ssoLogoutUrl(
+        clientHolding({
+          oidc_logout_url: 'https://sso.example.com/out?url=twakedrive://afterlogout'
+        }),
+        undefined
+      )
+    ).toBe('https://sso.example.com/out?url=twakedrive://afterlogout')
   })
 
   it('falls back to the sign-up portal when the stack names no logout page', () => {
