@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { StyleSheet, useWindowDimensions, View } from 'react-native'
 import { Image } from 'expo-image'
 import Pdf from 'react-native-pdf'
+import { useTranslation } from 'react-i18next'
 
 import { StreamSource } from '@/files/streamUrl'
 import { cozyTokens } from '@/ui/theme'
@@ -13,6 +14,7 @@ interface Props {
 }
 
 export const PdfPreview = ({ source, thumbnailUrl }: Props): React.ReactElement => {
+  const { t } = useTranslation()
   const [loaded, setLoaded] = useState(false)
   const [progress, setProgress] = useState(0)
   const [error, setError] = useState<string | null>(null)
@@ -38,7 +40,7 @@ export const PdfPreview = ({ source, thumbnailUrl }: Props): React.ReactElement 
         onLoadComplete={() => setLoaded(true)}
         onError={err => {
           console.error('[PdfPreview] pdf error', err)
-          setError(typeof err === 'string' ? err : ((err as Error)?.message ?? 'PDF error'))
+          setError(t('drive.preview.loadFailed'))
         }}
       />
       {error ? (
