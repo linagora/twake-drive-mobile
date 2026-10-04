@@ -13,7 +13,7 @@ concurrency:
 permissions:
   contents: read
 
-# lint, typecheck, and test are all blocking (green as of 2026-07-03). Note:
+# lint, typecheck, knip, and test are all blocking (green as of 2026-07-03). Note:
 # typecheck runs without generated expo-router types (`.expo/types` is
 # gitignored), so route strings type loosely in CI — see docs/ci-cd.md.
 jobs:
@@ -40,6 +40,20 @@ jobs:
           cache: 'npm'
       - run: npm ci
       - run: npm run typecheck
+
+  # Dead code: unused files, exports and dependencies, and modules only tests
+  # still import (`--production`). Configured in knip.jsonc.
+  knip:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run knip
 
   test:
     runs-on: ubuntu-latest
