@@ -94,6 +94,7 @@ const SupportedAudioPlayer = ({
   source: StreamSource
   name: string
 }): React.ReactElement => {
+  const { t } = useTranslation()
   const player = useAudioPlayer({ uri: source.uri, headers: source.headers })
   const status = useAudioPlayerStatus(player)
   // Keep audio playing when the app is backgrounded or the device is silenced.
@@ -117,6 +118,8 @@ const SupportedAudioPlayer = ({
           size={56}
           mode="contained"
           disabled={!ready}
+          accessibilityLabel={status.playing ? t('a11y.pause') : t('a11y.play')}
+          testID="audio-play-pause"
           onPress={() => {
             if (status.playing) player.pause()
             else player.play()
@@ -129,6 +132,8 @@ const SupportedAudioPlayer = ({
           <Text style={styles.time}>{formatTime(position)}</Text>
           <View style={styles.bar}>
             <ProgressBar
+              accessibilityLabel={t('a11y.playbackPosition')}
+              testID="audio-progress"
               progress={duration > 0 ? position / duration : 0}
               color={cozyTokens.canvas.on}
             />
