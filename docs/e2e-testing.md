@@ -86,6 +86,7 @@ logged-in state) and then exercises one area:
 | `16-share-recipient`      | Adds a recipient by email, checks the row, revokes it, deletes the folder     |
 | `21-new-share-badge`      | A received share badges Partages, is listed under "with me", opens, unbadges  |
 | `22-logout-asks-to-erase` | The avatar's logout asks; a plain one keeps a pin, an erasing one drops it    |
+| `24-audio-replay`         | A track played to its end plays again from the start on Play                  |
 
 Shared **subflows** live in `e2e/maestro/subflows/`: `openDrive` (launch + assert logged
 in), `assertLoggedIn`, `signInInstance` (from the welcome screen to the drive,

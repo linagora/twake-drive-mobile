@@ -1,0 +1,45 @@
+appId: com.linagora.twakedrive
+tags:
+  - inapp
+onFlowComplete:
+  - runFlow: ../../subflows/cleanup.yaml
+---
+# A track played to its end plays again from the start when Play is pressed,
+# instead of staying stuck on its last second. The track is 30 seconds of
+# silence, and the position under the button tells the two apart. While it
+# plays the screen never settles and Maestro only reads it once the track is
+# over: the replay is paused to be looked at.
+- runScript:
+    file: ../../scripts/seed.js
+    env:
+      SEED: '[{"key":"track","kind":"file","prefix":"E2E-audio","ext":"wav","silence":true}]'
+- runFlow: ../../subflows/openDrive.yaml
+- extendedWaitUntil:
+    visible:
+      id: 'file-row:${output.track.name}'
+    timeout: 60000
+- tapOn:
+    id: 'file-row:${output.track.name}'
+- extendedWaitUntil:
+    visible:
+      id: 'audio-play-pause'
+      enabled: true
+    timeout: 30000
+
+# Played to the end: the position catches up with the duration, both 0:30.
+- tapOn:
+    id: 'audio-play-pause'
+- extendedWaitUntil:
+    visible:
+      text: '0:30'
+      index: 1
+    timeout: 60000
+
+# Played again, then paused: the position is back under the end. Stuck, it
+# stays on 0:30.
+- tapOn:
+    id: 'audio-play-pause'
+- tapOn:
+    id: 'audio-play-pause'
+- assertVisible:
+    text: '0:[0-2][0-9]'
