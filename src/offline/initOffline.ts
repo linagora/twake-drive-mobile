@@ -10,11 +10,24 @@ import { getPouchLink } from '@/pouchdb/triggerReplication'
 import { buildRevisionDownloadUrl } from '@/files/streamUrl'
 
 let pinReactorStop: (() => void) | undefined
-let initialized = false
+// The client the subsystem was set up for. A new one (another sign-in, a
+// certification, a resync) brings its own Pouch, and may be another account.
+let initializedFor: CozyClient | undefined
+
+const stopOfflineSubsystem = async (): Promise<void> => {
+  pinReactorStop?.()
+  pinReactorStop = undefined
+  await Downloader.stop()
+}
 
 export const initOfflineSubsystem = async (client: CozyClient): Promise<void> => {
-  if (initialized) return
-  initialized = true
+  if (initializedFor === client) return
+  const previous = initializedFor
+  initializedFor = client
+  if (previous) await stopOfflineSubsystem()
+  // A logout or another client may come while this one is still setting up:
+  // past that point, leave the stores and the Pouch to whoever replaced it.
+  const isCurrent = (): boolean => initializedFor === client
 
   await FileSystemRepo.init()
 
@@ -32,6 +45,7 @@ export const initOfflineSubsystem = async (client: CozyClient): Promise<void> =>
   } catch {
     // First-boot or empty dir — readDirectoryAsync can throw. Ignore.
   }
+  if (!isCurrent()) return
 
   Downloader.init({
     buildUrl: fileId => {
@@ -46,6 +60,7 @@ export const initOfflineSubsystem = async (client: CozyClient): Promise<void> =>
   })
 
   for (const entry of OfflineFilesStore.getAll()) {
+    if (!isCurrent()) return
     let next = entry
     if (entry.state === 'downloading') {
       next = { ...next, state: 'pending', bytesDownloaded: undefined }
@@ -71,6 +86,7 @@ export const initOfflineSubsystem = async (client: CozyClient): Promise<void> =>
     if (next.state === 'pending') Downloader.enqueue(entry.fileId)
   }
 
+  if (!isCurrent()) return
   const pouchLink = getPouchLink(client)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const pouch = (pouchLink as any)?.getPouch?.('io.cozy.files')
@@ -83,11 +99,11 @@ export const initOfflineSubsystem = async (client: CozyClient): Promise<void> =>
 }
 
 /**
- * Test / logout teardown. Nothing calls it yet, logout should: see #437.
- * @public
+ * Stops what runs for the session: the pin reactor on its Pouch, the
+ * downloads. Has to run while the account is still in scope, since the
+ * interrupted downloads are put back to pending in its store.
  */
-export const teardownOfflineSubsystem = (): void => {
-  pinReactorStop?.()
-  pinReactorStop = undefined
-  initialized = false
+export const teardownOfflineSubsystem = async (): Promise<void> => {
+  initializedFor = undefined
+  await stopOfflineSubsystem()
 }

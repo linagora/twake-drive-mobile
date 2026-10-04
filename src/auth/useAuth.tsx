@@ -14,6 +14,7 @@ import { certifyFlagship as certifyFlagshipModule } from './certifyFlagship'
 import { createClient } from '@/client/createClient'
 import i18n, { resolveDeviceLanguage } from '@/i18n'
 import { clearNativeSession, mirrorSessionToNative } from '@/native/twakeAuthBridge'
+import { teardownOfflineSubsystem } from '@/offline/initOffline'
 import { destroyLocalData } from '@/pouchdb/destroyLocalData'
 import { dropAllFileNameIndexes } from '@/search/searchDatabases'
 import { setAccountScope } from '@/storage/accountScope'
@@ -161,6 +162,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     async (options?: { expired?: boolean; wipe?: boolean }): Promise<void> => {
       const logoutUrl = ssoLogoutUrl(clientRef.current, flag('signup.url') as string | undefined)
       if (!options?.expired) await closeSsoSession(logoutUrl)
+      // While the account is still in scope and its Pouch not yet destroyed.
+      await teardownOfflineSubsystem()
       if (clientRef.current) await dropAllFileNameIndexes(clientRef.current)
       setState(prev => {
         if (prev.client) {
@@ -203,6 +206,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       const session = await getSession()
       if (!session) return
+      await teardownOfflineSubsystem()
       if (clientRef.current) await dropAllFileNameIndexes(clientRef.current)
       await destroyLocalData(clientRef.current ?? undefined)
       clientRef.current = null

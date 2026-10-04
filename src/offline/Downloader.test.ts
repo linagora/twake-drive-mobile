@@ -179,4 +179,29 @@ describe('Downloader', () => {
     await flush()
     expect(OfflineSettingsAPI.status.get().diskFull).toBe(true)
   })
+
+  it('stop ends the session: in-flight back to pending, nothing left to start', async () => {
+    mockDownloadAsync.mockImplementation(
+      () =>
+        new Promise(() => {
+          /* never resolves */
+        })
+    )
+    for (const id of ['f1', 'f2', 'f3', 'f4', 'f5']) {
+      OfflineFilesStore.pin(id, meta)
+      Downloader.enqueue(id)
+    }
+    await flush()
+    expect(mockDownloadAsync).toHaveBeenCalledTimes(4)
+
+    await Downloader.stop()
+
+    expect(mockCancelAsync).toHaveBeenCalledTimes(4)
+    expect(OfflineFilesStore.get('f1')?.state).toBe('pending')
+    expect(mockOnlineListeners.size).toBe(0)
+    // Neither the queue nor a network change starts anything until init().
+    Downloader.resumeAll()
+    await flush()
+    expect(mockDownloadAsync).toHaveBeenCalledTimes(4)
+  })
 })
