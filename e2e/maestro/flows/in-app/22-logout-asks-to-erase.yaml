@@ -1,0 +1,99 @@
+appId: com.linagora.twakedrive
+tags:
+  - inapp
+# Same reason as 20-logout-closes-sso.yaml: the flows after this one need a
+# fresh session, and a replica past its first sync.
+onFlowComplete:
+  - runFlow: ../00-login-instance.yaml
+  - runScript:
+      file: ../../scripts/seed.js
+      env:
+        SEED: '[{"key":"settled","kind":"folder","prefix":"E2E-settled"}]'
+  - extendedWaitUntil:
+      visible:
+        id: 'folder-row:${output.settled.name}'
+      timeout: 180000
+  - runFlow: ../../subflows/cleanup.yaml
+---
+# Logging out from the avatar menu asks first, like the one in the settings:
+# keep what the device holds for the account, or erase it. A folder kept
+# offline tells the two apart once signed back in on the same device: its pin
+# survives a plain logout, and is gone after an erasing one.
+- runScript:
+    file: ../../scripts/seed.js
+    env:
+      SEED: '[{"key":"folder","kind":"folder","prefix":"E2E-logout"}]'
+- runFlow: ../../subflows/openDrive.yaml
+- extendedWaitUntil:
+    visible:
+      id: 'folder-row:${output.folder.name}'
+    timeout: 60000
+- tapOn:
+    id: 'folder-actions:${output.folder.name}'
+- waitForAnimationToEnd
+- tapOn:
+    id: 'action-pin'
+
+# Dismissed, the question leaves the session alone.
+- tapOn:
+    id: 'appbar-avatar'
+- tapOn:
+    id: 'appbar-logout'
+- assertVisible:
+    id: 'logout-dialog-secondary'
+- tapOn:
+    id: 'logout-dialog-cancel'
+- assertVisible:
+    id: 'folder-row:${output.folder.name}'
+
+# A plain logout keeps the pin for the next sign-in.
+- tapOn:
+    id: 'appbar-avatar'
+- tapOn:
+    id: 'appbar-logout'
+- tapOn:
+    id: 'logout-dialog-submit'
+- extendedWaitUntil:
+    visible:
+      id: 'welcome-login'
+    timeout: 60000
+- runFlow: ../../subflows/signInInstance.yaml
+- extendedWaitUntil:
+    visible:
+      id: 'folder-row:${output.folder.name}'
+    timeout: 180000
+- tapOn:
+    id: 'folder-actions:${output.folder.name}'
+- waitForAnimationToEnd
+- assertVisible:
+    id: 'action-unpin'
+# Out of the menu without "back": with the login's browser still in the task,
+# a back the menu lets through leaves the app. Wherever the tap lands, on the
+# menu's backdrop or the tab already shown, nothing else changes.
+- tapOn:
+    id: 'tab-files'
+- waitForAnimationToEnd
+- assertNotVisible:
+    id: 'action-unpin'
+
+# Logging out and erasing takes it away with the rest.
+- tapOn:
+    id: 'appbar-avatar'
+- tapOn:
+    id: 'appbar-logout'
+- tapOn:
+    id: 'logout-dialog-secondary'
+- extendedWaitUntil:
+    visible:
+      id: 'welcome-login'
+    timeout: 60000
+- runFlow: ../../subflows/signInInstance.yaml
+- extendedWaitUntil:
+    visible:
+      id: 'folder-row:${output.folder.name}'
+    timeout: 180000
+- tapOn:
+    id: 'folder-actions:${output.folder.name}'
+- waitForAnimationToEnd
+- assertVisible:
+    id: 'action-pin'

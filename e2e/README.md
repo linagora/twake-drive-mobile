@@ -54,7 +54,8 @@ summary. Replay an order with the `seed` input of a manual dispatch, or locally:
 E2E_SEED=1234 ./e2e/scripts/run-android.sh e2e/maestro/flows/in-app/11-move.yaml
 ```
 
-`20-logout-closes-sso` signs out, then signs back in for the flows after it. It needs
+`20-logout-closes-sso` and `22-logout-asks-to-erase` sign out, then sign back in for
+the flows after them. They need
 the stand-in portal of `e2e/stack` (`portal.js`, port 8090) and the `signup.url` flag
 `setup.sh` points to it. On an iOS simulator, run `setup.sh` with
 `PORTAL_URL=http://127.0.0.1:8090`.
