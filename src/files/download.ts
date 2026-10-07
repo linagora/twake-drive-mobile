@@ -3,7 +3,7 @@ import * as FileSystem from 'expo-file-system/legacy'
 import { createMMKV } from 'react-native-mmkv'
 import type CozyClient from 'cozy-client'
 
-import { ensureLocalCopy, openFileNatively } from './openFile'
+import { ensureLocalCopy, openFileNatively, openInViewer } from './openFile'
 
 export interface DownloadableFile {
   _id: string
@@ -70,16 +70,11 @@ const writeToDirectory = async (
  * has no such folder: the system sheet, with its "Save to Files", is the way
  * there.
  */
-export const download = async (
-  client: CozyClient,
-  file: DownloadableFile,
-  driveId?: string
-): Promise<void> => {
+const saveLocalCopy = async (localPath: string, file: DownloadableFile): Promise<void> => {
   if (Platform.OS !== 'android') {
-    await openFileNatively(client, file, driveId)
+    await openInViewer(localPath)
     return
   }
-  const localPath = await ensureLocalCopy(client, file, driveId)
   const remembered = rememberedDirectory()
   if (remembered) {
     try {
@@ -96,4 +91,48 @@ export const download = async (
   if (!permission.granted) throw new DownloadCancelledError()
   rememberDirectory(permission.directoryUri)
   await writeToDirectory(localPath, permission.directoryUri, file)
+}
+
+export const download = async (
+  client: CozyClient,
+  file: DownloadableFile,
+  driveId?: string
+): Promise<void> => {
+  if (Platform.OS !== 'android') {
+    await openFileNatively(client, file, driveId)
+    return
+  }
+  await saveLocalCopy(await ensureLocalCopy(client, file, driveId), file)
+}
+
+/**
+ * Saves a folder as a zip, the way twake-drive web does (`downloadArchive`):
+ * the stack builds the archive on request, and the link it answers is fetched
+ * like a file would be.
+ */
+export const downloadFolder = async (
+  client: CozyClient,
+  folder: { _id: string; name: string }
+): Promise<void> => {
+  const cacheDir = FileSystem.cacheDirectory
+  if (!cacheDir) throw new Error('Cache directory unavailable')
+  const stackClient = client.getStackClient()
+  const href = (await stackClient.collection('io.cozy.files').createArchiveLinkByIds({
+    ids: [folder._id],
+    name: folder.name
+  })) as string
+  const archive: DownloadableFile = {
+    _id: folder._id,
+    name: `${folder.name}.zip`,
+    mime: 'application/zip'
+  }
+  await FileSystem.makeDirectoryAsync(`${cacheDir}twake-drive/`, { intermediates: true })
+  const target = `${cacheDir}twake-drive/${folder._id}-${archive.name.replace(/[/\\?%*:|"<>]/g, '_')}`
+  const token = stackClient.getAccessToken()
+  if (!token) throw new Error('No access token available')
+  const result = await FileSystem.downloadAsync(stackClient.fullpath(href), target, {
+    headers: { Authorization: `Bearer ${token}` }
+  })
+  if (result.status >= 400) throw new Error(`Download failed (HTTP ${result.status})`)
+  await saveLocalCopy(result.uri, archive)
 }

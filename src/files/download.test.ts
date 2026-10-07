@@ -3,10 +3,12 @@ import type CozyClient from 'cozy-client'
 
 const mockEnsureLocalCopy = jest.fn()
 const mockOpenFileNatively = jest.fn()
+const mockOpenInViewer = jest.fn()
 jest.mock('./openFile', () => ({
   __esModule: true,
   ensureLocalCopy: (...args: unknown[]) => mockEnsureLocalCopy(...args),
-  openFileNatively: (...args: unknown[]) => mockOpenFileNatively(...args)
+  openFileNatively: (...args: unknown[]) => mockOpenFileNatively(...args),
+  openInViewer: (...args: unknown[]) => mockOpenInViewer(...args)
 }))
 
 const mockStore = new Map<string, string>()
@@ -22,9 +24,13 @@ const mockRequestPermissions = jest.fn()
 const mockCreateFile = jest.fn()
 const mockRead = jest.fn()
 const mockWrite = jest.fn()
+const mockDownloadAsync = jest.fn()
 jest.mock('expo-file-system/legacy', () => ({
   __esModule: true,
   EncodingType: { Base64: 'base64' },
+  cacheDirectory: 'file:///cache/',
+  makeDirectoryAsync: jest.fn().mockResolvedValue(undefined),
+  downloadAsync: (...args: unknown[]) => mockDownloadAsync(...args),
   readAsStringAsync: (...args: unknown[]) => mockRead(...args),
   writeAsStringAsync: (...args: unknown[]) => mockWrite(...args),
   StorageAccessFramework: {
@@ -33,7 +39,12 @@ jest.mock('expo-file-system/legacy', () => ({
   }
 }))
 
-import { download, DownloadCancelledError, forgetDownloadDirectory } from './download'
+import {
+  download,
+  downloadFolder,
+  DownloadCancelledError,
+  forgetDownloadDirectory
+} from './download'
 
 const client = {} as CozyClient
 const file = { _id: 'f1', name: 'rapport.pdf', mime: 'application/pdf' }
@@ -136,5 +147,59 @@ describe('download', () => {
     await download(client, file)
 
     expect(mockRequestPermissions).toHaveBeenCalledTimes(2)
+  })
+})
+
+describe('downloadFolder', () => {
+  const createArchiveLinkByIds = jest.fn()
+  const folderClient = {
+    getStackClient: () => ({
+      collection: () => ({ createArchiveLinkByIds }),
+      fullpath: (href: string) => `https://alice.example${href}`,
+      getAccessToken: () => 'token'
+    })
+  } as unknown as CozyClient
+
+  beforeEach(() => {
+    mockStore.clear()
+    createArchiveLinkByIds.mockResolvedValue('/files/archive/secret/Projet.zip')
+    mockDownloadAsync.mockResolvedValue({
+      status: 200,
+      uri: 'file:///cache/twake-drive/d1-Projet.zip'
+    })
+    mockRead.mockResolvedValue('emlw')
+    mockCreateFile.mockResolvedValue('content://tree/doc/Projet.zip')
+    mockRequestPermissions.mockResolvedValue({ granted: true, directoryUri: 'content://tree' })
+  })
+  afterEach(() => {
+    Platform.OS = 'ios'
+  })
+
+  it('asks the stack for an archive of the folder and saves the zip', async () => {
+    Platform.OS = 'android'
+
+    await downloadFolder(folderClient, { _id: 'd1', name: 'Projet' })
+
+    expect(createArchiveLinkByIds).toHaveBeenCalledWith({ ids: ['d1'], name: 'Projet' })
+    expect(mockDownloadAsync).toHaveBeenCalledWith(
+      'https://alice.example/files/archive/secret/Projet.zip',
+      expect.stringContaining('Projet.zip'),
+      { headers: { Authorization: 'Bearer token' } }
+    )
+    expect(mockCreateFile).toHaveBeenCalledWith('content://tree', 'Projet.zip', 'application/zip')
+  })
+
+  it('hands the zip to the system sheet on iOS', async () => {
+    await downloadFolder(folderClient, { _id: 'd1', name: 'Projet' })
+
+    expect(mockOpenInViewer).toHaveBeenCalledWith('file:///cache/twake-drive/d1-Projet.zip')
+  })
+
+  it('fails when the archive cannot be fetched', async () => {
+    mockDownloadAsync.mockResolvedValue({ status: 500, uri: '' })
+
+    await expect(downloadFolder(folderClient, { _id: 'd1', name: 'Projet' })).rejects.toThrow(
+      'HTTP 500'
+    )
   })
 })
