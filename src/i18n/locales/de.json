@@ -12,6 +12,8 @@
   "settings": {
     "title": "Einstellungen",
     "account": "Konto",
+    "commonSettings": "Twake-Einstellungen",
+    "commonSettingsDescription": "Sprache, Design und weitere Einstellungen für alle deine Twake-Apps",
     "language": "Sprache",
     "systemLanguage": "System (Gerätesprache)",
     "theme": "Design",

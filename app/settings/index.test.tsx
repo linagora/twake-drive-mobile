@@ -70,6 +70,15 @@ jest.mock('@/account/useDeleteAccount', () => ({
   useDeleteAccount: () => mockDeleteAccount
 }))
 
+// The common settings row appears when the instance has the settings app, and
+// hands off to it through useOpenCommonSettings (both need a CozyClient).
+let mockHasCommonSettings = false
+const mockOpenCommonSettings = jest.fn()
+jest.mock('@/account/commonSettings', () => ({
+  useHasCommonSettings: () => mockHasCommonSettings,
+  useOpenCommonSettings: () => mockOpenCommonSettings
+}))
+
 // Production wraps every screen in PaperProvider (app/_layout.tsx); the
 // deletion dialog renders through a Paper <Portal>, which needs that host.
 const renderScreen = () =>
@@ -162,6 +171,25 @@ describe('SettingsIndex', () => {
       fireEvent.press(getByTestId('settings-logout'))
       fireEvent.press(getByTestId('logout-dialog-cancel'))
       expect(mockLogout).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('common settings', () => {
+    beforeEach(() => {
+      mockHasCommonSettings = false
+    })
+
+    it('is hidden on an instance without the settings app', () => {
+      const { queryByTestId } = renderScreen()
+      expect(queryByTestId('settings-common')).toBeNull()
+    })
+
+    it('opens the settings app when the instance has it, next to the local choices', () => {
+      mockHasCommonSettings = true
+      const { getByTestId } = renderScreen()
+      fireEvent.press(getByTestId('settings-common'))
+      expect(mockOpenCommonSettings).toHaveBeenCalled()
+      expect(getByTestId('settings-language')).toBeTruthy()
     })
   })
 
