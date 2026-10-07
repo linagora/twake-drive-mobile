@@ -15,6 +15,9 @@ import { createExcalidrawFile } from '@/files/createExcalidrawFile'
 import { buildCozyAppUrl } from '@/files/cozyAppLink'
 import { optimisticFiles } from '@/files/optimisticFiles'
 import { optimisticCreated } from '@/files/optimisticCreated'
+import { uploadBatch } from '@/share/uploadBatch'
+import { batchMessage, optimisticUploaded } from '@/share/importFeedback'
+import { pickDocuments } from './pickDocuments'
 import { triggerPouchReplication } from '@/pouchdb/triggerReplication'
 
 export interface CreateHandlersDeps {
@@ -38,6 +41,7 @@ export interface CreateHandlers {
   createDocs: () => Promise<void>
   createOfficeNamed: (fileClass: CreatableFileClass, name: string) => Promise<void>
   createShortcutNamed: (name: string, url: string) => Promise<void>
+  uploadFiles: () => Promise<void>
 }
 
 export const useCreateHandlers = ({
@@ -117,6 +121,26 @@ export const useCreateHandlers = ({
         if (!requireOnline(isOnline, notify, t)) return
         if (!client) throw new Error('No client')
         afterCreate(await createShortcut(client, dirId, name, url), 'file')
+      },
+
+      uploadFiles: async () => {
+        if (!requireOnline(isOnline, notify, t)) return
+        if (!client) return
+        try {
+          const items = await pickDocuments()
+          if (items.length === 0) return
+          // A name already taken in the folder is renamed "name (1)" by the
+          // upload, as the web upload queue does, rather than overwritten.
+          const res = await uploadBatch(client, items, dirId, (done, total) =>
+            notify(t('drive.import.uploading', { done: Math.min(done + 1, total), total }))
+          )
+          optimisticUploaded(client, res, dirId)
+          notify(batchMessage(t, res))
+          onCreated?.()
+        } catch (e) {
+          console.error('[CreateMenu] upload failed', e)
+          notify(t('drive.import.errorGeneric'))
+        }
       }
     }
   }, [client, dirId, driveId, isOnline, notify, onCreated, openEditor, t])

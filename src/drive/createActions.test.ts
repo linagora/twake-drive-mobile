@@ -8,7 +8,7 @@ const opts = {
 
 describe('createActionNames', () => {
   it('always offers a folder and a note', () => {
-    expect(createActionNames(opts)).toEqual(['folder', 'note', 'shortcut'])
+    expect(createActionNames(opts)).toEqual(['folder', 'note', 'shortcut', 'upload'])
   })
 
   it('adds the office entries behind their flag', () => {
@@ -18,7 +18,8 @@ describe('createActionNames', () => {
       'text',
       'sheet',
       'slide',
-      'shortcut'
+      'shortcut',
+      'upload'
     ])
   })
 
@@ -28,7 +29,8 @@ describe('createActionNames', () => {
       'note',
       'docs',
       'excalidraw',
-      'shortcut'
+      'shortcut',
+      'upload'
     ])
   })
 

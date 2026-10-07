@@ -44,7 +44,8 @@ const ICONS: Record<CreateActionName, (p: IconProps) => React.ReactElement> = {
   sheet: p => <FileTypeIcon icon="sheet" size={p.size} />,
   slide: p => <FileTypeIcon icon="slide" size={p.size} />,
   excalidraw: p => <CozyIcon name="excalidraw" size={p.size} color={p.color} />,
-  shortcut: p => <CozyIcon name="deviceBrowser" size={p.size} color={p.color} />
+  shortcut: p => <CozyIcon name="deviceBrowser" size={p.size} color={p.color} />,
+  upload: p => <CozyIcon name="upload" size={p.size} color={p.color} />
 }
 
 const LABELS: Record<CreateActionName, string> = {
@@ -55,7 +56,8 @@ const LABELS: Record<CreateActionName, string> = {
   sheet: 'drive.createMenu.sheet',
   slide: 'drive.createMenu.slide',
   excalidraw: 'drive.createMenu.excalidraw',
-  shortcut: 'drive.createMenu.shortcut'
+  shortcut: 'drive.createMenu.shortcut',
+  upload: 'drive.createMenu.upload'
 }
 
 export const CreateMenu = ({
@@ -111,6 +113,8 @@ export const CreateMenu = ({
         return () => void handlers.createDocs()
       case 'shortcut':
         return () => setCreateShortcutVisible(true)
+      case 'upload':
+        return () => void handlers.uploadFiles()
       default:
         return () => setCreatingClass(name)
     }
