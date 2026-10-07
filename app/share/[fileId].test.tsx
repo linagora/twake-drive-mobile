@@ -36,8 +36,18 @@ jest.mock('react-i18next', () => ({
 
 jest.mock('@/client/useFlag', () => ({ useFlag: () => true }))
 jest.mock('@/network/useIsOnline', () => ({ useIsOnline: () => true }))
+let mockContacts: unknown[] = []
 jest.mock('@/files/useReachableContacts', () => ({
-  useReachableContacts: () => ({ contacts: [], loading: false })
+  useReachableContacts: () => ({ contacts: mockContacts, loading: false })
+}))
+const mockCreateSharing = jest.fn()
+const mockAddRecipients = jest.fn()
+const mockRevokeMember = jest.fn()
+jest.mock('@/files/sharing', () => ({
+  ...jest.requireActual('@/files/sharing'),
+  createSharingForFile: (...args: unknown[]) => mockCreateSharing(...args),
+  addRecipients: (...args: unknown[]) => mockAddRecipients(...args),
+  revokeSharingMember: (...args: unknown[]) => mockRevokeMember(...args)
 }))
 const mockFetchEffectiveRecipients = jest.fn()
 jest.mock('@/files/effectiveRecipients', () => ({
@@ -58,6 +68,10 @@ describe('ShareRoute', () => {
     mockParams = { fileId: 'f1' }
     mockFetchEffectiveRecipients.mockReset()
     mockFetchEffectiveRecipients.mockResolvedValue([])
+    mockContacts = []
+    mockCreateSharing.mockReset().mockResolvedValue({ _id: 'new' })
+    mockAddRecipients.mockReset().mockResolvedValue(undefined)
+    mockRevokeMember.mockReset().mockResolvedValue(undefined)
   })
 
   it('renders the file name', async () => {
@@ -116,5 +130,79 @@ describe('ShareRoute', () => {
     render(wrap(<ShareRoute />))
     expect(await screen.findByText('drive.share.inheritedFrom')).toBeOnTheScreen()
     expect(screen.queryByTestId('remove-recipient')).toBeNull()
+  })
+
+  describe('recipient chips', () => {
+    const openForm = async () => {
+      render(wrap(<ShareRoute />))
+      fireEvent.press(await screen.findByTestId('share-add-recipient'))
+      return screen.getByTestId('share-email-input')
+    }
+
+    it('turns a finished address into a chip and frees the field', async () => {
+      const input = await openForm()
+      fireEvent.changeText(input, 'ada@example.org,')
+      expect(screen.getByText('ada@example.org')).toBeOnTheScreen()
+      expect(screen.getByTestId('share-email-input').props.value).toBe('')
+      fireEvent.changeText(screen.getByTestId('share-email-input'), 'bob@example.org,')
+      expect(screen.getAllByTestId('recipient-chip')).toHaveLength(2)
+    })
+
+    it('offers the autocomplete again after a first chip', async () => {
+      mockContacts = [
+        { _id: 'c1', fullname: 'Ada', email: [{ address: 'ada@example.org', primary: true }] },
+        { _id: 'c2', fullname: 'Bob', email: [{ address: 'bob@example.org', primary: true }] }
+      ]
+      const input = await openForm()
+      fireEvent.press(screen.getByLabelText('Ada ada@example.org'))
+      expect(screen.getAllByTestId('recipient-chip')).toHaveLength(1)
+      fireEvent.changeText(input, 'bo')
+      fireEvent.press(screen.getByLabelText('Bob bob@example.org'))
+      expect(screen.getAllByTestId('recipient-chip')).toHaveLength(2)
+      expect(screen.queryByLabelText('Ada ada@example.org')).toBeNull()
+    })
+
+    it('refuses a chip with the owner address', async () => {
+      mockContacts = [
+        { _id: 'me', me: true, email: [{ address: 'Owner@Example.org', primary: true }] }
+      ]
+      const input = await openForm()
+      fireEvent.changeText(input, 'owner@example.org,')
+      expect(screen.queryByTestId('recipient-chip')).toBeNull()
+      expect(screen.getByText('drive.share.errorSelf')).toBeOnTheScreen()
+    })
+
+    it('removes a chip', async () => {
+      const input = await openForm()
+      fireEvent.changeText(input, 'ada@example.org,')
+      fireEvent.press(screen.getByLabelText('a11y.removeChip'))
+      expect(screen.queryByTestId('recipient-chip')).toBeNull()
+    })
+
+    it('refuses text that is not an address', async () => {
+      const input = await openForm()
+      fireEvent.changeText(input, 'nobody')
+      fireEvent.press(screen.getByTestId('share-send'))
+      expect(await screen.findByText('drive.share.invalidEmail')).toBeOnTheScreen()
+      expect(mockCreateSharing).not.toHaveBeenCalled()
+    })
+
+    it('shares with every chip and the typed rest at once, as viewers by default', async () => {
+      const input = await openForm()
+      fireEvent.changeText(input, 'ada@example.org,')
+      fireEvent.changeText(screen.getByTestId('share-email-input'), 'bob@example.org')
+      fireEvent.press(screen.getByTestId('share-send'))
+      await waitFor(() => expect(mockCreateSharing).toHaveBeenCalledTimes(1))
+      expect(mockCreateSharing).toHaveBeenCalledWith(
+        mockClient,
+        expect.objectContaining({ _id: 'f1' }),
+        [
+          { email: 'ada@example.org', contactId: undefined },
+          { email: 'bob@example.org', contactId: undefined }
+        ],
+        true,
+        { sharedDrive: true }
+      )
+    })
   })
 })
