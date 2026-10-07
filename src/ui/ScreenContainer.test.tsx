@@ -4,6 +4,7 @@ import { render, screen } from '@testing-library/react-native'
 import { Provider as PaperProvider } from 'react-native-paper'
 
 jest.mock('react-native-safe-area-context', () => ({
+  ...jest.requireActual('react-native-safe-area-context'),
   useSafeAreaInsets: () => ({ top: 24, bottom: 48, left: 0, right: 0 })
 }))
 
