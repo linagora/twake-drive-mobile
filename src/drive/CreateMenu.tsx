@@ -12,7 +12,7 @@ import { CreateFolderDialog } from '@/ui/CreateFolderDialog'
 import { CreatableFileClass, CreateOfficeFileDialog } from '@/ui/CreateOfficeFileDialog'
 import { CreateShortcutDialog } from '@/ui/CreateShortcutDialog'
 import { useFlag } from '@/client/useFlag'
-import { OFFICE_FLAGS, officeEnabledFrom } from '@/viewer/viewerFlags'
+import { OFFICE_FLAGS, officeCreationEnabledFrom } from '@/viewer/viewerFlags'
 import { useIsOnline } from '@/network/useIsOnline'
 
 interface Props {
@@ -75,10 +75,12 @@ export const CreateMenu = ({
   const [creatingClass, setCreatingClass] = useState<CreatableFileClass | null>(null)
 
   const docsEnabled = !!useFlag('drive.lasuitedocs.enabled')
-  const officeEnabled = officeEnabledFrom(
-    useFlag(OFFICE_FLAGS.touchScreen),
-    useFlag(OFFICE_FLAGS.legacy)
-  )
+  const officeEnabled = officeCreationEnabledFrom({
+    touchScreen: useFlag(OFFICE_FLAGS.touchScreen),
+    legacy: useFlag(OFFICE_FLAGS.legacy),
+    readOnly: useFlag(OFFICE_FLAGS.touchScreenReadOnly),
+    write: useFlag(OFFICE_FLAGS.write)
+  })
   const excalidrawEnabled = !!useFlag('drive.excalidraw.enabled')
 
   const handlers = useCreateHandlers({ dirId, driveId, notify, onCreated })

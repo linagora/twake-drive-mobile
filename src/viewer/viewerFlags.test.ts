@@ -1,7 +1,12 @@
 const mockFlag = jest.fn()
 jest.mock('cozy-flags', () => ({ __esModule: true, default: (name: string) => mockFlag(name) }))
 
-import { isViewerEnabled, officeEnabledFrom, VIEWER_FLAGS } from './viewerFlags'
+import {
+  isViewerEnabled,
+  officeCreationEnabledFrom,
+  officeEnabledFrom,
+  VIEWER_FLAGS
+} from './viewerFlags'
 
 describe('isViewerEnabled', () => {
   const dev = __DEV__
@@ -45,5 +50,36 @@ describe('officeEnabledFrom', () => {
   it('falls back to the legacy flag otherwise', () => {
     expect(officeEnabledFrom(null, true)).toBe(true)
     expect(officeEnabledFrom(undefined, null)).toBe(false)
+  })
+})
+
+describe('officeCreationEnabledFrom', () => {
+  const on = { touchScreen: true, legacy: null, readOnly: null, write: true }
+
+  it('offers creation when office is on and writable', () => {
+    expect(officeCreationEnabledFrom(on)).toBe(true)
+  })
+
+  it('hides it when office is off', () => {
+    expect(officeCreationEnabledFrom({ ...on, touchScreen: false })).toBe(false)
+    expect(
+      officeCreationEnabledFrom({ touchScreen: null, legacy: null, readOnly: null, write: null })
+    ).toBe(false)
+  })
+
+  it('hides it on a read-only touch screen, though viewing stays on', () => {
+    expect(officeCreationEnabledFrom({ ...on, readOnly: true })).toBe(false)
+    expect(officeEnabledFrom(true, null)).toBe(true)
+  })
+
+  it('hides it when the member may not write, which twake-drive sends to a paywall', () => {
+    expect(officeCreationEnabledFrom({ ...on, write: false })).toBe(false)
+  })
+
+  it('falls back to the legacy flag for writing', () => {
+    expect(officeCreationEnabledFrom({ ...on, write: null })).toBe(false)
+    expect(
+      officeCreationEnabledFrom({ touchScreen: null, legacy: true, readOnly: null, write: null })
+    ).toBe(true)
   })
 })

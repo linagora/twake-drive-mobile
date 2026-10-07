@@ -14,12 +14,39 @@ export const VIEWER_FLAGS = {
 
 export const OFFICE_FLAGS = {
   touchScreen: 'drive.office.touchScreen.enabled',
-  legacy: 'drive.onlyoffice.enabled'
+  legacy: 'drive.onlyoffice.enabled',
+  touchScreenReadOnly: 'drive.office.touchScreen.readOnly',
+  write: 'drive.office.write'
 } as const
 
 /** Mirrors twake-drive's isOfficeEnabled on a touch screen. */
 export const officeEnabledFrom = (touchScreen: unknown, legacy: unknown): boolean => {
   if (touchScreen !== null && touchScreen !== undefined) return !!touchScreen
+  return !!legacy
+}
+
+export interface OfficeCreationFlags {
+  touchScreen: unknown
+  legacy: unknown
+  readOnly: unknown
+  write: unknown
+}
+
+/**
+ * Whether the create menu may offer new office documents. twake-drive gates
+ * the entries on isOfficeEditingEnabled (office on, and not read-only on a
+ * touch screen), and sends a member without `drive.office.write` to a
+ * paywall, which this app has none of: the entries are hidden instead.
+ */
+export const officeCreationEnabledFrom = ({
+  touchScreen,
+  legacy,
+  readOnly,
+  write
+}: OfficeCreationFlags): boolean => {
+  if (!officeEnabledFrom(touchScreen, legacy)) return false
+  if (readOnly) return false
+  if (write !== null && write !== undefined) return !!write
   return !!legacy
 }
 
