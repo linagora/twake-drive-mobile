@@ -1,5 +1,5 @@
 import React from 'react'
-import { StyleSheet, Text } from 'react-native'
+import { StyleProp, StyleSheet, Text, ViewStyle } from 'react-native'
 import { render, screen } from '@testing-library/react-native'
 
 jest.mock('react-native-safe-area-context', () => ({
@@ -8,14 +8,14 @@ jest.mock('react-native-safe-area-context', () => ({
 
 import { ScreenContainer } from './ScreenContainer'
 
-const paddingsOf = (props: React.ComponentProps<typeof ScreenContainer>) => {
+const paddingsOf = (props: Omit<React.ComponentProps<typeof ScreenContainer>, 'children'>) => {
   render(
     <ScreenContainer {...props}>
       <Text>content</Text>
     </ScreenContainer>
   )
-  const style = StyleSheet.flatten<{ paddingTop: number; paddingBottom: number }>(
-    (screen.toJSON() as { props: { style: unknown } }).props.style
+  const style = StyleSheet.flatten(
+    (screen.toJSON() as { props: { style: StyleProp<ViewStyle> } }).props.style
   )
   return { top: style.paddingTop, bottom: style.paddingBottom }
 }

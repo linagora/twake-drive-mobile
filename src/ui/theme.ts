@@ -37,6 +37,8 @@ export const cozyTokens = {
   appBarHeight: 64,
   /** Room kept on each side of the centred app bar title for its actions. */
   appBarSideSlot: 56,
+  /** Horizontal padding Paper's Appbar already applies on each side. */
+  appBarPadding: 4,
   /** Room a list has to leave below its last row for the floating button
    *  that hovers over it: the FAB plus its margins. */
   fabClearance: 88,

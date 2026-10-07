@@ -171,6 +171,7 @@ export const AppBar = ({
             <Pressable
               onPress={() => setMenuVisible(true)}
               testID="appbar-avatar"
+              style={styles.avatar}
               accessibilityRole="button"
               accessibilityLabel={t('a11y.account')}
             >
@@ -228,9 +229,13 @@ export const AppBar = ({
   )
 }
 
+// Paper pads the bar by appBarPadding; the rest brings the logo and the avatar
+// to the same screen gutter as the list and the bottom navigation.
+const GUTTER_EXTRA = cozyTokens.spacing.md - cozyTokens.appBarPadding
+
 const styles = StyleSheet.create({
   logo: {
-    marginLeft: cozyTokens.spacing.xs,
+    marginLeft: GUTTER_EXTRA,
     marginRight: cozyTokens.spacing.xs,
     justifyContent: 'center'
   },
@@ -240,6 +245,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: cozyTokens.appBarSideSlot
   },
+  avatar: { marginRight: GUTTER_EXTRA },
   spacer: {
     flex: 1
   }

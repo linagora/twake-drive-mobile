@@ -140,6 +140,7 @@ export const CreateMenu = ({
     <>
       <FAB.Group
         style={styles.fabGroup}
+        fabStyle={styles.fab}
         testID="drive-fab"
         open={fabOpen}
         visible={!hidden && isOnline}
@@ -171,5 +172,8 @@ export const CreateMenu = ({
 }
 
 const styles = StyleSheet.create({
-  fabGroup: { zIndex: cozyTokens.zIndex.fab }
+  fabGroup: { zIndex: cozyTokens.zIndex.fab },
+  // Same gutter as the list and the bar: the right edge lines up with the
+  // content, and the button sits one gutter above the bottom navigation.
+  fab: { marginHorizontal: cozyTokens.spacing.md, marginBottom: cozyTokens.spacing.md }
 })
