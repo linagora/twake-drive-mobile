@@ -54,7 +54,7 @@ onFlowComplete:
     id: 'action-move'
     enabled: false
 # the drawer covers the screen: back closes it instead of leaving the app
-- back
+- pressKey: back
 - waitForAnimationToEnd
 
 - tapOn:
