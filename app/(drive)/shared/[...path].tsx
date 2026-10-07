@@ -1,11 +1,11 @@
 import React, { useCallback, useContext, useMemo, useRef, useState } from 'react'
 import { StyleSheet, View } from 'react-native'
-import { SegmentedButtons } from 'react-native-paper'
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router'
 import { useClient, useQuery } from 'cozy-client'
 import { useTranslation } from 'react-i18next'
 
 import { AppBar } from '@/ui/AppBar'
+import { TabBar } from '@/ui/TabBar'
 import { ConfirmDialog } from '@/ui/ConfirmDialog'
 import { CreateMenu } from '@/drive/CreateMenu'
 import { useHasWriteAccess } from '@/sharing/useHasWriteAccess'
@@ -353,17 +353,16 @@ export default function SharedScreen() {
         showSearch
       />
       {isRoot ? (
-        <SegmentedButtons
+        <TabBar<SharingsTab>
           value={tab}
-          onValueChange={value => setTab(value as SharingsTab)}
-          style={styles.tabs}
-          buttons={[
+          onChange={setTab}
+          tabs={[
             { value: 'with-me', label: t('drive.sharings.withMe'), testID: 'sharings-tab-with-me' },
             { value: 'by-me', label: t('drive.sharings.byMe'), testID: 'sharings-tab-by-me' },
             ...(orgDrives.length > 0
               ? [
                   {
-                    value: 'drives',
+                    value: 'drives' as const,
                     label: t('drive.sharings.drives'),
                     testID: 'sharings-tab-drives'
                   }
@@ -421,7 +420,6 @@ export default function SharedScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  tabs: { marginHorizontal: cozyTokens.spacing.md, marginVertical: cozyTokens.spacing.sm },
   toolbar: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
