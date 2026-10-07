@@ -2,7 +2,7 @@
  * Task 10 TDD — FolderRow icons re-skin
  *
  * Verifies that FolderRow uses CozyIcon (Svg from react-native-svg) for its
- * navigation glyphs (check, chevron-right, dots-vertical) instead of raw
+ * navigation glyphs (check, chevron-right, dots-horizontal) instead of raw
  * Material icon strings.
  *
  * Red phase: run BEFORE implementing Task 10 (all asserts fail).
@@ -64,10 +64,10 @@ describe('FolderRow icons (CozyIcon re-skin)', () => {
   })
 
   /**
-   * SECONDARY TEST — chevron-right and dots-vertical use CozyIcon
+   * SECONDARY TEST — chevron-right and dots-horizontal use CozyIcon
    *
    * In non-selected mode the right slot is either a chevron (no menu props)
-   * or a dots-vertical button (menu props provided). Both are re-skinned to
+   * or a dots-horizontal button (menu props provided). Both are re-skinned to
    * CozyIcon in Task 10, adding one extra Svg on top of the FileTypeIcon Svg
    * already in the left slot.
    *
@@ -81,12 +81,12 @@ describe('FolderRow icons (CozyIcon re-skin)', () => {
     expect(UNSAFE_getAllByType(Svg).length).toBeGreaterThan(1)
   })
 
-  it('renders a CozyIcon Svg for the dots-vertical trigger (non-selected, with menu)', () => {
+  it('renders a CozyIcon Svg for the dots-horizontal trigger (non-selected, with menu)', () => {
     const Svg = require('react-native-svg').default
     const { UNSAFE_getAllByType } = render(
       wrap(<FolderRow folder={folder} onPress={() => {}} onRename={() => {}} />)
     )
-    // After Task 10: ≥ 2 Svgs (FileTypeIcon + dots-vertical CozyIcon)
+    // After Task 10: ≥ 2 Svgs (FileTypeIcon + dots-horizontal CozyIcon)
     expect(UNSAFE_getAllByType(Svg).length).toBeGreaterThan(1)
   })
 })

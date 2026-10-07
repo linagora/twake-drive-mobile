@@ -4,7 +4,7 @@ import { CozyIcon } from './CozyIcon'
 import { ICONS } from './registry'
 
 test('nouvelles clés présentes', () => {
-  for (const k of ['chevronRight', 'dotsVertical', 'cog', 'logout', 'accountCircle']) {
+  for (const k of ['chevronRight', 'dotsHorizontal', 'cog', 'logout', 'accountCircle']) {
     expect(ICONS[k]).toBeDefined()
   }
 })
