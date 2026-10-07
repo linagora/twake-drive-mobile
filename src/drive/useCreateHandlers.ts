@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import * as WebBrowser from 'expo-web-browser'
 import { useClient } from 'cozy-client'
 import { useTranslation } from 'react-i18next'
+import Minilog from 'cozy-minilog'
 
 import { CreatableFileClass } from '@/ui/CreateOfficeFileDialog'
 import { useIsOnline } from '@/network/useIsOnline'
@@ -19,6 +20,8 @@ import { uploadBatch } from '@/share/uploadBatch'
 import { batchMessage, optimisticUploaded } from '@/share/importFeedback'
 import { pickDocuments } from './pickDocuments'
 import { triggerPouchReplication } from '@/pouchdb/triggerReplication'
+
+const log = Minilog('useCreateHandlers')
 
 export interface CreateHandlersDeps {
   dirId: string
@@ -58,13 +61,19 @@ export const useCreateHandlers = ({
   return useMemo(() => {
     // A drive-scoped create lands on the owner's instance: our store holds
     // nothing of that drive, so an optimistic row would never reconcile.
+    // The create succeeded on the stack by the time this runs: whatever the
+    // local store or the screen callback does must not turn it into a failure.
     const afterCreate = (created: { _id: string; name?: string }, type: 'directory' | 'file') => {
-      if (!driveId && client) {
-        optimisticFiles(client, [
-          optimisticCreated({ ...created, name: created.name ?? '' }, dirId, type)
-        ])
+      try {
+        if (!driveId && client) {
+          optimisticFiles(client, [
+            optimisticCreated({ ...created, name: created.name ?? '' }, dirId, type)
+          ])
+        }
+        onCreated?.({ _id: created._id, name: created.name ?? '', type })
+      } catch (e) {
+        log.warn('created, local update failed', e)
       }
-      onCreated?.({ _id: created._id, name: created.name ?? '', type })
     }
 
     return {
