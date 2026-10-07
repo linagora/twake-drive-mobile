@@ -4,6 +4,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router'
 import {
   ActivityIndicator,
   Button,
+  Chip,
   Divider,
   IconButton,
   SegmentedButtons,
@@ -24,11 +25,13 @@ import {
   findContactIdByEmail,
   isOwnEmail
 } from '@/files/contactSuggestions'
+import { appendChip, extractEmails, hasEmail, isValidEmail } from '@/files/recipientChips'
 import { useReachableContacts } from '@/files/useReachableContacts'
 import {
   LinkEditingRights,
   absoluteMemberIndex,
-  addRecipient,
+  RecipientInput,
+  addRecipients,
   buildPublicLinkUrl,
   createPublicLink,
   createSharingForFile,
@@ -122,6 +125,10 @@ export default function ShareRoute() {
 
   const [showAddForm, setShowAddForm] = useState(false)
   const [emailInput, setEmailInput] = useState('')
+  // Recipients already picked or typed, each shown as a removable chip.
+  const [chips, setChips] = useState<RecipientInput[]>([])
+  const [inputError, setInputError] = useState<string | null>(null)
+  // Viewer by default, as the web does: the safer of the two roles.
   const [readOnlyInput, setReadOnlyInput] = useState(true)
   // Editor/Viewer choice for the public link. Mirrors twake-drive web's
   // ShareRestrictionModal/BoxEditingRights. Defaults to readOnly to match the
@@ -243,36 +250,101 @@ export default function ShareRoute() {
     }
   }
 
+  // Turns an address into a chip, so the field is free for the next one.
+  const commitChip = (email: string, contactId?: string): boolean => {
+    const address = email.trim()
+    if (!isValidEmail(address)) {
+      setInputError(t('drive.share.invalidEmail'))
+      return false
+    }
+    // Sharing with yourself corrupts the sharing: refuse it.
+    if (isOwnEmail(contacts, address)) {
+      setInputError(t('drive.share.errorSelf'))
+      return false
+    }
+    if (hasEmail(excludeEmails, address)) {
+      setInputError(t('drive.share.alreadyShared'))
+      return false
+    }
+    setInputError(null)
+    setChips(current => appendChip(current, { email: address, contactId }))
+    return true
+  }
+
+  const onChangeEmailInput = (text: string): void => {
+    setInputError(null)
+    const { emails, rest } = extractEmails(text)
+    emails.forEach(email => commitChip(email))
+    setEmailInput(rest)
+  }
+
+  const onCommitInput = (): void => {
+    if (!emailInput.trim()) return
+    if (commitChip(emailInput)) setEmailInput('')
+  }
+
+  const onPickSuggestion = (suggestion: { _id: string; email: string }): void => {
+    commitChip(suggestion.email, suggestion._id)
+    setEmailInput('')
+  }
+
+  const onInputKeyPress = (key: string): void => {
+    if (key === 'Backspace' && emailInput === '') setChips(current => current.slice(0, -1))
+  }
+
+  const closeAddForm = (): void => {
+    setShowAddForm(false)
+    setEmailInput('')
+    setChips([])
+    setInputError(null)
+  }
+
   const onSubmitRecipient = async (): Promise<void> => {
     if (!requireOnline(isOnline, setSnack, t)) return
-    const email = emailInput.trim()
-    if (!client || !file || !email || mutating) return
-    // Sharing with yourself corrupts the sharing: refuse it.
-    if (isOwnEmail(contacts, email)) {
-      setError(t('drive.share.errorSelf'))
-      return
+    if (!client || !file || mutating) return
+    // What is typed but not yet a chip goes with the others.
+    const pending = emailInput.trim()
+    let toSend = chips
+    if (pending) {
+      if (!isValidEmail(pending)) {
+        setInputError(t('drive.share.invalidEmail'))
+        return
+      }
+      // Sharing with yourself corrupts the sharing: refuse it.
+      if (isOwnEmail(contacts, pending)) {
+        setInputError(t('drive.share.errorSelf'))
+        return
+      }
+      if (hasEmail(excludeEmails, pending)) {
+        setInputError(t('drive.share.alreadyShared'))
+        return
+      }
+      toSend = appendChip(chips, { email: pending })
     }
+    if (toSend.length === 0) return
     setMutating(true)
     setError(null)
     try {
-      // Reuse the recipient's existing address-book contact when we have it
+      // Reuse a recipient's existing address-book contact when we have it
       // (picked from the autocomplete, or matching a reachable contact by
       // email) instead of minting a throwaway contact the stack can't yet
-      // resolve — see findContactIdByEmail.
-      const existingContactId = findContactIdByEmail(contacts, email)
+      // resolve - see findContactIdByEmail.
+      const recipients = toSend.map(chip => ({
+        email: chip.email,
+        contactId: chip.contactId ?? findContactIdByEmail(contacts, chip.email)
+      }))
       // A document inside a shared drive has no sharing of its own: the
       // drive's is what carries its recipients.
       const target =
         sharing ?? (driveId ? await findSharingForFile(client, file._id, driveId) : null)
       if (target) {
-        await addRecipient(client, target, email, readOnlyInput, existingContactId)
+        await addRecipients(client, target, recipients, readOnlyInput)
       } else {
-        await createSharingForFile(client, file, email, readOnlyInput, existingContactId, {
+        await createSharingForFile(client, file, recipients, readOnlyInput, {
           sharedDrive: federatedSharing
         })
       }
-      setEmailInput('')
-      setShowAddForm(false)
+      closeAddForm()
       await refreshRecipients()
     } catch (e) {
       console.error('[ShareRoute] add recipient failed', e)
@@ -301,7 +373,7 @@ export default function ShareRoute() {
 
   // One shape for both modes: a member is reachable at its index in the sharing
   // we hold, an effective recipient carries the sharing the stack picked for it.
-  const recipientViews = useMemo<RecipientView[]>(
+  const baseRecipientViews = useMemo<RecipientView[]>(
     () =>
       federatedSharing
         ? effectiveRecipients
@@ -318,6 +390,7 @@ export default function ShareRoute() {
           })),
     [effectiveRecipients, federatedSharing, sharing]
   )
+  const recipientViews = baseRecipientViews
 
   // Contact autocomplete: only fetch when the add form is visible. Mirrors
   // cozy-sharing's web ShareAutosuggest — client-side filtering of the
@@ -326,8 +399,11 @@ export default function ShareRoute() {
   // see useReachableContacts for why.
   const { contacts, loading: contactsLoading } = useReachableContacts(showAddForm)
   const excludeEmails = useMemo(
-    () => recipientViews.map(r => r.email).filter((e): e is string => !!e),
-    [recipientViews]
+    () => [
+      ...recipientViews.map(r => r.email).filter((e): e is string => !!e),
+      ...chips.map(c => c.email)
+    ],
+    [recipientViews, chips]
   )
   const suggestions = useMemo(
     () => filterContactSuggestions(contacts, emailInput, excludeEmails),
@@ -478,17 +554,47 @@ export default function ShareRoute() {
 
           {showAddForm && emailSharingEnabled ? (
             <View style={styles.addForm}>
-              <TextInput
-                mode="outlined"
-                testID="share-email-input"
-                label={t('drive.share.emailPlaceholder')}
-                value={emailInput}
-                onChangeText={setEmailInput}
-                autoCapitalize="none"
-                autoCorrect={false}
-                keyboardType="email-address"
-                style={styles.emailInput}
-              />
+              <View
+                style={[
+                  styles.chipField,
+                  { borderColor: inputError ? theme.colors.error : theme.colors.outline }
+                ]}
+              >
+                {chips.map(chip => (
+                  <Chip
+                    key={chip.email}
+                    testID="recipient-chip"
+                    compact
+                    onClose={() => setChips(current => current.filter(c => c !== chip))}
+                    closeIconAccessibilityLabel={t('a11y.removeChip', { email: chip.email })}
+                  >
+                    {chip.email}
+                  </Chip>
+                ))}
+                <TextInput
+                  mode="flat"
+                  testID="share-email-input"
+                  placeholder={t('drive.share.emailPlaceholder')}
+                  value={emailInput}
+                  onChangeText={onChangeEmailInput}
+                  onSubmitEditing={onCommitInput}
+                  onBlur={() => isValidEmail(emailInput) && onCommitInput()}
+                  onKeyPress={e => onInputKeyPress(e.nativeEvent.key)}
+                  blurOnSubmit={false}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  keyboardType="email-address"
+                  dense
+                  underlineColor="transparent"
+                  activeUnderlineColor="transparent"
+                  style={styles.chipInput}
+                />
+              </View>
+              {inputError ? (
+                <Text variant="bodySmall" style={{ color: theme.colors.error }}>
+                  {inputError}
+                </Text>
+              ) : null}
               {contactsLoading && contacts.length === 0 ? (
                 <Text variant="bodySmall" style={styles.suggestionsHint}>
                   {t('drive.share.suggestionsLoading')}
@@ -504,7 +610,7 @@ export default function ShareRoute() {
                     {suggestions.map(s => (
                       <Pressable
                         key={s._id}
-                        onPress={() => setEmailInput(s.email)}
+                        onPress={() => onPickSuggestion(s)}
                         style={({ pressed }) => [
                           styles.suggestionRow,
                           pressed && {
@@ -555,14 +661,7 @@ export default function ShareRoute() {
                 />
               </View>
               <View style={styles.addButtons}>
-                <Button
-                  mode="text"
-                  onPress={() => {
-                    setShowAddForm(false)
-                    setEmailInput('')
-                  }}
-                  disabled={mutating}
-                >
+                <Button mode="text" onPress={closeAddForm} disabled={mutating}>
                   {t('common.cancel')}
                 </Button>
                 <Button
@@ -570,7 +669,7 @@ export default function ShareRoute() {
                   testID="share-send"
                   onPress={() => void onSubmitRecipient()}
                   loading={mutating}
-                  disabled={mutating || !emailInput.trim()}
+                  disabled={mutating || (chips.length === 0 && !emailInput.trim())}
                 >
                   {t('drive.share.send')}
                 </Button>
@@ -679,7 +778,17 @@ const styles = StyleSheet.create({
   recipientText: { flex: 1, paddingRight: 8 },
   recipientStatus: { opacity: 0.6 },
   addForm: { gap: 8, paddingTop: 8 },
-  emailInput: {},
+  chipField: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 6,
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 6
+  },
+  chipInput: { flexGrow: 1, flexBasis: 140, backgroundColor: 'transparent', height: 40 },
   suggestionsHint: { opacity: 0.7 },
   suggestionsBox: {
     borderWidth: StyleSheet.hairlineWidth,

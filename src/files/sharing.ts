@@ -328,37 +328,43 @@ const createContactForEmail = async (
   return { _id: data._id, _type: CONTACTS_DOCTYPE }
 }
 
-/**
- * Resolve the recipient contact reference for a sharing. When the caller
- * already knows an existing contact — one picked from the autocomplete or
- * matched by email in the address book — reuse its id: the stack can resolve
- * it immediately. Only when no known contact is supplied do we mint a minimal
- * one from the raw email (see createContactForEmail and its caveats).
- */
-const recipientForEmail = async (
-  client: CozyClient,
-  email: string,
-  existingContactId?: string
-): Promise<{ _id: string; _type: string }> =>
-  existingContactId
-    ? { _id: existingContactId, _type: CONTACTS_DOCTYPE }
-    : createContactForEmail(client, email)
+/** A person to share with: an email, and the address-book contact it came from. */
+export interface RecipientInput {
+  email: string
+  contactId?: string
+}
 
 /**
- * Add a recipient (by email) to an existing sharing.
+ * Resolve the contact references for a batch of recipients. When the caller
+ * already knows an existing contact (picked from the autocomplete or matched
+ * by email in the address book) its id is reused: the stack can resolve it
+ * immediately. Only without one do we mint a minimal contact from the raw
+ * email (see createContactForEmail and its caveats).
  */
-export const addRecipient = async (
+const recipientsRefs = (
+  client: CozyClient,
+  recipients: readonly RecipientInput[]
+): Promise<{ _id: string; _type: string }[]> =>
+  Promise.all(
+    recipients.map(({ email, contactId }) =>
+      contactId ? { _id: contactId, _type: CONTACTS_DOCTYPE } : createContactForEmail(client, email)
+    )
+  )
+
+/**
+ * Add recipients (by email) to an existing sharing, all with the same rights.
+ */
+export const addRecipients = async (
   client: CozyClient,
   sharing: SharingDoc,
-  email: string,
-  readOnly: boolean,
-  existingContactId?: string
+  recipients: readonly RecipientInput[],
+  readOnly: boolean
 ): Promise<void> => {
-  const recipient = await recipientForEmail(client, email, existingContactId)
+  const refs = await recipientsRefs(client, recipients)
   const args: Parameters<SharingsCollectionApi['addRecipients']>[0] = {
     document: { _id: sharing._id },
-    recipients: readOnly ? [] : [recipient],
-    readOnlyRecipients: readOnly ? [recipient] : []
+    recipients: readOnly ? [] : refs,
+    readOnlyRecipients: readOnly ? refs : []
   }
   await getSharings(client).addRecipients(args)
   triggerPouchReplication(client, 'io.cozy.sharings')
@@ -413,7 +419,7 @@ export const absoluteMemberIndex = (sharing: SharingDoc, recipientIndex: number)
 }
 
 /**
- * Create a new sharing for a file or folder with one initial recipient.
+ * Create a new sharing for a file or folder with its initial recipients.
  *
  * `sharedDrive` makes it a shared drive rather than a cozy-to-cozy sharing:
  * cozy-stack-client's `create` then posts to `/sharings/drives`. That is what
@@ -424,12 +430,11 @@ export const absoluteMemberIndex = (sharing: SharingDoc, recipientIndex: number)
 export const createSharingForFile = async (
   client: CozyClient,
   file: { _id: string; type?: 'file' | 'directory'; name?: string },
-  email: string,
+  recipients: readonly RecipientInput[],
   readOnly: boolean,
-  existingContactId?: string,
   options: { sharedDrive?: boolean } = {}
 ): Promise<SharingDoc> => {
-  const recipient = await recipientForEmail(client, email, existingContactId)
+  const refs = await recipientsRefs(client, recipients)
   const document = {
     _id: file._id,
     _type: FILES_DOCTYPE,
@@ -439,8 +444,8 @@ export const createSharingForFile = async (
   const args: Parameters<SharingsCollectionApi['create']>[0] = {
     document,
     description: file.name ?? 'Shared',
-    recipients: readOnly ? [] : [recipient],
-    readOnlyRecipients: readOnly ? [recipient] : [],
+    recipients: readOnly ? [] : refs,
+    readOnlyRecipients: readOnly ? refs : [],
     ...(options.sharedDrive ? { sharedDrive: true, openSharing: false } : {})
   }
   const resp = await getSharings(client).create(args)

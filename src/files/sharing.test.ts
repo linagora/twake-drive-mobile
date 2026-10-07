@@ -5,7 +5,7 @@ jest.mock('@/pouchdb/triggerReplication', () => ({
 import { triggerPouchReplication } from '@/pouchdb/triggerReplication'
 import {
   absoluteMemberIndex,
-  addRecipient,
+  addRecipients,
   buildPublicLinkUrl,
   createPublicLink,
   createSharingForFile,
@@ -256,26 +256,26 @@ describe('absoluteMemberIndex', () => {
   })
 })
 
-describe('addRecipient', () => {
+describe('addRecipients', () => {
   it('places the new contact in `recipients` for read-write', async () => {
     const contactCreate = jest
       .fn()
       .mockResolvedValue({ data: { _id: 'contact-1', _type: 'io.cozy.contacts' } })
-    const addRecipients = jest.fn().mockResolvedValue({ data: {} })
+    const addRecipientsApi = jest.fn().mockResolvedValue({ data: {} })
     const client = makeClient({
       'io.cozy.contacts': { create: contactCreate },
-      'io.cozy.sharings': { addRecipients }
+      'io.cozy.sharings': { addRecipients: addRecipientsApi }
     })
-    await addRecipient(
+    await addRecipients(
       client,
-      { _id: 'sharing-1' } as Parameters<typeof addRecipient>[1],
-      'bob@example.com',
+      { _id: 'sharing-1' } as Parameters<typeof addRecipients>[1],
+      [{ email: 'bob@example.com' }],
       false
     )
     expect(contactCreate).toHaveBeenCalledWith({
       email: [{ address: 'bob@example.com', primary: true }]
     })
-    expect(addRecipients).toHaveBeenCalledWith({
+    expect(addRecipientsApi).toHaveBeenCalledWith({
       document: { _id: 'sharing-1' },
       recipients: [{ _id: 'contact-1', _type: 'io.cozy.contacts' }],
       readOnlyRecipients: []
@@ -286,18 +286,18 @@ describe('addRecipient', () => {
     const contactCreate = jest
       .fn()
       .mockResolvedValue({ data: { _id: 'contact-2', _type: 'io.cozy.contacts' } })
-    const addRecipients = jest.fn().mockResolvedValue({ data: {} })
+    const addRecipientsApi = jest.fn().mockResolvedValue({ data: {} })
     const client = makeClient({
       'io.cozy.contacts': { create: contactCreate },
-      'io.cozy.sharings': { addRecipients }
+      'io.cozy.sharings': { addRecipients: addRecipientsApi }
     })
-    await addRecipient(
+    await addRecipients(
       client,
-      { _id: 'sharing-1' } as Parameters<typeof addRecipient>[1],
-      'bob@example.com',
+      { _id: 'sharing-1' } as Parameters<typeof addRecipients>[1],
+      [{ email: 'bob@example.com' }],
       true
     )
-    expect(addRecipients).toHaveBeenCalledWith({
+    expect(addRecipientsApi).toHaveBeenCalledWith({
       document: { _id: 'sharing-1' },
       recipients: [],
       readOnlyRecipients: [{ _id: 'contact-2', _type: 'io.cozy.contacts' }]
@@ -308,15 +308,15 @@ describe('addRecipient', () => {
     const contactCreate = jest
       .fn()
       .mockResolvedValue({ data: { _id: 'contact-1', _type: 'io.cozy.contacts' } })
-    const addRecipients = jest.fn().mockResolvedValue({ data: {} })
+    const addRecipientsApi = jest.fn().mockResolvedValue({ data: {} })
     const client = makeClient({
       'io.cozy.contacts': { create: contactCreate },
-      'io.cozy.sharings': { addRecipients }
+      'io.cozy.sharings': { addRecipients: addRecipientsApi }
     })
-    await addRecipient(
+    await addRecipients(
       client,
-      { _id: 'sharing-1' } as Parameters<typeof addRecipient>[1],
-      'bob@example.com',
+      { _id: 'sharing-1' } as Parameters<typeof addRecipients>[1],
+      [{ email: 'bob@example.com' }],
       false
     )
     expectSharingTriggers(client)
@@ -326,16 +326,16 @@ describe('addRecipient', () => {
     const contactCreate = jest
       .fn()
       .mockResolvedValue({ data: { _id: 'contact-1', _type: 'io.cozy.contacts' } })
-    const addRecipients = jest.fn().mockRejectedValue(new Error('boom'))
+    const addRecipientsApi = jest.fn().mockRejectedValue(new Error('boom'))
     const client = makeClient({
       'io.cozy.contacts': { create: contactCreate },
-      'io.cozy.sharings': { addRecipients }
+      'io.cozy.sharings': { addRecipients: addRecipientsApi }
     })
     await expect(
-      addRecipient(
+      addRecipients(
         client,
-        { _id: 'sharing-1' } as Parameters<typeof addRecipient>[1],
-        'bob@example.com',
+        { _id: 'sharing-1' } as Parameters<typeof addRecipients>[1],
+        [{ email: 'bob@example.com' }],
         false
       )
     ).rejects.toThrow('boom')
@@ -527,7 +527,7 @@ describe('createSharingForFile', () => {
     await createSharingForFile(
       client,
       { _id: 'file-1', name: 'Doc.pdf', type: 'file' },
-      'bob@example.com',
+      [{ email: 'bob@example.com' }],
       false
     )
     expect(create).toHaveBeenCalledWith({
@@ -555,9 +555,8 @@ describe('createSharingForFile', () => {
     await createSharingForFile(
       client,
       { _id: 'folder-1', name: 'Reports', type: 'directory' },
-      'bob@example.com',
+      [{ email: 'bob@example.com' }],
       false,
-      undefined,
       { sharedDrive: true }
     )
     expect(create).toHaveBeenCalledWith(
@@ -577,9 +576,8 @@ describe('createSharingForFile', () => {
     await createSharingForFile(
       client,
       { _id: 'folder-1', name: 'Reports', type: 'directory' },
-      'bob@example.com',
+      [{ email: 'bob@example.com' }],
       false,
-      undefined,
       { sharedDrive: false }
     )
     expect(create.mock.calls[0][0]).not.toHaveProperty('sharedDrive')
@@ -598,7 +596,7 @@ describe('createSharingForFile', () => {
     await createSharingForFile(
       client,
       { _id: 'file-1', name: 'Doc.pdf', type: 'file' },
-      'bob@example.com',
+      [{ email: 'bob@example.com' }],
       false
     )
     expectSharingTriggers(client)
@@ -617,7 +615,7 @@ describe('createSharingForFile', () => {
       createSharingForFile(
         client,
         { _id: 'file-1', name: 'Doc.pdf', type: 'file' },
-        'bob@example.com',
+        [{ email: 'bob@example.com' }],
         false
       )
     ).rejects.toThrow('boom')
@@ -626,24 +624,23 @@ describe('createSharingForFile', () => {
 })
 
 describe('recipient contact reuse (existing contact instead of a throwaway)', () => {
-  it('addRecipient reuses an existing contact id and does NOT create a new contact', async () => {
+  it('addRecipients reuses an existing contact id and does NOT create a new contact', async () => {
     const contactCreate = jest
       .fn()
       .mockResolvedValue({ data: { _id: 'SHOULD-NOT-BE-USED', _type: 'io.cozy.contacts' } })
-    const addRecipients = jest.fn().mockResolvedValue({ data: {} })
+    const addRecipientsApi = jest.fn().mockResolvedValue({ data: {} })
     const client = makeClient({
       'io.cozy.contacts': { create: contactCreate },
-      'io.cozy.sharings': { addRecipients }
+      'io.cozy.sharings': { addRecipients: addRecipientsApi }
     })
-    await addRecipient(
+    await addRecipients(
       client,
-      { _id: 'sharing-1' } as Parameters<typeof addRecipient>[1],
-      'bob@example.com',
-      false,
-      'existing-contact-9'
+      { _id: 'sharing-1' } as Parameters<typeof addRecipients>[1],
+      [{ email: 'bob@example.com', contactId: 'existing-contact-9' }],
+      false
     )
     expect(contactCreate).not.toHaveBeenCalled()
-    expect(addRecipients).toHaveBeenCalledWith({
+    expect(addRecipientsApi).toHaveBeenCalledWith({
       document: { _id: 'sharing-1' },
       recipients: [{ _id: 'existing-contact-9', _type: 'io.cozy.contacts' }],
       readOnlyRecipients: []
@@ -662,9 +659,8 @@ describe('recipient contact reuse (existing contact instead of a throwaway)', ()
     await createSharingForFile(
       client,
       { _id: 'file-1', name: 'Doc.pdf', type: 'file' },
-      'bob@example.com',
-      false,
-      'existing-contact-9'
+      [{ email: 'bob@example.com', contactId: 'existing-contact-9' }],
+      false
     )
     expect(contactCreate).not.toHaveBeenCalled()
     expect(create).toHaveBeenCalledWith({
@@ -672,6 +668,34 @@ describe('recipient contact reuse (existing contact instead of a throwaway)', ()
       description: 'Doc.pdf',
       recipients: [{ _id: 'existing-contact-9', _type: 'io.cozy.contacts' }],
       readOnlyRecipients: []
+    })
+  })
+})
+
+describe('addRecipients with several recipients', () => {
+  it('sends every recipient in one call with the same rights', async () => {
+    const contactCreate = jest
+      .fn()
+      .mockResolvedValue({ data: { _id: 'new-contact', _type: 'io.cozy.contacts' } })
+    const addRecipientsApi = jest.fn().mockResolvedValue({ data: {} })
+    const client = makeClient({
+      'io.cozy.contacts': { create: contactCreate },
+      'io.cozy.sharings': { addRecipients: addRecipientsApi }
+    })
+    await addRecipients(
+      client,
+      { _id: 'sharing-1' } as Parameters<typeof addRecipients>[1],
+      [{ email: 'a@example.com', contactId: 'c-a' }, { email: 'b@example.com' }],
+      true
+    )
+    expect(contactCreate).toHaveBeenCalledTimes(1)
+    expect(addRecipientsApi).toHaveBeenCalledWith({
+      document: { _id: 'sharing-1' },
+      recipients: [],
+      readOnlyRecipients: [
+        { _id: 'c-a', _type: 'io.cozy.contacts' },
+        { _id: 'new-contact', _type: 'io.cozy.contacts' }
+      ]
     })
   })
 })
