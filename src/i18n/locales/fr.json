@@ -313,6 +313,7 @@
     "gridView": "Vue grille",
     "folderActions": "Actions du dossier {{name}}",
     "fileActions": "Actions du fichier {{name}}",
+    "closeActions": "Fermer les actions",
     "removeRecipient": "Retirer le destinataire",
     "removeChip": "Retirer {{email}}",
     "play": "Lire",

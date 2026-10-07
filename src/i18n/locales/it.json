@@ -313,6 +313,7 @@
     "gridView": "Vista griglia",
     "folderActions": "Azioni per la cartella {{name}}",
     "fileActions": "Azioni per il file {{name}}",
+    "closeActions": "Chiudi le azioni",
     "removeRecipient": "Rimuovi destinatario",
     "removeChip": "Rimuovi {{email}}",
     "play": "Riproduci",
