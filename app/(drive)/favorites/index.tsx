@@ -112,7 +112,7 @@ export default function FavoritesScreen() {
     .filter(d => !removedIds.has(d._id))
 
   return (
-    <ScreenContainer>
+    <ScreenContainer surface>
       <AppBar title={t('drive.favorites')} onLogout={logout} />
       {isFirstLoad(query) && data.length === 0 ? (
         <LoadingState />

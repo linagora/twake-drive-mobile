@@ -115,7 +115,11 @@ export const FolderRow = ({
   // wrong row — it caused wrong-folder deletions during bring-up).
   return (
     <View
-      style={[styles.rowContainer, selected && { backgroundColor: theme.colors.primaryContainer }]}
+      style={[
+        styles.rowContainer,
+        { borderBottomColor: theme.colors.surfaceVariant },
+        selected && { backgroundColor: theme.colors.primaryContainer }
+      ]}
     >
       <AccessibleRow
         style={styles.item}
@@ -195,7 +199,8 @@ const ACTION_SLOT_WIDTH = 52
 const TITLE_RIGHT_INSET = ACTION_SLOT_WIDTH + 24
 
 const styles = StyleSheet.create({
-  rowContainer: { position: 'relative' },
+  // The divider between two rows of a list.
+  rowContainer: { position: 'relative', borderBottomWidth: 1 },
   item: { paddingVertical: 4, paddingRight: TITLE_RIGHT_INSET },
   actionSlot: {
     position: 'absolute',

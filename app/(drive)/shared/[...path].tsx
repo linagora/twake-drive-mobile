@@ -345,7 +345,7 @@ export default function SharedScreen() {
   }
 
   return (
-    <ScreenContainer>
+    <ScreenContainer surface>
       <AppBar
         title={currentDirName}
         onBack={isRoot ? undefined : goBack}

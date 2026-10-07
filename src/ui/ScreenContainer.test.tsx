@@ -1,12 +1,14 @@
 import React from 'react'
 import { StyleProp, StyleSheet, Text, ViewStyle } from 'react-native'
 import { render, screen } from '@testing-library/react-native'
+import { Provider as PaperProvider } from 'react-native-paper'
 
 jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 24, bottom: 48, left: 0, right: 0 })
 }))
 
 import { ScreenContainer } from './ScreenContainer'
+import { lightTheme } from './theme'
 
 const paddingsOf = (props: Omit<React.ComponentProps<typeof ScreenContainer>, 'children'>) => {
   render(
@@ -18,6 +20,16 @@ const paddingsOf = (props: Omit<React.ComponentProps<typeof ScreenContainer>, 'c
     (screen.toJSON() as { props: { style: StyleProp<ViewStyle> } }).props.style
   )
   return { top: style.paddingTop, bottom: style.paddingBottom }
+}
+
+const renderThemed = (surface?: boolean): void => {
+  render(
+    <PaperProvider theme={lightTheme}>
+      <ScreenContainer surface={surface} testID="screen">
+        {null}
+      </ScreenContainer>
+    </PaperProvider>
+  )
 }
 
 describe('ScreenContainer', () => {
@@ -32,5 +44,18 @@ describe('ScreenContainer', () => {
   it('keeps a sheet clear on both edges', () => {
     const { bottom } = paddingsOf({ sheet: true })
     expect(bottom).toBe(48)
+  })
+
+  it('paints the theme background by default', () => {
+    renderThemed()
+    expect(screen.getByTestId('screen')).toHaveStyle({
+      backgroundColor: lightTheme.colors.background
+    })
+  })
+
+  it('paints the surface for file lists, white in the light theme', () => {
+    renderThemed(true)
+    expect(screen.getByTestId('screen')).toHaveStyle({ backgroundColor: lightTheme.colors.surface })
+    expect(lightTheme.colors.surface).toBe('#fff')
   })
 })
