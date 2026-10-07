@@ -3,14 +3,15 @@ jest.mock('@/pouchdb/triggerReplication', () => ({
 }))
 
 jest.mock('@/pouchdb/purgeLocalTrash', () => ({
-  purgeLocalTrash: jest.fn().mockResolvedValue(undefined)
+  purgeLocalTrash: jest.fn().mockResolvedValue(undefined),
+  purgeLocalEntry: jest.fn().mockResolvedValue(undefined)
 }))
 
 jest.mock('./applyStackDoc', () => ({
   applyStackDoc: jest.fn().mockResolvedValue(undefined)
 }))
 
-import { purgeLocalTrash } from '@/pouchdb/purgeLocalTrash'
+import { purgeLocalEntry, purgeLocalTrash } from '@/pouchdb/purgeLocalTrash'
 import { triggerPouchReplication } from '@/pouchdb/triggerReplication'
 
 import { applyStackDoc } from './applyStackDoc'
@@ -136,6 +137,20 @@ describe('destroyEntry', () => {
     const client = buildStackClient(jest.fn().mockResolvedValue({}))
     await destroyEntry(client, 'a')
     expect(triggerPouchReplication).toHaveBeenCalledWith(client, 'io.cozy.files')
+  })
+
+  it('purges the doc from the local database once the stack deleted it', async () => {
+    ;(purgeLocalEntry as jest.Mock).mockClear()
+    const client = buildStackClient(jest.fn().mockResolvedValue({}))
+    await destroyEntry(client, 'a')
+    expect(purgeLocalEntry).toHaveBeenCalledWith(client, 'a')
+  })
+
+  it('keeps the local doc when the stack refuses', async () => {
+    ;(purgeLocalEntry as jest.Mock).mockClear()
+    const client = buildStackClient(jest.fn().mockRejectedValue(new Error('boom')))
+    await expect(destroyEntry(client, 'a')).rejects.toThrow('boom')
+    expect(purgeLocalEntry).not.toHaveBeenCalled()
   })
 
   it('propagates the error and does not replicate on failure', async () => {

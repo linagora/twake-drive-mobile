@@ -1,6 +1,6 @@
 import type CozyClient from 'cozy-client'
 
-import { purgeLocalTrash } from '@/pouchdb/purgeLocalTrash'
+import { purgeLocalEntry, purgeLocalTrash } from '@/pouchdb/purgeLocalTrash'
 import { triggerPouchReplication } from '@/pouchdb/triggerReplication'
 
 import { applyStackDoc } from './applyStackDoc'
@@ -51,5 +51,6 @@ export const emptyTrash = async (client: CozyClient): Promise<void> => {
 export const destroyEntry = async (client: CozyClient, id: string): Promise<void> => {
   const stackClient = client.getStackClient() as unknown as StackFetcher
   await stackClient.fetchJSON('DELETE', `/files/trash/${encodeURIComponent(id)}`)
+  await purgeLocalEntry(client, id)
   triggerPouchReplication(client, 'io.cozy.files')
 }
