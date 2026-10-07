@@ -67,11 +67,8 @@ onFlowComplete:
 - waitForAnimationToEnd
 - assertVisible:
     id: 'action-unpin'
-# Out of the menu without "back": with the login's browser still in the task,
-# a back the menu lets through leaves the app. Wherever the tap lands, on the
-# menu's backdrop or the tab already shown, nothing else changes.
-- tapOn:
-    id: 'tab-files'
+# The drawer covers the tab bar and consumes back, which only closes it.
+- pressKey: back
 - waitForAnimationToEnd
 - assertNotVisible:
     id: 'action-unpin'

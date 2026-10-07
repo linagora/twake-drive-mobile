@@ -103,7 +103,9 @@ function DriveTabs() {
           options={{
             title: t('drive.trash'),
             tabBarButtonTestID: 'tab-trash',
-            tabBarIcon: ({ color }) => <CozyIcon name="trash" color={color} size={TAB_ICON_SIZE} />
+            tabBarIcon: ({ color }) => (
+              <CozyIcon name="trashOutline" color={color} size={TAB_ICON_SIZE} />
+            )
           }}
         />
         <Tabs.Screen name="search" options={{ href: null }} />

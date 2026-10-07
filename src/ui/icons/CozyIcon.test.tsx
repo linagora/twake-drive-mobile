@@ -22,7 +22,17 @@ test('un glyphe tracé prend la couleur de l’icône pour son trait, sans rempl
 })
 
 test('les variantes outline demandées existent', () => {
-  for (const k of ['cloudOutline', 'infoOutline', 'downloadOutline']) {
+  for (const k of [
+    'cloudOutline',
+    'infoOutline',
+    'downloadOutline',
+    'shareOutline',
+    'renameOutline',
+    'trashOutline',
+    'movetoOutline',
+    'restoreOutline',
+    'logoutOutline'
+  ]) {
     expect(ICONS[k].paths.every(p => p.fill === 'none' && p.stroke === 'currentColor')).toBe(true)
   }
 })

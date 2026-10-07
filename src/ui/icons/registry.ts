@@ -79,6 +79,84 @@ export const ICONS: Record<string, CozyIconDef> = {
       }
     ]
   },
+  shareOutline: {
+    viewBox: '0 0 16 16',
+    paths: [
+      {
+        d: 'M12.5 5.25a2 2 0 100-4 2 2 0 000 4zM3.5 10a2 2 0 100-4 2 2 0 000 4zM12.5 14.75a2 2 0 100-4 2 2 0 000 4zM5.25 7.05l5.5-2.9M5.25 8.95l5.5 2.9',
+        fill: 'none',
+        stroke: 'currentColor',
+        strokeWidth: 1.5,
+        strokeLinecap: 'round',
+        strokeLinejoin: 'round'
+      }
+    ]
+  },
+  renameOutline: {
+    viewBox: '0 0 16 16',
+    paths: [
+      {
+        d: 'M11.5 2.5l2 2L5 13l-3 1 1-3 8.5-8.5zM10 4l2 2',
+        fill: 'none',
+        stroke: 'currentColor',
+        strokeWidth: 1.5,
+        strokeLinecap: 'round',
+        strokeLinejoin: 'round'
+      }
+    ]
+  },
+  trashOutline: {
+    viewBox: '0 0 16 16',
+    paths: [
+      {
+        d: 'M2.5 4h11M6 4V2.5h4V4M3.75 4l.6 9.1a1 1 0 001 .9h5.3a1 1 0 001-.9l.6-9.1M6.5 7v4M9.5 7v4',
+        fill: 'none',
+        stroke: 'currentColor',
+        strokeWidth: 1.5,
+        strokeLinecap: 'round',
+        strokeLinejoin: 'round'
+      }
+    ]
+  },
+  movetoOutline: {
+    viewBox: '0 0 16 16',
+    paths: [
+      {
+        d: 'M2 8h9M8 4.75L11.25 8 8 11.25M14 3v10',
+        fill: 'none',
+        stroke: 'currentColor',
+        strokeWidth: 1.5,
+        strokeLinecap: 'round',
+        strokeLinejoin: 'round'
+      }
+    ]
+  },
+  restoreOutline: {
+    viewBox: '0 0 16 16',
+    paths: [
+      {
+        d: 'M2.75 8a5.25 5.25 0 101.6-3.75M1 6.25L2.75 8.25 4.5 6.25',
+        fill: 'none',
+        stroke: 'currentColor',
+        strokeWidth: 1.5,
+        strokeLinecap: 'round',
+        strokeLinejoin: 'round'
+      }
+    ]
+  },
+  logoutOutline: {
+    viewBox: '0 0 16 16',
+    paths: [
+      {
+        d: 'M6.5 2.5h-3a1 1 0 00-1 1v9a1 1 0 001 1h3M10 5l3 3-3 3M13 8H6.5',
+        fill: 'none',
+        stroke: 'currentColor',
+        strokeWidth: 1.5,
+        strokeLinecap: 'round',
+        strokeLinejoin: 'round'
+      }
+    ]
+  },
   clockOutline: {
     viewBox: '0 0 16 16',
     paths: [

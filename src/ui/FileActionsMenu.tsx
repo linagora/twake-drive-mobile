@@ -94,7 +94,7 @@ export const FileActionsMenu = ({
         ) : null}
         {onShare ? (
           <BottomDrawerItem
-            icon="share"
+            icon="shareOutline"
             label={t('drive.fileMeta.share')}
             testID="action-share"
             disabled={!isOnline}
@@ -103,7 +103,7 @@ export const FileActionsMenu = ({
         ) : null}
         {onRename ? (
           <BottomDrawerItem
-            icon="rename"
+            icon="renameOutline"
             label={t('drive.fileMeta.rename')}
             testID="action-rename"
             disabled={!isOnline}
@@ -112,7 +112,7 @@ export const FileActionsMenu = ({
         ) : null}
         {onRestore ? (
           <BottomDrawerItem
-            icon="restore"
+            icon="restoreOutline"
             label={t('drive.trashActions.restore')}
             testID="action-restore"
             disabled={!isOnline}
@@ -121,7 +121,7 @@ export const FileActionsMenu = ({
         ) : null}
         {onDestroy ? (
           <BottomDrawerItem
-            icon="trash"
+            icon="trashOutline"
             label={t('drive.trashActions.destroy')}
             testID="action-destroy"
             disabled={!isOnline}
@@ -130,7 +130,7 @@ export const FileActionsMenu = ({
         ) : null}
         {onDelete ? (
           <BottomDrawerItem
-            icon="trash"
+            icon="trashOutline"
             label={t('drive.fileMeta.delete')}
             testID="action-delete"
             disabled={!isOnline}
@@ -139,7 +139,7 @@ export const FileActionsMenu = ({
         ) : null}
         {onMove ? (
           <BottomDrawerItem
-            icon="moveto"
+            icon="movetoOutline"
             label={t('drive.fileMeta.move')}
             testID="action-move"
             disabled={!isOnline}
@@ -156,7 +156,7 @@ export const FileActionsMenu = ({
         ) : null}
         {canFavorite ? (
           <BottomDrawerItem
-            icon={favorite ? 'star' : 'starOutline'}
+            icon="starOutline"
             label={t(favorite ? 'drive.fileMeta.unfavorite' : 'drive.fileMeta.favorite')}
             testID="action-favorite"
             disabled={!isOnline}
