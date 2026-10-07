@@ -98,6 +98,8 @@ interface SharingsCollectionApi {
     readOnlyRecipients?: { _id: string; _type: string }[]
   }) => Promise<{ data: SharingDoc }>
   revokeRecipient: (sharing: { _id: string }, index: number) => Promise<unknown>
+  setReadOnly: (sharing: { _id: string }, index: number) => Promise<unknown>
+  setReadWrite: (sharing: { _id: string }, index: number) => Promise<unknown>
   revokeSelf: (sharing: { _id: string }) => Promise<unknown>
   revokeAllRecipients: (sharing: { _id: string }) => Promise<unknown>
 }
@@ -367,6 +369,26 @@ export const addRecipients = async (
     readOnlyRecipients: readOnly ? refs : []
   }
   await getSharings(client).addRecipients(args)
+  triggerPouchReplication(client, 'io.cozy.sharings')
+  triggerPouchReplication(client, 'io.cozy.permissions')
+}
+
+/**
+ * Change what a member of a sharing may do, given its absolute index in that
+ * sharing's members (see revokeSharingMember). Mirrors cozy-sharing's
+ * PermissionTypeMenu: `POST` downgrades to read-only, `DELETE` on the same
+ * route upgrades back to read-write.
+ */
+export const setMemberReadOnly = async (
+  client: CozyClient,
+  sharingId: string,
+  memberIndex: number,
+  readOnly: boolean
+): Promise<void> => {
+  const sharings = getSharings(client)
+  await (readOnly
+    ? sharings.setReadOnly({ _id: sharingId }, memberIndex)
+    : sharings.setReadWrite({ _id: sharingId }, memberIndex))
   triggerPouchReplication(client, 'io.cozy.sharings')
   triggerPouchReplication(client, 'io.cozy.permissions')
 }

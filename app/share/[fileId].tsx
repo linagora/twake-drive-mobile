@@ -7,6 +7,7 @@ import {
   Chip,
   Divider,
   IconButton,
+  Menu,
   SegmentedButtons,
   Snackbar,
   Switch,
@@ -39,7 +40,8 @@ import {
   getLinkEditingRights,
   getRecipients,
   revokePublicLink,
-  revokeSharingMember
+  revokeSharingMember,
+  setMemberReadOnly
 } from '@/files/sharing'
 import { RecipientView, fetchEffectiveRecipients } from '@/files/effectiveRecipients'
 import { FEDERATED_SHARED_FOLDER_FLAG, SHARED_DRIVE_FLAG } from '@/files/sharingFlags'
@@ -130,6 +132,10 @@ export default function ShareRoute() {
   const [inputError, setInputError] = useState<string | null>(null)
   // Viewer by default, as the web does: the safer of the two roles.
   const [readOnlyInput, setReadOnlyInput] = useState(true)
+  // Optimistic state for the rows: a role picked and an access removed show at
+  // once, and go back if the stack refuses.
+  const [roleOverrides, setRoleOverrides] = useState<Record<string, boolean>>({})
+  const [removedKeys, setRemovedKeys] = useState<string[]>([])
   // Editor/Viewer choice for the public link. Mirrors twake-drive web's
   // ShareRestrictionModal/BoxEditingRights. Defaults to readOnly to match the
   // web default; kept in sync with `linkPermission` via the effect below so
@@ -354,12 +360,37 @@ export default function ShareRoute() {
     }
   }
 
+  const onChangeRole = async (recipient: RecipientView, readOnly: boolean): Promise<void> => {
+    if (readOnly === recipient.readOnly) return
+    if (!requireOnline(isOnline, setSnack, t)) return
+    if (!client || mutating) return
+    if (!recipient.sharingId || recipient.memberIndex === undefined) return
+    setMutating(true)
+    setError(null)
+    setRoleOverrides(current => ({ ...current, [recipient.key]: readOnly }))
+    try {
+      await setMemberReadOnly(client, recipient.sharingId, recipient.memberIndex, readOnly)
+      await refreshRecipients()
+    } catch (e) {
+      console.error('[ShareRoute] change role failed', e)
+      setError(t('drive.share.errorMutate'))
+    } finally {
+      setRoleOverrides(current => {
+        const others = { ...current }
+        delete others[recipient.key]
+        return others
+      })
+      setMutating(false)
+    }
+  }
+
   const onRemoveRecipient = async (recipient: RecipientView): Promise<void> => {
     if (!requireOnline(isOnline, setSnack, t)) return
     if (!client || !file || mutating) return
     if (!recipient.sharingId || recipient.memberIndex === undefined) return
     setMutating(true)
     setError(null)
+    setRemovedKeys(current => [...current, recipient.key])
     try {
       await revokeSharingMember(client, recipient.sharingId, recipient.memberIndex)
       await refreshRecipients()
@@ -367,6 +398,7 @@ export default function ShareRoute() {
       console.error('[ShareRoute] revoke recipient failed', e)
       setError(t('drive.share.errorMutate'))
     } finally {
+      setRemovedKeys(current => current.filter(key => key !== recipient.key))
       setMutating(false)
     }
   }
@@ -390,7 +422,17 @@ export default function ShareRoute() {
           })),
     [effectiveRecipients, federatedSharing, sharing]
   )
-  const recipientViews = baseRecipientViews
+  const recipientViews = useMemo<RecipientView[]>(
+    () =>
+      baseRecipientViews
+        .filter(recipient => !removedKeys.includes(recipient.key))
+        .map(recipient =>
+          recipient.key in roleOverrides
+            ? { ...recipient, readOnly: roleOverrides[recipient.key] }
+            : recipient
+        ),
+    [baseRecipientViews, removedKeys, roleOverrides]
+  )
 
   // Contact autocomplete: only fetch when the add form is visible. Mirrors
   // cozy-sharing's web ShareAutosuggest — client-side filtering of the
@@ -548,6 +590,7 @@ export default function ShareRoute() {
                 statusLabel={statusLabel(recipient.status)}
                 disabled={mutating}
                 onRemove={() => void onRemoveRecipient(recipient)}
+                onChangeRole={readOnly => void onChangeRole(recipient, readOnly)}
               />
             ))
           )}
@@ -653,11 +696,12 @@ export default function ShareRoute() {
                 </View>
               ) : null}
               <View style={styles.readOnlyRow}>
-                <Text>{t('drive.share.readOnly')}</Text>
-                <Switch
-                  value={readOnlyInput}
-                  onValueChange={setReadOnlyInput}
+                <Text>{t('drive.share.roleLabel')}</Text>
+                <RoleMenu
+                  readOnly={readOnlyInput}
+                  onChange={setReadOnlyInput}
                   disabled={mutating}
+                  testID="share-role"
                 />
               </View>
               <View style={styles.addButtons}>
@@ -707,16 +751,75 @@ export default function ShareRoute() {
   )
 }
 
+interface RoleMenuProps {
+  readOnly: boolean
+  onChange: (readOnly: boolean) => void
+  disabled?: boolean
+  testID?: string
+}
+
+// Viewer or Editor, picked from a menu. Mirrors cozy-sharing's
+// PermissionTypeMenu, which names the two roles the same way.
+const RoleMenu = ({ readOnly, onChange, disabled, testID }: RoleMenuProps) => {
+  const { t } = useTranslation()
+  const [visible, setVisible] = useState(false)
+  const pick = (next: boolean): void => {
+    setVisible(false)
+    onChange(next)
+  }
+  return (
+    <Menu
+      visible={visible}
+      onDismiss={() => setVisible(false)}
+      anchor={
+        <Button
+          mode="outlined"
+          compact
+          icon="chevron-down"
+          contentStyle={styles.roleButtonContent}
+          onPress={() => setVisible(true)}
+          disabled={disabled}
+          testID={testID}
+          accessibilityLabel={t('drive.share.roleLabel')}
+        >
+          {readOnly ? t('drive.share.roleViewer') : t('drive.share.roleEditor')}
+        </Button>
+      }
+    >
+      <Menu.Item
+        title={t('drive.share.roleViewer')}
+        leadingIcon={readOnly ? 'check' : undefined}
+        onPress={() => pick(true)}
+        testID={testID ? `${testID}-viewer` : undefined}
+      />
+      <Menu.Item
+        title={t('drive.share.roleEditor')}
+        leadingIcon={readOnly ? undefined : 'check'}
+        onPress={() => pick(false)}
+        testID={testID ? `${testID}-editor` : undefined}
+      />
+    </Menu>
+  )
+}
+
 interface RecipientRowProps {
   recipient: RecipientView
   statusLabel: string
   disabled: boolean
   onRemove: () => void
+  onChangeRole: (readOnly: boolean) => void
 }
 
-const RecipientRow = ({ recipient, statusLabel, disabled, onRemove }: RecipientRowProps) => {
+const RecipientRow = ({
+  recipient,
+  statusLabel,
+  disabled,
+  onRemove,
+  onChangeRole
+}: RecipientRowProps) => {
   const { t } = useTranslation()
   const label = recipient.name ?? recipient.email ?? '—'
+  const roleLabel = recipient.readOnly ? t('drive.share.roleViewer') : t('drive.share.roleEditor')
   return (
     <View style={styles.recipientRow} testID="recipient-row">
       <View style={styles.recipientText}>
@@ -725,7 +828,6 @@ const RecipientRow = ({ recipient, statusLabel, disabled, onRemove }: RecipientR
         </Text>
         <Text variant="bodySmall" style={styles.recipientStatus}>
           {statusLabel}
-          {recipient.readOnly ? ' · ☓' : ''}
         </Text>
         {recipient.inheritedFrom ? (
           <Text variant="bodySmall" style={styles.recipientStatus} numberOfLines={1}>
@@ -733,16 +835,28 @@ const RecipientRow = ({ recipient, statusLabel, disabled, onRemove }: RecipientR
           </Text>
         ) : null}
       </View>
-      {/* Access granted by a parent share is revoked where it was granted. */}
+      {/* Access granted by a parent share is changed and revoked where it was granted. */}
       {recipient.manageable ? (
-        <IconButton
-          icon="delete"
-          onPress={onRemove}
-          disabled={disabled}
-          accessibilityLabel={t('a11y.removeRecipient')}
-          testID="remove-recipient"
-        />
-      ) : null}
+        <>
+          <RoleMenu
+            readOnly={recipient.readOnly}
+            onChange={onChangeRole}
+            disabled={disabled}
+            testID="recipient-role"
+          />
+          <IconButton
+            icon="delete"
+            onPress={onRemove}
+            disabled={disabled}
+            accessibilityLabel={t('a11y.removeRecipient')}
+            testID="remove-recipient"
+          />
+        </>
+      ) : (
+        <Text variant="bodySmall" testID="recipient-role-label">
+          {roleLabel}
+        </Text>
+      )}
     </View>
   )
 }
@@ -789,6 +903,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6
   },
   chipInput: { flexGrow: 1, flexBasis: 140, backgroundColor: 'transparent', height: 40 },
+  roleButtonContent: { flexDirection: 'row-reverse' },
   suggestionsHint: { opacity: 0.7 },
   suggestionsBox: {
     borderWidth: StyleSheet.hairlineWidth,
