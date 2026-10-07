@@ -5,16 +5,21 @@ appId: com.linagora.twakedrive
 # 00-login-instance.yaml runs it on a cleared app; a flow that signs out can run
 # it again to come back to what the device kept.
 #
-# The browser goes first. An emulator without Chrome answers with WebView
-# Browser Tester, which keeps the tab of the previous sign-in: handed the new
-# authorize page, it loads it, then reloads the old one, whose client the
-# logout unregistered ("the client must be registered").
+# The browser goes first, and starts from nothing. An emulator without Chrome
+# answers with WebView Browser Tester, which keeps the tab of the previous
+# sign-in: handed the new authorize page, it loads it, then reloads the old
+# one, whose client the logout unregistered ("the client must be registered").
+# It also keeps the stack's session cookie, on disk, so stopping it is not
+# enough: a login that came from an authorize page gets a session of five
+# minutes, so a sign-in landing a few seconds before the cookie expires shows
+# the permissions, then answers "Vous devez etre connecte" to the Authorize
+# tap. Clearing the browser makes every sign-in type the password.
 - runFlow:
     when:
       platform: Android
     commands:
-      - stopApp: org.chromium.webview_shell
-      - stopApp: com.android.chrome
+      - clearState: org.chromium.webview_shell
+      - clearState: com.android.chrome
 - extendedWaitUntil:
     visible:
       id: 'welcome-dev-instance-link'
