@@ -21,7 +21,7 @@ import {
   trashFilesQueryAs,
   FileQueryResult
 } from '@/client/queries'
-import { restoreEntry, emptyTrash } from '@/files/trashActions'
+import { restoreEntry, emptyTrash, destroyEntry } from '@/files/trashActions'
 import { useIsOnline } from '@/network/useIsOnline'
 import { requireOnline } from '@/network/requireOnline'
 import { isFirstLoad } from '@/client/queryLoading'
@@ -49,6 +49,8 @@ export default function TrashScreen() {
 
   const [snackbar, setSnackbar] = useState<string | null>(null)
   const [emptyDialogVisible, setEmptyDialogVisible] = useState(false)
+  const [pendingDestroy, setPendingDestroy] = useState<FileQueryResult | null>(null)
+  const [destroying, setDestroying] = useState(false)
   const [emptying, setEmptying] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
   const isOnline = useIsOnline()
@@ -75,6 +77,30 @@ export default function TrashScreen() {
     } catch (e) {
       console.error('[TrashScreen] restore failed', e)
       setSnackbar(t('drive.trashActions.restoreError'))
+    }
+  }
+
+  const handleDestroy = async (): Promise<void> => {
+    if (!requireOnline(isOnline, setSnackbar, t)) return
+    if (!client || !pendingDestroy) return
+    const item = pendingDestroy
+    // Hide the row at once; put it back if the stack refuses.
+    setRemovedIds(prev => new Set(prev).add(item._id))
+    setPendingDestroy(null)
+    setDestroying(true)
+    try {
+      await destroyEntry(client, item._id)
+      setSnackbar(t('drive.trashActions.destroySuccess'))
+    } catch (e) {
+      console.error('[TrashScreen] destroy failed', e)
+      setRemovedIds(prev => {
+        const next = new Set(prev)
+        next.delete(item._id)
+        return next
+      })
+      setSnackbar(t('drive.trashActions.destroyError'))
+    } finally {
+      setDestroying(false)
     }
   }
 
@@ -115,6 +141,8 @@ export default function TrashScreen() {
           folder={item}
           onPress={() => undefined}
           onRestore={() => void handleRestore(item)}
+          onDestroy={() => setPendingDestroy(item)}
+          canFavorite={false}
         />
       )
     }
@@ -123,6 +151,8 @@ export default function TrashScreen() {
         file={{ ...item, size: item.size ?? null }}
         onPress={file => router.push(`/metadata/${file._id}`)}
         onRestore={() => void handleRestore(item)}
+        onDestroy={() => setPendingDestroy(item)}
+        canFavorite={false}
       />
     )
   }
@@ -161,6 +191,35 @@ export default function TrashScreen() {
         />
       ) : null}
       <Portal>
+        <Dialog
+          visible={!!pendingDestroy}
+          onDismiss={destroying ? undefined : () => setPendingDestroy(null)}
+          dismissable={!destroying}
+        >
+          <Dialog.Title>{t('drive.trashActions.destroyConfirmTitle')}</Dialog.Title>
+          <Dialog.Content>
+            <Text variant="bodyMedium">
+              {t('drive.trashActions.destroyConfirmBody', { name: pendingDestroy?.name ?? '' })}
+            </Text>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button
+              onPress={() => setPendingDestroy(null)}
+              disabled={destroying}
+              testID="confirm-destroy-cancel"
+            >
+              {t('common.cancel')}
+            </Button>
+            <Button
+              onPress={() => void handleDestroy()}
+              disabled={destroying}
+              textColor={theme.colors.error}
+              testID="confirm-destroy-submit"
+            >
+              {t('drive.trashActions.destroyConfirm')}
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
         <Dialog
           visible={emptyDialogVisible}
           onDismiss={emptying ? undefined : () => setEmptyDialogVisible(false)}

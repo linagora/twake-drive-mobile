@@ -178,7 +178,13 @@
       "emptyConfirmBody": "All items in the trash will be permanently deleted. This cannot be undone.",
       "emptyConfirm": "Empty",
       "emptySuccess": "Trash emptied",
-      "emptyError": "Could not empty the trash"
+      "emptyError": "Could not empty the trash",
+      "destroy": "Delete permanently",
+      "destroyConfirmTitle": "Delete permanently?",
+      "destroyConfirmBody": "\"{{name}}\" will be permanently deleted. This cannot be undone.",
+      "destroyConfirm": "Delete",
+      "destroySuccess": "Permanently deleted",
+      "destroyError": "Could not delete permanently"
     },
     "createMenu": {
       "folder": "New folder",

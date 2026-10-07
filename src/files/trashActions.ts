@@ -10,6 +10,10 @@ interface FilesCollection {
   emptyTrash: () => Promise<unknown>
 }
 
+interface StackFetcher {
+  fetchJSON: (method: string, path: string) => Promise<unknown>
+}
+
 /**
  * Restore a single doc from the trash. Wraps cozy-stack-client's
  * `FileCollection.restore(id)` (POST /files/trash/{id}), the same
@@ -35,5 +39,17 @@ export const emptyTrash = async (client: CozyClient): Promise<void> => {
   const collection = client.collection('io.cozy.files') as unknown as FilesCollection
   await collection.emptyTrash()
   await purgeLocalTrash(client)
+  triggerPouchReplication(client, 'io.cozy.files')
+}
+
+/**
+ * Delete one trashed file or folder for good. Calls
+ * `DELETE /files/trash/{id}`, the stack's "destroy from trash" route that
+ * twake-drive-web's "Delete permanently" action ends up on, and which accepts
+ * both a file and a directory.
+ */
+export const destroyEntry = async (client: CozyClient, id: string): Promise<void> => {
+  const stackClient = client.getStackClient() as unknown as StackFetcher
+  await stackClient.fetchJSON('DELETE', `/files/trash/${encodeURIComponent(id)}`)
   triggerPouchReplication(client, 'io.cozy.files')
 }

@@ -1,6 +1,6 @@
 import React from 'react'
 import { Provider as PaperProvider } from 'react-native-paper'
-import { render, screen } from '@testing-library/react-native'
+import { fireEvent, render, screen } from '@testing-library/react-native'
 
 jest.mock('cozy-client', () => ({
   __esModule: true,
@@ -53,5 +53,37 @@ describe('FileActionsMenu', () => {
   it('does not fall back to the bare key', () => {
     render(wrap(<FileActionsMenu file={file} onShare={jest.fn()} testID="menu" />))
     expect(screen.getByTestId('menu').props.accessibilityLabel).not.toContain('a11y.')
+  })
+
+  describe('in the trash', () => {
+    const open = (props: Partial<React.ComponentProps<typeof FileActionsMenu>>) => {
+      render(
+        wrap(
+          <FileActionsMenu
+            file={file}
+            onRestore={jest.fn()}
+            onDestroy={jest.fn()}
+            canFavorite={false}
+            testID="menu"
+            {...props}
+          />
+        )
+      )
+      fireEvent.press(screen.getByTestId('menu'))
+    }
+
+    it('offers delete permanently and restore, without favorites', () => {
+      open({})
+      expect(screen.getByTestId('action-destroy')).toBeTruthy()
+      expect(screen.getByTestId('action-restore')).toBeTruthy()
+      expect(screen.queryByTestId('action-favorite')).toBeNull()
+    })
+
+    it('asks to delete when delete permanently is pressed', () => {
+      const onDestroy = jest.fn()
+      open({ onDestroy })
+      fireEvent.press(screen.getByTestId('action-destroy'))
+      expect(onDestroy).toHaveBeenCalledWith(file)
+    })
   })
 })

@@ -16,6 +16,8 @@ interface Props {
   onShare?: (folder: FolderItem) => void
   onRename?: (folder: FolderItem) => void
   onRestore?: (folder: FolderItem) => void
+  /** Trash only: deletes the folder for good, after a confirmation. */
+  onDestroy?: (folder: FolderItem) => void
   onDelete?: (folder: FolderItem) => void
   onTogglePin?: (folder: FolderItem) => void
   onMove?: (folder: FolderItem) => void
@@ -39,6 +41,7 @@ export const FolderActionsMenu = ({
   onShare,
   onRename,
   onRestore,
+  onDestroy,
   onDelete,
   onTogglePin,
   onMove,
@@ -112,6 +115,18 @@ export const FolderActionsMenu = ({
           onPress={() => {
             setMenuVisible(false)
             onRestore(folder)
+          }}
+        />
+      ) : null}
+      {onDestroy ? (
+        <Menu.Item
+          leadingIcon={() => <CozyIcon name="trash" size={24} color={theme.colors.onSurface} />}
+          title={t('drive.trashActions.destroy')}
+          testID="action-destroy"
+          disabled={!isOnline}
+          onPress={() => {
+            setMenuVisible(false)
+            onDestroy(folder)
           }}
         />
       ) : null}
@@ -190,6 +205,7 @@ export const hasFolderActions = (props: Omit<Props, 'folder' | 'testID'>): boole
   !!props.onShare ||
   !!props.onRename ||
   !!props.onRestore ||
+  !!props.onDestroy ||
   !!props.onDelete ||
   (!!props.onTogglePin && isKeepOfflineEnabled()) ||
   !!props.onMove ||

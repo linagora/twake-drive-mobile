@@ -14,7 +14,7 @@ import { purgeLocalTrash } from '@/pouchdb/purgeLocalTrash'
 import { triggerPouchReplication } from '@/pouchdb/triggerReplication'
 
 import { applyStackDoc } from './applyStackDoc'
-import { restoreEntry, emptyTrash } from './trashActions'
+import { restoreEntry, emptyTrash, destroyEntry } from './trashActions'
 
 const buildClient = (methods: { restore?: jest.Mock; emptyTrash?: jest.Mock }) =>
   ({
@@ -115,5 +115,32 @@ describe('emptyTrash', () => {
     const trash = jest.fn().mockRejectedValue(new Error('boom'))
     await expect(emptyTrash(buildClient({ emptyTrash: trash }))).rejects.toThrow('boom')
     expect(purgeLocalTrash).not.toHaveBeenCalled()
+  })
+})
+
+describe('destroyEntry', () => {
+  beforeEach(() => {
+    ;(triggerPouchReplication as jest.Mock).mockClear()
+  })
+
+  const buildStackClient = (fetchJSON: jest.Mock) =>
+    ({ getStackClient: () => ({ fetchJSON }) }) as unknown as Parameters<typeof destroyEntry>[0]
+
+  it('deletes the doc from the trash', async () => {
+    const fetchJSON = jest.fn().mockResolvedValue({})
+    await destroyEntry(buildStackClient(fetchJSON), 'a')
+    expect(fetchJSON).toHaveBeenCalledWith('DELETE', '/files/trash/a')
+  })
+
+  it('triggers a pouch replication on success', async () => {
+    const client = buildStackClient(jest.fn().mockResolvedValue({}))
+    await destroyEntry(client, 'a')
+    expect(triggerPouchReplication).toHaveBeenCalledWith(client, 'io.cozy.files')
+  })
+
+  it('propagates the error and does not replicate on failure', async () => {
+    const client = buildStackClient(jest.fn().mockRejectedValue(new Error('boom')))
+    await expect(destroyEntry(client, 'a')).rejects.toThrow('boom')
+    expect(triggerPouchReplication).not.toHaveBeenCalled()
   })
 })

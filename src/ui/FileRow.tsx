@@ -48,6 +48,7 @@ interface Props {
   onShare?: (file: FileItem) => void
   onRename?: (file: FileItem) => void
   onRestore?: (file: FileItem) => void
+  onDestroy?: (file: FileItem) => void
   onDelete?: (file: FileItem) => void
   onTogglePin?: (file: FileItem) => void
   /** Set inside a shared drive, so the row's actions use the drive routes. */
@@ -58,6 +59,8 @@ interface Props {
   /** Called after a favorite toggle so the parent can refetch its query — the
    * lists are non-reactive, so without this a removed favorite lingers. */
   onFavoriteChange?: () => void
+  /** Off for a trashed file, which cannot be made a favorite. */
+  canFavorite?: boolean
   /** Stable id for E2E (Maestro) selection. */
   testID?: string
 }
@@ -70,12 +73,14 @@ export const FileRow = ({
   onShare,
   onRename,
   onRestore,
+  onDestroy,
   onDelete,
   onTogglePin,
   driveId,
   onMove,
   onInfo,
   onFavoriteChange,
+  canFavorite,
   testID
 }: Props) => {
   const { t, i18n } = useTranslation()
@@ -102,8 +107,16 @@ export const FileRow = ({
   const description = offlineDescription ?? (date ? `${size} · ${date}` : size)
   const sharingStatus = useFileSharingStatus(file._id)
   const hasMenu =
-    hasFileActions({ onShare, onRename, onRestore, onDelete, onTogglePin, onMove, onInfo }) &&
-    !selected
+    hasFileActions({
+      onShare,
+      onRename,
+      onRestore,
+      onDestroy,
+      onDelete,
+      onTogglePin,
+      onMove,
+      onInfo
+    }) && !selected
 
   return (
     <View
@@ -148,12 +161,14 @@ export const FileRow = ({
             onShare={onShare}
             onRename={onRename}
             onRestore={onRestore}
+            onDestroy={onDestroy}
             onDelete={onDelete}
             onTogglePin={onTogglePin}
             driveId={driveId}
             onMove={onMove}
             onInfo={onInfo}
             onFavoriteChange={onFavoriteChange}
+            canFavorite={canFavorite}
           />
         ) : null}
       </View>

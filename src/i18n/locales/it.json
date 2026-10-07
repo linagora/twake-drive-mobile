@@ -184,7 +184,13 @@
       "emptyConfirmBody": "Tutti gli elementi nel cestino verranno eliminati definitivamente. L'operazione è irreversibile.",
       "emptyConfirm": "Svuota",
       "emptySuccess": "Cestino svuotato",
-      "emptyError": "Impossibile svuotare il cestino"
+      "emptyError": "Impossibile svuotare il cestino",
+      "destroy": "Elimina definitivamente",
+      "destroyConfirmTitle": "Eliminare definitivamente?",
+      "destroyConfirmBody": "\"{{name}}\" verrà eliminato definitivamente. Questa azione non può essere annullata.",
+      "destroyConfirm": "Elimina",
+      "destroySuccess": "Eliminato definitivamente",
+      "destroyError": "Impossibile eliminare definitivamente"
     },
     "createMenu": {
       "folder": "Nuova cartella",
