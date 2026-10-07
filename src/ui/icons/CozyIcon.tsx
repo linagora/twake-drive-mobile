@@ -15,8 +15,10 @@ export function CozyIcon({ name, size = 24, color = '#000000' }: Props) {
           d={p.d}
           fill={p.fill ?? color}
           fillRule={p.fillRule}
-          stroke={p.stroke}
+          stroke={p.stroke === 'currentColor' ? color : p.stroke}
           strokeWidth={p.strokeWidth}
+          strokeLinecap={p.strokeLinecap}
+          strokeLinejoin={p.strokeLinejoin}
         />
       ))}
     </Svg>

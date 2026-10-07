@@ -4,9 +4,13 @@ export type CozyIconDef = {
   paths: Array<{
     d: string
     fillRule?: 'evenodd' | 'nonzero'
+    /** `'none'` for a stroked glyph; omitted fills with the icon colour. */
     fill?: string
+    /** `'currentColor'` strokes with the icon colour. */
     stroke?: string
     strokeWidth?: number
+    strokeLinecap?: 'butt' | 'round' | 'square'
+    strokeLinejoin?: 'miter' | 'round' | 'bevel'
   }>
 }
 
@@ -32,6 +36,46 @@ export const ICONS: Record<string, CozyIconDef> = {
     paths: [
       {
         d: 'M10.4 13.2a5.6 5.6 0 10-5.152-7.8A3.961 3.961 0 004 5.2a3.954 3.954 0 00-1.161.172 3.968 3.968 0 00-1.525.864 4.01 4.01 0 00-1.27 2.377 3.99 3.99 0 00.63 2.81 3.955 3.955 0 00.943.99 4.029 4.029 0 001.411.668A3.92 3.92 0 004 13.2h6.4z'
+      }
+    ]
+  },
+  // Outlined variants, hand-drawn on the 16 grid with a 1.5 round stroke so they
+  // sit next to starOutline and clockOutline instead of the solid cozy-ui glyphs.
+  cloudOutline: {
+    viewBox: '0 0 16 16',
+    paths: [
+      {
+        d: 'M4 13.25a3.25 3.25 0 01-.4-6.48 4.75 4.75 0 019.15 1.2 2.65 2.65 0 01-.25 5.28H4z',
+        fill: 'none',
+        stroke: 'currentColor',
+        strokeWidth: 1.5,
+        strokeLinejoin: 'round'
+      }
+    ]
+  },
+  infoOutline: {
+    viewBox: '0 0 16 16',
+    paths: [
+      {
+        d: 'M8 1.75a6.25 6.25 0 100 12.5 6.25 6.25 0 000-12.5zM8 7.25v4M8 4.75v.01',
+        fill: 'none',
+        stroke: 'currentColor',
+        strokeWidth: 1.5,
+        strokeLinecap: 'round',
+        strokeLinejoin: 'round'
+      }
+    ]
+  },
+  downloadOutline: {
+    viewBox: '0 0 16 16',
+    paths: [
+      {
+        d: 'M8 2v8.5M4.75 7.5L8 10.75 11.25 7.5M2.5 13.5h11',
+        fill: 'none',
+        stroke: 'currentColor',
+        strokeWidth: 1.5,
+        strokeLinecap: 'round',
+        strokeLinejoin: 'round'
       }
     ]
   },
