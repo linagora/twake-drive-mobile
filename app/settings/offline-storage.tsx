@@ -335,7 +335,7 @@ export default function OfflineStorageScreen() {
   if (!isKeepOfflineEnabled()) return <Redirect href="/settings" />
 
   return (
-    <ScreenContainer>
+    <ScreenContainer bottomInset>
       <AppBar sheet title={t('drive.offline.storageTitle')} onBack={() => router.back()} />
       {loading ? (
         <LoadingState />

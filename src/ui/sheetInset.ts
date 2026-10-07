@@ -13,3 +13,10 @@ export const useSheetTopInset = (): number => {
   const insets = useSafeAreaInsets()
   return Platform.OS === 'ios' ? 0 : insets.top || StatusBar.currentHeight || 0
 }
+
+/**
+ * The bottom inset a screen presented as a sheet has to keep clear: the Android
+ * navigation bar, or the iOS home indicator. Both platforms draw the sheet down
+ * to the bottom edge of the window, so the window's inset is the right one.
+ */
+export const useSheetBottomInset = (): number => useSafeAreaInsets().bottom
