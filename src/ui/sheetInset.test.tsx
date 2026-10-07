@@ -6,7 +6,11 @@ jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 59, bottom: 34, left: 0, right: 0 })
 }))
 
-import { useSheetTopInset } from './sheetInset'
+import { useSheetBottomInset, useSheetTopInset } from './sheetInset'
+
+const BottomProbe = (): React.ReactElement => (
+  <Text testID="bottom">{String(useSheetBottomInset())}</Text>
+)
 
 const Probe = (): React.ReactElement => <Text testID="inset">{String(useSheetTopInset())}</Text>
 
@@ -26,6 +30,12 @@ describe('useSheetTopInset', () => {
     render(<Probe />)
 
     expect(screen.getByTestId('inset')).toHaveTextContent('0')
+  })
+
+  it('reports the navigation bar inset so the last action clears it', () => {
+    render(<BottomProbe />)
+
+    expect(screen.getByTestId('bottom')).toHaveTextContent('34')
   })
 
   it('clears the status bar on Android, where the route is full-screen', () => {

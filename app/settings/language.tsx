@@ -45,7 +45,7 @@ export default function LanguageScreen(): React.ReactElement {
   }
 
   return (
-    <ScreenContainer>
+    <ScreenContainer bottomInset>
       <AppBar sheet title={t('settings.language')} onBack={() => router.back()} />
       <ScrollView>
         <SettingsRow
