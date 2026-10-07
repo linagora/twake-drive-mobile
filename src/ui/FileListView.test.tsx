@@ -1,5 +1,5 @@
 import React from 'react'
-import { RefreshControl, Text } from 'react-native'
+import { FlatList, RefreshControl, Text } from 'react-native'
 import { render, screen, fireEvent } from '@testing-library/react-native'
 
 import { FileListView } from './FileListView'
@@ -58,5 +58,18 @@ describe('FileListView', () => {
   it('renders the header above the list, and keeps it while empty', () => {
     renderView({ items: [], header: <Text>header</Text> })
     expect(screen.getByText('header')).toBeOnTheScreen()
+  })
+
+  it('pads the last grid row so a lone item keeps one column width', () => {
+    renderView({ numColumns: 3 })
+    const list = screen.UNSAFE_getByType(FlatList)
+    // one item + two placeholders fill the three-column row
+    expect(list.props.data).toHaveLength(3)
+    expect(screen.getAllByText('alpha')).toHaveLength(1)
+  })
+
+  it('does not pad a list', () => {
+    renderView()
+    expect(screen.UNSAFE_getByType(FlatList).props.data).toHaveLength(1)
   })
 })

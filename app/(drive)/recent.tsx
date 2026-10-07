@@ -6,6 +6,9 @@ import { AppBar } from '@/ui/AppBar'
 import { ScreenContainer } from '@/ui/ScreenContainer'
 import { FileListView } from '@/ui/FileListView'
 import { FileRow } from '@/ui/FileRow'
+import { FileGridItem } from '@/ui/FileGridItem'
+import { FileListToolbar } from '@/ui/FileListToolbar'
+import { useGridLayout } from '@/ui/useGridLayout'
 import { useAuth } from '@/auth/useAuth'
 import { recentQuery, recentQueryAs, FileQueryResult, HIDDEN_ROOT_DIR_IDS } from '@/client/queries'
 import { useFileRowActions } from '@/files/useFileRowActions'
@@ -18,6 +21,7 @@ export default function RecentScreen() {
   const { logout } = useAuth()
   const query = useQuery(recentQuery(), { as: recentQueryAs })
   const actions = useFileRowActions({ screen: 'RecentScreen' })
+  const { isGrid, numColumns } = useGridLayout()
 
   // recentQuery is index-backed on updated_at only (no partial index — see its
   // definition); apply the file / not-trashed / not-hidden-dir filter here.
@@ -41,12 +45,18 @@ export default function RecentScreen() {
   return (
     <ScreenContainer surface>
       <AppBar title={t('drive.recent')} onLogout={logout} />
+      <FileListToolbar sortable={false} />
       <FileListView
         items={data}
         keyExtractor={item => item._id}
-        renderItem={({ item }) => (
-          <FileRow file={{ ...item, size: item.size ?? null }} {...actions.fileProps(item)} />
-        )}
+        numColumns={numColumns}
+        renderItem={({ item }) =>
+          isGrid ? (
+            <FileGridItem file={item} {...actions.fileProps(item)} />
+          ) : (
+            <FileRow file={{ ...item, size: item.size ?? null }} {...actions.fileProps(item)} />
+          )
+        }
         loading={isFirstLoad(query)}
         error={query.fetchStatus === 'failed' ? query.lastError : undefined}
         onRetry={() => query.fetch()}

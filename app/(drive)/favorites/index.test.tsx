@@ -1,5 +1,5 @@
 import React from 'react'
-import { fireEvent, render, screen } from '@testing-library/react-native'
+import { act, fireEvent, render, screen } from '@testing-library/react-native'
 import { Provider as PaperProvider } from 'react-native-paper'
 import { I18nextProvider } from 'react-i18next'
 
@@ -80,6 +80,7 @@ jest.mock('@/pouchdb/triggerReplication', () => ({
 
 import FavoritesScreen from './index'
 import i18n from '@/i18n'
+import { setViewMode } from '@/ui/useViewMode'
 
 const wrap = (ui: React.ReactElement) => (
   <I18nextProvider i18n={i18n}>
@@ -189,6 +190,49 @@ describe('FavoritesScreen', () => {
     render(wrap(<FavoritesScreen />))
     fireEvent.press(screen.getByText('My Project'))
     expect(mockPush).toHaveBeenCalledWith('/(drive)/favorites/dir-1')
+  })
+
+  describe('view mode', () => {
+    const rows = [
+      { _id: 'dir-1', name: 'My Project', type: 'directory', cozyMetadata: { favorite: true } },
+      {
+        _id: 'fav-1',
+        name: 'Important doc.pdf',
+        type: 'file',
+        mime: 'application/pdf',
+        cozyMetadata: { favorite: true }
+      }
+    ]
+
+    afterEach(() => {
+      act(() => setViewMode('list'))
+    })
+
+    it('offers the list/grid toggle', () => {
+      render(wrap(<FavoritesScreen />))
+      expect(screen.getByTestId('view-toggle')).toBeOnTheScreen()
+    })
+
+    it('draws the favourites as tiles once the grid is chosen, and keeps the choice', () => {
+      mockUseQuery.mockReturnValue(makeQueryResult(rows))
+      render(wrap(<FavoritesScreen />))
+      expect(screen.queryAllByTestId('file-grid-item')).toHaveLength(0)
+
+      fireEvent.press(screen.getByTestId('view-toggle'))
+      expect(screen.getAllByTestId('file-grid-item')).toHaveLength(2)
+
+      screen.unmount()
+      render(wrap(<FavoritesScreen />))
+      expect(screen.getAllByTestId('file-grid-item')).toHaveLength(2)
+    })
+
+    it('opens a favourited folder inside the favourites stack from the grid', () => {
+      mockUseQuery.mockReturnValue(makeQueryResult(rows))
+      act(() => setViewMode('grid'))
+      render(wrap(<FavoritesScreen />))
+      fireEvent.press(screen.getByText('My Project'))
+      expect(mockPush).toHaveBeenCalledWith('/(drive)/favorites/dir-1')
+    })
   })
 
   // The offline pouch query fails OPEN and returns non-favourites too; the
