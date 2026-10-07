@@ -170,7 +170,13 @@
       "emptyConfirmBody": "Tất cả các mục trong thùng rác sẽ bị xóa vĩnh viễn. Không thể hoàn tác.",
       "emptyConfirm": "Dọn sạch",
       "emptySuccess": "Đã dọn thùng rác",
-      "emptyError": "Không thể dọn thùng rác"
+      "emptyError": "Không thể dọn thùng rác",
+      "destroy": "Xóa vĩnh viễn",
+      "destroyConfirmTitle": "Xóa vĩnh viễn?",
+      "destroyConfirmBody": "\"{{name}}\" sẽ bị xóa vĩnh viễn. Không thể hoàn tác thao tác này.",
+      "destroyConfirm": "Xóa",
+      "destroySuccess": "Đã xóa vĩnh viễn",
+      "destroyError": "Không thể xóa vĩnh viễn"
     },
     "createMenu": {
       "folder": "Thư mục mới",

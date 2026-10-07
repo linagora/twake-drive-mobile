@@ -188,7 +188,13 @@
       "emptyConfirmBody": "Все объекты в корзине будут удалены безвозвратно. Это действие нельзя отменить.",
       "emptyConfirm": "Очистить",
       "emptySuccess": "Корзина очищена",
-      "emptyError": "Не удалось очистить корзину"
+      "emptyError": "Не удалось очистить корзину",
+      "destroy": "Удалить навсегда",
+      "destroyConfirmTitle": "Удалить навсегда?",
+      "destroyConfirmBody": "\"{{name}}\" будет удалён навсегда. Это действие нельзя отменить.",
+      "destroyConfirm": "Удалить",
+      "destroySuccess": "Удалено навсегда",
+      "destroyError": "Не удалось удалить навсегда"
     },
     "createMenu": {
       "folder": "Новая папка",

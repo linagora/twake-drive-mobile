@@ -176,7 +176,13 @@
       "emptyConfirmBody": "Alle Elemente im Papierkorb werden dauerhaft gelöscht. Dies kann nicht rückgängig gemacht werden.",
       "emptyConfirm": "Leeren",
       "emptySuccess": "Papierkorb geleert",
-      "emptyError": "Papierkorb konnte nicht geleert werden"
+      "emptyError": "Papierkorb konnte nicht geleert werden",
+      "destroy": "Endgültig löschen",
+      "destroyConfirmTitle": "Endgültig löschen?",
+      "destroyConfirmBody": "\"{{name}}\" wird endgültig gelöscht. Dies kann nicht rückgängig gemacht werden.",
+      "destroyConfirm": "Löschen",
+      "destroySuccess": "Endgültig gelöscht",
+      "destroyError": "Endgültiges Löschen fehlgeschlagen"
     },
     "createMenu": {
       "folder": "Neuer Ordner",

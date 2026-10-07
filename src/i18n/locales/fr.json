@@ -175,7 +175,13 @@
       "emptyConfirmBody": "Tous les éléments de la corbeille seront supprimés définitivement. Cette action est irréversible.",
       "emptyConfirm": "Vider",
       "emptySuccess": "Corbeille vidée",
-      "emptyError": "Impossible de vider la corbeille"
+      "emptyError": "Impossible de vider la corbeille",
+      "destroy": "Supprimer définitivement",
+      "destroyConfirmTitle": "Supprimer définitivement ?",
+      "destroyConfirmBody": "\"{{name}}\" sera supprimé définitivement. Cette action est irréversible.",
+      "destroyConfirm": "Supprimer",
+      "destroySuccess": "Supprimé définitivement",
+      "destroyError": "Impossible de supprimer définitivement"
     },
     "createFolder": {
       "title": "Nouveau dossier",

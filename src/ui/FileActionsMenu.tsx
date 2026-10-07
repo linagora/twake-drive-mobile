@@ -17,6 +17,8 @@ interface Props {
   onShare?: (file: FileItem) => void
   onRename?: (file: FileItem) => void
   onRestore?: (file: FileItem) => void
+  /** Trash only: deletes the file for good, after a confirmation. */
+  onDestroy?: (file: FileItem) => void
   onDelete?: (file: FileItem) => void
   onTogglePin?: (file: FileItem) => void
   /** Set inside a shared drive: the download goes through the drive route. */
@@ -24,6 +26,8 @@ interface Props {
   onMove?: (file: FileItem) => void
   onInfo?: (file: FileItem) => void
   onFavoriteChange?: () => void
+  /** Off for a trashed file: it has to be restored before it can be a favorite. */
+  canFavorite?: boolean
   /** Anchor testID, so a list row and a grid tile can be told apart in tests. */
   testID?: string
 }
@@ -37,12 +41,14 @@ export const FileActionsMenu = ({
   onShare,
   onRename,
   onRestore,
+  onDestroy,
   onDelete,
   onTogglePin,
   driveId,
   onMove,
   onInfo,
   onFavoriteChange,
+  canFavorite = true,
   testID
 }: Props): React.ReactElement => {
   const { t } = useTranslation()
@@ -121,6 +127,18 @@ export const FileActionsMenu = ({
           }}
         />
       ) : null}
+      {onDestroy ? (
+        <Menu.Item
+          leadingIcon={() => <CozyIcon name="trash" size={24} color={theme.colors.onSurface} />}
+          title={t('drive.trashActions.destroy')}
+          testID="action-destroy"
+          disabled={!isOnline}
+          onPress={() => {
+            setMenuVisible(false)
+            onDestroy(file)
+          }}
+        />
+      ) : null}
       {onDelete ? (
         <Menu.Item
           leadingIcon={() => <CozyIcon name="trash" size={24} color={theme.colors.onSurface} />}
@@ -156,33 +174,35 @@ export const FileActionsMenu = ({
           }}
         />
       ) : null}
-      <Menu.Item
-        disabled={!isOnline}
-        leadingIcon={() => (
-          <CozyIcon
-            name={isFavorite(file as Parameters<typeof isFavorite>[0]) ? 'star' : 'starOutline'}
-            size={24}
-            color={theme.colors.onSurface}
-          />
-        )}
-        title={t(
-          isFavorite(file as Parameters<typeof isFavorite>[0])
-            ? 'drive.fileMeta.unfavorite'
-            : 'drive.fileMeta.favorite'
-        )}
-        testID="action-favorite"
-        onPress={() => {
-          setMenuVisible(false)
-          if (!client) return
-          const next = !isFavorite(file as Parameters<typeof isFavorite>[0])
-          void toggleFavorite(client, file as Parameters<typeof toggleFavorite>[1], next)
-            .then(() => {
-              triggerPouchReplication(client)
-              onFavoriteChange?.()
-            })
-            .catch(e => console.error('[FileRow] toggleFavorite failed', e))
-        }}
-      />
+      {canFavorite ? (
+        <Menu.Item
+          disabled={!isOnline}
+          leadingIcon={() => (
+            <CozyIcon
+              name={isFavorite(file as Parameters<typeof isFavorite>[0]) ? 'star' : 'starOutline'}
+              size={24}
+              color={theme.colors.onSurface}
+            />
+          )}
+          title={t(
+            isFavorite(file as Parameters<typeof isFavorite>[0])
+              ? 'drive.fileMeta.unfavorite'
+              : 'drive.fileMeta.favorite'
+          )}
+          testID="action-favorite"
+          onPress={() => {
+            setMenuVisible(false)
+            if (!client) return
+            const next = !isFavorite(file as Parameters<typeof isFavorite>[0])
+            void toggleFavorite(client, file as Parameters<typeof toggleFavorite>[1], next)
+              .then(() => {
+                triggerPouchReplication(client)
+                onFavoriteChange?.()
+              })
+              .catch(e => console.error('[FileRow] toggleFavorite failed', e))
+          }}
+        />
+      ) : null}
       <Menu.Item
         leadingIcon={() => <CozyIcon name="download" size={24} color={theme.colors.onSurface} />}
         title={t('drive.fileMeta.download')}
@@ -206,6 +226,7 @@ export const hasFileActions = (props: Omit<Props, 'file' | 'testID'>): boolean =
   !!props.onShare ||
   !!props.onRename ||
   !!props.onRestore ||
+  !!props.onDestroy ||
   !!props.onDelete ||
   (!!props.onTogglePin && isKeepOfflineEnabled()) ||
   !!props.onMove ||

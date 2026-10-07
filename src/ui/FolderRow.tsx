@@ -44,6 +44,7 @@ interface Props {
   onShare?: (folder: FolderItem) => void
   onRename?: (folder: FolderItem) => void
   onRestore?: (folder: FolderItem) => void
+  onDestroy?: (folder: FolderItem) => void
   onDelete?: (folder: FolderItem) => void
   onTogglePin?: (folder: FolderItem) => void
   onMove?: (folder: FolderItem) => void
@@ -66,6 +67,7 @@ export const FolderRow = ({
   onShare,
   onRename,
   onRestore,
+  onDestroy,
   onDelete,
   onTogglePin,
   onMove,
@@ -83,8 +85,16 @@ export const FolderRow = ({
   const folderOfflineState = useOfflineFolderState(folder._id)
   const isPinned = folderOfflineState.pinned
   const hasMenu =
-    hasFolderActions({ onShare, onRename, onRestore, onDelete, onTogglePin, onMove, onLeave }) &&
-    !selected
+    hasFolderActions({
+      onShare,
+      onRename,
+      onRestore,
+      onDestroy,
+      onDelete,
+      onTogglePin,
+      onMove,
+      onLeave
+    }) && !selected
 
   const description =
     isPinned && folderOfflineState.downloading > 0
@@ -157,6 +167,7 @@ export const FolderRow = ({
             onShare={onShare}
             onRename={onRename}
             onRestore={onRestore}
+            onDestroy={onDestroy}
             onDelete={onDelete}
             onTogglePin={onTogglePin}
             onMove={onMove}
