@@ -78,4 +78,35 @@ describe('CreateMenu', () => {
     openFab()
     expect(screen.queryByLabelText('drive.createMenu.docs')).toBeNull()
   })
+
+  describe('office entries', () => {
+    const open = (): void => {
+      render(wrap(<CreateMenu dirId="d1" canWrite notify={jest.fn()} />))
+      openFab()
+    }
+
+    it('hides them on an instance without the office flags', () => {
+      open()
+      expect(screen.queryByLabelText('drive.createMenu.text')).toBeNull()
+      expect(screen.queryByLabelText('drive.createMenu.sheet')).toBeNull()
+      expect(screen.queryByLabelText('drive.createMenu.slide')).toBeNull()
+    })
+
+    it('offers them when office is on and writable', () => {
+      mockFlags['drive.office.touchScreen.enabled'] = true
+      mockFlags['drive.office.write'] = true
+      open()
+      expect(screen.queryByLabelText('drive.createMenu.text')).toBeOnTheScreen()
+      expect(screen.queryByLabelText('drive.createMenu.sheet')).toBeOnTheScreen()
+      expect(screen.queryByLabelText('drive.createMenu.slide')).toBeOnTheScreen()
+    })
+
+    it('hides them on a read-only touch screen', () => {
+      mockFlags['drive.office.touchScreen.enabled'] = true
+      mockFlags['drive.office.write'] = true
+      mockFlags['drive.office.touchScreen.readOnly'] = true
+      open()
+      expect(screen.queryByLabelText('drive.createMenu.text')).toBeNull()
+    })
+  })
 })
