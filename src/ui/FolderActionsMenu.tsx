@@ -24,8 +24,11 @@ interface Props {
   onDelete?: (folder: FolderItem) => void
   onTogglePin?: (folder: FolderItem) => void
   onMove?: (folder: FolderItem) => void
-  /** Recipient side of a shared drive: the owner revokes from the share sheet,
-   *  a recipient leaves instead. Mirrors twake-drive web's leaveSharedDrive. */
+  /** Offered on a folder somebody shared with us, whose content is fetched as
+   *  a zip the way twake-drive web does (`downloadArchive`). */
+  onDownload?: (folder: FolderItem) => void
+  /** Recipient side of a sharing: the owner revokes from the share sheet, a
+   *  recipient leaves instead (`revokeSelf`), as on twake-drive web. */
   onLeave?: (folder: FolderItem) => void
   onFavoriteChange?: () => void
   /** A shared drive row stands for a sharing, not for a document of ours:
@@ -48,6 +51,7 @@ export const FolderActionsMenu = ({
   onDelete,
   onTogglePin,
   onMove,
+  onDownload,
   onLeave,
   onFavoriteChange,
   canFavorite = true,
@@ -162,12 +166,21 @@ export const FolderActionsMenu = ({
             }
           />
         ) : null}
+        {onDownload ? (
+          <BottomDrawerItem
+            icon="downloadOutline"
+            label={t('drive.fileMeta.download')}
+            testID="action-download"
+            disabled={!isOnline}
+            onPress={() => drawer.run(() => onDownload(folder))}
+          />
+        ) : null}
         {onLeave ? (
           <BottomDrawerItem
             icon="logoutOutline"
             label={t('drive.sharings.leave.action')}
             destructive
-            testID="action-leave-drive"
+            testID="action-leave"
             disabled={!isOnline}
             onPress={() => drawer.run(() => onLeave(folder))}
           />
@@ -186,4 +199,5 @@ export const hasFolderActions = (props: Omit<Props, 'folder' | 'testID'>): boole
   !!props.onDelete ||
   (!!props.onTogglePin && isKeepOfflineEnabled()) ||
   !!props.onMove ||
+  !!props.onDownload ||
   !!props.onLeave

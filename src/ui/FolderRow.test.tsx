@@ -182,14 +182,14 @@ describe('FolderRow on a shared drive row', () => {
   it('offers leaving when onLeave is provided', () => {
     render(wrap(<FolderRow folder={folder} onPress={jest.fn()} onLeave={jest.fn()} />))
     openMenu()
-    expect(screen.getByTestId('action-leave-drive')).toBeOnTheScreen()
+    expect(screen.getByTestId('action-leave')).toBeOnTheScreen()
   })
 
   it('calls onLeave with the folder', async () => {
     const onLeave = jest.fn()
     render(wrap(<FolderRow folder={folder} onPress={jest.fn()} onLeave={onLeave} />))
     openMenu()
-    fireEvent.press(screen.getByTestId('action-leave-drive'))
+    fireEvent.press(screen.getByTestId('action-leave'))
     await waitFor(() => expect(onLeave).toHaveBeenCalledWith(folder))
   })
 
@@ -201,7 +201,7 @@ describe('FolderRow on a shared drive row', () => {
   it('leaves no leave entry without the handler', () => {
     render(wrap(<FolderRow folder={folder} onPress={jest.fn()} onShare={jest.fn()} />))
     openMenu()
-    expect(screen.queryByTestId('action-leave-drive')).toBeNull()
+    expect(screen.queryByTestId('action-leave')).toBeNull()
   })
 
   it('drops the favourite entry when the row stands for a sharing', () => {
@@ -224,6 +224,28 @@ describe('FolderRow on a shared drive row', () => {
     mockOnline = false
     render(wrap(<FolderRow folder={folder} onPress={jest.fn()} onLeave={jest.fn()} />))
     openMenu()
-    expect(screen.getByTestId('action-leave-drive')).toBeDisabled()
+    expect(screen.getByTestId('action-leave')).toBeDisabled()
+  })
+})
+
+describe('FolderRow on a folder shared with me', () => {
+  beforeEach(() => mockFlag.mockReturnValue(undefined))
+
+  it('offers to download the folder', async () => {
+    const onDownload = jest.fn()
+    render(wrap(<FolderRow folder={folder} onPress={jest.fn()} onDownload={onDownload} />))
+    fireEvent.press(screen.getByTestId('folder-actions:Documents'))
+    fireEvent.press(screen.getByTestId('action-download'))
+    await waitFor(() => expect(onDownload).toHaveBeenCalledWith(folder))
+  })
+
+  it('counts a sharing nobody opened yet', () => {
+    render(wrap(<FolderRow folder={folder} onPress={jest.fn()} isNewSharing />))
+    expect(screen.getByTestId('new-sharing-badge')).toBeOnTheScreen()
+  })
+
+  it('shows no counter on a sharing already seen', () => {
+    render(wrap(<FolderRow folder={folder} onPress={jest.fn()} />))
+    expect(screen.queryByTestId('new-sharing-badge')).toBeNull()
   })
 })

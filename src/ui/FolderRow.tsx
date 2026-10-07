@@ -16,6 +16,7 @@ import { triggerPouchReplication } from '@/pouchdb/triggerReplication'
 import { AccessibleRow } from '@/ds/AccessibleRow'
 import { FolderActionsMenu, hasFolderActions } from './FolderActionsMenu'
 import { SharedBadge } from './SharedBadge'
+import { NewSharingBadge, NEW_SHARING_BADGE_INSET } from './NewSharingBadge'
 import { composeRowLabel } from './rowLabels'
 
 export interface FolderItem {
@@ -48,8 +49,12 @@ interface Props {
   onDelete?: (folder: FolderItem) => void
   onTogglePin?: (folder: FolderItem) => void
   onMove?: (folder: FolderItem) => void
-  /** Recipient side of a shared drive: leaving replaces the owner's revoke. */
+  /** Downloads the folder as a zip. */
+  onDownload?: (folder: FolderItem) => void
+  /** Recipient side of a sharing: leaving replaces the owner's revoke. */
   onLeave?: (folder: FolderItem) => void
+  /** The sharing this line stands for was not opened yet. */
+  isNewSharing?: boolean
   /** Off for a row that stands for a sharing rather than a document of ours. */
   canFavorite?: boolean
   /** Called after a favorite toggle so the parent can refetch its query — the
@@ -71,7 +76,9 @@ export const FolderRow = ({
   onDelete,
   onTogglePin,
   onMove,
+  onDownload,
   onLeave,
+  isNewSharing,
   canFavorite,
   onFavoriteChange,
   testID
@@ -93,6 +100,7 @@ export const FolderRow = ({
       onDelete,
       onTogglePin,
       onMove,
+      onDownload,
       onLeave
     }) && !selected
 
@@ -122,7 +130,10 @@ export const FolderRow = ({
       ]}
     >
       <AccessibleRow
-        style={styles.item}
+        style={[
+          styles.item,
+          isNewSharing && { paddingRight: TITLE_RIGHT_INSET + NEW_SHARING_BADGE_INSET }
+        ]}
         testID={testID}
         title={folder.name}
         description={description}
@@ -164,6 +175,7 @@ export const FolderRow = ({
           </View>
         )}
       />
+      {isNewSharing && !selected ? <NewSharingBadge /> : null}
       <View style={styles.actionSlot} pointerEvents="box-none">
         {hasMenu ? (
           <FolderActionsMenu
@@ -175,6 +187,7 @@ export const FolderRow = ({
             onDelete={onDelete}
             onTogglePin={onTogglePin}
             onMove={onMove}
+            onDownload={onDownload}
             onLeave={onLeave}
             canFavorite={canFavorite}
             onFavoriteChange={onFavoriteChange}

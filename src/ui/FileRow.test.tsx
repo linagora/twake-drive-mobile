@@ -256,3 +256,31 @@ describe('FileRow', () => {
     })
   })
 })
+
+describe('FileRow on a file shared with me', () => {
+  beforeEach(() => mockFlag.mockReturnValue(undefined))
+
+  it('offers to leave the sharing', async () => {
+    const onLeave = jest.fn()
+    render(wrap(<FileRow file={file} onPress={jest.fn()} onLeave={onLeave} />))
+    fireEvent.press(screen.getByTestId(FILE_MENU))
+    fireEvent.press(screen.getByTestId('action-leave'))
+    await waitFor(() => expect(onLeave).toHaveBeenCalledWith(file))
+  })
+
+  it('leaves no leave entry without the handler', () => {
+    render(wrap(<FileRow file={file} onPress={jest.fn()} onInfo={jest.fn()} />))
+    fireEvent.press(screen.getByTestId(FILE_MENU))
+    expect(screen.queryByTestId('action-leave')).toBeNull()
+  })
+
+  it('counts a sharing nobody opened yet', () => {
+    render(wrap(<FileRow file={file} onPress={jest.fn()} isNewSharing />))
+    expect(screen.getByTestId('new-sharing-badge')).toBeOnTheScreen()
+  })
+
+  it('shows no counter on a sharing already seen', () => {
+    render(wrap(<FileRow file={file} onPress={jest.fn()} />))
+    expect(screen.queryByTestId('new-sharing-badge')).toBeNull()
+  })
+})

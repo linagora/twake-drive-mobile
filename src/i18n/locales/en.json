@@ -283,8 +283,8 @@
       "drives": "Drives",
       "driveFileSyncing": "This document is still syncing, try again in a moment",
       "leave": {
-        "action": "Leave the shared drive",
-        "confirmTitle": "Leave this shared drive?",
+        "action": "Leave sharing",
+        "confirmTitle": "Leave this sharing?",
         "confirmBody": "“{{name}}” will no longer be accessible. Its owner can share it with you again.",
         "confirm": "Leave",
         "success": "You have left “{{name}}”",
@@ -300,6 +300,7 @@
     }
   },
   "a11y": {
+    "newSharing": "New sharing",
     "listView": "List view",
     "gridView": "Grid view",
     "folderActions": "Folder actions for {{name}}",

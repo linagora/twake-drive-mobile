@@ -8,6 +8,7 @@ import { FolderActionsMenu, hasFolderActions } from './FolderActionsMenu'
 import { PinnedBadge } from '@/offline/PinnedBadge'
 import { folderBadgeEntry } from '@/offline/folderBadgeEntry'
 import { useOfflineState, useOfflineFolderState } from '@/offline/useOfflineState'
+import { NewSharingBadge } from './NewSharingBadge'
 import type { FileQueryResult } from '@/client/queries'
 
 interface Props {
@@ -25,8 +26,11 @@ interface Props {
   onTogglePin?: (file: FileQueryResult) => void
   onMove?: (file: FileQueryResult) => void
   onInfo?: (file: FileQueryResult) => void
-  /** Recipient side of a shared drive: the folder menu offers to leave it. */
+  onDownload?: (file: FileQueryResult) => void
+  /** Recipient side of a sharing: the menu offers to leave it. */
   onLeave?: (file: FileQueryResult) => void
+  /** The sharing this tile stands for was not opened yet. */
+  isNewSharing?: boolean
   /** Off for a tile that stands for a sharing rather than for a document of ours. */
   canFavorite?: boolean
   onFavoriteChange?: () => void
@@ -51,7 +55,9 @@ export function FileGridItem({
   onTogglePin,
   onMove,
   onInfo,
+  onDownload,
   onLeave,
+  isNewSharing,
   canFavorite,
   onFavoriteChange
 }: Props) {
@@ -78,10 +84,11 @@ export function FileGridItem({
     onTogglePin: asItem(onTogglePin),
     onMove: asItem(onMove),
     onInfo: asItem(onInfo),
+    onLeave: asItem(onLeave),
     onFavoriteChange
   }
   const { onInfo: onInfoAction, ...sharedActions } = fileActions
-  const folderActions = { ...sharedActions, onLeave: asItem(onLeave) }
+  const folderActions = { ...sharedActions, onDownload: asItem(onDownload) }
   const showActions =
     !selected && (isFolder ? hasFolderActions(folderActions) : hasFileActions(fileActions))
 
@@ -112,6 +119,7 @@ export function FileGridItem({
         <View testID="file-grid-icon" style={styles.iconWrapper}>
           <FileThumbnail file={file} size={THUMBNAIL_SIZE} />
           <PinnedBadge entry={badgeEntry} testID="pinned-badge" />
+          {isNewSharing ? <NewSharingBadge placement="tile" /> : null}
         </View>
         <Text style={[styles.name, { color: colors.onSurface }]} numberOfLines={2}>
           {file.name}
@@ -128,6 +136,7 @@ export function FileGridItem({
               onDelete={fileActions.onDelete}
               onTogglePin={fileActions.onTogglePin}
               onMove={fileActions.onMove}
+              onDownload={folderActions.onDownload}
               onLeave={folderActions.onLeave}
               canFavorite={canFavorite}
               onFavoriteChange={onFavoriteChange}
@@ -143,6 +152,7 @@ export function FileGridItem({
               onTogglePin={fileActions.onTogglePin}
               onMove={fileActions.onMove}
               onInfo={onInfoAction}
+              onLeave={fileActions.onLeave}
               onFavoriteChange={onFavoriteChange}
               testID="file-grid-actions"
             />

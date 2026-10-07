@@ -18,6 +18,12 @@ const isOwnerSharing = (sharing: SharingDoc): boolean =>
 const isDriveSharing = (sharing: SharingDoc): boolean =>
   !!(sharing.attributes?.drive ?? sharing.drive)
 
+const isOrgDriveSharing = (sharing: SharingDoc): boolean =>
+  !!(sharing.attributes?.org_drive ?? sharing.org_drive)
+
+const isOpenSharing = (sharing: SharingDoc): boolean =>
+  (sharing.attributes?.open_sharing ?? sharing.open_sharing) === true
+
 const ruleFor = (sharing: SharingDoc, docId: string): SharingRule | undefined =>
   rules(sharing).find(rule => (rule.values ?? []).includes(docId))
 
@@ -96,4 +102,30 @@ export const hasWriteAccess = (
   if (!entry?.sharing) return true
   if (entry.isOwner) return true
   return sharingTypeFor(entry.sharing, docId, instanceUri) === TWO_WAY
+}
+
+/**
+ * Whether the instance may share `docId` further, mirroring cozy-sharing's
+ * `canReshare`: a member who is not read-only, on a sharing that allows it
+ * (`open_sharing`) or on a shared drive that is not an organisation's.
+ */
+export const canReshare = (
+  state: WriteAccessState,
+  docId: string,
+  instanceUri: string
+): boolean => {
+  const sharing = state.byId.get(docId)?.sharing
+  if (!sharing) return false
+  const me = memberForInstance(sharing, instanceUri)
+  if (!me || me.read_only) return false
+  return isDriveSharing(sharing) ? !isOrgDriveSharing(sharing) : isOpenSharing(sharing)
+}
+
+/**
+ * Whether the instance may leave the sharing of `docId`, mirroring
+ * cozy-sharing's `canLeave`: everything but the drive of an organisation.
+ */
+export const canLeave = (state: WriteAccessState, docId: string): boolean => {
+  const sharing = state.byId.get(docId)?.sharing
+  return !!sharing && !isOrgDriveSharing(sharing)
 }

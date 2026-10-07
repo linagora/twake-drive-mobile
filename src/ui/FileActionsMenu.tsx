@@ -28,6 +28,8 @@ interface Props {
   driveId?: string
   onMove?: (file: FileItem) => void
   onInfo?: (file: FileItem) => void
+  /** A file somebody shared with us: leaves the sharing (`revokeSelf`). */
+  onLeave?: (file: FileItem) => void
   onFavoriteChange?: () => void
   /** Off for a trashed file: it has to be restored before it can be a favorite. */
   canFavorite?: boolean
@@ -50,6 +52,7 @@ export const FileActionsMenu = ({
   driveId,
   onMove,
   onInfo,
+  onLeave,
   onFavoriteChange,
   canFavorite = true,
   testID
@@ -188,6 +191,16 @@ export const FileActionsMenu = ({
             })
           }
         />
+        {onLeave ? (
+          <BottomDrawerItem
+            icon="logoutOutline"
+            label={t('drive.sharings.leave.action')}
+            destructive
+            testID="action-leave"
+            disabled={!isOnline}
+            onPress={() => drawer.run(() => onLeave(file))}
+          />
+        ) : null}
       </BottomDrawer>
     </>
   )
@@ -202,4 +215,5 @@ export const hasFileActions = (props: Omit<Props, 'file' | 'testID'>): boolean =
   !!props.onDelete ||
   (!!props.onTogglePin && isKeepOfflineEnabled()) ||
   !!props.onMove ||
-  !!props.onInfo
+  !!props.onInfo ||
+  !!props.onLeave

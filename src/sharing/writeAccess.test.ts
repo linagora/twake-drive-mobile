@@ -1,6 +1,12 @@
 import { SharingDoc } from '@/files/sharing'
 import { FileSharingEntry } from './SharingProvider'
-import { hasWriteAccess, sharedDriveSharingType, sharingTypeFor } from './writeAccess'
+import {
+  canLeave,
+  canReshare,
+  hasWriteAccess,
+  sharedDriveSharingType,
+  sharingTypeFor
+} from './writeAccess'
 
 const ME = 'https://alice.mycozy.cloud'
 
@@ -216,5 +222,53 @@ describe('hasWriteAccess', () => {
     const drive = sharing({ drive: true, members: [{ status: 'ready', instance: ME }] }, 'drive1')
     const doc = sharing({ rules: [readOnlyRule(['f1'])], members: [] }, 's2')
     expect(hasWriteAccess(state([drive, doc]), 'f1', 'drive1', ME)).toBe(true)
+  })
+})
+
+describe('canReshare', () => {
+  const member = (read_only: boolean) => ({ status: 'ready', instance: ME, read_only })
+
+  it('is open to a member who may write, on a sharing that allows resharing', () => {
+    const s = sharing({ open_sharing: true, members: [member(false)] })
+    expect(canReshare(state([s], [['f1', { sharing: s }]]), 'f1', ME)).toBe(true)
+  })
+
+  it('is closed on a sharing that does not allow resharing', () => {
+    const s = sharing({ open_sharing: false, members: [member(false)] })
+    expect(canReshare(state([s], [['f1', { sharing: s }]]), 'f1', ME)).toBe(false)
+  })
+
+  it('is closed to a read-only member', () => {
+    const s = sharing({ open_sharing: true, members: [member(true)] })
+    expect(canReshare(state([s], [['f1', { sharing: s }]]), 'f1', ME)).toBe(false)
+  })
+
+  it('is closed when the instance is not a member', () => {
+    const s = sharing({ open_sharing: true, members: [] })
+    expect(canReshare(state([s], [['f1', { sharing: s }]]), 'f1', ME)).toBe(false)
+  })
+
+  it('follows the member alone on a shared drive, unless an organisation owns it', () => {
+    const drive = sharing({ drive: true, members: [member(false)] })
+    const orgDrive = sharing({ drive: true, org_drive: true, members: [member(false)] })
+    expect(canReshare(state([drive], [['f1', { sharing: drive }]]), 'f1', ME)).toBe(true)
+    expect(canReshare(state([orgDrive], [['f1', { sharing: orgDrive }]]), 'f1', ME)).toBe(false)
+  })
+
+  it('is closed for a document nobody shared', () => {
+    expect(canReshare(state([]), 'f1', ME)).toBe(false)
+  })
+})
+
+describe('canLeave', () => {
+  it('is open on any sharing but the drive of an organisation', () => {
+    const plain = sharing({})
+    const org = sharing({ drive: true, org_drive: true })
+    expect(canLeave(state([plain], [['f1', { sharing: plain }]]), 'f1')).toBe(true)
+    expect(canLeave(state([org], [['f1', { sharing: org }]]), 'f1')).toBe(false)
+  })
+
+  it('is closed for a document nobody shared', () => {
+    expect(canLeave(state([]), 'f1')).toBe(false)
   })
 })

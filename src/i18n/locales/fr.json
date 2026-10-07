@@ -292,8 +292,8 @@
       "drives": "Drives",
       "driveFileSyncing": "Ce document est en cours de synchronisation, réessayez dans un instant",
       "leave": {
-        "action": "Quitter le drive partagé",
-        "confirmTitle": "Quitter ce drive partagé ?",
+        "action": "Quitter le partage",
+        "confirmTitle": "Quitter ce partage ?",
         "confirmBody": "« {{name}} » ne sera plus accessible. Son propriétaire pourra vous le repartager.",
         "confirm": "Quitter",
         "success": "Vous avez quitté « {{name}} »",
@@ -309,6 +309,7 @@
     }
   },
   "a11y": {
+    "newSharing": "Nouveau partage",
     "listView": "Vue liste",
     "gridView": "Vue grille",
     "folderActions": "Actions du dossier {{name}}",

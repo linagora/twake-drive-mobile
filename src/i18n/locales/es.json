@@ -292,8 +292,8 @@
       "drives": "Drives",
       "driveFileSyncing": "Este documento se está sincronizando, inténtalo de nuevo en un momento",
       "leave": {
-        "action": "Salir del drive compartido",
-        "confirmTitle": "¿Salir de este drive compartido?",
+        "action": "Salir del uso compartido",
+        "confirmTitle": "¿Salir de este uso compartido?",
         "confirmBody": "«{{name}}» ya no estará accesible. Su propietario podrá volver a compartirlo contigo.",
         "confirm": "Salir",
         "success": "Has salido de «{{name}}»",
@@ -309,6 +309,7 @@
     }
   },
   "a11y": {
+    "newSharing": "Nuevo uso compartido",
     "listView": "Vista de lista",
     "gridView": "Vista de cuadrícula",
     "folderActions": "Acciones de la carpeta {{name}}",

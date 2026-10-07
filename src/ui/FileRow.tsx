@@ -19,6 +19,7 @@ import { AccessibleRow } from '@/ds/AccessibleRow'
 import { FileThumbnail } from './FileThumbnail'
 import { FileActionsMenu, hasFileActions } from './FileActionsMenu'
 import { SharedBadge } from './SharedBadge'
+import { NewSharingBadge, NEW_SHARING_BADGE_INSET } from './NewSharingBadge'
 import { composeRowLabel } from './rowLabels'
 
 export interface FileItem {
@@ -56,6 +57,10 @@ interface Props {
   onMove?: (file: FileItem) => void
   /** Opens the metadata/details sheet for this row. */
   onInfo?: (file: FileItem) => void
+  /** A file somebody shared with us: leaves the sharing. */
+  onLeave?: (file: FileItem) => void
+  /** The sharing this line stands for was not opened yet. */
+  isNewSharing?: boolean
   /** Called after a favorite toggle so the parent can refetch its query — the
    * lists are non-reactive, so without this a removed favorite lingers. */
   onFavoriteChange?: () => void
@@ -79,6 +84,8 @@ export const FileRow = ({
   driveId,
   onMove,
   onInfo,
+  onLeave,
+  isNewSharing,
   onFavoriteChange,
   canFavorite,
   testID
@@ -115,7 +122,8 @@ export const FileRow = ({
       onDelete,
       onTogglePin,
       onMove,
-      onInfo
+      onInfo,
+      onLeave
     }) && !selected
 
   return (
@@ -127,7 +135,10 @@ export const FileRow = ({
       ]}
     >
       <AccessibleRow
-        style={styles.item}
+        style={[
+          styles.item,
+          isNewSharing && { paddingRight: TITLE_RIGHT_INSET + NEW_SHARING_BADGE_INSET }
+        ]}
         testID={testID}
         title={file.name}
         description={description}
@@ -158,6 +169,7 @@ export const FileRow = ({
         onPress={() => onPress(file)}
         onLongPress={onLongPress ? () => onLongPress(file) : undefined}
       />
+      {isNewSharing && !selected ? <NewSharingBadge /> : null}
       <View style={styles.actionSlot} pointerEvents="box-none">
         {hasMenu ? (
           <FileActionsMenu
@@ -171,6 +183,7 @@ export const FileRow = ({
             driveId={driveId}
             onMove={onMove}
             onInfo={onInfo}
+            onLeave={onLeave}
             onFavoriteChange={onFavoriteChange}
             canFavorite={canFavorite}
           />

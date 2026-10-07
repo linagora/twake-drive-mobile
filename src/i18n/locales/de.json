@@ -283,8 +283,8 @@
       "drives": "Drives",
       "driveFileSyncing": "Dieses Dokument wird noch synchronisiert, versuchen Sie es gleich erneut",
       "leave": {
-        "action": "Geteiltes Drive verlassen",
-        "confirmTitle": "Dieses geteilte Drive verlassen?",
+        "action": "Freigabe verlassen",
+        "confirmTitle": "Diese Freigabe verlassen?",
         "confirmBody": "„{{name}}“ ist dann nicht mehr zugänglich. Die Eigentümerin oder der Eigentümer kann es erneut mit Ihnen teilen.",
         "confirm": "Verlassen",
         "success": "Sie haben „{{name}}“ verlassen",
@@ -300,6 +300,7 @@
     }
   },
   "a11y": {
+    "newSharing": "Neue Freigabe",
     "listView": "Listenansicht",
     "gridView": "Rasteransicht",
     "folderActions": "Ordneraktionen für {{name}}",
