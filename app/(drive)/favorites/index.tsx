@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
-import { FlatList, RefreshControl } from 'react-native'
 import { Snackbar } from 'react-native-paper'
 import { useFocusEffect, useRouter } from 'expo-router'
 import { useClient, useQuery } from 'cozy-client'
@@ -8,13 +7,13 @@ import { useTranslation } from 'react-i18next'
 import { AppBar } from '@/ui/AppBar'
 import { useGuardedPush } from '@/ui/useGuardedPush'
 import { ScreenContainer } from '@/ui/ScreenContainer'
-import { EmptyState } from '@/ui/EmptyState'
-import { ErrorState } from '@/ui/ErrorState'
-import { LoadingState } from '@/ui/LoadingState'
+import { FileListView } from '@/ui/FileListView'
 import { FileRow } from '@/ui/FileRow'
+import { FileGridItem } from '@/ui/FileGridItem'
+import { FileListToolbar } from '@/ui/FileListToolbar'
+import { useGridLayout } from '@/ui/useGridLayout'
 import { FolderRow } from '@/ui/FolderRow'
 import { useAuth } from '@/auth/useAuth'
-import { getErrorMessageKey } from '@/utils/errorMessages'
 import { favoritesQuery, favoritesQueryAs, FileQueryResult, TRASH_DIR_ID } from '@/client/queries'
 import { isFavorite } from '@/files/favorites'
 import { openFileFromList } from '@/files/openFromList'
@@ -37,6 +36,7 @@ export default function FavoritesScreen() {
   const { t } = useTranslation()
   const { logout } = useAuth()
   const client = useClient()
+  const { isGrid, numColumns } = useGridLayout()
   const [snackbar, setSnackbar] = useState<string | null>(null)
   const query = useQuery(favoritesQuery(), { as: favoritesQueryAs })
 
@@ -103,6 +103,32 @@ export default function FavoritesScreen() {
     )
   }
 
+  const renderGridItem = ({ item }: { item: FileQueryResult }) => {
+    const isFolder = item.type === 'directory'
+    return (
+      <FileGridItem
+        file={item}
+        onPress={file => {
+          if (isFolder) {
+            guardedPush(`/(drive)/favorites/${file._id}`)
+            return
+          }
+          if (!client) return
+          void openFileFromList(client, router, file).catch(e =>
+            surfaceOpenError(e, setSnackbar, t, 'FavoritesScreen')
+          )
+        }}
+        onShare={file => router.push(`/share/${file._id}`)}
+        onMove={file => router.push(`/move/${file._id}`)}
+        onInfo={isFolder ? undefined : file => router.push(`/metadata/${file._id}`)}
+        onFavoriteChange={() => {
+          setRemovedIds(prev => new Set(prev).add(item._id))
+          void query.fetch()
+        }}
+      />
+    )
+  }
+
   // favoritesQuery's nested-favourite filter is unreliable in the offline pouch
   // replica and returns every file (favourites sort first); filter it down to
   // real favourites here (isFavorite is a strict `=== true`).
@@ -114,30 +140,26 @@ export default function FavoritesScreen() {
   return (
     <ScreenContainer surface>
       <AppBar title={t('drive.favorites')} onLogout={logout} />
-      {isFirstLoad(query) && data.length === 0 ? (
-        <LoadingState />
-      ) : query.fetchStatus === 'failed' ? (
-        <ErrorState
-          message={t(getErrorMessageKey(query.lastError))}
-          onRetry={() => query.fetch()}
-        />
-      ) : data.length === 0 ? (
-        <EmptyState icon="star" message={t('drive.emptyFavorites')} />
-      ) : (
-        <FlatList
-          data={data}
-          keyExtractor={item => item._id}
-          renderItem={renderItem}
-          // The query over-fetches and isFavorite filters client-side, so a page
-          // can yield few or no rows while more favourites remain further down
-          // the index. Keep pulling pages instead of stopping at the first cap.
-          onEndReachedThreshold={0.5}
-          onEndReached={() => {
-            fetchNextPage(query)
-          }}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-        />
-      )}
+      <FileListToolbar sortable={false} />
+      <FileListView
+        items={data}
+        keyExtractor={item => item._id}
+        renderItem={isGrid ? renderGridItem : renderItem}
+        numColumns={numColumns}
+        loading={isFirstLoad(query)}
+        error={query.fetchStatus === 'failed' ? query.lastError : undefined}
+        onRetry={() => query.fetch()}
+        refreshing={refreshing}
+        onRefresh={onRefresh}
+        // The query over-fetches and isFavorite filters client-side, so a page
+        // can yield few or no rows while more favourites remain further down
+        // the index. Keep pulling pages instead of stopping at the first cap.
+        onEndReached={() => {
+          fetchNextPage(query)
+        }}
+        emptyMessage="drive.emptyFavorites"
+        emptyIcon="star"
+      />
       <Snackbar visible={!!snackbar} onDismiss={() => setSnackbar(null)} duration={3000}>
         {snackbar ?? ''}
       </Snackbar>

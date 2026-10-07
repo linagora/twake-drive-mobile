@@ -25,6 +25,10 @@ interface Props {
   onTogglePin?: (file: FileQueryResult) => void
   onMove?: (file: FileQueryResult) => void
   onInfo?: (file: FileQueryResult) => void
+  /** Recipient side of a shared drive: the folder menu offers to leave it. */
+  onLeave?: (file: FileQueryResult) => void
+  /** Off for a tile that stands for a sharing rather than for a document of ours. */
+  canFavorite?: boolean
   onFavoriteChange?: () => void
 }
 
@@ -47,6 +51,8 @@ export function FileGridItem({
   onTogglePin,
   onMove,
   onInfo,
+  onLeave,
+  canFavorite,
   onFavoriteChange
 }: Props) {
   const { colors, roundness } = useTheme()
@@ -74,7 +80,8 @@ export function FileGridItem({
     onInfo: asItem(onInfo),
     onFavoriteChange
   }
-  const { onInfo: onInfoAction, ...folderActions } = fileActions
+  const { onInfo: onInfoAction, ...sharedActions } = fileActions
+  const folderActions = { ...sharedActions, onLeave: asItem(onLeave) }
   const showActions =
     !selected && (isFolder ? hasFolderActions(folderActions) : hasFileActions(fileActions))
 
@@ -121,6 +128,8 @@ export function FileGridItem({
               onDelete={fileActions.onDelete}
               onTogglePin={fileActions.onTogglePin}
               onMove={fileActions.onMove}
+              onLeave={folderActions.onLeave}
+              canFavorite={canFavorite}
               onFavoriteChange={onFavoriteChange}
               testID="folder-grid-actions"
             />

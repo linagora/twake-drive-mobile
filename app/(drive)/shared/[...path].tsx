@@ -45,7 +45,9 @@ import { openFileFromList } from '@/files/openFromList'
 import { useFileRowActions } from '@/files/useFileRowActions'
 import { surfaceOpenError } from '@/files/errors'
 import { cozyTokens } from '@/ui/theme'
-import { SortControl } from '@/ui/SortControl'
+import { FileListToolbar } from '@/ui/FileListToolbar'
+import { FileGridItem } from '@/ui/FileGridItem'
+import { useGridLayout } from '@/ui/useGridLayout'
 import { useFolderSort } from '@/ui/useFolderSort'
 import { fetchNextPage } from '@/drive/paging'
 import { isFirstLoad } from '@/client/queryLoading'
@@ -86,6 +88,7 @@ export default function SharedScreen() {
   const canWrite = useHasWriteAccess(isRoot ? undefined : safeCurrentDirId)
 
   const { sort } = useFolderSort()
+  const { isGrid, numColumns } = useGridLayout()
   const sharingContext = useContext(SharingContext)
   const { drives, refresh: refreshDrives } = useSharedDrives()
   const sharedIds = useSharedFileIds(tab === 'by-me' ? 'by-me' : 'with-me')
@@ -290,6 +293,72 @@ export default function SharedScreen() {
     return item.file ? renderFileItem({ item: item.file }) : null
   }
 
+  const renderGridFileItem = ({ item }: { item: FileQueryResult }): React.ReactElement => {
+    const isFolder = item.type === 'directory'
+    const handlers = isFolder ? actions.folderProps(item) : actions.fileProps(item)
+    return (
+      <FileGridItem
+        file={item}
+        {...handlers}
+        onInfo={isFolder ? undefined : file => router.push(`/metadata/${file._id}`)}
+        onPress={file => {
+          if (isFolder) guardedPush(`/(drive)/shared/${[...(path ?? []), file._id].join('/')}`)
+          else (handlers as ReturnType<typeof actions.fileProps>).onPress(file)
+        }}
+      />
+    )
+  }
+
+  // The grid counterpart of renderRow: same rows, same menus, drawn as tiles.
+  const renderGridRow = ({
+    item
+  }: {
+    item: SharingRow<FileQueryResult>
+  }): React.ReactElement | null => {
+    if (!item.drive) return item.file ? renderGridFileItem({ item: item.file }) : null
+    const drive = item.drive
+    const document = item.file
+    if (drive.rootType === 'file') {
+      return (
+        <FileGridItem
+          file={{
+            ...(document ??
+              ({
+                _id: sharedDriveRowId(drive),
+                _type: 'io.cozy.files',
+                type: 'file',
+                name: drive.name,
+                mime: drive.mime
+              } as FileQueryResult)),
+            size: document?.size ?? null
+          }}
+          onPress={() => void onDriveFilePress(drive)}
+        />
+      )
+    }
+    const menu = driveRowMenu(drive)
+    const { onShare } = actions.folderProps(
+      (document ?? { _id: drive.rootFolderId ?? drive.driveId }) as FileQueryResult
+    )
+    return (
+      <FileGridItem
+        file={
+          document ??
+          ({
+            _id: sharedDriveRowId(drive),
+            _type: 'io.cozy.files',
+            type: 'directory',
+            name: drive.name
+          } as FileQueryResult)
+        }
+        onPress={() => onDrivePress(drive)}
+        onShare={menu.canShare ? onShare : undefined}
+        onLeave={menu.canLeave ? () => setLeaving(drive) : undefined}
+        canFavorite={false}
+      />
+    )
+  }
+
   const folderListing: FileQueryResult[] = isRoot
     ? []
     : [
@@ -371,15 +440,12 @@ export default function SharedScreen() {
           ]}
         />
       ) : null}
-      {isRoot ? (
-        <View style={styles.toolbar}>
-          <SortControl />
-        </View>
-      ) : null}
+      <FileListToolbar sortable={isRoot} />
       <FileListView
         items={rows}
         keyExtractor={item => item.key}
-        renderItem={renderRow}
+        renderItem={isGrid ? renderGridRow : renderRow}
+        numColumns={numColumns}
         loading={isLoading}
         error={isFailed ? error : undefined}
         onRetry={retry}
@@ -420,10 +486,5 @@ export default function SharedScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  toolbar: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    paddingHorizontal: cozyTokens.spacing.sm
-  },
   row: { paddingVertical: 4 }
 })

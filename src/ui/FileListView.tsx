@@ -21,6 +21,8 @@ export interface FileListViewProps<T> {
   onEndReached?: () => void
   /** i18n key of what to say when there is nothing to list. */
   emptyMessage: string
+  /** Icon of the empty state, when the default folder does not fit. */
+  emptyIcon?: string
   /** Rendered above the list, and kept on screen while it is empty. */
   header?: React.ReactNode
   /** More than one lays the items out as a grid; the last row is padded so a
@@ -53,6 +55,7 @@ export const FileListView = <T,>({
   onRefresh,
   onEndReached,
   emptyMessage,
+  emptyIcon,
   header,
   numColumns,
   contentContainerStyle,
@@ -102,7 +105,7 @@ export const FileListView = <T,>({
           isPlaceholder(item) ? <View style={styles.placeholder} /> : renderItem({ item })
         }
         numColumns={numColumns}
-        ListEmptyComponent={<EmptyState message={t(emptyMessage)} />}
+        ListEmptyComponent={<EmptyState icon={emptyIcon} message={t(emptyMessage)} />}
         contentContainerStyle={[
           styles.content,
           isEmpty ? styles.empty : undefined,
