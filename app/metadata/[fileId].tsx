@@ -183,7 +183,7 @@ export default function MetadataRoute() {
   if (fileLookup.fetchStatus === 'loading' && !file) {
     return (
       <Portal.Host>
-        <ScreenContainer>
+        <ScreenContainer sheet>
           <LoadingState />
         </ScreenContainer>
       </Portal.Host>
@@ -192,7 +192,7 @@ export default function MetadataRoute() {
   if (!file) {
     return (
       <Portal.Host>
-        <ScreenContainer>
+        <ScreenContainer sheet>
           <ErrorState message={t('drive.preview.loadFailed')} onRetry={() => fileLookup.fetch()} />
         </ScreenContainer>
       </Portal.Host>
@@ -201,7 +201,7 @@ export default function MetadataRoute() {
 
   return (
     <Portal.Host>
-      <ScreenContainer>
+      <ScreenContainer sheet>
         <ScrollView contentContainerStyle={styles.container}>
           <View style={styles.header}>
             {isPinned && offlineEntry?.state === 'downloaded' && file.class === 'image' ? (

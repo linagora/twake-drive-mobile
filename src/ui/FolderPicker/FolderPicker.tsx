@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { FlatList, Platform, StatusBar, StyleSheet, View } from 'react-native'
+import { FlatList, StyleSheet, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Appbar, Button, Portal, useTheme } from 'react-native-paper'
 import { useTranslation } from 'react-i18next'
@@ -7,6 +7,7 @@ import { useClient, useQuery } from 'cozy-client'
 
 import { CozyIcon } from '@/ui/icons/CozyIcon'
 import { ScreenContainer } from '@/ui/ScreenContainer'
+import { useSheetTopInset } from '@/ui/sheetInset'
 import { LoadingState } from '@/ui/LoadingState'
 import { EmptyState } from '@/ui/EmptyState'
 import { ErrorState } from '@/ui/ErrorState'
@@ -56,7 +57,7 @@ export const FolderPicker = ({
   const { t } = useTranslation()
   const theme = useTheme()
   const insets = useSafeAreaInsets()
-  const headerTopInset = Platform.OS === 'ios' ? 0 : insets.top || StatusBar.currentHeight || 0
+  const headerTopInset = useSheetTopInset()
   const client = useClient()
   const [creatingFolder, setCreatingFolder] = useState(false)
 
