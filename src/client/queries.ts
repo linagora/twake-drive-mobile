@@ -166,4 +166,6 @@ export interface ContactQueryResult {
   name?: { givenName?: string; familyName?: string }
   email?: { address: string; primary?: boolean; type?: string }[]
   cozy?: { url: string; primary?: boolean }[]
+  /** True on the contact that stands for the instance owner (the current user). */
+  me?: boolean
 }

@@ -37,6 +37,20 @@ export const contactPrimaryEmail = (contact: ContactQueryResult): string | undef
   return primary ?? emails[0]?.address
 }
 
+/**
+ * Addresses of the current user, read from the contact flagged `me: true`
+ * (what cozy-sharing's `isCurrentUser` keys on). Lowercased.
+ */
+export const ownEmails = (contacts: readonly ContactQueryResult[]): string[] =>
+  contacts
+    .filter(c => c.me === true)
+    .flatMap(c => (c.email ?? []).map(e => e.address))
+    .filter((a): a is string => !!a)
+    .map(a => a.trim().toLowerCase())
+
+export const isOwnEmail = (contacts: readonly ContactQueryResult[], email: string): boolean =>
+  ownEmails(contacts).includes(email.trim().toLowerCase())
+
 export const toSuggestion = (contact: ContactQueryResult): ContactSuggestion | null => {
   const email = contactPrimaryEmail(contact)
   // A real recipient needs an actual email address. Throwaway "contacts" created
@@ -58,8 +72,11 @@ export const filterContactSuggestions = (
   excludeEmails: readonly string[] = []
 ): ContactSuggestion[] => {
   const q = normalize(query)
-  const exclude = new Set(excludeEmails.map(e => e.toLowerCase()))
-  const all = contacts.map(toSuggestion).filter((s): s is ContactSuggestion => s !== null)
+  const exclude = new Set([...excludeEmails.map(e => e.toLowerCase()), ...ownEmails(contacts)])
+  const all = contacts
+    .filter(c => c.me !== true)
+    .map(toSuggestion)
+    .filter((s): s is ContactSuggestion => s !== null)
   if (q.length === 0) {
     return all.filter(s => !exclude.has(s.email.toLowerCase())).slice(0, MAX_SUGGESTIONS)
   }
@@ -89,6 +106,7 @@ export const findContactIdByEmail = (
   const target = normalize(email)
   if (target.length === 0) return undefined
   for (const contact of contacts) {
+    if (contact.me === true) continue
     const suggestion = toSuggestion(contact)
     if (!suggestion) continue
     if (suggestion.email.toLowerCase() === target) return suggestion._id

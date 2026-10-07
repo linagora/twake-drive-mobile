@@ -148,6 +148,7 @@
       "inheritedFrom": "Inherited from {{name}}",
       "errorLoad": "Could not load sharing info",
       "errorMutate": "Operation failed",
+      "errorSelf": "You can't share with yourself",
       "statusPending": "Pending",
       "statusReady": "Active",
       "statusRevoked": "Revoked"

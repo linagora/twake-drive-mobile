@@ -148,6 +148,7 @@
       "inheritedFrom": "Geerbt von {{name}}",
       "errorLoad": "Freigabeinformationen konnten nicht geladen werden",
       "errorMutate": "Vorgang fehlgeschlagen",
+      "errorSelf": "Sie können nicht mit sich selbst teilen",
       "statusPending": "Ausstehend",
       "statusReady": "Aktiv",
       "statusRevoked": "Widerrufen"

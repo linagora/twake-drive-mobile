@@ -19,7 +19,11 @@ import * as Clipboard from 'expo-clipboard'
 
 import { useFlag } from '@/client/useFlag'
 import { fileByIdQuery, fileByIdQueryAs, FileQueryResult } from '@/client/queries'
-import { filterContactSuggestions, findContactIdByEmail } from '@/files/contactSuggestions'
+import {
+  filterContactSuggestions,
+  findContactIdByEmail,
+  isOwnEmail
+} from '@/files/contactSuggestions'
 import { useReachableContacts } from '@/files/useReachableContacts'
 import {
   LinkEditingRights,
@@ -243,6 +247,11 @@ export default function ShareRoute() {
     if (!requireOnline(isOnline, setSnack, t)) return
     const email = emailInput.trim()
     if (!client || !file || !email || mutating) return
+    // Sharing with yourself corrupts the sharing: refuse it.
+    if (isOwnEmail(contacts, email)) {
+      setError(t('drive.share.errorSelf'))
+      return
+    }
     setMutating(true)
     setError(null)
     try {

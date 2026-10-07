@@ -142,6 +142,7 @@
       "inheritedFrom": "Kế thừa từ {{name}}",
       "errorLoad": "Không thể tải thông tin chia sẻ",
       "errorMutate": "Thao tác thất bại",
+      "errorSelf": "Bạn không thể chia sẻ với chính mình",
       "statusPending": "Đang chờ",
       "statusReady": "Đang hoạt động",
       "statusRevoked": "Đã thu hồi"

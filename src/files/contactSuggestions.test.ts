@@ -5,6 +5,7 @@ import {
   contactPrimaryEmail,
   filterContactSuggestions,
   findContactIdByEmail,
+  isOwnEmail,
   toSuggestion
 } from './contactSuggestions'
 
@@ -251,5 +252,30 @@ describe('findContactIdByEmail', () => {
 
   it('requires a full-address match, not a substring', () => {
     expect(findContactIdByEmail(contacts, 'alice@exa')).toBeUndefined()
+  })
+})
+
+describe('current user (me: true)', () => {
+  const me = c({
+    _id: 'me',
+    me: true,
+    fullname: 'Quentin Owner',
+    email: [{ address: 'Owner@Example.com', primary: true }]
+  })
+  const dup = c({ _id: 'dup', fullname: 'Owner Again', email: [{ address: 'owner@example.com' }] })
+  const bob = c({ _id: 'bob', fullname: 'Bob', email: [{ address: 'bob@example.com' }] })
+
+  it('never proposes the owner, nor another contact with the owner address', () => {
+    expect(filterContactSuggestions([me, dup, bob], '').map(s => s._id)).toEqual(['bob'])
+    expect(filterContactSuggestions([me, dup, bob], 'owner')).toEqual([])
+  })
+
+  it('does not resolve the owner as an existing contact', () => {
+    expect(findContactIdByEmail([me], 'owner@example.com')).toBeUndefined()
+  })
+
+  it('recognises the owner address, case-insensitively', () => {
+    expect(isOwnEmail([me, bob], ' OWNER@example.com ')).toBe(true)
+    expect(isOwnEmail([me, bob], 'bob@example.com')).toBe(false)
   })
 })
