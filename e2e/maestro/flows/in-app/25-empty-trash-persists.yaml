@@ -1,0 +1,49 @@
+appId: com.linagora.twakedrive
+tags:
+  - inapp
+onFlowComplete:
+  - runFlow: ../../subflows/cleanup.yaml
+---
+# Emptying the trash sticks: after the app is killed and started again, what
+# was in the trash does not come back from the local replica.
+- runScript:
+    file: ../../scripts/seed.js
+    env:
+      SEED: '[{"key":"folder","kind":"folder","prefix":"E2E-empty-trash"}]'
+- runFlow: ../../subflows/openDrive.yaml
+- extendedWaitUntil:
+    visible:
+      id: 'folder-row:${output.folder.name}'
+    timeout: 60000
+- tapOn:
+    id: 'folder-actions:${output.folder.name}'
+- waitForAnimationToEnd
+- tapOn:
+    id: 'action-delete'
+- waitForAnimationToEnd
+- tapOn:
+    id: 'confirm-delete-submit'
+- extendedWaitUntil:
+    notVisible:
+      id: 'folder-row:${output.folder.name}'
+    timeout: 15000
+- tapOn:
+    id: 'tab-trash'
+- extendedWaitUntil:
+    visible: '${output.folder.name}'
+    timeout: 30000
+- tapOn:
+    id: 'trash-empty-fab'
+- waitForAnimationToEnd
+- tapOn:
+    id: 'trash-empty-confirm'
+- extendedWaitUntil:
+    notVisible: '${output.folder.name}'
+    timeout: 15000
+- launchApp:
+    stopApp: true
+- runFlow: ../../subflows/assertLoggedIn.yaml
+- tapOn:
+    id: 'tab-trash'
+- waitForAnimationToEnd
+- assertNotVisible: '${output.folder.name}'
