@@ -309,6 +309,7 @@
     "gridView": "Vista de cuadrícula",
     "folderActions": "Acciones de la carpeta {{name}}",
     "fileActions": "Acciones del archivo {{name}}",
+    "closeActions": "Cerrar las acciones",
     "removeRecipient": "Quitar destinatario",
     "play": "Reproducir",
     "pause": "Pausar",

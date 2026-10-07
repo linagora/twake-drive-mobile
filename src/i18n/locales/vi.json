@@ -291,6 +291,7 @@
     "gridView": "Xem dạng lưới",
     "folderActions": "Tác vụ cho thư mục {{name}}",
     "fileActions": "Tác vụ cho tệp {{name}}",
+    "closeActions": "Đóng thao tác",
     "removeRecipient": "Xóa người nhận",
     "play": "Phát",
     "pause": "Tạm dừng",

@@ -309,6 +309,7 @@
     "gridView": "Vue grille",
     "folderActions": "Actions du dossier {{name}}",
     "fileActions": "Actions du fichier {{name}}",
+    "closeActions": "Fermer les actions",
     "removeRecipient": "Retirer le destinataire",
     "play": "Lire",
     "pause": "Mettre en pause",

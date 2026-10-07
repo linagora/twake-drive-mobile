@@ -300,6 +300,7 @@
     "gridView": "Grid view",
     "folderActions": "Folder actions for {{name}}",
     "fileActions": "File actions for {{name}}",
+    "closeActions": "Close actions",
     "removeRecipient": "Remove recipient",
     "play": "Play",
     "pause": "Pause",

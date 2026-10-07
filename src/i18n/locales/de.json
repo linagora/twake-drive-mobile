@@ -300,6 +300,7 @@
     "gridView": "Rasteransicht",
     "folderActions": "Ordneraktionen für {{name}}",
     "fileActions": "Dateiaktionen für {{name}}",
+    "closeActions": "Aktionen schließen",
     "removeRecipient": "Empfänger entfernen",
     "play": "Abspielen",
     "pause": "Pausieren",

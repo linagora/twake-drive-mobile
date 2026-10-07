@@ -318,6 +318,7 @@
     "gridView": "Сетка",
     "folderActions": "Действия с папкой {{name}}",
     "fileActions": "Действия с файлом {{name}}",
+    "closeActions": "Закрыть действия",
     "removeRecipient": "Удалить получателя",
     "play": "Воспроизвести",
     "pause": "Пауза",
