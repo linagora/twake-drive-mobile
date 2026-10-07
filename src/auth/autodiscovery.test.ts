@@ -120,16 +120,16 @@ describe('getLoginUri', () => {
 describe('getTwakeWorkplaceLoginUri', () => {
   // The Twake consumer flow goes through the Cozy cloudery (manager), not
   // sign-up.twake.app directly — the cloudery mints the fqdn+code the app needs.
-  it('opens the cloudery login in sign-in mode with the twakedrive redirect', () => {
-    const uri = getTwakeWorkplaceLoginUri('signin')
+  it('opens the cloudery login in sign-in mode with the twakedrive redirect', async () => {
+    const uri = await getTwakeWorkplaceLoginUri('signin')
     expect(uri.host).toBe('manager.cozycloud.cc')
     expect(uri.pathname).toBe('/linagora/twake_prod')
     expect(uri.searchParams.get('redirect_after_oidc')).toBe('twakedrive://')
     expect(uri.searchParams.get('register')).toBeNull()
   })
 
-  it('opens the cloudery register flow in sign-up mode with the twakedrive redirect', () => {
-    const uri = getTwakeWorkplaceLoginUri('signup')
+  it('opens the cloudery register flow in sign-up mode with the twakedrive redirect', async () => {
+    const uri = await getTwakeWorkplaceLoginUri('signup')
     expect(uri.host).toBe('manager.cozycloud.cc')
     expect(uri.pathname).toBe('/linagora/twake_prod')
     expect(uri.searchParams.get('redirect_after_oidc')).toBe('twakedrive://')

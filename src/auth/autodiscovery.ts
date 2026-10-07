@@ -42,9 +42,7 @@ export const fetchTwakeConfiguration = async (
   }
 }
 
-import { redirectUri } from './redirectUri'
-
-const REDIRECT_SCHEME = redirectUri()
+import { resetRedirectUri, resolveRedirectUri } from './redirectUri'
 
 // The Twake consumer sign-in / sign-up goes through the Cozy cloudery (manager),
 // which orchestrates the sign-up.twake.app login (including the already-signed-in
@@ -53,10 +51,14 @@ const REDIRECT_SCHEME = redirectUri()
 // URL. Opening sign-up.twake.app directly does not yield an OIDC code for Drive.
 export const TWAKE_CLOUDERY_LOGIN_URL = 'https://manager.cozycloud.cc/linagora/twake_prod'
 
-const buildLoginUri = (flagshipUri: string, extra?: Record<string, string>): URL | null => {
+const buildLoginUri = (
+  flagshipUri: string,
+  redirect: string,
+  extra?: Record<string, string>
+): URL | null => {
   try {
     const uri = new URL(flagshipUri)
-    uri.searchParams.append('redirect_after_oidc', REDIRECT_SCHEME)
+    uri.searchParams.append('redirect_after_oidc', redirect)
     for (const [key, value] of Object.entries(extra ?? {})) uri.searchParams.append(key, value)
     return uri
   } catch {
@@ -70,12 +72,15 @@ export const getLoginUri = async (email: string): Promise<URL | null> => {
 
   const config = await fetchTwakeConfiguration(domain)
   const flagshipUri = config?.['twake-flagship-login-uri']
-  return flagshipUri ? buildLoginUri(flagshipUri, { login_hint: email.trim() }) : null
+  if (!flagshipUri) return null
+  resetRedirectUri()
+  return buildLoginUri(flagshipUri, await resolveRedirectUri(), { login_hint: email.trim() })
 }
 
-export const getTwakeWorkplaceLoginUri = (mode: 'signin' | 'signup'): URL => {
+export const getTwakeWorkplaceLoginUri = async (mode: 'signin' | 'signup'): Promise<URL> => {
+  resetRedirectUri()
   const uri = new URL(TWAKE_CLOUDERY_LOGIN_URL)
-  uri.searchParams.append('redirect_after_oidc', REDIRECT_SCHEME)
+  uri.searchParams.append('redirect_after_oidc', await resolveRedirectUri())
   // The cloudery selects the register flow with `register=true`; sign-in is the
   // default. The redirect comes back as twakedrive://?fqdn=…&code=…, consumed by the
   // same parseCallbackUrl + registerSession path as the org login.

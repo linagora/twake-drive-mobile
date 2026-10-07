@@ -7,6 +7,7 @@ import { ensureFileProviderDomain, removeFileProviderDomain } from './fileProvid
 interface TwakeAuthBridgeNative {
   syncSession: (json: string) => Promise<boolean>
   clearSession: () => Promise<boolean>
+  isAppLinkUsable: () => Promise<boolean>
 }
 
 const native: TwakeAuthBridgeNative | undefined = NativeModules.TwakeAuthBridge as
@@ -41,5 +42,21 @@ export const clearNativeSession = async (): Promise<void> => {
     await native.clearSession()
   } catch (err) {
     console.warn('[twakeAuthBridge] clearSession failed', err)
+  }
+}
+
+/**
+ * Whether Android will open links.twake.app in this app, i.e. whether the App
+ * Link is verified (or the user enabled it by hand). Resolves true wherever the
+ * answer is unknown (no native module, API below 31, a failing call): the App
+ * Link is then the historical behaviour.
+ */
+export const isAppLinkUsable = async (): Promise<boolean> => {
+  if (Platform.OS !== 'android' || !native?.isAppLinkUsable) return true
+  try {
+    return await native.isAppLinkUsable()
+  } catch (err) {
+    console.warn('[twakeAuthBridge] isAppLinkUsable failed', err)
+    return true
   }
 }

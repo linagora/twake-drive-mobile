@@ -41,7 +41,19 @@ jest.mock('cozy-client', () => {
   return { __esModule: true, default: MockCozyClient }
 })
 
+const mockResolveRedirectUri = jest.fn()
+jest.mock('./redirectUri', () => ({
+  ...jest.requireActual('./redirectUri'),
+  resolveRedirectUri: () => mockResolveRedirectUri()
+}))
+
+import CozyClient from 'cozy-client'
+
 import { registerSession } from './registerSession'
+import { CUSTOM_SCHEME_REDIRECT, UNIVERSAL_LINK_REDIRECT } from './redirectUri'
+import type { OAuthOptions } from './types'
+
+const mockCozyClient = CozyClient as unknown as jest.Mock
 
 const callback = { fqdn: 'mine.twake.test', code: 'OIDC-CODE' } as Parameters<
   typeof registerSession
@@ -50,7 +62,44 @@ const callback = { fqdn: 'mine.twake.test', code: 'OIDC-CODE' } as Parameters<
 describe('registerSession', () => {
   beforeEach(() => {
     mockAuthorize.mockClear()
+    mockStackClient.register.mockClear()
+    mockCozyClient.mockClear()
     mockTryStoreAttestation.mockClear().mockResolvedValue(true)
+    mockResolveRedirectUri.mockResolvedValue(UNIVERSAL_LINK_REDIRECT)
+  })
+
+  const registeredRedirect = (): unknown =>
+    (mockCozyClient.mock.calls[0][0] as { oauth: OAuthOptions }).oauth.redirectURI
+
+  it('registers the client with the redirect chosen for this sign-in', async () => {
+    await registerSession(callback)
+    expect(registeredRedirect()).toBe(UNIVERSAL_LINK_REDIRECT)
+    mockCozyClient.mockClear()
+    mockResolveRedirectUri.mockResolvedValue(CUSTOM_SCHEME_REDIRECT)
+    await registerSession(callback)
+    expect(registeredRedirect()).toBe(CUSTOM_SCHEME_REDIRECT)
+  })
+
+  it('registers anew when the stored client uses an App Link Android does not honour', async () => {
+    mockResolveRedirectUri.mockResolvedValue(CUSTOM_SCHEME_REDIRECT)
+    const stored = {
+      clientID: 'old',
+      clientSecret: 's',
+      redirectURI: UNIVERSAL_LINK_REDIRECT
+    } as OAuthOptions
+    await registerSession(callback, stored)
+    expect(mockStackClient.register).toHaveBeenCalled()
+    expect(registeredRedirect()).toBe(CUSTOM_SCHEME_REDIRECT)
+  })
+
+  it('keeps a stored client when its redirect still works', async () => {
+    const stored = {
+      clientID: 'old',
+      clientSecret: 's',
+      redirectURI: UNIVERSAL_LINK_REDIRECT
+    } as OAuthOptions
+    await registerSession(callback, stored)
+    expect(mockStackClient.register).not.toHaveBeenCalled()
   })
 
   it('asks the store to vouch for the app before the authorize page opens', async () => {
