@@ -7,6 +7,8 @@ const REQUIRED = [
   'cloud2',
   'clockOutline',
   'shareExternal',
+  'share',
+  'shareCircle',
   'trash',
   'magnifier',
   'dots',

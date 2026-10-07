@@ -14,6 +14,7 @@ export function CozyIcon({ name, size = 24, color = '#000000' }: Props) {
           key={i}
           d={p.d}
           fill={p.fill ?? color}
+          fillRule={p.fillRule}
           stroke={p.stroke}
           strokeWidth={p.strokeWidth}
         />
