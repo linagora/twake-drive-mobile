@@ -1,0 +1,47 @@
+appId: com.linagora.twakedrive
+tags:
+  - inapp
+onFlowComplete:
+  - runFlow: ../../subflows/cleanup.yaml
+---
+# A deleted folder offers "Delete permanently" in Corbeille, without
+# "Add to favorites", and is gone for good once the deletion is confirmed.
+- runScript:
+    file: ../../scripts/seed.js
+    env:
+      SEED: '[{"key":"folder","kind":"folder","prefix":"E2E-destroy"}]'
+- runFlow: ../../subflows/openDrive.yaml
+- extendedWaitUntil:
+    visible:
+      id: 'folder-row:${output.folder.name}'
+    timeout: 60000
+- tapOn:
+    id: 'folder-actions:${output.folder.name}'
+- waitForAnimationToEnd
+- tapOn:
+    id: 'action-delete'
+- waitForAnimationToEnd
+- tapOn:
+    id: 'confirm-delete-submit'
+- extendedWaitUntil:
+    notVisible:
+      id: 'folder-row:${output.folder.name}'
+    timeout: 15000
+- tapOn:
+    id: 'tab-trash'
+- extendedWaitUntil:
+    visible: '${output.folder.name}'
+    timeout: 30000
+- tapOn:
+    id: 'folder-actions:${output.folder.name}'
+- waitForAnimationToEnd
+- assertNotVisible:
+    id: 'action-favorite'
+- tapOn:
+    id: 'action-destroy'
+- waitForAnimationToEnd
+- tapOn:
+    id: 'confirm-destroy-submit'
+- extendedWaitUntil:
+    notVisible: '${output.folder.name}'
+    timeout: 15000
