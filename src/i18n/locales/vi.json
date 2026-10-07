@@ -274,8 +274,8 @@
       "drives": "Drive",
       "driveFileSyncing": "Tài liệu này đang được đồng bộ, hãy thử lại sau giây lát",
       "leave": {
-        "action": "Rời drive được chia sẻ",
-        "confirmTitle": "Rời drive được chia sẻ này?",
+        "action": "Rời khỏi chia sẻ",
+        "confirmTitle": "Rời khỏi chia sẻ này?",
         "confirmBody": "“{{name}}” sẽ không còn truy cập được. Chủ sở hữu có thể chia sẻ lại cho bạn.",
         "confirm": "Rời",
         "success": "Bạn đã rời “{{name}}”",
@@ -291,6 +291,7 @@
     }
   },
   "a11y": {
+    "newSharing": "Chia sẻ mới",
     "listView": "Xem dạng danh sách",
     "gridView": "Xem dạng lưới",
     "folderActions": "Tác vụ cho thư mục {{name}}",

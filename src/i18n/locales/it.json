@@ -292,8 +292,8 @@
       "drives": "Drive",
       "driveFileSyncing": "Questo documento si sta sincronizzando, riprova tra un istante",
       "leave": {
-        "action": "Lascia il drive condiviso",
-        "confirmTitle": "Lasciare questo drive condiviso?",
+        "action": "Lascia la condivisione",
+        "confirmTitle": "Lasciare questa condivisione?",
         "confirmBody": "«{{name}}» non sarà più accessibile. Il proprietario potrà condividerlo di nuovo con te.",
         "confirm": "Lascia",
         "success": "Hai lasciato «{{name}}»",
@@ -309,6 +309,7 @@
     }
   },
   "a11y": {
+    "newSharing": "Nuova condivisione",
     "listView": "Vista elenco",
     "gridView": "Vista griglia",
     "folderActions": "Azioni per la cartella {{name}}",

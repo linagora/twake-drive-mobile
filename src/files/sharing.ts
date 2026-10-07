@@ -46,6 +46,9 @@ export interface SharingDoc {
     active?: boolean
     owner?: boolean
     drive?: boolean
+    org_drive?: boolean
+    /** Whether the recipients may share the document further. */
+    open_sharing?: boolean
     /** The `.url` file that stands for the share on the recipient instance
      *  until it is accepted. */
     shortcut_id?: string
@@ -58,6 +61,8 @@ export interface SharingDoc {
   members?: SharingMember[]
   owner?: boolean
   drive?: boolean
+  org_drive?: boolean
+  open_sharing?: boolean
   shortcut_id?: string
   created_at?: string
   updated_at?: string
@@ -412,14 +417,15 @@ export const revokeSharingMember = async (
 }
 
 /**
- * Leave a shared drive somebody shared with us.
+ * Leave a sharing somebody made with us (a shared drive, a shared folder or
+ * file).
  *
  * The recipient counterpart of revoking a member: twake-drive web splits the
- * two the same way, `leaveSharedDrive` against `revokeSelf` for a recipient
- * and the share modal for the owner.
+ * two the same way, `revokeSelf` for a recipient and the share modal for the
+ * owner.
  */
-export const leaveSharedDrive = async (client: CozyClient, driveId: string): Promise<void> => {
-  await getSharings(client).revokeSelf({ _id: driveId })
+export const leaveSharing = async (client: CozyClient, sharingId: string): Promise<void> => {
+  await getSharings(client).revokeSelf({ _id: sharingId })
   triggerPouchReplication(client, 'io.cozy.sharings')
   triggerPouchReplication(client, 'io.cozy.files')
 }

@@ -9,6 +9,14 @@ import { TabBar } from '@/ui/TabBar'
 import { ConfirmDialog } from '@/ui/ConfirmDialog'
 import { CreateMenu } from '@/drive/CreateMenu'
 import { useHasWriteAccess } from '@/sharing/useHasWriteAccess'
+import { canLeave, canReshare } from '@/sharing/writeAccess'
+import { isNewSharingShortcut } from '@/sharing/newShares'
+import {
+  fileRowHandlersFor,
+  folderRowHandlersFor,
+  SharingRowAccess,
+  SharingRowScope
+} from '@/sharing/sharingRowActions'
 import { useGuardedPush } from '@/ui/useGuardedPush'
 import { useTabBack } from '@/ui/useTabBack'
 import { ScreenContainer } from '@/ui/ScreenContainer'
@@ -31,7 +39,8 @@ import { useSharedFileIds } from '@/client/useSharedFiles'
 import { SharingContext } from '@/sharing/SharingProvider'
 import { sharedFileLastUpdatedAt } from '@/sharing/lastUpdatedAt'
 import { useSharedDrives } from '@/files/useSharedDrives'
-import { leaveSharedDrive } from '@/files/sharing'
+import { leaveSharing } from '@/files/sharing'
+import { downloadFolder, DownloadCancelledError } from '@/files/download'
 import { registerSharedDrive } from '@/files/sharedDriveReplication'
 import { querySharedDriveFile, sharedDriveRowId, SharedDriveEntry } from '@/files/sharedDrives'
 import {
@@ -52,6 +61,22 @@ import { useFolderSort } from '@/ui/useFolderSort'
 import { fetchNextPage } from '@/drive/paging'
 import { isFirstLoad } from '@/client/queryLoading'
 
+/** What the row handlers are called with. */
+type SharedDoc = { _id: string; name: string }
+
+/** A sharing the user is about to leave, and the line that stands for it. */
+interface LeaveTarget {
+  name: string
+  sharingId: string
+  rowKey: string
+}
+
+const driveLeaveTarget = (drive: SharedDriveEntry): LeaveTarget => ({
+  name: drive.name,
+  sharingId: drive.driveId,
+  rowKey: `drive:${drive.driveId}`
+})
+
 export default function SharedScreen() {
   const router = useRouter()
   const guardedPush = useGuardedPush()
@@ -69,16 +94,16 @@ export default function SharedScreen() {
           ? [rawPath]
           : undefined
   const [refreshing, setRefreshing] = useState(false)
-  const [leaving, setLeaving] = useState<SharedDriveEntry | null>(null)
-  const [leavePending, setLeavePending] = useState(false)
+  const [leaving, setLeaving] = useState<LeaveTarget | null>(null)
+  // Rows of sharings being left: gone at once, back if the stack refuses.
+  const [leftKeys, setLeftKeys] = useState<ReadonlySet<string>>(() => new Set())
   const client = useClient()
-  // Renaming or trashing something someone shared with you is not offered here.
-  const actions = useFileRowActions({
-    screen: 'SharedScreen',
-    can: { rename: false, delete: false }
-  })
+  // Which of these a row offers depends on whose sharing it is, see
+  // `fileRowHandlersFor`: the owner renames and trashes, a recipient does not.
+  const actions = useFileRowActions({ screen: 'SharedScreen' })
 
   const [tab, setTab] = useState<SharingsTab>('with-me')
+  const instanceUri = (client?.getStackClient().uri as string | undefined) ?? ''
 
   const isRoot = !path || path.length === 0
   const safeCurrentDirId = isRoot ? 'io.cozy.files.root-dir' : path![path!.length - 1]
@@ -181,7 +206,8 @@ export default function SharedScreen() {
       return (
         <FolderRow
           folder={item}
-          {...actions.folderProps(item)}
+          {...folderHandlers(item)}
+          isNewSharing={isNewSharingShortcut(item)}
           testID={`folder-row:${item.name}`}
           onPress={folder =>
             guardedPush(`/(drive)/shared/${[...(path ?? []), folder._id].join('/')}`)
@@ -192,7 +218,8 @@ export default function SharedScreen() {
     return (
       <FileRow
         file={{ ...item, size: item.size ?? null }}
-        {...actions.fileProps(item)}
+        {...fileHandlers(item)}
+        isNewSharing={isNewSharingShortcut(item)}
         testID={`file-row:${item.name}`}
       />
     )
@@ -220,20 +247,73 @@ export default function SharedScreen() {
   }
 
   const confirmLeave = async (): Promise<void> => {
-    const drive = leaving
-    if (!client || !drive) return
-    setLeavePending(true)
+    const target = leaving
+    if (!client || !target) return
+    setLeaving(null)
+    const setLeft = (left: boolean): void =>
+      setLeftKeys(previous => {
+        const next = new Set(previous)
+        if (left) next.add(target.rowKey)
+        else next.delete(target.rowKey)
+        return next
+      })
+    setLeft(true)
     try {
-      await leaveSharedDrive(client, drive.driveId)
-      setLeaving(null)
-      actions.notify(t('drive.sharings.leave.success', { name: drive.name }))
-      await refreshDrives()
+      await leaveSharing(client, target.sharingId)
+      actions.notify(t('drive.sharings.leave.success', { name: target.name }))
+      await Promise.all([refreshDrives(), sharingContext.refresh()])
+      setLeft(false)
     } catch (e) {
-      console.error('[SharedScreen] leaving the drive failed', e)
+      console.error('[SharedScreen] leaving the sharing failed', e)
+      setLeft(false)
       actions.notify(t('drive.sharings.leave.error'))
-    } finally {
-      setLeavePending(false)
     }
+  }
+
+  const scopeOf = (): SharingRowScope =>
+    !isRoot ? 'nested' : tab === 'by-me' ? 'by-me' : 'with-me'
+
+  // The member's rights on a shared document, read the way cozy-sharing does.
+  const accessOf = (item: FileQueryResult): SharingRowAccess => {
+    const state = { byId: sharingContext.byId, sharings: sharingContext.sharings }
+    return {
+      canReshare: canReshare(state, item._id, instanceUri),
+      canLeave: canLeave(state, item._id)
+    }
+  }
+
+  const leaveTargetOf = (item: FileQueryResult): LeaveTarget | null => {
+    const sharingId = sharingContext.byId.get(item._id)?.sharing?._id
+    return sharingId ? { name: item.name, sharingId, rowKey: item._id } : null
+  }
+
+  const downloadSharedFolder = (folder: { _id: string; name: string }): void => {
+    if (!client) return
+    void downloadFolder(client, folder).catch(e => {
+      if (e instanceof DownloadCancelledError) return
+      console.error('[SharedScreen] folder download failed', e)
+      actions.notify(t('errors.generic'))
+    })
+  }
+
+  const fileHandlers = (item: FileQueryResult) => {
+    const target = leaveTargetOf(item)
+    return fileRowHandlersFor<SharedDoc, ReturnType<typeof actions.fileProps>>(
+      scopeOf(),
+      actions.fileProps(item),
+      accessOf(item),
+      () => target && setLeaving(target)
+    )
+  }
+
+  const folderHandlers = (item: FileQueryResult) => {
+    const target = leaveTargetOf(item)
+    return folderRowHandlersFor<SharedDoc, ReturnType<typeof actions.folderProps>>(
+      scopeOf(),
+      actions.folderProps(item),
+      accessOf(item),
+      { leave: () => target && setLeaving(target), download: downloadSharedFolder }
+    )
   }
 
   const onDrivePress = (drive: SharedDriveEntry): void => {
@@ -275,7 +355,7 @@ export default function SharedScreen() {
       }
       // The owner reopens the share sheet and revokes from there; a recipient
       // leaves instead. Same split as twake-drive web's shareSharedDrive and
-      // leaveSharedDrive. Favouriting is off: the row stands for a sharing.
+      // leaveSharing. Favouriting is off: the row stands for a sharing.
       const menu = driveRowMenu(drive)
       const { onShare } = actions.folderProps(
         (document ?? { _id: drive.rootFolderId ?? drive.driveId }) as FileQueryResult
@@ -285,7 +365,7 @@ export default function SharedScreen() {
           folder={document ?? { _id: sharedDriveRowId(drive), name: drive.name }}
           onPress={() => onDrivePress(drive)}
           onShare={menu.canShare ? onShare : undefined}
-          onLeave={menu.canLeave ? () => setLeaving(drive) : undefined}
+          onLeave={menu.canLeave ? () => setLeaving(driveLeaveTarget(drive)) : undefined}
           canFavorite={false}
         />
       )
@@ -295,12 +375,12 @@ export default function SharedScreen() {
 
   const renderGridFileItem = ({ item }: { item: FileQueryResult }): React.ReactElement => {
     const isFolder = item.type === 'directory'
-    const handlers = isFolder ? actions.folderProps(item) : actions.fileProps(item)
+    const handlers = isFolder ? folderHandlers(item) : fileHandlers(item)
     return (
       <FileGridItem
         file={item}
         {...handlers}
-        onInfo={isFolder ? undefined : file => router.push(`/metadata/${file._id}`)}
+        isNewSharing={isNewSharingShortcut(item)}
         onPress={file => {
           if (isFolder) guardedPush(`/(drive)/shared/${[...(path ?? []), file._id].join('/')}`)
           else (handlers as ReturnType<typeof actions.fileProps>).onPress(file)
@@ -353,7 +433,7 @@ export default function SharedScreen() {
         }
         onPress={() => onDrivePress(drive)}
         onShare={menu.canShare ? onShare : undefined}
-        onLeave={menu.canLeave ? () => setLeaving(drive) : undefined}
+        onLeave={menu.canLeave ? () => setLeaving(driveLeaveTarget(drive)) : undefined}
         canFavorite={false}
       />
     )
@@ -371,7 +451,7 @@ export default function SharedScreen() {
 
   const orgDrives = useMemo(() => drivesForTab(drives, 'drives'), [drives])
 
-  const rows = useMemo<SharingRow<FileQueryResult>[]>(
+  const builtRows = useMemo<SharingRow<FileQueryResult>[]>(
     () =>
       buildSharingRows({
         files: [...data, ...((driveRootsQuery.data as FileQueryResult[] | null | undefined) ?? [])],
@@ -383,6 +463,8 @@ export default function SharedScreen() {
       }),
     [data, driveRootsQuery.data, drives, isRoot, sharingContext.byId, sort.attr, sort.dir, tab]
   )
+
+  const rows = useMemo(() => builtRows.filter(row => !leftKeys.has(row.key)), [builtRows, leftKeys])
 
   const showsDrives = isRoot && tab === 'drives'
   const isLoading = showsDrives
@@ -471,13 +553,12 @@ export default function SharedScreen() {
       <ConfirmDialog
         visible={leaving !== null}
         destructive
-        loading={leavePending}
         title={t('drive.sharings.leave.confirmTitle')}
         message={t('drive.sharings.leave.confirmBody', { name: leaving?.name ?? '' })}
         confirmLabel={t('drive.sharings.leave.confirm')}
         testID="confirm-leave-drive"
         onConfirm={() => void confirmLeave()}
-        onDismiss={() => (leavePending ? undefined : setLeaving(null))}
+        onDismiss={() => setLeaving(null)}
       />
       {actions.dialogs}
     </ScreenContainer>
