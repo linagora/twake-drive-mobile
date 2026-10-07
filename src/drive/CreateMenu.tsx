@@ -8,6 +8,7 @@ import { CreatedEntry, useCreateHandlers } from './useCreateHandlers'
 
 import { cozyTokens } from '@/ui/theme'
 import { CozyIcon } from '@/ui/icons/CozyIcon'
+import { FileTypeIcon } from '@/ui/icons/FileTypeIcon'
 import { CreateFolderDialog } from '@/ui/CreateFolderDialog'
 import { CreatableFileClass, CreateOfficeFileDialog } from '@/ui/CreateOfficeFileDialog'
 import { CreateShortcutDialog } from '@/ui/CreateShortcutDialog'
@@ -31,15 +32,19 @@ interface Props {
   hidden?: boolean
 }
 
-const ICONS: Record<CreateActionName, string> = {
-  folder: 'folder-plus',
-  note: 'note-text',
-  docs: 'file-document-edit',
-  text: 'file-document-outline',
-  sheet: 'file-table-outline',
-  slide: 'file-presentation-box',
-  excalidraw: 'excalidraw',
-  shortcut: 'deviceBrowser'
+type IconProps = { size: number; color?: string }
+
+// Same illustrations as the "New" menu of twake-drive web: the cozy-ui file
+// type icon of what the entry creates, not a monochrome glyph.
+const ICONS: Record<CreateActionName, (p: IconProps) => React.ReactElement> = {
+  folder: p => <FileTypeIcon icon="folder" size={p.size} />,
+  note: p => <FileTypeIcon icon="note" size={p.size} />,
+  docs: p => <FileTypeIcon icon="docs" size={p.size} />,
+  text: p => <FileTypeIcon icon="text" size={p.size} />,
+  sheet: p => <FileTypeIcon icon="sheet" size={p.size} />,
+  slide: p => <FileTypeIcon icon="slide" size={p.size} />,
+  excalidraw: p => <CozyIcon name="excalidraw" size={p.size} color={p.color} />,
+  shortcut: p => <CozyIcon name="deviceBrowser" size={p.size} color={p.color} />
 }
 
 const LABELS: Record<CreateActionName, string> = {
@@ -51,11 +56,6 @@ const LABELS: Record<CreateActionName, string> = {
   slide: 'drive.createMenu.slide',
   excalidraw: 'drive.createMenu.excalidraw',
   shortcut: 'drive.createMenu.shortcut'
-}
-
-const CUSTOM_ICONS: Partial<Record<CreateActionName, 'excalidraw' | 'deviceBrowser'>> = {
-  excalidraw: 'excalidraw',
-  shortcut: 'deviceBrowser'
 }
 
 export const CreateMenu = ({
@@ -122,13 +122,8 @@ export const CreateMenu = ({
     officeEnabled,
     excalidrawEnabled
   }).map(name => {
-    const custom = CUSTOM_ICONS[name]
     return {
-      icon: custom
-        ? (p: { size: number; color?: string }) => (
-            <CozyIcon name={custom} size={p.size} color={p.color} />
-          )
-        : ICONS[name],
+      icon: ICONS[name],
       label: t(LABELS[name]),
       accessibilityLabel: t(LABELS[name]),
       testID: `create-${name}`,
