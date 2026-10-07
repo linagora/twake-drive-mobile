@@ -154,6 +154,7 @@
       "inheritedFrom": "Ereditato da {{name}}",
       "errorLoad": "Impossibile caricare le informazioni di condivisione",
       "errorMutate": "Operazione non riuscita",
+      "errorSelf": "Non puoi condividere con te stesso",
       "statusPending": "In attesa",
       "statusReady": "Attivo",
       "statusRevoked": "Revocato"

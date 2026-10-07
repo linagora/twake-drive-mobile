@@ -160,6 +160,7 @@
       "inheritedFrom": "Наследуется от {{name}}",
       "errorLoad": "Не удалось загрузить информацию о доступе",
       "errorMutate": "Не удалось выполнить операцию",
+      "errorSelf": "Нельзя поделиться с самим собой",
       "statusPending": "Ожидание",
       "statusReady": "Активно",
       "statusRevoked": "Отозвано"
