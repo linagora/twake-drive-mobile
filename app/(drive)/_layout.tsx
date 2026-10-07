@@ -15,6 +15,9 @@ import { formatBadgeCount, useNewSharesCount } from '@/sharing/newShares'
 import { useAuth } from '@/auth/useAuth'
 import { LoadingState } from '@/ui/LoadingState'
 
+/** Glyph side in the bottom bar: the 16-grid icons read as a list-item icon, not the default 24. */
+const TAB_ICON_SIZE = 20
+
 export default function DriveLayout() {
   const client = useClient()
   const { status } = useAuth()
@@ -55,7 +58,9 @@ function DriveTabs() {
           options={{
             title: t('drive.myDrive'),
             tabBarButtonTestID: 'tab-files',
-            tabBarIcon: ({ color, size }) => <CozyIcon name="cloud2" color={color} size={size} />
+            tabBarIcon: ({ color }) => (
+              <CozyIcon name="cloudOutline" color={color} size={TAB_ICON_SIZE} />
+            )
           }}
         />
         <Tabs.Screen
@@ -63,7 +68,9 @@ function DriveTabs() {
           options={{
             title: t('drive.favorites'),
             tabBarButtonTestID: 'tab-favorites',
-            tabBarIcon: ({ color, size }) => <CozyIcon name="star" color={color} size={size} />
+            tabBarIcon: ({ color }) => (
+              <CozyIcon name="starOutline" color={color} size={TAB_ICON_SIZE} />
+            )
           }}
         />
         <Tabs.Screen
@@ -71,8 +78,8 @@ function DriveTabs() {
           options={{
             title: t('drive.recent'),
             tabBarButtonTestID: 'tab-recent',
-            tabBarIcon: ({ color, size }) => (
-              <CozyIcon name="clockOutline" color={color} size={size} />
+            tabBarIcon: ({ color }) => (
+              <CozyIcon name="clockOutline" color={color} size={TAB_ICON_SIZE} />
             )
           }}
         />
@@ -86,8 +93,8 @@ function DriveTabs() {
               backgroundColor: theme.colors.error,
               color: theme.colors.onError
             },
-            tabBarIcon: ({ color, size }) => (
-              <CozyIcon name="shareExternal" color={color} size={size} />
+            tabBarIcon: ({ color }) => (
+              <CozyIcon name="shareExternal" color={color} size={TAB_ICON_SIZE} />
             )
           }}
         />
@@ -96,7 +103,7 @@ function DriveTabs() {
           options={{
             title: t('drive.trash'),
             tabBarButtonTestID: 'tab-trash',
-            tabBarIcon: ({ color, size }) => <CozyIcon name="trash" color={color} size={size} />
+            tabBarIcon: ({ color }) => <CozyIcon name="trash" color={color} size={TAB_ICON_SIZE} />
           }}
         />
         <Tabs.Screen name="search" options={{ href: null }} />
