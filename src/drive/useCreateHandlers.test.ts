@@ -48,6 +48,15 @@ jest.mock('@/files/optimisticFiles', () => ({
 jest.mock('@/files/optimisticCreated', () => ({ optimisticCreated: (doc: unknown) => doc }))
 jest.mock('@/pouchdb/triggerReplication', () => ({ triggerPouchReplication: jest.fn() }))
 
+const mockPickDocuments = jest.fn()
+jest.mock('./pickDocuments', () => ({
+  pickDocuments: (...args: unknown[]) => mockPickDocuments(...args)
+}))
+const mockUploadBatch = jest.fn()
+jest.mock('@/share/uploadBatch', () => ({
+  uploadBatch: (...args: unknown[]) => mockUploadBatch(...args)
+}))
+
 import { CreateHandlersDeps, useCreateHandlers } from './useCreateHandlers'
 
 const handlers = (deps: Partial<CreateHandlersDeps> = {}) =>
@@ -61,6 +70,8 @@ beforeEach(() => {
   mockCreateExcalidraw.mockReset().mockResolvedValue({ _id: 'e1', name: 'Sketch.excalidraw' })
   mockCreateShortcut.mockReset().mockResolvedValue({ _id: 's1', name: 'Link.url' })
   mockOptimisticFiles.mockReset()
+  mockPickDocuments.mockReset()
+  mockUploadBatch.mockReset()
   mockOpenEditor.mockReset()
 })
 
@@ -96,6 +107,48 @@ describe('useCreateHandlers on our own instance', () => {
   it('creates a shortcut', async () => {
     await handlers().createShortcutNamed('Link', 'https://example.org')
     expect(mockCreateShortcut).toHaveBeenCalledWith(mockClient, 'd1', 'Link', 'https://example.org')
+  })
+})
+
+describe('useCreateHandlers uploadFiles', () => {
+  const item = { uri: 'file:///cache/a.pdf', name: 'a.pdf', mimeType: 'application/pdf' }
+
+  it('uploads the picked files into the folder and reports the outcome', async () => {
+    const notify = jest.fn()
+    mockPickDocuments.mockResolvedValue([item])
+    mockUploadBatch.mockResolvedValue({
+      results: [{ item, ok: true, file: { _id: 'f1', name: 'a.pdf' } }],
+      succeeded: 1,
+      failed: 0
+    })
+    await handlers({ notify }).uploadFiles()
+    expect(mockUploadBatch).toHaveBeenCalledWith(mockClient, [item], 'd1', expect.any(Function))
+    expect(mockOptimisticFiles).toHaveBeenCalled()
+    expect(notify).toHaveBeenLastCalledWith('drive.import.successFile')
+  })
+
+  it('does nothing when the picker is cancelled', async () => {
+    mockPickDocuments.mockResolvedValue([])
+    await handlers().uploadFiles()
+    expect(mockUploadBatch).not.toHaveBeenCalled()
+  })
+
+  it('reports a failed batch without adding rows', async () => {
+    const notify = jest.fn()
+    mockPickDocuments.mockResolvedValue([item])
+    mockUploadBatch.mockResolvedValue({
+      results: [{ item, ok: false, error: 'boom' }],
+      succeeded: 0,
+      failed: 1
+    })
+    await handlers({ notify }).uploadFiles()
+    expect(notify).toHaveBeenLastCalledWith('drive.import.errorGeneric')
+  })
+
+  it('does not open the picker offline', async () => {
+    mockOnline = false
+    await handlers().uploadFiles()
+    expect(mockPickDocuments).not.toHaveBeenCalled()
   })
 })
 

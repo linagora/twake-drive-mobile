@@ -36,6 +36,9 @@ jest.mock('@/files/optimisticFiles', () => ({ optimisticFiles: jest.fn() }))
 jest.mock('@/files/optimisticCreated', () => ({ optimisticCreated: (doc: unknown) => doc }))
 jest.mock('@/pouchdb/triggerReplication', () => ({ triggerPouchReplication: jest.fn() }))
 
+jest.mock('./pickDocuments', () => ({ pickDocuments: jest.fn().mockResolvedValue([]) }))
+jest.mock('@/share/uploadBatch', () => ({ uploadBatch: jest.fn() }))
+
 import { CreateMenu } from './CreateMenu'
 
 const wrap = (ui: React.ReactElement) => <PaperProvider>{ui}</PaperProvider>
@@ -70,6 +73,28 @@ describe('CreateMenu', () => {
     render(wrap(<CreateMenu dirId="d1" driveId="drive-1" canWrite notify={jest.fn()} />))
     openFab()
     expect(screen.queryByLabelText('drive.createMenu.shortcut')).toBeNull()
+  })
+
+  it('offers the upload entry outside a shared drive', () => {
+    render(wrap(<CreateMenu dirId="d1" canWrite notify={jest.fn()} />))
+    openFab()
+    expect(screen.queryByLabelText('drive.createMenu.upload')).toBeOnTheScreen()
+  })
+
+  it('hides the upload entry inside a shared drive', () => {
+    render(wrap(<CreateMenu dirId="d1" driveId="drive-1" canWrite notify={jest.fn()} />))
+    openFab()
+    expect(screen.queryByLabelText('drive.createMenu.upload')).toBeNull()
+  })
+
+  it('opens the document picker when the upload entry is pressed', () => {
+    const { pickDocuments } = jest.requireMock('./pickDocuments') as {
+      pickDocuments: jest.Mock
+    }
+    render(wrap(<CreateMenu dirId="d1" canWrite notify={jest.fn()} />))
+    openFab()
+    fireEvent.press(screen.getByTestId('create-upload', { hidden: true }))
+    expect(pickDocuments).toHaveBeenCalled()
   })
 
   it('hides the docs entry inside a shared drive', () => {
