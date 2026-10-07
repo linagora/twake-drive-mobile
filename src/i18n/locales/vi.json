@@ -12,6 +12,8 @@
   "settings": {
     "title": "Cài đặt",
     "account": "Tài khoản",
+    "commonSettings": "Cài đặt Twake",
+    "commonSettingsDescription": "Ngôn ngữ, giao diện và các tùy chọn khác dùng chung cho mọi ứng dụng Twake của bạn",
     "language": "Ngôn ngữ",
     "systemLanguage": "Hệ thống (ngôn ngữ thiết bị)",
     "theme": "Giao diện",

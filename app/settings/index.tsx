@@ -15,6 +15,7 @@ import { SettingsRow } from '@/ui/SettingsRow'
 import { SettingsSection } from '@/ui/SettingsSection'
 import { useCurrentUser } from '@/account/useCurrentUser'
 import { useDeleteAccount } from '@/account/useDeleteAccount'
+import { useHasCommonSettings, useOpenCommonSettings } from '@/account/commonSettings'
 import { setCrashReportsEnabled, useCrashReportsEnabled } from '@/monitoring/crashReportsPreference'
 import { useTosUrl } from '@/account/useTos'
 import { getLocalePreference, LOCALE_SYSTEM } from '@/preferences/localePreference'
@@ -30,6 +31,8 @@ export default function SettingsIndex(): React.ReactElement {
   const { name, email, initials } = useCurrentUser()
   const { logout } = useAuth()
   const deleteAccount = useDeleteAccount()
+  const hasCommonSettings = useHasCommonSettings()
+  const openCommonSettings = useOpenCommonSettings()
   const crashReports = useCrashReportsEnabled()
   const tosUrl = useTosUrl()
   const [deleteAccountAsked, setDeleteAccountAsked] = React.useState(false)
@@ -56,6 +59,17 @@ export default function SettingsIndex(): React.ReactElement {
         />
 
         <SettingsSection title={t('settings.general')} first>
+          {hasCommonSettings ? (
+            <SettingsRow
+              testID="settings-common"
+              title={t('settings.commonSettings')}
+              description={t('settings.commonSettingsDescription')}
+              descriptionLines={3}
+              icon="info"
+              trailing="chevron"
+              onPress={() => void openCommonSettings()}
+            />
+          ) : null}
           <SettingsRow
             testID="settings-language"
             title={t('settings.language')}
