@@ -1,4 +1,5 @@
 import React from 'react'
+import { StyleSheet } from 'react-native'
 import { Button, Dialog, Portal, Text, useTheme } from 'react-native-paper'
 import { useTranslation } from 'react-i18next'
 
@@ -39,6 +40,29 @@ export const ConfirmDialog = ({
 }: Props): React.ReactElement => {
   const { t } = useTranslation()
   const theme = useTheme()
+  const stacked = Boolean(secondaryLabel && onSecondary)
+  const cancel = (
+    <Button
+      onPress={onDismiss}
+      disabled={loading}
+      style={stacked ? styles.stackedButton : undefined}
+      testID={`${testID}-cancel`}
+    >
+      {t('common.cancel')}
+    </Button>
+  )
+  const submit = (
+    <Button
+      onPress={onConfirm}
+      loading={loading}
+      disabled={loading}
+      textColor={destructive ? theme.colors.error : undefined}
+      style={stacked ? styles.stackedButton : undefined}
+      testID={`${testID}-submit`}
+    >
+      {confirmLabel ?? t('common.confirm')}
+    </Button>
+  )
   return (
     <Portal>
       <Dialog visible={visible} onDismiss={onDismiss} dismissable={!loading}>
@@ -46,26 +70,33 @@ export const ConfirmDialog = ({
         <Dialog.Content>
           <Text variant="bodyMedium">{message}</Text>
         </Dialog.Content>
-        <Dialog.Actions>
-          <Button onPress={onDismiss} disabled={loading} testID={`${testID}-cancel`}>
-            {t('common.cancel')}
-          </Button>
-          {secondaryLabel && onSecondary ? (
-            <Button onPress={onSecondary} disabled={loading} testID={`${testID}-secondary`}>
+        {secondaryLabel && onSecondary ? (
+          // Three long translated labels never fit one row: stack them
+          // full-width, confirming first and cancelling last.
+          <Dialog.Actions style={styles.stacked} testID={`${testID}-actions-stacked`}>
+            {submit}
+            <Button
+              onPress={onSecondary}
+              disabled={loading}
+              style={styles.stackedButton}
+              testID={`${testID}-secondary`}
+            >
               {secondaryLabel}
             </Button>
-          ) : null}
-          <Button
-            onPress={onConfirm}
-            loading={loading}
-            disabled={loading}
-            textColor={destructive ? theme.colors.error : undefined}
-            testID={`${testID}-submit`}
-          >
-            {confirmLabel ?? t('common.confirm')}
-          </Button>
-        </Dialog.Actions>
+            {cancel}
+          </Dialog.Actions>
+        ) : (
+          <Dialog.Actions>
+            {cancel}
+            {submit}
+          </Dialog.Actions>
+        )}
       </Dialog>
     </Portal>
   )
 }
+
+const styles = StyleSheet.create({
+  stacked: { flexDirection: 'column', alignItems: 'stretch' },
+  stackedButton: { alignSelf: 'stretch' }
+})

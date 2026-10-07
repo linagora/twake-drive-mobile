@@ -1,5 +1,6 @@
 import React from 'react'
-import { render, screen, fireEvent } from '@testing-library/react-native'
+import { StyleSheet } from 'react-native'
+import { render, screen, fireEvent, within } from '@testing-library/react-native'
 import { Provider as PaperProvider } from 'react-native-paper'
 
 jest.mock('react-i18next', () => ({
@@ -74,5 +75,23 @@ describe('ConfirmDialog', () => {
     setup()
 
     expect(screen.queryByTestId('confirm-dialog-secondary')).toBeNull()
+  })
+
+  it('stacks three actions, cancel last, so long labels never overflow', () => {
+    setup({ secondaryLabel: 'Se déconnecter et effacer', onSecondary: jest.fn() })
+
+    const stack = screen.getByTestId('confirm-dialog-actions-stacked')
+    expect(StyleSheet.flatten(stack.props.style).flexDirection).toBe('column')
+    const ids = ['confirm-dialog-submit', 'confirm-dialog-secondary', 'confirm-dialog-cancel']
+    const order = within(stack)
+      .getAllByTestId(/^confirm-dialog-(submit|secondary|cancel)$/)
+      .map(n => n.props.testID)
+    expect(order).toEqual(ids)
+  })
+
+  it('keeps the two actions in a row without a second action', () => {
+    setup()
+
+    expect(screen.queryByTestId('confirm-dialog-actions-stacked')).toBeNull()
   })
 })
