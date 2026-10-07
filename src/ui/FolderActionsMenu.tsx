@@ -81,9 +81,7 @@ export const FolderActionsMenu = ({
       ) : null}
       {onShare ? (
         <Menu.Item
-          leadingIcon={() => (
-            <CozyIcon name="shareExternal" size={24} color={theme.colors.onSurface} />
-          )}
+          leadingIcon={() => <CozyIcon name="share" size={24} color={theme.colors.onSurface} />}
           title={t('drive.fileMeta.share')}
           testID="action-share"
           disabled={!isOnline}
