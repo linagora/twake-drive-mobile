@@ -264,7 +264,7 @@ export const FilesScreen = ({ basePath }: FilesScreenProps): React.ReactElement 
   }, [folderDocs, fileDocs, sort.attr, sort.dir])
 
   return (
-    <ScreenContainer>
+    <ScreenContainer surface>
       <AppBar
         title={currentDirName}
         onBack={isRoot ? undefined : goBack}

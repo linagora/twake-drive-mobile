@@ -17,6 +17,12 @@ interface Props {
    * set it alone on a sheet whose AppBar already adds the top inset.
    */
   bottomInset?: boolean
+  /**
+   * Paints the theme's surface (white in the light theme) instead of its
+   * background, for the screens that list files.
+   */
+  surface?: boolean
+  testID?: string
 }
 
 /**
@@ -29,17 +35,20 @@ export const ScreenContainer = ({
   children,
   style,
   sheet,
-  bottomInset
+  bottomInset,
+  surface,
+  testID
 }: Props): React.ReactElement => {
   const theme = useTheme()
   const sheetTopInset = useSheetTopInset()
   const sheetBottomInset = useSheetBottomInset()
   return (
     <View
+      testID={testID}
       style={[
         {
           flex: 1,
-          backgroundColor: theme.colors.background,
+          backgroundColor: surface ? theme.colors.surface : theme.colors.background,
           paddingTop: sheet ? sheetTopInset : 0,
           paddingBottom: sheet || bottomInset ? sheetBottomInset : 0
         },

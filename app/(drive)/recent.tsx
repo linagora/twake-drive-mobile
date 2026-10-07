@@ -39,7 +39,7 @@ export default function RecentScreen() {
     })
 
   return (
-    <ScreenContainer>
+    <ScreenContainer surface>
       <AppBar title={t('drive.recent')} onLogout={logout} />
       <FileListView
         items={data}
