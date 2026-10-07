@@ -5,21 +5,56 @@ import {
   UNIVERSAL_LINK_REDIRECT,
   isOurRedirect,
   normalizeRedirectUrl,
-  redirectUri
+  resetRedirectUri,
+  resolveRedirectUri
 } from './redirectUri'
+import { isAppLinkUsable } from '@/native/twakeAuthBridge'
 
-describe('redirectUri', () => {
+jest.mock('@/native/twakeAuthBridge', () => ({ isAppLinkUsable: jest.fn() }))
+
+const mockIsAppLinkUsable = isAppLinkUsable as jest.Mock
+
+describe('resolveRedirectUri', () => {
+  let warn: jest.SpyInstance
+
+  beforeEach(() => {
+    resetRedirectUri()
+    mockIsAppLinkUsable.mockReset()
+    warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined)
+  })
+
   afterEach(() => {
     Platform.OS = 'ios'
+    warn.mockRestore()
   })
 
-  it('takes the verified link on Android, where a custom scheme gets cancelled', () => {
+  it('takes the verified link on Android, where a custom scheme gets cancelled', async () => {
     Platform.OS = 'android'
-    expect(redirectUri()).toBe(UNIVERSAL_LINK_REDIRECT)
+    mockIsAppLinkUsable.mockResolvedValue(true)
+    await expect(resolveRedirectUri()).resolves.toBe(UNIVERSAL_LINK_REDIRECT)
+    expect(warn).not.toHaveBeenCalled()
   })
 
-  it('keeps the custom scheme on iOS, which the auth session intercepts itself', () => {
-    expect(redirectUri()).toBe(CUSTOM_SCHEME_REDIRECT)
+  it('falls back to the custom scheme and says so when Android did not verify the link', async () => {
+    Platform.OS = 'android'
+    mockIsAppLinkUsable.mockResolvedValue(false)
+    await expect(resolveRedirectUri()).resolves.toBe(CUSTOM_SCHEME_REDIRECT)
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('not verified'))
+  })
+
+  it('asks the OS once per sign-in, so every step agrees', async () => {
+    Platform.OS = 'android'
+    mockIsAppLinkUsable.mockResolvedValueOnce(false).mockResolvedValue(true)
+    expect(await resolveRedirectUri()).toBe(CUSTOM_SCHEME_REDIRECT)
+    expect(await resolveRedirectUri()).toBe(CUSTOM_SCHEME_REDIRECT)
+    expect(mockIsAppLinkUsable).toHaveBeenCalledTimes(1)
+    resetRedirectUri()
+    expect(await resolveRedirectUri()).toBe(UNIVERSAL_LINK_REDIRECT)
+  })
+
+  it('keeps the custom scheme on iOS, which the auth session intercepts itself', async () => {
+    await expect(resolveRedirectUri()).resolves.toBe(CUSTOM_SCHEME_REDIRECT)
+    expect(mockIsAppLinkUsable).not.toHaveBeenCalled()
   })
 })
 

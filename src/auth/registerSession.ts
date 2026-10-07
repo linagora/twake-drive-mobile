@@ -13,14 +13,14 @@ interface OidcResponse {
   scope?: string
 }
 
-import { redirectUri } from './redirectUri'
+import { UNIVERSAL_LINK_REDIRECT, resolveRedirectUri } from './redirectUri'
 
-const REDIRECT_URL = redirectUri()
-
-const buildOauthOptions = (): Omit<OAuthOptions, 'clientID' | 'clientSecret'> => ({
+const buildOauthOptions = (
+  redirectURI: string
+): Omit<OAuthOptions, 'clientID' | 'clientSecret'> => ({
   clientName: 'Twake Drive Mobile',
   softwareID: 'twake-drive-mobile',
-  redirectURI: REDIRECT_URL,
+  redirectURI,
   clientKind: 'mobile',
   clientURI: 'https://twake.app',
   scopes: [...APP_SCOPES],
@@ -37,6 +37,14 @@ export const registerSession = async (
   existing?: OAuthOptions,
   hooks?: RegisterSessionHooks
 ): Promise<Session> => {
+  const redirect = await resolveRedirectUri()
+  // A client registered with the App Link would send the browser to a page that
+  // does not open the app, when the OS no longer vouches for that link: register
+  // again with the redirect that works.
+  if (existing?.redirectURI === UNIVERSAL_LINK_REDIRECT && redirect !== UNIVERSAL_LINK_REDIRECT) {
+    console.warn('[registerSession] stored client uses an unverified App Link, registering anew')
+    existing = undefined
+  }
   const uri = `https://${callback.fqdn}`
   console.log(
     '[registerSession] init client',
@@ -46,7 +54,7 @@ export const registerSession = async (
 
   const client = new CozyClient({
     uri,
-    oauth: existing ?? buildOauthOptions(),
+    oauth: existing ?? buildOauthOptions(redirect),
     // Request the flagship scope. It sets stackClient.scope, which
     // getAuthCodeURL uses for the /auth/authorize dance below, so the token
     // minted here can ask the stack for the session codes the editors open

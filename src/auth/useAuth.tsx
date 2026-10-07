@@ -141,7 +141,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const loginWithTwakeWorkplace = useCallback(
     async (mode: 'signin' | 'signup'): Promise<void> => {
-      await completeOidc(getTwakeWorkplaceLoginUri(mode))
+      await completeOidc(await getTwakeWorkplaceLoginUri(mode))
     },
     [completeOidc]
   )

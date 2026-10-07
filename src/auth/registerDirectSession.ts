@@ -5,9 +5,7 @@ import { Session, OAuthOptions, OAuthToken } from './types'
 import { generatePkce, openAuthorizeUrl } from './pkce'
 import { certificationOAuthOptions, tryStoreAttestation } from './storeCertification'
 
-import { redirectUri } from './redirectUri'
-
-const REDIRECT_URL = redirectUri()
+import { resetRedirectUri, resolveRedirectUri } from './redirectUri'
 
 /**
  * Signs in against a cozy-stack instance directly, without the cloudery.
@@ -25,12 +23,15 @@ export const registerDirectSession = async (instanceUri: string): Promise<Sessio
   const uri = instanceUri.trim().replace(/\/+$/, '')
   if (!/^https?:\/\//.test(uri)) throw new Error('The instance address must start with http(s)://')
 
+  resetRedirectUri()
+  const redirect = await resolveRedirectUri()
+
   const client = new CozyClient({
     uri,
     oauth: {
       clientName: 'Twake Drive Mobile',
       softwareID: 'twake-drive-mobile',
-      redirectURI: REDIRECT_URL,
+      redirectURI: redirect,
       clientKind: 'mobile',
       clientURI: 'https://twake.app',
       scopes: [...APP_SCOPES],

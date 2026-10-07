@@ -2,7 +2,8 @@ jest.mock('react-native', () => ({
   NativeModules: {
     TwakeAuthBridge: {
       syncSession: jest.fn(async () => true),
-      clearSession: jest.fn(async () => true)
+      clearSession: jest.fn(async () => true),
+      isAppLinkUsable: jest.fn(async () => true)
     }
   },
   Platform: { OS: 'android' }
@@ -10,7 +11,7 @@ jest.mock('react-native', () => ({
 
 import { NativeModules } from 'react-native'
 
-import { mirrorSessionToNative, clearNativeSession } from './twakeAuthBridge'
+import { mirrorSessionToNative, clearNativeSession, isAppLinkUsable } from './twakeAuthBridge'
 import type { Session } from '@/auth/types'
 
 const { syncSession, clearSession } = NativeModules.TwakeAuthBridge as {
@@ -50,4 +51,22 @@ test('mirrors the durable creds as JSON', async () => {
 test('clear delegates to native', async () => {
   await clearNativeSession()
   expect(clearSession).toHaveBeenCalledTimes(1)
+})
+
+describe('isAppLinkUsable', () => {
+  const native = NativeModules.TwakeAuthBridge as { isAppLinkUsable: jest.Mock }
+
+  it('relays the native answer', async () => {
+    native.isAppLinkUsable.mockResolvedValueOnce(false)
+    await expect(isAppLinkUsable()).resolves.toBe(false)
+    native.isAppLinkUsable.mockResolvedValueOnce(true)
+    await expect(isAppLinkUsable()).resolves.toBe(true)
+  })
+
+  it('keeps the App Link when the native call fails', async () => {
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined)
+    native.isAppLinkUsable.mockRejectedValueOnce(new Error('boom'))
+    await expect(isAppLinkUsable()).resolves.toBe(true)
+    warn.mockRestore()
+  })
 })

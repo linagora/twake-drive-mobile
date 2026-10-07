@@ -4,10 +4,7 @@ import * as Crypto from 'expo-crypto'
 import * as Linking from 'expo-linking'
 
 import { UserCancelledError } from './types'
-import { isOurRedirect, normalizeRedirectUrl as normalize, redirectUri } from './redirectUri'
-
-/** Kept as a named export: the callers ask for "the redirect" of this build. */
-export const REDIRECT_URL = redirectUri()
+import { isOurRedirect, normalizeRedirectUrl as normalize, resolveRedirectUri } from './redirectUri'
 
 const base64UrlEncode = (bytes: Uint8Array): string => {
   let binary = ''
@@ -136,7 +133,9 @@ export const openAuthorizeUrl = async (url: string): Promise<string> => {
   })
   let result: WebBrowser.WebBrowserAuthSessionResult
   try {
-    result = await WebBrowser.openAuthSessionAsync(url, REDIRECT_URL, { showInRecents: false })
+    result = await WebBrowser.openAuthSessionAsync(url, await resolveRedirectUri(), {
+      showInRecents: false
+    })
   } finally {
     watching.remove()
   }

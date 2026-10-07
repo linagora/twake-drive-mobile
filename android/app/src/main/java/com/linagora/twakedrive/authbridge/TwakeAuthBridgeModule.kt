@@ -43,4 +43,13 @@ class TwakeAuthBridgeModule(reactContext: ReactApplicationContext) :
             promise.reject("E_CLEAR_SESSION", e)
         }
     }
+
+    @ReactMethod
+    fun isAppLinkUsable(promise: Promise) {
+        try {
+            promise.resolve(AppLinkState.isUsable(reactApplicationContext))
+        } catch (e: Exception) {
+            promise.reject("E_APP_LINK_STATE", e)
+        }
+    }
 }
