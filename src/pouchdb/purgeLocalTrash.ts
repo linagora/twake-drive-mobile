@@ -14,6 +14,7 @@ interface LocalDatabase {
     selector: Record<string, unknown>
     limit: number
   }) => Promise<{ docs: LocalDoc[] }>
+  get?: (id: string) => Promise<LocalDoc>
   bulkDocs: (docs: Record<string, unknown>[]) => Promise<unknown>
 }
 
@@ -29,13 +30,10 @@ const findChildren = async (db: LocalDatabase, dirId: string): Promise<LocalDoc[
   return docs
 }
 
-/**
- * Every doc the stack removes when it empties the trash: what sits in the
- * trash directory and, for each trashed folder, everything underneath.
- */
-const collectTrashed = async (db: LocalDatabase): Promise<LocalDoc[]> => {
+/** Everything under the given directories, however deep. */
+const collectUnder = async (db: LocalDatabase, roots: string[]): Promise<LocalDoc[]> => {
   const trashed: LocalDoc[] = []
-  const queue = [TRASH_DIR_ID]
+  const queue = [...roots]
   for (let dirId = queue.shift(); dirId !== undefined; dirId = queue.shift()) {
     for (const child of await findChildren(db, dirId)) {
       trashed.push(child)
@@ -44,6 +42,12 @@ const collectTrashed = async (db: LocalDatabase): Promise<LocalDoc[]> => {
   }
   return trashed
 }
+
+const tombstone = ({ _id, _rev }: LocalDoc): Record<string, unknown> => ({
+  _id,
+  _rev,
+  _deleted: true
+})
 
 /**
  * Removes the trashed documents from the local database, so a cold start and
@@ -55,9 +59,28 @@ export const purgeLocalTrash = async (client: CozyClient): Promise<void> => {
   const db = link?.getPouch?.(FILES)
   if (!db) return
   try {
-    const trashed = await collectTrashed(db)
+    const trashed = await collectUnder(db, [TRASH_DIR_ID])
     if (trashed.length === 0) return
-    await db.bulkDocs(trashed.map(({ _id, _rev }) => ({ _id, _rev, _deleted: true })))
+    await db.bulkDocs(trashed.map(tombstone))
+  } catch (e) {
+    log.warn('local purge failed', e)
+  }
+}
+
+/**
+ * Removes one trashed document from the local database, and everything under
+ * it when it is a folder: what the stack destroys when a single item is
+ * deleted from the trash.
+ */
+export const purgeLocalEntry = async (client: CozyClient, id: string): Promise<void> => {
+  const link = getPouchLink(client) as unknown as PouchLinkWithDb | null
+  const db = link?.getPouch?.(FILES)
+  if (!db?.get) return
+  try {
+    const entry = await db.get(id).catch(() => null)
+    if (!entry) return
+    const doomed = [entry, ...(entry.type === 'directory' ? await collectUnder(db, [id]) : [])]
+    await db.bulkDocs(doomed.map(tombstone))
   } catch (e) {
     log.warn('local purge failed', e)
   }
