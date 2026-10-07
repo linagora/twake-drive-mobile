@@ -14,46 +14,36 @@ beforeEach(() => {
 })
 
 describe('ViewSwitcher', () => {
-  it('renders both list and grid icon buttons', () => {
+  it('renders a single toggle button', () => {
     render(wrap(<ViewSwitcher />))
-    expect(screen.getByTestId('view-list')).toBeTruthy()
-    expect(screen.getByTestId('view-grid')).toBeTruthy()
+    expect(screen.getAllByRole('button')).toHaveLength(1)
+    expect(screen.getByTestId('view-toggle')).toBeTruthy()
   })
 
-  it('defaults to list mode: list icon is selected, grid is not', () => {
+  it('in list mode, offers the grid view', () => {
     render(wrap(<ViewSwitcher />))
-    const listBtn = screen.getByTestId('view-list')
-    const gridBtn = screen.getByTestId('view-grid')
-    expect(listBtn).toBeSelected()
-    expect(gridBtn).not.toBeSelected()
+    expect(screen.getByLabelText('a11y.gridView')).toBeTruthy()
+    expect(screen.queryByLabelText('a11y.listView')).toBeNull()
   })
 
-  it('tapping grid icon changes mode to grid', () => {
+  it('tapping it in list mode switches to grid', () => {
     const { result } = renderHook(() => useViewMode())
     render(wrap(<ViewSwitcher />))
 
-    fireEvent.press(screen.getByTestId('view-grid'))
+    fireEvent.press(screen.getByTestId('view-toggle'))
 
     expect(result.current.mode).toBe('grid')
   })
 
-  it('after tapping grid, grid icon is selected and list is not', () => {
-    render(wrap(<ViewSwitcher />))
-
-    fireEvent.press(screen.getByTestId('view-grid'))
-
-    expect(screen.getByTestId('view-grid')).toBeSelected()
-    expect(screen.getByTestId('view-list')).not.toBeSelected()
-  })
-
-  it('tapping list icon after grid reverts mode to list', () => {
+  it('in grid mode, offers the list view and switches back to it', () => {
     const { result } = renderHook(() => useViewMode())
     render(wrap(<ViewSwitcher />))
 
-    fireEvent.press(screen.getByTestId('view-grid'))
-    expect(result.current.mode).toBe('grid')
+    fireEvent.press(screen.getByTestId('view-toggle'))
+    expect(screen.getByLabelText('a11y.listView')).toBeTruthy()
 
-    fireEvent.press(screen.getByTestId('view-list'))
+    fireEvent.press(screen.getByTestId('view-toggle'))
     expect(result.current.mode).toBe('list')
+    expect(screen.getByLabelText('a11y.gridView')).toBeTruthy()
   })
 })
