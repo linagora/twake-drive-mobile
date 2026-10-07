@@ -22,10 +22,9 @@ import { LoadingState } from '@/ui/LoadingState'
 import { FileRow } from '@/ui/FileRow'
 import { FolderRow } from '@/ui/FolderRow'
 import { FileGridItem } from '@/ui/FileGridItem'
-import { ViewSwitcher } from '@/ui/ViewSwitcher'
+import { FileListToolbar } from '@/ui/FileListToolbar'
 import { useViewMode } from '@/ui/useViewMode'
 import { cozyTokens } from '@/ui/theme'
-import { SortControl } from '@/ui/SortControl'
 import { useFolderSort } from '@/ui/useFolderSort'
 import { SyncBanner } from '@/ui/SyncBanner'
 import { ConfirmDeleteDialog } from '@/ui/ConfirmDeleteDialog'
@@ -215,7 +214,6 @@ export const FilesScreen = ({ basePath }: FilesScreenProps): React.ReactElement 
   }
 
   const renderGridItem = ({ item }: { item: FileQueryResult }): React.ReactElement => {
-    if (item._id.startsWith('__ph_')) return <View style={styles.gridPlaceholder} />
     const isSelected = selection.isSelected(item._id)
     const selecting = selection.isSelecting
     const isFolder = item.type === 'directory'
@@ -265,20 +263,6 @@ export const FilesScreen = ({ basePath }: FilesScreenProps): React.ReactElement 
     return [...sorted(folderDocs), ...sorted(fileDocs)]
   }, [folderDocs, fileDocs, sort.attr, sort.dir])
 
-  // In grid mode, pad the last row to a full 3 columns with invisible
-  // placeholders so a lone item stays left-aligned (flex:1 would otherwise
-  // stretch it across the whole row).
-  const gridData = useMemo<FileQueryResult[]>(() => {
-    if (mode !== 'grid') return data
-    const remainder = data.length % 3
-    if (remainder === 0) return data
-    const pad = Array.from(
-      { length: 3 - remainder },
-      (_, i) => ({ _id: `__ph_${i}` }) as FileQueryResult
-    )
-    return [...data, ...pad]
-  }, [data, mode])
-
   return (
     <ScreenContainer>
       <AppBar
@@ -318,14 +302,11 @@ export const FilesScreen = ({ basePath }: FilesScreenProps): React.ReactElement 
             : undefined
         }
       />
-      <View style={styles.toolbar}>
-        <SortControl />
-        <ViewSwitcher />
-      </View>
+      <FileListToolbar />
       <View style={styles.content}>
         <SyncBanner />
         <FileListView
-          items={mode === 'grid' ? gridData : data}
+          items={data}
           keyExtractor={(item: FileQueryResult) => item._id}
           renderItem={mode === 'grid' ? renderGridItem : renderItem}
           numColumns={mode === 'grid' ? gridColumns : undefined}
@@ -372,12 +353,5 @@ export const FilesScreen = ({ basePath }: FilesScreenProps): React.ReactElement 
 const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { flex: 1 },
-  listContent: { paddingBottom: cozyTokens.fabClearance },
-  gridPlaceholder: { flex: 1, margin: 4 },
-  toolbar: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    paddingHorizontal: 8,
-    paddingVertical: 4
-  }
+  listContent: { paddingBottom: cozyTokens.fabClearance }
 })

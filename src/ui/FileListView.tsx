@@ -1,5 +1,5 @@
 import React from 'react'
-import { FlatList, RefreshControl, StyleProp, StyleSheet, ViewStyle } from 'react-native'
+import { FlatList, RefreshControl, StyleProp, StyleSheet, View, ViewStyle } from 'react-native'
 import { useTranslation } from 'react-i18next'
 
 import { EmptyState } from './EmptyState'
@@ -23,12 +23,19 @@ export interface FileListViewProps<T> {
   emptyMessage: string
   /** Rendered above the list, and kept on screen while it is empty. */
   header?: React.ReactNode
+  /** More than one lays the items out as a grid; the last row is padded so a
+   *  lone item keeps its column width instead of stretching across the row. */
   numColumns?: number
   /** Extra padding a screen needs inside the list, e.g. to scroll its last rows
    *  clear of a floating button. */
   contentContainerStyle?: StyleProp<ViewStyle>
   testID?: string
 }
+
+const PLACEHOLDER = Symbol('grid-placeholder')
+type Placeholder = { [PLACEHOLDER]: number }
+const isPlaceholder = (item: unknown): item is Placeholder =>
+  typeof item === 'object' && item !== null && PLACEHOLDER in item
 
 /**
  * The list every file screen draws: the four states it can be in, pull to
@@ -53,6 +60,13 @@ export const FileListView = <T,>({
 }: FileListViewProps<T>): React.ReactElement => {
   const { t } = useTranslation()
   const isEmpty = items.length === 0
+  const columns = numColumns && numColumns > 1 ? numColumns : undefined
+  const data = React.useMemo<(T | Placeholder)[]>(() => {
+    const remainder = columns ? items.length % columns : 0
+    if (!columns || remainder === 0) return items
+    const padding = Array.from({ length: columns - remainder }, (_, i) => ({ [PLACEHOLDER]: i }))
+    return [...items, ...padding]
+  }, [items, columns])
 
   if (error) {
     return (
@@ -80,9 +94,13 @@ export const FileListView = <T,>({
       <FlatList
         key={numColumns ? `columns-${numColumns}` : undefined}
         testID={testID}
-        data={items}
-        keyExtractor={keyExtractor}
-        renderItem={renderItem}
+        data={data}
+        keyExtractor={item =>
+          isPlaceholder(item) ? `placeholder-${item[PLACEHOLDER]}` : keyExtractor(item)
+        }
+        renderItem={({ item }) =>
+          isPlaceholder(item) ? <View style={styles.placeholder} /> : renderItem({ item })
+        }
         numColumns={numColumns}
         ListEmptyComponent={<EmptyState message={t(emptyMessage)} />}
         contentContainerStyle={[
@@ -102,5 +120,7 @@ export const FileListView = <T,>({
 
 const styles = StyleSheet.create({
   content: { flexGrow: 1 },
-  empty: { justifyContent: 'center' }
+  empty: { justifyContent: 'center' },
+  // Same flex and margin as a grid tile, so it takes exactly one column.
+  placeholder: { flex: 1, margin: 4 }
 })
