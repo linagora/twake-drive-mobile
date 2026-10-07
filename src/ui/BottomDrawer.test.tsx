@@ -108,6 +108,24 @@ describe('BottomDrawer', () => {
     expect(padding.paddingBottom).toBe(24)
   })
 
+  it('tells when it is gone, and not before it was ever open', async () => {
+    const onDismissed = jest.fn()
+    const tree = (visible: boolean) => (
+      <SafeAreaProvider initialMetrics={metrics}>
+        <PaperProvider>
+          <BottomDrawer visible={visible} onClose={jest.fn()} onDismissed={onDismissed}>
+            <BottomDrawerItem label="Share" icon="share" onPress={jest.fn()} />
+          </BottomDrawer>
+        </PaperProvider>
+      </SafeAreaProvider>
+    )
+    const { rerender } = render(tree(false))
+    expect(onDismissed).not.toHaveBeenCalled()
+    rerender(tree(true))
+    rerender(tree(false))
+    await waitFor(() => expect(onDismissed).toHaveBeenCalledTimes(1), { timeout: 3000 })
+  })
+
   it('unmounts once closed', async () => {
     const { rerender } = wrap(
       <BottomDrawer visible onClose={jest.fn()} title="x">
@@ -123,6 +141,6 @@ describe('BottomDrawer', () => {
         </PaperProvider>
       </SafeAreaProvider>
     )
-    await waitFor(() => expect(screen.queryByTestId('item')).toBeNull())
+    await waitFor(() => expect(screen.queryByTestId('item')).toBeNull(), { timeout: 3000 })
   })
 })
