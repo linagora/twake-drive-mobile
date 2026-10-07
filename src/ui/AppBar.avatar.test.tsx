@@ -1,4 +1,5 @@
 import React from 'react'
+import { StyleSheet } from 'react-native'
 import { act, fireEvent, render, screen } from '@testing-library/react-native'
 import { Provider as PaperProvider } from 'react-native-paper'
 
@@ -115,4 +116,13 @@ describe('logging out from the account menu', () => {
     fireEvent.press(screen.getByTestId('logout-dialog-cancel'))
     expect(onLogout).not.toHaveBeenCalled()
   })
+})
+
+// The logo and the avatar sit one gutter from the screen edge, like the list (#447).
+test('the logo and the avatar share the same inset from the edges', () => {
+  render(wrap(<AppBar title="Mes fichiers" onLogout={jest.fn()} />))
+
+  const logo = StyleSheet.flatten(screen.getByTestId('appbar-logo').props.style)
+  const avatar = StyleSheet.flatten(screen.getByTestId('appbar-avatar').props.style)
+  expect(logo.marginLeft).toBe(avatar.marginRight)
 })
