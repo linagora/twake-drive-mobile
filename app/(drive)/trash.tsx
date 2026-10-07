@@ -154,6 +154,7 @@ export default function TrashScreen() {
         <FAB
           icon="delete-sweep"
           label={t('drive.trashActions.emptyButton')}
+          testID="trash-empty-fab"
           style={styles.fab}
           disabled={!isOnline}
           onPress={() => setEmptyDialogVisible(true)}
@@ -175,6 +176,7 @@ export default function TrashScreen() {
             </Button>
             <Button
               onPress={() => void handleEmpty()}
+              testID="trash-empty-confirm"
               loading={emptying}
               disabled={emptying}
               textColor={theme.colors.error}

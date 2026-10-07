@@ -2,10 +2,15 @@ jest.mock('@/pouchdb/triggerReplication', () => ({
   triggerPouchReplication: jest.fn()
 }))
 
+jest.mock('@/pouchdb/purgeLocalTrash', () => ({
+  purgeLocalTrash: jest.fn().mockResolvedValue(undefined)
+}))
+
 jest.mock('./applyStackDoc', () => ({
   applyStackDoc: jest.fn().mockResolvedValue(undefined)
 }))
 
+import { purgeLocalTrash } from '@/pouchdb/purgeLocalTrash'
 import { triggerPouchReplication } from '@/pouchdb/triggerReplication'
 
 import { applyStackDoc } from './applyStackDoc'
@@ -95,5 +100,20 @@ describe('emptyTrash', () => {
     const client = buildClient({ emptyTrash: trash })
     await expect(emptyTrash(client)).rejects.toThrow('boom')
     expect(triggerPouchReplication).not.toHaveBeenCalled()
+  })
+
+  it('removes the trashed documents from the local database once the stack emptied it', async () => {
+    ;(purgeLocalTrash as jest.Mock).mockClear()
+    const trash = jest.fn().mockResolvedValue({})
+    const client = buildClient({ emptyTrash: trash })
+    await emptyTrash(client)
+    expect(purgeLocalTrash).toHaveBeenCalledWith(client)
+  })
+
+  it('leaves the local database alone when the stack fails', async () => {
+    ;(purgeLocalTrash as jest.Mock).mockClear()
+    const trash = jest.fn().mockRejectedValue(new Error('boom'))
+    await expect(emptyTrash(buildClient({ emptyTrash: trash }))).rejects.toThrow('boom')
+    expect(purgeLocalTrash).not.toHaveBeenCalled()
   })
 })

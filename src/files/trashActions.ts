@@ -1,5 +1,6 @@
 import type CozyClient from 'cozy-client'
 
+import { purgeLocalTrash } from '@/pouchdb/purgeLocalTrash'
 import { triggerPouchReplication } from '@/pouchdb/triggerReplication'
 
 import { applyStackDoc } from './applyStackDoc'
@@ -33,5 +34,6 @@ export const restoreEntry = async (
 export const emptyTrash = async (client: CozyClient): Promise<void> => {
   const collection = client.collection('io.cozy.files') as unknown as FilesCollection
   await collection.emptyTrash()
+  await purgeLocalTrash(client)
   triggerPouchReplication(client, 'io.cozy.files')
 }
