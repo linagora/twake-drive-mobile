@@ -1,6 +1,6 @@
 import React from 'react'
 import { Provider as PaperProvider } from 'react-native-paper'
-import { fireEvent, render, screen } from '@testing-library/react-native'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react-native'
 
 jest.mock('cozy-client', () => ({
   __esModule: true,
@@ -67,11 +67,11 @@ describe('FolderActionsMenu', () => {
       expect(screen.queryByTestId('action-favorite')).toBeNull()
     })
 
-    it('asks to delete when delete permanently is pressed', () => {
+    it('asks to delete when delete permanently is pressed', async () => {
       const onDestroy = jest.fn()
       open({ onDestroy })
       fireEvent.press(screen.getByTestId('action-destroy'))
-      expect(onDestroy).toHaveBeenCalledWith(folder)
+      await waitFor(() => expect(onDestroy).toHaveBeenCalledWith(folder))
     })
   })
 })

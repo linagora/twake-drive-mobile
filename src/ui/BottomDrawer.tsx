@@ -33,6 +33,9 @@ const MAX_HEIGHT_RATIO = 0.85
 interface DrawerProps {
   visible: boolean
   onClose: () => void
+  /** Called once the closing animation is over and the sheet is gone: the moment
+   *  to open anything that would otherwise be presented over a dismissing modal. */
+  onDismissed?: () => void
   /** Header title, usually the name of the document the actions apply to. */
   title?: string
   /** Header leading visual, usually the icon or thumbnail of that document. */
@@ -50,6 +53,7 @@ interface DrawerProps {
 export const BottomDrawer = ({
   visible,
   onClose,
+  onDismissed,
   title,
   headerIcon,
   children,
@@ -66,9 +70,13 @@ export const BottomDrawer = ({
   const headerRef = useRef<View>(null)
   const onCloseRef = useRef(onClose)
   onCloseRef.current = onClose
+  const onDismissedRef = useRef(onDismissed)
+  onDismissedRef.current = onDismissed
+  const wasOpen = useRef(visible)
 
   useEffect(() => {
     if (visible) {
+      wasOpen.current = true
       setMounted(true)
       drag.setValue(0)
       Animated.timing(progress, {
@@ -83,13 +91,17 @@ export const BottomDrawer = ({
       }, OPEN_MS)
       return () => clearTimeout(timer)
     }
+    if (!wasOpen.current) return undefined
+    wasOpen.current = false
     Animated.timing(progress, {
       toValue: 0,
       duration: CLOSE_MS,
       easing: Easing.in(Easing.cubic),
       useNativeDriver: true
     }).start(({ finished }) => {
-      if (finished) setMounted(false)
+      if (!finished) return
+      setMounted(false)
+      onDismissedRef.current?.()
     })
     return undefined
   }, [visible, progress, drag])

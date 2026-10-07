@@ -53,9 +53,8 @@ onFlowComplete:
 - assertVisible:
     id: 'action-move'
     enabled: false
-# a tap beside the menu closes it; back would leave the app
-- tapOn:
-    id: 'offline-banner'
+# the drawer covers the screen: back closes it instead of leaving the app
+- back
 - waitForAnimationToEnd
 
 - tapOn:

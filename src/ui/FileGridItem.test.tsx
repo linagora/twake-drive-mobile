@@ -1,6 +1,6 @@
 import React from 'react'
 import { Provider as PaperProvider } from 'react-native-paper'
-import { fireEvent, render, screen, within } from '@testing-library/react-native'
+import { fireEvent, render, screen, within, waitFor } from '@testing-library/react-native'
 
 jest.mock('cozy-client', () => ({
   __esModule: true,
@@ -138,7 +138,7 @@ describe('FileGridItem actions', () => {
     expect(screen.getByTestId('file-grid-actions')).toBeOnTheScreen()
   })
 
-  it('offers the same entries as the list row', () => {
+  it('offers the same entries as the list row', async () => {
     const onShare = jest.fn()
     render(
       wrap(
@@ -156,7 +156,9 @@ describe('FileGridItem actions', () => {
     expect(screen.getByText('drive.fileMeta.move')).toBeOnTheScreen()
     expect(screen.getByText('drive.fileMeta.favorite')).toBeOnTheScreen()
     fireEvent.press(screen.getByText('drive.fileMeta.share'))
-    expect(onShare).toHaveBeenCalledWith(expect.objectContaining({ _id: 'file-1' }))
+    await waitFor(() =>
+      expect(onShare).toHaveBeenCalledWith(expect.objectContaining({ _id: 'file-1' }))
+    )
   })
 
   it('renders the folder action menu for a directory', () => {

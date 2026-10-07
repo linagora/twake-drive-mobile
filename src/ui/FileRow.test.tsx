@@ -6,7 +6,7 @@ jest.mock('cozy-flags', () => ({
 
 import React from 'react'
 import { Provider as PaperProvider } from 'react-native-paper'
-import { fireEvent, render, screen } from '@testing-library/react-native'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react-native'
 
 jest.mock('cozy-client', () => ({
   __esModule: true,
@@ -146,12 +146,12 @@ describe('FileRow', () => {
     expect(screen.getByTestId(FILE_MENU)).toBeOnTheScreen()
   })
 
-  it('calls onMove when the menu item is tapped', () => {
+  it('calls onMove when the menu item is tapped', async () => {
     const onMove = jest.fn()
     render(wrap(<FileRow file={file} onPress={() => {}} onMove={onMove} />))
     fireEvent.press(screen.getByTestId(FILE_MENU))
     fireEvent.press(screen.getByText('drive.fileMeta.move'))
-    expect(onMove).toHaveBeenCalledWith(file)
+    await waitFor(() => expect(onMove).toHaveBeenCalledWith(file))
   })
 
   describe('favorite menu item', () => {
@@ -169,12 +169,14 @@ describe('FileRow', () => {
       expect(screen.getByText('drive.fileMeta.unfavorite')).toBeOnTheScreen()
     })
 
-    it('calls toggleFavorite when the favorite menu item is tapped', () => {
+    it('calls toggleFavorite when the favorite menu item is tapped', async () => {
       ;(isFavorite as jest.Mock).mockReturnValue(false)
       render(wrap(<FileRow file={file} onPress={() => {}} onShare={jest.fn()} />))
       fireEvent.press(screen.getByTestId(FILE_MENU))
       fireEvent.press(screen.getByText('drive.fileMeta.favorite'))
-      expect(toggleFavorite).toHaveBeenCalledWith(expect.anything(), file, true)
+      await waitFor(() =>
+        expect(toggleFavorite).toHaveBeenCalledWith(expect.anything(), file, true)
+      )
     })
 
     // The flag is persisted through the stack, so offline the toggle cannot
@@ -187,12 +189,14 @@ describe('FileRow', () => {
       expect(screen.getByText('drive.fileMeta.favorite')).toBeDisabled()
     })
 
-    it('calls toggleFavorite with next=false when file is already a favorite', () => {
+    it('calls toggleFavorite with next=false when file is already a favorite', async () => {
       ;(isFavorite as jest.Mock).mockReturnValue(true)
       render(wrap(<FileRow file={file} onPress={() => {}} onShare={jest.fn()} />))
       fireEvent.press(screen.getByTestId(FILE_MENU))
       fireEvent.press(screen.getByText('drive.fileMeta.unfavorite'))
-      expect(toggleFavorite).toHaveBeenCalledWith(expect.anything(), file, false)
+      await waitFor(() =>
+        expect(toggleFavorite).toHaveBeenCalledWith(expect.anything(), file, false)
+      )
     })
   })
 
@@ -203,18 +207,18 @@ describe('FileRow', () => {
       expect(screen.getByText('drive.fileMeta.download')).toBeOnTheScreen()
     })
 
-    it('calls download when the download menu item is tapped', () => {
+    it('calls download when the download menu item is tapped', async () => {
       render(wrap(<FileRow file={file} onPress={() => {}} onShare={jest.fn()} />))
       fireEvent.press(screen.getByTestId(FILE_MENU))
       fireEvent.press(screen.getByText('drive.fileMeta.download'))
-      expect(download).toHaveBeenCalledWith(expect.anything(), file, undefined)
+      await waitFor(() => expect(download).toHaveBeenCalledWith(expect.anything(), file, undefined))
     })
 
-    it('downloads through the drive route when the row belongs to a shared drive', () => {
+    it('downloads through the drive route when the row belongs to a shared drive', async () => {
       render(wrap(<FileRow file={file} onPress={() => {}} onShare={jest.fn()} driveId="drive-1" />))
       fireEvent.press(screen.getByTestId(FILE_MENU))
       fireEvent.press(screen.getByText('drive.fileMeta.download'))
-      expect(download).toHaveBeenCalledWith(expect.anything(), file, 'drive-1')
+      await waitFor(() => expect(download).toHaveBeenCalledWith(expect.anything(), file, 'drive-1'))
     })
 
     // Offline a download has nothing to read unless the file is already kept
@@ -226,7 +230,7 @@ describe('FileRow', () => {
       expect(screen.getByText('drive.fileMeta.download')).toBeDisabled()
     })
 
-    it('stays available offline on a file kept offline', () => {
+    it('stays available offline on a file kept offline', async () => {
       mockOnline = false
       ;(useOfflineState as jest.Mock).mockReturnValue({
         fileId: 'f1',
@@ -236,7 +240,7 @@ describe('FileRow', () => {
       render(wrap(<FileRow file={file} onPress={() => {}} onShare={jest.fn()} />))
       fireEvent.press(screen.getByTestId(FILE_MENU))
       fireEvent.press(screen.getByText('drive.fileMeta.download'))
-      expect(download).toHaveBeenCalledWith(expect.anything(), file, undefined)
+      await waitFor(() => expect(download).toHaveBeenCalledWith(expect.anything(), file, undefined))
     })
 
     it('is out of reach offline while the copy is still downloading', () => {

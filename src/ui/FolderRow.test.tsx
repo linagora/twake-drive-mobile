@@ -6,7 +6,7 @@ jest.mock('cozy-flags', () => ({
 
 import React from 'react'
 import { Provider as PaperProvider } from 'react-native-paper'
-import { fireEvent, render, screen } from '@testing-library/react-native'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react-native'
 
 jest.mock('cozy-client', () => ({
   __esModule: true,
@@ -117,12 +117,12 @@ describe('FolderRow', () => {
     expect(screen.getByTestId('folder-actions:Documents')).toBeOnTheScreen()
   })
 
-  it('calls onMove when the menu item is tapped', () => {
+  it('calls onMove when the menu item is tapped', async () => {
     const onMove = jest.fn()
     render(wrap(<FolderRow folder={folder} onPress={() => {}} onMove={onMove} />))
     fireEvent.press(screen.getByTestId('folder-actions:Documents'))
     fireEvent.press(screen.getByText('drive.fileMeta.move'))
-    expect(onMove).toHaveBeenCalledWith(folder)
+    await waitFor(() => expect(onMove).toHaveBeenCalledWith(folder))
   })
 
   describe('favorite menu item', () => {
@@ -140,12 +140,14 @@ describe('FolderRow', () => {
       expect(screen.getByText('drive.fileMeta.unfavorite')).toBeOnTheScreen()
     })
 
-    it('calls toggleFavorite when the favorite menu item is tapped', () => {
+    it('calls toggleFavorite when the favorite menu item is tapped', async () => {
       ;(isFavorite as jest.Mock).mockReturnValue(false)
       render(wrap(<FolderRow folder={folder} onPress={() => {}} onShare={jest.fn()} />))
       fireEvent.press(screen.getByTestId('folder-actions:Documents'))
       fireEvent.press(screen.getByText('drive.fileMeta.favorite'))
-      expect(toggleFavorite).toHaveBeenCalledWith(expect.anything(), folder, true)
+      await waitFor(() =>
+        expect(toggleFavorite).toHaveBeenCalledWith(expect.anything(), folder, true)
+      )
     })
 
     // The flag is persisted through the stack, so offline the toggle cannot
@@ -158,12 +160,14 @@ describe('FolderRow', () => {
       expect(screen.getByText('drive.fileMeta.favorite')).toBeDisabled()
     })
 
-    it('calls toggleFavorite with next=false when folder is already a favorite', () => {
+    it('calls toggleFavorite with next=false when folder is already a favorite', async () => {
       ;(isFavorite as jest.Mock).mockReturnValue(true)
       render(wrap(<FolderRow folder={folder} onPress={() => {}} onShare={jest.fn()} />))
       fireEvent.press(screen.getByTestId('folder-actions:Documents'))
       fireEvent.press(screen.getByText('drive.fileMeta.unfavorite'))
-      expect(toggleFavorite).toHaveBeenCalledWith(expect.anything(), folder, false)
+      await waitFor(() =>
+        expect(toggleFavorite).toHaveBeenCalledWith(expect.anything(), folder, false)
+      )
     })
   })
 })
@@ -181,12 +185,12 @@ describe('FolderRow on a shared drive row', () => {
     expect(screen.getByTestId('action-leave-drive')).toBeOnTheScreen()
   })
 
-  it('calls onLeave with the folder', () => {
+  it('calls onLeave with the folder', async () => {
     const onLeave = jest.fn()
     render(wrap(<FolderRow folder={folder} onPress={jest.fn()} onLeave={onLeave} />))
     openMenu()
     fireEvent.press(screen.getByTestId('action-leave-drive'))
-    expect(onLeave).toHaveBeenCalledWith(folder)
+    await waitFor(() => expect(onLeave).toHaveBeenCalledWith(folder))
   })
 
   it('renders the menu for onLeave alone', () => {
