@@ -6,6 +6,7 @@ import { triggerPouchReplication } from '@/pouchdb/triggerReplication'
 import {
   absoluteMemberIndex,
   addRecipients,
+  setMemberReadOnly,
   buildPublicLinkUrl,
   createPublicLink,
   createSharingForFile,
@@ -697,6 +698,34 @@ describe('addRecipients with several recipients', () => {
         { _id: 'new-contact', _type: 'io.cozy.contacts' }
       ]
     })
+  })
+})
+
+describe('setMemberReadOnly', () => {
+  it('downgrades a member to read-only', async () => {
+    const setReadOnly = jest.fn().mockResolvedValue({})
+    const setReadWrite = jest.fn().mockResolvedValue({})
+    const client = makeClient({ 'io.cozy.sharings': { setReadOnly, setReadWrite } })
+    await setMemberReadOnly(client, 'sharing-1', 2, true)
+    expect(setReadOnly).toHaveBeenCalledWith({ _id: 'sharing-1' }, 2)
+    expect(setReadWrite).not.toHaveBeenCalled()
+    expectSharingTriggers(client)
+  })
+
+  it('upgrades a member to read-write', async () => {
+    const setReadOnly = jest.fn().mockResolvedValue({})
+    const setReadWrite = jest.fn().mockResolvedValue({})
+    const client = makeClient({ 'io.cozy.sharings': { setReadOnly, setReadWrite } })
+    await setMemberReadOnly(client, 'sharing-1', 2, false)
+    expect(setReadWrite).toHaveBeenCalledWith({ _id: 'sharing-1' }, 2)
+    expect(setReadOnly).not.toHaveBeenCalled()
+  })
+
+  it('does not replicate when the stack call fails', async () => {
+    const setReadOnly = jest.fn().mockRejectedValue(new Error('boom'))
+    const client = makeClient({ 'io.cozy.sharings': { setReadOnly } })
+    await expect(setMemberReadOnly(client, 'sharing-1', 2, true)).rejects.toThrow('boom')
+    expect(triggerPouchReplication).not.toHaveBeenCalled()
   })
 })
 

@@ -1,6 +1,6 @@
 import React from 'react'
 import { Provider as PaperProvider } from 'react-native-paper'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react-native'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react-native'
 
 let mockParams: { fileId: string; driveId?: string } = { fileId: 'f1' }
 jest.mock('expo-router', () => ({
@@ -42,11 +42,13 @@ jest.mock('@/files/useReachableContacts', () => ({
 }))
 const mockCreateSharing = jest.fn()
 const mockAddRecipients = jest.fn()
+const mockSetMemberReadOnly = jest.fn()
 const mockRevokeMember = jest.fn()
 jest.mock('@/files/sharing', () => ({
   ...jest.requireActual('@/files/sharing'),
   createSharingForFile: (...args: unknown[]) => mockCreateSharing(...args),
   addRecipients: (...args: unknown[]) => mockAddRecipients(...args),
+  setMemberReadOnly: (...args: unknown[]) => mockSetMemberReadOnly(...args),
   revokeSharingMember: (...args: unknown[]) => mockRevokeMember(...args)
 }))
 const mockFetchEffectiveRecipients = jest.fn()
@@ -71,6 +73,7 @@ describe('ShareRoute', () => {
     mockContacts = []
     mockCreateSharing.mockReset().mockResolvedValue({ _id: 'new' })
     mockAddRecipients.mockReset().mockResolvedValue(undefined)
+    mockSetMemberReadOnly.mockReset().mockResolvedValue(undefined)
     mockRevokeMember.mockReset().mockResolvedValue(undefined)
   })
 
@@ -203,6 +206,76 @@ describe('ShareRoute', () => {
         true,
         { sharedDrive: true }
       )
+    })
+
+    it('shares as editors when Editor is picked', async () => {
+      const input = await openForm()
+      fireEvent.changeText(input, 'ada@example.org,')
+      fireEvent.press(screen.getByTestId('share-role'))
+      // The menu is still animating in under load: press until it takes.
+      await waitFor(() => {
+        fireEvent.press(screen.getByTestId('share-role-editor'))
+        expect(
+          within(screen.getByTestId('share-role')).getByText('drive.share.roleEditor')
+        ).toBeOnTheScreen()
+      })
+      fireEvent.press(screen.getByTestId('share-send'))
+      await waitFor(() => expect(mockCreateSharing).toHaveBeenCalled())
+      expect(mockCreateSharing.mock.calls[0][3]).toBe(false)
+    })
+  })
+
+  describe('roles of the people who already have access', () => {
+    const member = {
+      key: 'own-1',
+      name: 'Ada',
+      email: 'ada@example.org',
+      status: 'ready',
+      readOnly: false,
+      sharingId: 'own',
+      memberIndex: 1,
+      manageable: true
+    }
+
+    it('shows the role and changes it through the stack', async () => {
+      mockFetchEffectiveRecipients.mockResolvedValue([member])
+      render(wrap(<ShareRoute />))
+      const role = await screen.findByTestId('recipient-role')
+      expect(screen.getByText('drive.share.roleEditor')).toBeOnTheScreen()
+      fireEvent.press(role)
+      fireEvent.press(await screen.findByTestId('recipient-role-viewer'))
+      await waitFor(() =>
+        expect(mockSetMemberReadOnly).toHaveBeenCalledWith(mockClient, 'own', 1, true)
+      )
+    })
+
+    it('puts the role back when the stack refuses', async () => {
+      mockFetchEffectiveRecipients.mockResolvedValue([member])
+      mockSetMemberReadOnly.mockRejectedValue(new Error('boom'))
+      jest.spyOn(console, 'error').mockImplementation(() => {})
+      render(wrap(<ShareRoute />))
+      fireEvent.press(await screen.findByTestId('recipient-role'))
+      fireEvent.press(await screen.findByTestId('recipient-role-viewer'))
+      expect(await screen.findByText('drive.share.errorMutate')).toBeOnTheScreen()
+      expect(screen.getByText('drive.share.roleEditor')).toBeOnTheScreen()
+    })
+
+    it('shows an inherited role without a menu', async () => {
+      mockFetchEffectiveRecipients.mockResolvedValue([
+        { ...member, manageable: false, readOnly: true, inheritedFrom: 'Reports' }
+      ])
+      render(wrap(<ShareRoute />))
+      expect(await screen.findByTestId('recipient-role-label')).toHaveTextContent(
+        'drive.share.roleViewer'
+      )
+      expect(screen.queryByTestId('recipient-role')).toBeNull()
+    })
+
+    it('removes an access', async () => {
+      mockFetchEffectiveRecipients.mockResolvedValue([member])
+      render(wrap(<ShareRoute />))
+      fireEvent.press(await screen.findByTestId('remove-recipient'))
+      await waitFor(() => expect(mockRevokeMember).toHaveBeenCalledWith(mockClient, 'own', 1))
     })
   })
 })
