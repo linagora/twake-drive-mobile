@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { useClient } from 'cozy-client'
 
 import { uploadBatch } from '@/share/uploadBatch'
-import { optimisticFiles } from '@/files/optimisticFiles'
+import { batchMessage, optimisticUploaded } from '@/share/importFeedback'
 import { usePendingShare } from '@/share/PendingShareProvider'
 import { ImportContext, ImportContextValue } from '@/drive/importContext'
 import { closeSheet, SheetRouter } from '@/ui/closeSheet'
@@ -38,36 +38,8 @@ export default function ImportLayout({ children }: { children?: React.ReactNode 
       setSnackbar(null)
       try {
         const res = await uploadBatch(client, items, dest._id)
-        optimisticFiles(
-          client,
-          res.results
-            .map(r => r.file)
-            .filter((f): f is { _id: string; name: string } => !!f)
-            .map(f => ({
-              _id: f._id,
-              name: f.name,
-              type: 'file' as const,
-              dir_id: dest._id,
-              _type: 'io.cozy.files'
-            }))
-        )
-        if (res.failed > 0 && res.succeeded > 0) {
-          setSnackbar(
-            t('drive.import.partial', {
-              succeeded: res.succeeded,
-              total: res.results.length,
-              failed: res.failed
-            })
-          )
-        } else if (res.failed > 0) {
-          setSnackbar(t('drive.import.errorGeneric'))
-        } else {
-          setSnackbar(
-            res.succeeded > 1
-              ? t('drive.import.successBulk', { count: res.succeeded })
-              : t('drive.import.successFile')
-          )
-        }
+        optimisticUploaded(client, res, dest._id)
+        setSnackbar(batchMessage(t, res))
         if (res.succeeded > 0) {
           clear()
           setTimeout(close, SNACKBAR_DISMISS_DELAY_MS)
