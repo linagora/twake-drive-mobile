@@ -86,6 +86,20 @@ describe('useCreateHandlers on our own instance', () => {
     expect(mockOptimisticFiles).toHaveBeenCalled()
   })
 
+  it('does not report a failure when the optimistic row throws after the create', async () => {
+    mockOptimisticFiles.mockImplementationOnce(() => {
+      throw new Error('store failure')
+    })
+    await expect(handlers().createFolderNamed('Foo')).resolves.toBeUndefined()
+  })
+
+  it('does not report a failure when the screen callback throws after the create', async () => {
+    const onCreated = jest.fn(() => {
+      throw new Error('navigation failure')
+    })
+    await expect(handlers({ onCreated }).createFolderNamed('Foo')).resolves.toBeUndefined()
+  })
+
   it('creates a note and opens it in the editor', async () => {
     await handlers().createNote()
     expect(mockCreateNote).toHaveBeenCalledWith(mockClient, 'd1', undefined)

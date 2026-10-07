@@ -133,4 +133,21 @@ describe('createFolder in a shared drive', () => {
     await createFolder(client, 'Foo', 'parent-id')
     expect(collection).toHaveBeenCalledWith('io.cozy.files', {})
   })
+
+  describe('once the stack has created the folder', () => {
+    const created = { _id: 'new', name: 'Foo', type: 'directory' }
+    const ok = () => jest.fn().mockResolvedValue({ data: created })
+
+    it('still resolves when the local write throws', async () => {
+      ;(applyStackDoc as jest.Mock).mockRejectedValueOnce(new Error('pouch busy'))
+      await expect(createFolder(makeClient(ok()), 'Foo', 'parent-id')).resolves.toEqual(created)
+    })
+
+    it('still resolves when starting the replication throws', async () => {
+      ;(triggerPouchReplication as jest.Mock).mockImplementationOnce(() => {
+        throw new Error('replication failed to start')
+      })
+      await expect(createFolder(makeClient(ok()), 'Foo', 'parent-id')).resolves.toEqual(created)
+    })
+  })
 })
