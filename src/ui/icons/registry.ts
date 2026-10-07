@@ -345,13 +345,14 @@ export const ICONS: Record<string, CozyIconDef> = {
       }
     ]
   },
-  // dotsVertical — 3 circles stacked vertically, radius 1.1 (fine/light kebab; the
-  // original r=2 filled the full viewBox width and read as chunky)
-  dotsVertical: {
-    viewBox: '0 0 4 16',
+  // dotsHorizontal — 3 circles side by side, radius 1.1 (fine/light meatballs, as
+  // on the web; the original r=2 `dots` filled the full viewBox height and read
+  // as chunky)
+  dotsHorizontal: {
+    viewBox: '0 0 16 4',
     paths: [
       {
-        d: 'M0.9 2a1.1 1.1 0 1 0 2.2 0a1.1 1.1 0 1 0-2.2 0M0.9 8a1.1 1.1 0 1 0 2.2 0a1.1 1.1 0 1 0-2.2 0M0.9 14a1.1 1.1 0 1 0 2.2 0a1.1 1.1 0 1 0-2.2 0'
+        d: 'M2 .9a1.1 1.1 0 1 0 0 2.2a1.1 1.1 0 1 0 0-2.2M8 .9a1.1 1.1 0 1 0 0 2.2a1.1 1.1 0 1 0 0-2.2M14 .9a1.1 1.1 0 1 0 0 2.2a1.1 1.1 0 1 0 0-2.2'
       }
     ]
   },
