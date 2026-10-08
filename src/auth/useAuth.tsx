@@ -14,6 +14,10 @@ import { certifyFlagship as certifyFlagshipModule } from './certifyFlagship'
 import { createClient } from '@/client/createClient'
 import i18n, { resolveDeviceLanguage } from '@/i18n'
 import { clearNativeSession, mirrorSessionToNative } from '@/native/twakeAuthBridge'
+import {
+  isPushEnabled,
+  removeNotificationDeviceToken
+} from '@/notifications/notificationDeviceToken'
 import { teardownOfflineSubsystem } from '@/offline/initOffline'
 import { destroyLocalData } from '@/pouchdb/destroyLocalData'
 import { dropAllFileNameIndexes } from '@/search/searchDatabases'
@@ -162,6 +166,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     async (options?: { expired?: boolean; wipe?: boolean }): Promise<void> => {
       const logoutUrl = ssoLogoutUrl(clientRef.current, flag('signup.url') as string | undefined)
       if (!options?.expired) await closeSsoSession(logoutUrl)
+      // client.logout() deletes the OAuth client with its token, but not
+      // offline: clear the token first, or the device keeps getting the pushes
+      // of an account it left.
+      if (clientRef.current && !options?.expired && isPushEnabled()) {
+        await removeNotificationDeviceToken(clientRef.current).catch(() => {
+          // ignore — server may be unreachable
+        })
+      }
       // While the account is still in scope and its Pouch not yet destroyed.
       await teardownOfflineSubsystem()
       if (clientRef.current) await dropAllFileNameIndexes(clientRef.current)
