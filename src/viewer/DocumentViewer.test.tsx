@@ -28,6 +28,7 @@ jest.mock('expo-router', () => ({ useRouter: () => ({ push: mockPush }) }))
 const mockOpenEditor = jest.fn()
 jest.mock('./useWebEditor', () => ({ useWebEditor: () => mockOpenEditor }))
 jest.mock('cozy-client', () => ({ useClient: () => ({}) }))
+jest.mock('@/client/useIsAppInstalled', () => ({ useIsAppInstalled: () => true }))
 
 let mockOnline = true
 jest.mock('@/network/useIsOnline', () => ({ useIsOnline: () => mockOnline }))

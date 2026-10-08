@@ -18,6 +18,10 @@ jest.mock('@/client/useFlag', () => ({
 }))
 
 let mockOnline = true
+let mockNotesInstalled = true
+jest.mock('@/client/useIsAppInstalled', () => ({
+  useIsAppInstalled: (slug: string) => slug === 'notes' && mockNotesInstalled
+}))
 jest.mock('@/network/useIsOnline', () => ({
   useIsOnline: () => mockOnline
 }))
@@ -49,6 +53,7 @@ const openFab = (): void => {
 
 beforeEach(() => {
   mockOnline = true
+  mockNotesInstalled = true
   for (const key of Object.keys(mockFlags)) delete mockFlags[key]
 })
 
@@ -61,6 +66,20 @@ describe('CreateMenu', () => {
   it('renders the FAB when the member may write', () => {
     render(wrap(<CreateMenu dirId="d1" canWrite notify={jest.fn()} />))
     expect(screen.getByTestId('drive-fab')).toBeOnTheScreen()
+  })
+
+  it('offers the note entry when the Notes app is installed', () => {
+    render(wrap(<CreateMenu dirId="d1" canWrite notify={jest.fn()} />))
+    openFab()
+    expect(screen.queryByLabelText('drive.createMenu.note')).toBeOnTheScreen()
+  })
+
+  it('hides the note entry when the Notes app is not installed', () => {
+    mockNotesInstalled = false
+    render(wrap(<CreateMenu dirId="d1" canWrite notify={jest.fn()} />))
+    openFab()
+    expect(screen.queryByLabelText('drive.createMenu.note')).toBeNull()
+    expect(screen.queryByLabelText('drive.createMenu.folder')).toBeOnTheScreen()
   })
 
   it('offers the shortcut entry outside a shared drive', () => {

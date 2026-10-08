@@ -15,6 +15,8 @@ export interface CreateActionsOptions {
   docsEnabled: boolean
   officeEnabled: boolean
   excalidrawEnabled: boolean
+  /** The Notes app is installed: a note is created and edited in it. */
+  notesInstalled: boolean
 }
 
 /**
@@ -33,12 +35,13 @@ export const createActionNames = ({
   driveId,
   docsEnabled,
   officeEnabled,
-  excalidrawEnabled
+  excalidrawEnabled,
+  notesInstalled
 }: CreateActionsOptions): CreateActionName[] => {
   const inSharedDrive = !!driveId
   return [
     'folder' as const,
-    'note' as const,
+    ...(notesInstalled ? (['note'] as const) : []),
     ...(docsEnabled && !inSharedDrive ? (['docs'] as const) : []),
     ...(officeEnabled ? (['text', 'sheet', 'slide'] as const) : []),
     ...(excalidrawEnabled ? (['excalidraw'] as const) : []),

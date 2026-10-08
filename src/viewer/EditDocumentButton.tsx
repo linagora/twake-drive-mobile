@@ -4,6 +4,7 @@ import { Button } from 'react-native-paper'
 import { useClient } from 'cozy-client'
 import { useTranslation } from 'react-i18next'
 
+import { useIsAppInstalled } from '@/client/useIsAppInstalled'
 import { useIsOnline } from '@/network/useIsOnline'
 import { hasWebEditor } from './documentKind'
 import { EditableDocument, webEditorKindOf } from './webEditor'
@@ -35,8 +36,13 @@ export const EditDocumentButton = ({
   const openEditor = useWebEditor()
   const isOnline = useIsOnline()
   const [opening, setOpening] = useState(false)
+  const notesInstalled = useIsAppInstalled('notes')
 
-  if (!webEditorKindOf(file) || !hasWebEditor(file)) return null
+  const kind = webEditorKindOf(file)
+  if (!kind || !hasWebEditor(file)) return null
+  // A cozy note is edited in the Notes app: no app, no editor. The local
+  // viewer needs none and stays.
+  if (kind === 'note' && !notesInstalled) return null
 
   const onPress = async (): Promise<void> => {
     if (!client || opening) return

@@ -13,6 +13,7 @@ import { CreateFolderDialog } from '@/ui/CreateFolderDialog'
 import { CreatableFileClass, CreateOfficeFileDialog } from '@/ui/CreateOfficeFileDialog'
 import { CreateShortcutDialog } from '@/ui/CreateShortcutDialog'
 import { useFlag } from '@/client/useFlag'
+import { useIsAppInstalled } from '@/client/useIsAppInstalled'
 import { OFFICE_FLAGS, officeCreationEnabledFrom } from '@/viewer/viewerFlags'
 import { useIsOnline } from '@/network/useIsOnline'
 
@@ -84,6 +85,7 @@ export const CreateMenu = ({
     write: useFlag(OFFICE_FLAGS.write)
   })
   const excalidrawEnabled = !!useFlag('drive.excalidraw.enabled')
+  const notesInstalled = useIsAppInstalled('notes')
 
   const handlers = useCreateHandlers({ dirId, driveId, notify, onCreated })
 
@@ -126,7 +128,8 @@ export const CreateMenu = ({
     driveId,
     docsEnabled,
     officeEnabled,
-    excalidrawEnabled
+    excalidrawEnabled,
+    notesInstalled
   }).map(name => {
     return {
       icon: ICONS[name],

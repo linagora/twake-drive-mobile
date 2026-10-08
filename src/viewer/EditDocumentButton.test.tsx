@@ -1,6 +1,11 @@
 let mockOnline = true
 jest.mock('@/network/useIsOnline', () => ({ useIsOnline: () => mockOnline }))
 
+let mockNotesInstalled = true
+jest.mock('@/client/useIsAppInstalled', () => ({
+  useIsAppInstalled: () => mockNotesInstalled
+}))
+
 const mockOpenEditor = jest.fn()
 jest.mock('./useWebEditor', () => ({ useWebEditor: () => mockOpenEditor }))
 
@@ -26,6 +31,7 @@ describe('EditDocumentButton', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     mockOnline = true
+    mockNotesInstalled = true
     mockOpenEditor.mockResolvedValue(undefined)
   })
 
@@ -47,6 +53,18 @@ describe('EditDocumentButton', () => {
     expect(screen.getByTestId('document-viewer-edit')).toBeOnTheScreen()
     fireEvent.press(screen.getByTestId('document-viewer-edit'))
     expect(mockOpenEditor).not.toHaveBeenCalled()
+  })
+
+  it('renders nothing for a note when the Notes app is not installed', () => {
+    mockNotesInstalled = false
+    show(note)
+    expect(screen.queryByTestId('document-viewer-edit')).toBeNull()
+  })
+
+  it('keeps the other editors when the Notes app is not installed', () => {
+    mockNotesInstalled = false
+    show({ _id: 'f6', name: 'schema.excalidraw' })
+    expect(screen.getByTestId('document-viewer-edit')).toBeOnTheScreen()
   })
 
   it('renders nothing for a document no editor claims', () => {

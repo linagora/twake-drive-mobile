@@ -169,3 +169,6 @@ export interface ContactQueryResult {
   /** True on the contact that stands for the instance owner (the current user). */
   me?: boolean
 }
+
+export const installedAppsQuery = (): QueryDefinition => Q('io.cozy.apps')
+export const installedAppsQueryAs = 'io.cozy.apps'
