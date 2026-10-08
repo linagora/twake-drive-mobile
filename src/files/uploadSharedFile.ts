@@ -49,6 +49,11 @@ const ensureReadable = async (fileUri: string, announcedSize?: number): Promise<
   if (!info?.exists || isEmptyByMistake) throw new Error('Shared file is not readable')
 }
 
+// Same prefix cozy-stack-client's FileCollection builds for a drive-scoped
+// createFile: the shared drive routes, or the instance's own `/files`.
+const uploadPrefix = (driveId?: string): string =>
+  driveId ? `/sharings/drives/${encodeURIComponent(driveId)}` : '/files'
+
 interface UploadResponse {
   info: () => { status: number }
   json: () => { data?: { id?: string; _id?: string; attributes?: { name?: string } } }
@@ -58,7 +63,8 @@ export const uploadSharedFile = async (
   client: CozyClient,
   item: SharedItem,
   dirId: string,
-  onProgress?: UploadProgress
+  onProgress?: UploadProgress,
+  driveId?: string
 ): Promise<UploadedFile> => {
   const stack = client.getStackClient() as unknown as MinimalStackClient
   const token = stack.getAccessToken()
@@ -71,7 +77,7 @@ export const uploadSharedFile = async (
   for (let attempt = 0; attempt < MAX_DEDUPE; attempt++) {
     const name = dedupeName(item.name, attempt)
     const url =
-      `${stack.uri}/files/${encodeURIComponent(dirId)}` +
+      `${stack.uri}${uploadPrefix(driveId)}/${encodeURIComponent(dirId)}` +
       `?Type=file&Name=${encodeURIComponent(name)}`
     const res = (await ReactNativeBlobUtil.fetch(
       'POST',

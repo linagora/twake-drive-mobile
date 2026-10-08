@@ -26,8 +26,6 @@ export interface CreateActionsOptions {
  *
  * - `shortcut`: cozy-stack-client's ShortcutsCollection throws outright on a
  *   drive-scoped create, and the web hides the item on `isSharedDriveDoc`.
- * - `upload`: the upload path posts to our own instance's `/files/<dir>`, which
- *   does not address a directory hosted by the owner.
  * - `docs`: the document is created by our own instance's Docs backend through
  *   its bridge route, which cannot reach a directory hosted by the owner.
  */
@@ -45,6 +43,7 @@ export const createActionNames = ({
     ...(docsEnabled && !inSharedDrive ? (['docs'] as const) : []),
     ...(officeEnabled ? (['text', 'sheet', 'slide'] as const) : []),
     ...(excalidrawEnabled ? (['excalidraw'] as const) : []),
-    ...(inSharedDrive ? [] : (['shortcut', 'upload'] as const))
+    ...(inSharedDrive ? [] : (['shortcut'] as const)),
+    'upload' as const
   ]
 }

@@ -26,6 +26,12 @@ test('uploads every item and triggers replication once on success', async () => 
   expect(triggerPouchReplication).toHaveBeenCalledTimes(1)
 })
 
+test('passes the shared drive id down to every upload', async () => {
+  ;(uploadSharedFile as jest.Mock).mockResolvedValue({ _id: 'a', name: 'a.jpg' })
+  await uploadBatch(client, items, 'dir1', undefined, 'drive-1')
+  for (const call of (uploadSharedFile as jest.Mock).mock.calls) expect(call[4]).toBe('drive-1')
+})
+
 test('records partial failures without aborting the batch', async () => {
   ;(uploadSharedFile as jest.Mock)
     .mockRejectedValueOnce(new Error('boom'))

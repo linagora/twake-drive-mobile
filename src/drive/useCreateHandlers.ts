@@ -140,11 +140,23 @@ export const useCreateHandlers = ({
           if (items.length === 0) return
           // A name already taken in the folder is renamed "name (1)" by the
           // upload, as the web upload queue does, rather than overwritten.
-          const res = await uploadBatch(client, items, dirId, (done, total) =>
-            notify(t('drive.import.uploading', { done: Math.min(done + 1, total), total }))
+          const res = await uploadBatch(
+            client,
+            items,
+            dirId,
+            (done, total) =>
+              notify(t('drive.import.uploading', { done: Math.min(done + 1, total), total })),
+            driveId
           )
-          optimisticUploaded(client, res, dirId)
           notify(batchMessage(t, res))
+          // As for the other creates, our store holds nothing of a shared
+          // drive: its screen shows the uploaded rows from onCreated instead.
+          const uploaded = res.results.flatMap(r => (r.file ? [r.file] : []))
+          if (driveId && uploaded.length > 0) {
+            for (const file of uploaded) afterCreate(file, 'file')
+            return
+          }
+          if (!driveId) optimisticUploaded(client, res, dirId)
           onCreated?.()
         } catch (e) {
           console.error('[CreateMenu] upload failed', e)

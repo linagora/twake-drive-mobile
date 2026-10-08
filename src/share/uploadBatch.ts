@@ -19,15 +19,20 @@ export const uploadBatch = async (
   client: CozyClient,
   items: SharedItem[],
   dirId: string,
-  onProgress?: BatchProgress
+  onProgress?: BatchProgress,
+  driveId?: string
 ): Promise<BatchResult> => {
   const results: BatchItemResult[] = []
   let succeeded = 0
   for (let i = 0; i < items.length; i++) {
     const item = items[i]
     try {
-      const file = await uploadSharedFile(client, item, dirId, frac =>
-        onProgress?.(i, items.length, frac)
+      const file = await uploadSharedFile(
+        client,
+        item,
+        dirId,
+        frac => onProgress?.(i, items.length, frac),
+        driveId
       )
       results.push({ item, ok: true, file })
       succeeded++
