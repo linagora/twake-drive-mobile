@@ -13,27 +13,11 @@ jest.mock('cozy-client', () => ({
 }))
 jest.mock('@/auth/useSessionCode', () => ({ useSessionCode: jest.fn() }))
 
-import { hasSettingsApp, openSettingsApp, settingsAppUrl } from './commonSettings'
+import { openSettingsApp, settingsAppUrl } from './commonSettings'
 
 const client = {
   getStackClient: () => ({ uri: 'https://mine.twake.test' })
 } as unknown as CozyClient
-
-describe('hasSettingsApp', () => {
-  it('is true when the settings app is among the installed apps', () => {
-    expect(hasSettingsApp([{ slug: 'drive' }, { slug: 'settings' }])).toBe(true)
-  })
-
-  it('is false without the settings app', () => {
-    expect(hasSettingsApp([{ slug: 'drive' }])).toBe(false)
-  })
-
-  it('is false while the apps are unknown', () => {
-    expect(hasSettingsApp(null)).toBe(false)
-    expect(hasSettingsApp(undefined)).toBe(false)
-    expect(hasSettingsApp([])).toBe(false)
-  })
-})
 
 describe('settingsAppUrl', () => {
   it('points at a route of the settings app', () => {

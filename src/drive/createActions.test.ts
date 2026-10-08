@@ -3,12 +3,21 @@ import { createActionNames } from './createActions'
 const opts = {
   docsEnabled: false,
   officeEnabled: false,
-  excalidrawEnabled: false
+  excalidrawEnabled: false,
+  notesInstalled: true
 }
 
 describe('createActionNames', () => {
-  it('always offers a folder and a note', () => {
+  it('offers a folder and a note', () => {
     expect(createActionNames(opts)).toEqual(['folder', 'note', 'shortcut', 'upload'])
+  })
+
+  it('drops the note when the Notes app is not installed', () => {
+    expect(createActionNames({ ...opts, notesInstalled: false })).toEqual([
+      'folder',
+      'shortcut',
+      'upload'
+    ])
   })
 
   it('adds the office entries behind their flag', () => {
