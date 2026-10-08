@@ -1,0 +1,2 @@
+• Sube archivos con el botón + también en una unidad compartida.
+• Las opciones de Nota solo aparecen si la app Notes está instalada en tu Twake.

@@ -1,0 +1,2 @@
+• Importez aussi des fichiers avec le bouton + dans un drive partagé.
+• Les entrées Note ne s'affichent que si l'app Notes est installée sur votre Twake.

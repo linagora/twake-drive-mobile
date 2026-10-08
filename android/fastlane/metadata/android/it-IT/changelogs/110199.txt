@@ -1,0 +1,2 @@
+• Carica file con il pulsante + anche in un drive condiviso.
+• Le voci Nota compaiono solo se l'app Notes è installata sul tuo Twake.
