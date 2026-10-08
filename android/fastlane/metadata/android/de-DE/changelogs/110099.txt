@@ -1,0 +1,6 @@
+• Datei- und Ordneraktionen öffnen sich unten in einem Bereich, mit einheitlichen Symbolen.
+• Dateien vom Telefon über die Schaltfläche + hochladen.
+• Rasteransicht in Zuletzt, Favoriten und Freigabe, dazu eine einfachere Kopfzeile.
+• Freigabe: Reiter „Mit mir“ und „Von mir“, Hinweis bei neuen Freigaben und Aktionen für jede.
+• Mit mehreren Personen gleichzeitig teilen und ihre Rolle ändern.
+• Papierkorb: Elemente endgültig löschen; geleert bleibt er auch nach einem Neustart leer.

@@ -1,0 +1,6 @@
+• Las acciones de archivos y carpetas se abren en un panel inferior, con iconos coherentes.
+• Sube archivos desde tu teléfono con el botón +.
+• Vista de cuadrícula en Recientes, Favoritos y Compartidos, y un encabezado más sencillo.
+• Compartidos: pestañas «Conmigo» y «Por mí», un indicador en cada nuevo elemento compartido y acciones sobre ellos.
+• Comparte con varias personas a la vez y cambia su rol.
+• Papelera: elimina elementos definitivamente; vaciada, sigue vacía tras reiniciar.

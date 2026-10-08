@@ -1,0 +1,6 @@
+• Les actions sur un fichier ou dossier s'ouvrent dans un panneau en bas, aux icônes harmonisées.
+• Importez des fichiers du téléphone avec le bouton +.
+• Vue grille dans Récents, Favoris et Partage, et un en-tête simplifié.
+• Partage : onglets « Avec moi » et « Par moi », pastille sur les nouveaux partages, actions sur chacun.
+• Partagez avec plusieurs personnes à la fois et changez leur rôle.
+• Corbeille : suppression définitive d'un élément, et la corbeille vidée le reste au redémarrage.

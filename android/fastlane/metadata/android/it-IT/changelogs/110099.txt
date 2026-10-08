@@ -1,0 +1,6 @@
+• Le azioni su file e cartelle si aprono in un pannello in basso, con icone uniformi.
+• Carica file dal telefono con il pulsante +.
+• Vista a griglia in Recenti, Preferiti e Condivisione, e un'intestazione più semplice.
+• Condivisione: schede «Con me» e «Da me», un indicatore su ogni nuova condivisione e azioni sugli elementi condivisi.
+• Condividi con più persone insieme e cambia il loro ruolo.
+• Cestino: elimina un elemento definitivamente; il cestino svuotato resta vuoto dopo un riavvio.

@@ -1,0 +1,6 @@
+• File and folder actions open in a panel at the bottom of the screen, with consistent icons.
+• Upload files from your phone with the + button.
+• Grid view in Recent, Favorites and Sharing, and a simpler header.
+• Sharing: "With me" and "By me" tabs, a badge on each new share, and actions on shared items.
+• Share with several people at once and change their role.
+• Trash: delete an item permanently; emptying the trash survives a restart.

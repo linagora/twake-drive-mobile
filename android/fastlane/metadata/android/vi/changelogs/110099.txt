@@ -1,0 +1,6 @@
+• Các thao tác với tệp và thư mục mở trong một bảng ở cuối màn hình, với biểu tượng đồng nhất.
+• Tải tệp từ điện thoại lên bằng nút +.
+• Chế độ lưới trong Gần đây, Yêu thích và Chia sẻ, cùng phần đầu trang gọn hơn.
+• Chia sẻ: thẻ "Với tôi" và "Bởi tôi", huy hiệu trên mỗi mục chia sẻ mới và thao tác trên mục được chia sẻ.
+• Chia sẻ với nhiều người cùng lúc và đổi vai trò của họ.
+• Thùng rác: xóa vĩnh viễn một mục; thùng rác đã dọn vẫn trống sau khi khởi động lại.
