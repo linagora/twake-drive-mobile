@@ -43,14 +43,15 @@ describe('createActionNames', () => {
     ])
   })
 
-  it('drops the shortcut inside a shared drive, which the stack refuses to create', () => {
-    expect(createActionNames({ ...opts, driveId: 'drive-1' })).toEqual(['folder', 'note'])
+  it('drops the shortcut but keeps the upload inside a shared drive', () => {
+    expect(createActionNames({ ...opts, driveId: 'drive-1' })).toEqual(['folder', 'note', 'upload'])
   })
 
   it('drops docs inside a shared drive, as its bridge writes to our own instance', () => {
     expect(createActionNames({ ...opts, docsEnabled: true, driveId: 'drive-1' })).toEqual([
       'folder',
-      'note'
+      'note',
+      'upload'
     ])
   })
 
@@ -62,6 +63,6 @@ describe('createActionNames', () => {
         excalidrawEnabled: true,
         driveId: 'drive-1'
       })
-    ).toEqual(['folder', 'note', 'text', 'sheet', 'slide', 'excalidraw'])
+    ).toEqual(['folder', 'note', 'text', 'sheet', 'slide', 'excalidraw', 'upload'])
   })
 })

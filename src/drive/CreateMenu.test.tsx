@@ -100,9 +100,14 @@ describe('CreateMenu', () => {
     expect(screen.queryByLabelText('drive.createMenu.upload')).toBeOnTheScreen()
   })
 
-  it('hides the upload entry inside a shared drive', () => {
+  it('offers the upload entry inside a shared drive the user can write to', () => {
     render(wrap(<CreateMenu dirId="d1" driveId="drive-1" canWrite notify={jest.fn()} />))
     openFab()
+    expect(screen.queryByLabelText('drive.createMenu.upload')).toBeOnTheScreen()
+  })
+
+  it('offers no entry at all in a read-only shared drive', () => {
+    render(wrap(<CreateMenu dirId="d1" driveId="drive-1" canWrite={false} notify={jest.fn()} />))
     expect(screen.queryByLabelText('drive.createMenu.upload')).toBeNull()
   })
 

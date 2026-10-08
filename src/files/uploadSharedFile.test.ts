@@ -49,6 +49,20 @@ test('POSTs the file to the folder upload route with a bearer token', async () =
   expect(wrapped).toEqual({ __wrapped: '/tmp/pic.jpg' })
 })
 
+test('POSTs to the shared drive route when a driveId is given, retrying on 409', async () => {
+  mockFetch
+    .mockReturnValueOnce(mkResp(409, {}))
+    .mockReturnValueOnce(mkResp(201, { data: { id: 'f2', attributes: { name: 'pic (1).jpg' } } }))
+  const res = await uploadSharedFile(client, item, 'dir42', undefined, 'drive 1')
+  expect(res).toEqual({ _id: 'f2', name: 'pic (1).jpg' })
+  expect(mockFetch.mock.calls[0][1]).toBe(
+    'https://alice.example/sharings/drives/drive%201/dir42?Type=file&Name=pic.jpg'
+  )
+  expect(mockFetch.mock.calls[1][1]).toBe(
+    'https://alice.example/sharings/drives/drive%201/dir42?Type=file&Name=pic%20(1).jpg'
+  )
+})
+
 test('retries with a numeric suffix on 409 name conflict', async () => {
   mockFetch
     .mockReturnValueOnce(mkResp(409, {}))

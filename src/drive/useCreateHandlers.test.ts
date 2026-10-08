@@ -136,7 +136,13 @@ describe('useCreateHandlers uploadFiles', () => {
       failed: 0
     })
     await handlers({ notify }).uploadFiles()
-    expect(mockUploadBatch).toHaveBeenCalledWith(mockClient, [item], 'd1', expect.any(Function))
+    expect(mockUploadBatch).toHaveBeenCalledWith(
+      mockClient,
+      [item],
+      'd1',
+      expect.any(Function),
+      undefined
+    )
     expect(mockOptimisticFiles).toHaveBeenCalled()
     expect(notify).toHaveBeenLastCalledWith('drive.import.successFile')
   })
@@ -193,6 +199,42 @@ describe('useCreateHandlers inside a shared drive', () => {
     const onCreated = jest.fn()
     await handlers({ ...deps, onCreated }).createFolderNamed('Foo')
     expect(onCreated).toHaveBeenCalledWith({ _id: 'new', name: 'Foo', type: 'directory' })
+  })
+})
+
+describe('useCreateHandlers uploadFiles inside a shared drive', () => {
+  const item = { uri: 'file:///cache/a.pdf', name: 'a.pdf', mimeType: 'application/pdf' }
+
+  it('uploads through the drive and hands the screen the uploaded row', async () => {
+    const onCreated = jest.fn()
+    mockPickDocuments.mockResolvedValue([item])
+    mockUploadBatch.mockResolvedValue({
+      results: [{ item, ok: true, file: { _id: 'f1', name: 'a (1).pdf' } }],
+      succeeded: 1,
+      failed: 0
+    })
+    await handlers({ driveId: 'drive-1', onCreated }).uploadFiles()
+    expect(mockUploadBatch).toHaveBeenCalledWith(
+      mockClient,
+      [item],
+      'd1',
+      expect.any(Function),
+      'drive-1'
+    )
+    expect(mockOptimisticFiles).not.toHaveBeenCalled()
+    expect(onCreated).toHaveBeenCalledWith({ _id: 'f1', name: 'a (1).pdf', type: 'file' })
+  })
+
+  it('still refreshes the screen when every file failed', async () => {
+    const onCreated = jest.fn()
+    mockPickDocuments.mockResolvedValue([item])
+    mockUploadBatch.mockResolvedValue({
+      results: [{ item, ok: false, error: 'boom' }],
+      succeeded: 0,
+      failed: 1
+    })
+    await handlers({ driveId: 'drive-1', onCreated }).uploadFiles()
+    expect(onCreated).toHaveBeenCalledWith()
   })
 })
 
