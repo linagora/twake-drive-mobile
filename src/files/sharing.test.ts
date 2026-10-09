@@ -13,6 +13,7 @@ import {
   findPublicLinkForFile,
   findSharingForFile,
   getLinkEditingRights,
+  getLinkExpiry,
   getRecipients,
   hasLinkPassword,
   isValidLinkPassword,
@@ -748,12 +749,21 @@ describe('leaveSharing', () => {
   })
 })
 
-describe('link password helpers', () => {
+describe('link password and expiry helpers', () => {
   it('reads whether a link is password protected, on attributes or flattened', () => {
     expect(hasLinkPassword({ _id: 'p', attributes: { password: 'x' } })).toBe(true)
     expect(hasLinkPassword({ _id: 'p', password: true })).toBe(true)
     expect(hasLinkPassword({ _id: 'p', attributes: {} })).toBe(false)
     expect(hasLinkPassword(null)).toBe(false)
+  })
+
+  it('reads the expiry date, null when absent or unparsable', () => {
+    expect(
+      getLinkExpiry({ _id: 'p', attributes: { expires_at: '2030-05-01T21:59:59.999Z' } })
+    ).toEqual(new Date('2030-05-01T21:59:59.999Z'))
+    expect(getLinkExpiry({ _id: 'p' })).toBeNull()
+    expect(getLinkExpiry({ _id: 'p', expires_at: 'nope' })).toBeNull()
+    expect(getLinkExpiry(undefined)).toBeNull()
   })
 
   it('requires at least 4 characters once trimmed, like the web', () => {
