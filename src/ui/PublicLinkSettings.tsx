@@ -1,17 +1,25 @@
 import React, { useEffect, useState } from 'react'
 import { StyleSheet, View } from 'react-native'
 import { Button, Dialog, HelperText, Portal, Text, TextInput } from 'react-native-paper'
+import { format, isPast } from 'date-fns'
 import { useTranslation } from 'react-i18next'
 
+import { dateLocaleForLanguage } from '@/i18n/dateLocale'
 import { PASSWORD_MIN_LENGTH, isValidLinkPassword } from '@/files/sharing'
 
+import { DatePickerDialog } from './DatePickerDialog'
 import { useKeyboardOffset } from './useKeyboardOffset'
 
 interface Props {
   hasPassword: boolean
+  /** The date the link expires at, null when it never does. */
+  expiresAt?: Date | null
   disabled?: boolean
   onSavePassword: (password: string) => void
   onRemovePassword: () => void
+  /** The expiry row shows once this is given. */
+  onSaveExpiry?: (day: Date) => void
+  onClearExpiry?: () => void
 }
 
 interface PasswordDialogProps {
@@ -100,19 +108,25 @@ const PasswordDialog = ({ visible, onDismiss, onSubmit }: PasswordDialogProps) =
   )
 }
 
-/**
- * Password of a public link, as twake-drive web's share-link modal
- * (cozy-sharing's BoxPassword) offers it.
- * It only asks; the caller makes the stack call.
- */
+// Only asks; the caller makes the stack call.
 export const PublicLinkSettings = ({
   hasPassword,
+  expiresAt = null,
   disabled = false,
   onSavePassword,
-  onRemovePassword
+  onRemovePassword,
+  onSaveExpiry,
+  onClearExpiry
 }: Props) => {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const [passwordOpen, setPasswordOpen] = useState(false)
+  const [dateOpen, setDateOpen] = useState(false)
+
+  const expiryLabel = expiresAt
+    ? t(isPast(expiresAt) ? 'drive.share.linkExpiredOn' : 'drive.share.linkExpiresOn', {
+        date: format(expiresAt, 'PP', { locale: dateLocaleForLanguage(i18n.language) })
+      })
+    : t('drive.share.linkExpiryNone')
 
   return (
     <View style={styles.container} testID="share-link-settings">
@@ -146,6 +160,38 @@ export const PublicLinkSettings = ({
           </Button>
         ) : null}
       </View>
+      {onSaveExpiry ? (
+        <View style={styles.row}>
+          <View style={styles.text}>
+            <Text variant="bodyMedium">{t('drive.share.linkExpiryText')}</Text>
+            <Text variant="bodySmall" testID="share-link-expiry-state">
+              {expiryLabel}
+            </Text>
+          </View>
+          <Button
+            compact
+            testID="share-link-expiry-edit"
+            accessibilityLabel={t(
+              expiresAt ? 'drive.share.linkExpiryChangeLabel' : 'drive.share.linkExpirySetLabel'
+            )}
+            disabled={disabled}
+            onPress={() => setDateOpen(true)}
+          >
+            {t(expiresAt ? 'drive.share.linkChange' : 'drive.share.linkSet')}
+          </Button>
+          {expiresAt ? (
+            <Button
+              compact
+              testID="share-link-expiry-clear"
+              accessibilityLabel={t('drive.share.linkExpiryRemoveLabel')}
+              disabled={disabled}
+              onPress={onClearExpiry}
+            >
+              {t('drive.share.linkRemove')}
+            </Button>
+          ) : null}
+        </View>
+      ) : null}
 
       <PasswordDialog
         visible={passwordOpen}
@@ -153,6 +199,18 @@ export const PublicLinkSettings = ({
         onSubmit={password => {
           setPasswordOpen(false)
           onSavePassword(password)
+        }}
+      />
+      <DatePickerDialog
+        visible={dateOpen}
+        title={t('drive.share.linkExpiryLabel')}
+        value={expiresAt}
+        // Like the web, no day in the past: today stays valid until its end.
+        minDate={new Date()}
+        onDismiss={() => setDateOpen(false)}
+        onConfirm={day => {
+          setDateOpen(false)
+          onSaveExpiry?.(day)
         }}
       />
     </View>
