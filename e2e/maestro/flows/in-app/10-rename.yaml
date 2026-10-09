@@ -26,7 +26,12 @@ onFlowComplete:
 - tapOn:
     id: 'rename-name-input'
 - eraseText
-- inputText: '${RENAMED}'
+- inputText: '${RENAMED}y'
+# One Backspace takes one character (#494), not two.
+- pressKey: Backspace
+- assertVisible:
+    id: 'rename-name-input'
+    text: '${RENAMED}'
 - tapOn:
     id: 'rename-submit'
 - extendedWaitUntil:

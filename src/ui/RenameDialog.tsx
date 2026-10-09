@@ -71,6 +71,7 @@ export const RenameDialog = ({ visible, initialName, type, onDismiss, onSubmit }
             onChangeText={setName}
             autoFocus
             autoCapitalize="sentences"
+            autoCorrect={false}
             disabled={submitting}
             onSubmitEditing={handleSubmit}
             returnKeyType="done"

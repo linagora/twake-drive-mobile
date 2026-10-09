@@ -60,6 +60,7 @@ export const CreateShortcutDialog = ({ visible, onDismiss, onSubmit }: Props) =>
             onChangeText={setName}
             autoFocus
             autoCapitalize="sentences"
+            autoCorrect={false}
             disabled={submitting}
             returnKeyType="next"
           />

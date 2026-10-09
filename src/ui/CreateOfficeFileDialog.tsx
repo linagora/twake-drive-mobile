@@ -71,6 +71,7 @@ export const CreateOfficeFileDialog = ({ visible, fileClass, onDismiss, onSubmit
             onChangeText={setName}
             autoFocus
             autoCapitalize="sentences"
+            autoCorrect={false}
             disabled={submitting}
             onSubmitEditing={handleSubmit}
             returnKeyType="done"
