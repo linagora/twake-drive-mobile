@@ -30,6 +30,8 @@ import { appendChip, extractEmails, hasEmail, isValidEmail } from '@/files/recip
 import { useReachableContacts } from '@/files/useReachableContacts'
 import {
   LinkEditingRights,
+  READ_ONLY_PERMS,
+  WRITE_PERMS,
   absoluteMemberIndex,
   RecipientInput,
   addRecipients,
@@ -41,7 +43,8 @@ import {
   getRecipients,
   revokePublicLink,
   revokeSharingMember,
-  setMemberReadOnly
+  setMemberReadOnly,
+  updatePublicLinkSettings
 } from '@/files/sharing'
 import { RecipientView, fetchEffectiveRecipients } from '@/files/effectiveRecipients'
 import { FEDERATED_SHARED_FOLDER_FLAG, SHARED_DRIVE_FLAG } from '@/files/sharingFlags'
@@ -181,7 +184,7 @@ export default function ShareRoute() {
   // Re-sync the segmented control whenever the loaded permission changes:
   // - opening the sheet on a fresh file → resets to 'readOnly'
   // - opening on a file that already has an editor link → starts at 'write'
-  // - after a successful swap (revoke+recreate) refreshSharings updates
+  // - after a successful rights change refreshSharings updates
   //   linkPermission, which lands us back here in the matching state
   useEffect(() => {
     setEditingRights(getLinkEditingRights(linkPermission))
@@ -221,17 +224,15 @@ export default function ShareRoute() {
     if (!requireOnline(isOnline, setSnack, t)) return
     if (!linkPermission || !client || !file) return // local-only change before link exists
     if (linkMutating) return
-    // Existing link: swap rights via revoke + recreate. This changes the
-    // public URL — the simplest correct path until cozy-stack exposes a way
-    // to mutate `attributes.permissions[*].verbs` in place.
-    // TODO: replace with PermissionCollection.add/destroy verbs once available
-    //       to avoid invalidating the existing sharecode.
+    // Existing link: the verbs are PATCHed in place, as the web does, so the
+    // public URL, the password and the expiry all stay.
     setLinkMutating(true)
     setMutating(true)
     setError(null)
     try {
-      await revokePublicLink(client, file)
-      await createPublicLink(client, file, next)
+      await updatePublicLinkSettings(client, linkPermission, {
+        verbs: next === 'write' ? WRITE_PERMS : READ_ONLY_PERMS
+      })
       await refreshSharings()
     } catch (e) {
       console.error('[ShareRoute] swap link rights failed', e)

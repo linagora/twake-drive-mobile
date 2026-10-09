@@ -31,7 +31,7 @@ jest.mock('cozy-client', () => ({
 }))
 
 jest.mock('react-i18next', () => ({
-  useTranslation: () => ({ t: (key: string) => key })
+  useTranslation: () => ({ t: (key: string) => key, i18n: { language: 'en' } })
 }))
 
 jest.mock('@/client/useFlag', () => ({ useFlag: () => true }))
@@ -44,19 +44,25 @@ const mockCreateSharing = jest.fn()
 const mockAddRecipients = jest.fn()
 const mockSetMemberReadOnly = jest.fn()
 const mockRevokeMember = jest.fn()
+const mockUpdateLinkSettings = jest.fn()
 jest.mock('@/files/sharing', () => ({
   ...jest.requireActual('@/files/sharing'),
   createSharingForFile: (...args: unknown[]) => mockCreateSharing(...args),
   addRecipients: (...args: unknown[]) => mockAddRecipients(...args),
   setMemberReadOnly: (...args: unknown[]) => mockSetMemberReadOnly(...args),
-  revokeSharingMember: (...args: unknown[]) => mockRevokeMember(...args)
+  revokeSharingMember: (...args: unknown[]) => mockRevokeMember(...args),
+  updatePublicLinkSettings: (...args: unknown[]) => mockUpdateLinkSettings(...args)
 }))
 const mockFetchEffectiveRecipients = jest.fn()
 jest.mock('@/files/effectiveRecipients', () => ({
   fetchEffectiveRecipients: (...args: unknown[]) => mockFetchEffectiveRecipients(...args)
 }))
+let mockLinkPermission: unknown = null
 jest.mock('@/sharing/SharingProvider', () => ({
-  useFileSharing: () => ({ loaded: true, entry: undefined }),
+  useFileSharing: () => ({
+    loaded: true,
+    entry: mockLinkPermission ? { linkPermission: mockLinkPermission } : undefined
+  }),
   useRefreshSharings: () => jest.fn()
 }))
 jest.mock('expo-clipboard', () => ({ setStringAsync: jest.fn() }))
@@ -75,6 +81,8 @@ describe('ShareRoute', () => {
     mockAddRecipients.mockReset().mockResolvedValue(undefined)
     mockSetMemberReadOnly.mockReset().mockResolvedValue(undefined)
     mockRevokeMember.mockReset().mockResolvedValue(undefined)
+    mockUpdateLinkSettings.mockReset().mockResolvedValue({})
+    mockLinkPermission = null
   })
 
   it('renders the file name', async () => {
@@ -276,6 +284,27 @@ describe('ShareRoute', () => {
       render(wrap(<ShareRoute />))
       fireEvent.press(await screen.findByTestId('remove-recipient'))
       await waitFor(() => expect(mockRevokeMember).toHaveBeenCalledWith(mockClient, 'own', 1))
+    })
+  })
+
+  describe('public link', () => {
+    const permission = {
+      _id: 'perm-1',
+      attributes: {
+        codes: { code: 'abc' },
+        permissions: { files: { type: 'io.cozy.files', values: ['f1'], verbs: ['GET'] } }
+      }
+    }
+
+    it('swaps Reader/Editor in place, keeping the link', async () => {
+      mockLinkPermission = permission
+      render(wrap(<ShareRoute />))
+      fireEvent.press(await screen.findByText('drive.share.linkRightsEditor'))
+      await waitFor(() =>
+        expect(mockUpdateLinkSettings).toHaveBeenCalledWith(mockClient, permission, {
+          verbs: ['GET', 'POST', 'PUT', 'PATCH']
+        })
+      )
     })
   })
 })
