@@ -303,6 +303,15 @@ export const getLinkEditingRights = (
   return 'readOnly'
 }
 
+// Same minimum as twake-drive web (cozy-sharing's PASSWORD_MIN_LENGTH).
+export const PASSWORD_MIN_LENGTH = 4
+
+export const isValidLinkPassword = (password: string): boolean =>
+  password.trim().length >= PASSWORD_MIN_LENGTH
+
+export const hasLinkPassword = (permission: PublicLinkPermission | null | undefined): boolean =>
+  Boolean(permission?.attributes?.password ?? permission?.password)
+
 // The link expires at the END of the picked day, so picking today keeps it reachable until midnight.
 const toExpirationDate = (date: Date): Date => endOfDay(date)
 
