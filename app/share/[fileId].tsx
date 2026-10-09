@@ -44,7 +44,12 @@ import {
   setMemberReadOnly
 } from '@/files/sharing'
 import { RecipientView, fetchEffectiveRecipients } from '@/files/effectiveRecipients'
-import { FEDERATED_SHARED_FOLDER_FLAG, SHARED_DRIVE_FLAG } from '@/files/sharingFlags'
+import {
+  FEDERATED_SHARED_FOLDER_FLAG,
+  HIDE_COZY_TO_COZY_FLAG,
+  SHARED_DRIVE_FLAG,
+  isSharingWithPeopleEnabled
+} from '@/files/sharingFlags'
 import { useFileSharing, useRefreshSharings } from '@/sharing/SharingProvider'
 import { useIsOnline } from '@/network/useIsOnline'
 import { requireOnline } from '@/network/requireOnline'
@@ -92,6 +97,7 @@ export default function ShareRoute() {
   // flag does not get it.
   const emailSharingEnabled = useFlag(SHARED_DRIVE_FLAG) === true
   const federatedSharing = useFlag(FEDERATED_SHARED_FOLDER_FLAG) === true
+  const hideCozyToCozy = useFlag(HIDE_COZY_TO_COZY_FLAG)
   // TODO: when an advanced-settings panel is added, gate it on this flag too.
   // const autoOpenSettingsEnabled = !!useFlag('sharing.auto-open-settings.enabled')
 
@@ -573,166 +579,174 @@ export default function ShareRoute() {
           </>
         ) : null}
 
-        {/* Recipients section */}
-        <View style={styles.section}>
-          <Text variant="titleSmall" testID="share-recipients-title">
-            {t('drive.share.recipientsTitle')}
-          </Text>
-          {recipientViews.length === 0 ? (
-            <Text variant="bodySmall" style={styles.sectionHint}>
-              —
+        {/* Existing recipients stay listed even when adding people is off */}
+        {isSharingWithPeopleEnabled({
+          sharedDrive: emailSharingEnabled,
+          federatedSharedFolder: federatedSharing,
+          hideCozyToCozy
+        }) || recipientViews.length > 0 ? (
+          <View style={styles.section}>
+            <Text variant="titleSmall" testID="share-recipients-title">
+              {t('drive.share.recipientsTitle')}
             </Text>
-          ) : (
-            recipientViews.map(recipient => (
-              <RecipientRow
-                key={recipient.key}
-                recipient={recipient}
-                statusLabel={statusLabel(recipient.status)}
-                disabled={mutating}
-                onRemove={() => void onRemoveRecipient(recipient)}
-                onChangeRole={readOnly => void onChangeRole(recipient, readOnly)}
-              />
-            ))
-          )}
-
-          {showAddForm && emailSharingEnabled ? (
-            <View style={styles.addForm}>
-              <View
-                style={[
-                  styles.chipField,
-                  { borderColor: inputError ? theme.colors.error : theme.colors.outline }
-                ]}
-              >
-                {chips.map(chip => (
-                  <Chip
-                    key={chip.email}
-                    testID="recipient-chip"
-                    compact
-                    onClose={() => setChips(current => current.filter(c => c !== chip))}
-                    closeIconAccessibilityLabel={t('a11y.removeChip', { email: chip.email })}
-                  >
-                    {chip.email}
-                  </Chip>
-                ))}
-                <TextInput
-                  mode="flat"
-                  testID="share-email-input"
-                  placeholder={t('drive.share.emailPlaceholder')}
-                  accessibilityLabel={t('drive.share.emailPlaceholder')}
-                  value={emailInput}
-                  onChangeText={onChangeEmailInput}
-                  onSubmitEditing={onCommitInput}
-                  onBlur={() => isValidEmail(emailInput) && onCommitInput()}
-                  onKeyPress={e => onInputKeyPress(e.nativeEvent.key)}
-                  blurOnSubmit={false}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  keyboardType="email-address"
-                  dense
-                  underlineColor="transparent"
-                  activeUnderlineColor="transparent"
-                  style={styles.chipInput}
+            {recipientViews.length === 0 ? (
+              <Text variant="bodySmall" style={styles.sectionHint}>
+                —
+              </Text>
+            ) : (
+              recipientViews.map(recipient => (
+                <RecipientRow
+                  key={recipient.key}
+                  recipient={recipient}
+                  statusLabel={statusLabel(recipient.status)}
+                  disabled={mutating}
+                  onRemove={() => void onRemoveRecipient(recipient)}
+                  onChangeRole={readOnly => void onChangeRole(recipient, readOnly)}
                 />
-              </View>
-              {inputError ? (
-                <Text variant="bodySmall" style={{ color: theme.colors.error }}>
-                  {inputError}
-                </Text>
-              ) : null}
-              {contactsLoading && contacts.length === 0 ? (
-                <Text variant="bodySmall" style={styles.suggestionsHint}>
-                  {t('drive.share.suggestionsLoading')}
-                </Text>
-              ) : null}
-              {suggestions.length > 0 ? (
-                <View style={[styles.suggestionsBox, { borderColor: theme.colors.outlineVariant }]}>
-                  <ScrollView
-                    keyboardShouldPersistTaps="handled"
-                    nestedScrollEnabled
-                    style={styles.suggestionsScroll}
+              ))
+            )}
+
+            {showAddForm && emailSharingEnabled ? (
+              <View style={styles.addForm}>
+                <View
+                  style={[
+                    styles.chipField,
+                    { borderColor: inputError ? theme.colors.error : theme.colors.outline }
+                  ]}
+                >
+                  {chips.map(chip => (
+                    <Chip
+                      key={chip.email}
+                      testID="recipient-chip"
+                      compact
+                      onClose={() => setChips(current => current.filter(c => c !== chip))}
+                      closeIconAccessibilityLabel={t('a11y.removeChip', { email: chip.email })}
+                    >
+                      {chip.email}
+                    </Chip>
+                  ))}
+                  <TextInput
+                    mode="flat"
+                    testID="share-email-input"
+                    placeholder={t('drive.share.emailPlaceholder')}
+                    accessibilityLabel={t('drive.share.emailPlaceholder')}
+                    value={emailInput}
+                    onChangeText={onChangeEmailInput}
+                    onSubmitEditing={onCommitInput}
+                    onBlur={() => isValidEmail(emailInput) && onCommitInput()}
+                    onKeyPress={e => onInputKeyPress(e.nativeEvent.key)}
+                    blurOnSubmit={false}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    keyboardType="email-address"
+                    dense
+                    underlineColor="transparent"
+                    activeUnderlineColor="transparent"
+                    style={styles.chipInput}
+                  />
+                </View>
+                {inputError ? (
+                  <Text variant="bodySmall" style={{ color: theme.colors.error }}>
+                    {inputError}
+                  </Text>
+                ) : null}
+                {contactsLoading && contacts.length === 0 ? (
+                  <Text variant="bodySmall" style={styles.suggestionsHint}>
+                    {t('drive.share.suggestionsLoading')}
+                  </Text>
+                ) : null}
+                {suggestions.length > 0 ? (
+                  <View
+                    style={[styles.suggestionsBox, { borderColor: theme.colors.outlineVariant }]}
                   >
-                    {suggestions.map(s => (
-                      <Pressable
-                        key={s._id}
-                        onPress={() => onPickSuggestion(s)}
-                        style={({ pressed }) => [
-                          styles.suggestionRow,
-                          pressed && {
-                            backgroundColor: theme.colors.surfaceVariant
-                          }
-                        ]}
-                        accessibilityRole="button"
-                        accessibilityLabel={`${s.displayName} ${s.email}`}
-                      >
-                        <View
-                          style={[
-                            styles.suggestionAvatar,
-                            { backgroundColor: theme.colors.primaryContainer }
+                    <ScrollView
+                      keyboardShouldPersistTaps="handled"
+                      nestedScrollEnabled
+                      style={styles.suggestionsScroll}
+                    >
+                      {suggestions.map(s => (
+                        <Pressable
+                          key={s._id}
+                          onPress={() => onPickSuggestion(s)}
+                          style={({ pressed }) => [
+                            styles.suggestionRow,
+                            pressed && {
+                              backgroundColor: theme.colors.surfaceVariant
+                            }
                           ]}
+                          accessibilityRole="button"
+                          accessibilityLabel={`${s.displayName} ${s.email}`}
                         >
-                          <Text
+                          <View
                             style={[
-                              styles.suggestionInitial,
-                              { color: theme.colors.onPrimaryContainer }
+                              styles.suggestionAvatar,
+                              { backgroundColor: theme.colors.primaryContainer }
                             ]}
                           >
-                            {s.displayName.charAt(0).toUpperCase()}
-                          </Text>
-                        </View>
-                        <View style={styles.suggestionText}>
-                          <Text variant="bodyMedium" numberOfLines={1}>
-                            {s.displayName}
-                          </Text>
-                          <Text
-                            variant="bodySmall"
-                            numberOfLines={1}
-                            style={styles.suggestionEmail}
-                          >
-                            {s.email}
-                          </Text>
-                        </View>
-                      </Pressable>
-                    ))}
-                  </ScrollView>
+                            <Text
+                              style={[
+                                styles.suggestionInitial,
+                                { color: theme.colors.onPrimaryContainer }
+                              ]}
+                            >
+                              {s.displayName.charAt(0).toUpperCase()}
+                            </Text>
+                          </View>
+                          <View style={styles.suggestionText}>
+                            <Text variant="bodyMedium" numberOfLines={1}>
+                              {s.displayName}
+                            </Text>
+                            <Text
+                              variant="bodySmall"
+                              numberOfLines={1}
+                              style={styles.suggestionEmail}
+                            >
+                              {s.email}
+                            </Text>
+                          </View>
+                        </Pressable>
+                      ))}
+                    </ScrollView>
+                  </View>
+                ) : null}
+                <View style={styles.readOnlyRow}>
+                  <Text>{t('drive.share.roleLabel')}</Text>
+                  <RoleMenu
+                    readOnly={readOnlyInput}
+                    onChange={setReadOnlyInput}
+                    disabled={mutating}
+                    testID="share-role"
+                  />
                 </View>
-              ) : null}
-              <View style={styles.readOnlyRow}>
-                <Text>{t('drive.share.roleLabel')}</Text>
-                <RoleMenu
-                  readOnly={readOnlyInput}
-                  onChange={setReadOnlyInput}
-                  disabled={mutating}
-                  testID="share-role"
-                />
+                <View style={styles.addButtons}>
+                  <Button mode="text" onPress={closeAddForm} disabled={mutating}>
+                    {t('common.cancel')}
+                  </Button>
+                  <Button
+                    mode="contained"
+                    testID="share-send"
+                    onPress={() => void onSubmitRecipient()}
+                    loading={mutating}
+                    disabled={mutating || (chips.length === 0 && !emailInput.trim())}
+                  >
+                    {t('drive.share.send')}
+                  </Button>
+                </View>
               </View>
-              <View style={styles.addButtons}>
-                <Button mode="text" onPress={closeAddForm} disabled={mutating}>
-                  {t('common.cancel')}
-                </Button>
-                <Button
-                  mode="contained"
-                  testID="share-send"
-                  onPress={() => void onSubmitRecipient()}
-                  loading={mutating}
-                  disabled={mutating || (chips.length === 0 && !emailInput.trim())}
-                >
-                  {t('drive.share.send')}
-                </Button>
-              </View>
-            </View>
-          ) : emailSharingEnabled ? (
-            <Button
-              mode="outlined"
-              icon="account-plus"
-              testID="share-add-recipient"
-              onPress={() => setShowAddForm(true)}
-              style={styles.addButton}
-              disabled={initialLoading}
-            >
-              {t('drive.share.addRecipient')}
-            </Button>
-          ) : null}
-        </View>
+            ) : emailSharingEnabled ? (
+              <Button
+                mode="outlined"
+                icon="account-plus"
+                testID="share-add-recipient"
+                onPress={() => setShowAddForm(true)}
+                style={styles.addButton}
+                disabled={initialLoading}
+              >
+                {t('drive.share.addRecipient')}
+              </Button>
+            ) : null}
+          </View>
+        ) : null}
 
         <View style={styles.footer}>
           <Button mode="outlined" onPress={close} testID="share-close">
