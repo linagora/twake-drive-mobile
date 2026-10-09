@@ -144,4 +144,12 @@ describe('RenameDialog', () => {
     act(() => listeners.keyboardDidHide({ endCoordinates: { height: 0 } }))
     expect(dialogStyle().marginBottom).toBeUndefined()
   })
+
+  // Keyboard suggestions are suspected of leaving the text in a composing
+  // state that makes Backspace delete more than one character (#494).
+  it('turns the keyboard autocorrection off', () => {
+    renderDialog()
+    const input = screen.getByTestId('rename-name-input')
+    expect(input.props.autoCorrect).toBe(false)
+  })
 })
