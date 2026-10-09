@@ -41,6 +41,7 @@ import {
   findSharingForFile,
   getLinkEditingRights,
   getRecipients,
+  hasLinkPassword,
   revokePublicLink,
   revokeSharingMember,
   setMemberReadOnly,
@@ -55,6 +56,7 @@ import { ScreenContainer } from '@/ui/ScreenContainer'
 import { LoadingState } from '@/ui/LoadingState'
 import { ErrorState } from '@/ui/ErrorState'
 import { FileThumbnail } from '@/ui/FileThumbnail'
+import { PublicLinkSettings } from '@/ui/PublicLinkSettings'
 
 interface ShareSheetFile {
   _id: string
@@ -189,6 +191,38 @@ export default function ShareRoute() {
   useEffect(() => {
     setEditingRights(getLinkEditingRights(linkPermission))
   }, [linkPermission])
+
+  // Optimistic password: shown at once, dropped when the stack refuses
+  // or once the refreshed permission carries the new value.
+  const [linkOverride, setLinkOverride] = useState<{
+    hasPassword?: boolean
+  }>({})
+  useEffect(() => {
+    setLinkOverride({})
+  }, [linkPermission])
+  const linkHasPassword = linkOverride.hasPassword ?? hasLinkPassword(linkPermission)
+
+  const onChangeLinkSettings = async (
+    settings: { password?: string },
+    optimistic: { hasPassword?: boolean }
+  ): Promise<void> => {
+    if (!requireOnline(isOnline, setSnack, t)) return
+    if (!client || !linkPermission || linkMutating) return
+    const previous = linkOverride
+    setLinkOverride(current => ({ ...current, ...optimistic }))
+    setLinkMutating(true)
+    setError(null)
+    try {
+      await updatePublicLinkSettings(client, linkPermission, settings)
+      await refreshSharings()
+    } catch (e) {
+      console.error('[ShareRoute] update link settings failed', e)
+      setLinkOverride(previous)
+      setError(t('drive.share.errorMutate'))
+    } finally {
+      setLinkMutating(false)
+    }
+  }
 
   const close = useCallback((): void => {
     if (router.canGoBack()) router.back()
@@ -566,6 +600,16 @@ export default function ShareRoute() {
                       accessibilityLabel={t('drive.share.linkCopy')}
                     />
                   </View>
+                  <PublicLinkSettings
+                    hasPassword={linkHasPassword}
+                    disabled={linkMutating || initialLoading}
+                    onSavePassword={password =>
+                      void onChangeLinkSettings({ password }, { hasPassword: true })
+                    }
+                    onRemovePassword={() =>
+                      void onChangeLinkSettings({ password: '' }, { hasPassword: false })
+                    }
+                  />
                 </>
               ) : null}
             </View>

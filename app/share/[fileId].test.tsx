@@ -296,6 +296,60 @@ describe('ShareRoute', () => {
       }
     }
 
+    const protectedLink = {
+      ...permission,
+      attributes: { ...permission.attributes, password: true }
+    }
+
+    it('offers no settings while the public link is off', async () => {
+      render(wrap(<ShareRoute />))
+      await screen.findByText('rapport.pdf')
+      expect(screen.queryByTestId('share-link-settings')).toBeNull()
+    })
+
+    it('shows an open link as unprotected', async () => {
+      mockLinkPermission = permission
+      render(wrap(<ShareRoute />))
+      expect(await screen.findByTestId('share-link-settings')).toBeOnTheScreen()
+      expect(screen.getByTestId('share-link-password-state')).toHaveTextContent(
+        'drive.share.linkPasswordNone'
+      )
+    })
+
+    it('reflects a password protected link', async () => {
+      mockLinkPermission = protectedLink
+      render(wrap(<ShareRoute />))
+      expect(await screen.findByTestId('share-link-password-remove')).toBeOnTheScreen()
+      expect(screen.getByTestId('share-link-password-state')).toHaveTextContent(
+        'drive.share.linkPasswordSet'
+      )
+    })
+
+    it('removes the password: shows it at once, PATCHes an empty one', async () => {
+      mockLinkPermission = protectedLink
+      mockUpdateLinkSettings.mockReturnValue(new Promise(() => undefined))
+      render(wrap(<ShareRoute />))
+      fireEvent.press(await screen.findByTestId('share-link-password-remove'))
+      expect(screen.getByTestId('share-link-password-state')).toHaveTextContent(
+        'drive.share.linkPasswordNone'
+      )
+      expect(mockUpdateLinkSettings).toHaveBeenCalledWith(mockClient, protectedLink, {
+        password: ''
+      })
+    })
+
+    it('puts the password back and tells so when the stack refuses', async () => {
+      mockLinkPermission = protectedLink
+      mockUpdateLinkSettings.mockRejectedValue(new Error('boom'))
+      jest.spyOn(console, 'error').mockImplementation(() => undefined)
+      render(wrap(<ShareRoute />))
+      fireEvent.press(await screen.findByTestId('share-link-password-remove'))
+      expect(await screen.findByText('drive.share.errorMutate')).toBeOnTheScreen()
+      expect(screen.getByTestId('share-link-password-state')).toHaveTextContent(
+        'drive.share.linkPasswordSet'
+      )
+    })
+
     it('swaps Reader/Editor in place, keeping the link', async () => {
       mockLinkPermission = permission
       render(wrap(<ShareRoute />))

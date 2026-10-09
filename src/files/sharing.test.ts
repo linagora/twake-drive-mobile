@@ -14,6 +14,8 @@ import {
   findSharingForFile,
   getLinkEditingRights,
   getRecipients,
+  hasLinkPassword,
+  isValidLinkPassword,
   leaveSharing,
   revokePublicLink,
   revokeSharingMember,
@@ -743,6 +745,21 @@ describe('leaveSharing', () => {
     const client = makeClient({ 'io.cozy.sharings': { revokeSelf } })
     await leaveSharing(client, 'drive-1')
     expect(triggerPouchReplication).toHaveBeenCalledWith(client, 'io.cozy.sharings')
+  })
+})
+
+describe('link password helpers', () => {
+  it('reads whether a link is password protected, on attributes or flattened', () => {
+    expect(hasLinkPassword({ _id: 'p', attributes: { password: 'x' } })).toBe(true)
+    expect(hasLinkPassword({ _id: 'p', password: true })).toBe(true)
+    expect(hasLinkPassword({ _id: 'p', attributes: {} })).toBe(false)
+    expect(hasLinkPassword(null)).toBe(false)
+  })
+
+  it('requires at least 4 characters once trimmed, like the web', () => {
+    expect(isValidLinkPassword('abc')).toBe(false)
+    expect(isValidLinkPassword('  abc  ')).toBe(false)
+    expect(isValidLinkPassword('abcd')).toBe(true)
   })
 })
 
