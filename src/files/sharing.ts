@@ -1,4 +1,5 @@
 import type CozyClient from 'cozy-client'
+import { endOfDay } from 'date-fns'
 
 import { triggerPouchReplication } from '@/pouchdb/triggerReplication'
 
@@ -75,10 +76,17 @@ export interface PublicLinkPermission {
     codes?: Record<string, string>
     shortcodes?: Record<string, string>
     permissions?: Record<string, { type?: string; values?: string[]; verbs?: string[] }>
+    /** ISO date at which the link stops working. */
+    expires_at?: string
+    /** Set when the link is password protected. The stack never gives the
+     *  password itself back, only that there is one. */
+    password?: string | boolean
     created_at?: string
     updated_at?: string
   }
   // Normalizer also flattens these to top-level.
+  expires_at?: string
+  password?: string | boolean
   codes?: Record<string, string>
   shortcodes?: Record<string, string>
   permissions?: Record<string, { type?: string; values?: string[]; verbs?: string[] }>
@@ -116,6 +124,11 @@ interface PermissionsCollectionApi {
     options?: { ttl?: string; password?: string; verbs?: string[]; tiny?: boolean }
   ) => Promise<{ data: PublicLinkPermission }>
   revokeSharingLink: (document: { _id: string; _type: string }) => Promise<unknown>
+  add: (
+    document: { _id: string; _type: string },
+    permission: Record<string, { type?: string; values?: string[]; verbs?: string[] }>,
+    options?: { expiresAt?: string; password?: string }
+  ) => Promise<{ data: PublicLinkPermission }>
   fetchAllLinks: (document: {
     _id: string
     _type: string
@@ -288,6 +301,48 @@ export const getLinkEditingRights = (
     if (verbs.some(v => v !== 'GET')) return 'write'
   }
   return 'readOnly'
+}
+
+// The link expires at the END of the picked day, so picking today keeps it reachable until midnight.
+const toExpirationDate = (date: Date): Date => endOfDay(date)
+
+interface LinkSettingsPatch {
+  /** New verbs for every rule of the link (see READ_ONLY_PERMS / WRITE_PERMS). */
+  verbs?: readonly string[]
+  /** A new password, or '' to remove the current one. Left out: unchanged. */
+  password?: string
+  /** A new expiration day, or null to clear it. Left out: unchanged. */
+  expiresAt?: Date | null
+}
+
+/**
+ * Patches an existing public link in place (rules kept unless `verbs` is given).
+ * The stack removes a password or an expiry when sent an empty string.
+ */
+export const updatePublicLinkSettings = async (
+  client: CozyClient,
+  permission: PublicLinkPermission,
+  settings: LinkSettingsPatch
+): Promise<PublicLinkPermission> => {
+  const current = linkPermissionsMap(permission)
+  const { verbs } = settings
+  const rules = verbs
+    ? Object.fromEntries(
+        Object.entries(current).map(([name, rule]) => [name, { ...rule, verbs: [...verbs] }])
+      )
+    : current
+  const options: { expiresAt?: string; password?: string } = {}
+  if (settings.password !== undefined) options.password = settings.password
+  if (settings.expiresAt !== undefined) {
+    options.expiresAt = settings.expiresAt ? toExpirationDate(settings.expiresAt).toISOString() : ''
+  }
+  const result = await getPermissions(client).add(
+    { _id: permission._id, _type: PERMISSIONS_DOCTYPE },
+    rules,
+    options
+  )
+  triggerPouchReplication(client, 'io.cozy.permissions')
+  return result.data
 }
 
 /**
