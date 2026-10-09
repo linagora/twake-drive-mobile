@@ -40,11 +40,13 @@ import {
   createSharingForFile,
   findSharingForFile,
   getLinkEditingRights,
+  getLinkExpiry,
   getRecipients,
   hasLinkPassword,
   revokePublicLink,
   revokeSharingMember,
   setMemberReadOnly,
+  toExpirationDate,
   updatePublicLinkSettings
 } from '@/files/sharing'
 import { RecipientView, fetchEffectiveRecipients } from '@/files/effectiveRecipients'
@@ -192,19 +194,22 @@ export default function ShareRoute() {
     setEditingRights(getLinkEditingRights(linkPermission))
   }, [linkPermission])
 
-  // Optimistic password: shown at once, dropped when the stack refuses
+  // Optimistic password / expiry: shown at once, dropped when the stack refuses
   // or once the refreshed permission carries the new value.
   const [linkOverride, setLinkOverride] = useState<{
     hasPassword?: boolean
+    expiresAt?: Date | null
   }>({})
   useEffect(() => {
     setLinkOverride({})
   }, [linkPermission])
   const linkHasPassword = linkOverride.hasPassword ?? hasLinkPassword(linkPermission)
+  const linkExpiresAt =
+    linkOverride.expiresAt !== undefined ? linkOverride.expiresAt : getLinkExpiry(linkPermission)
 
   const onChangeLinkSettings = async (
-    settings: { password?: string },
-    optimistic: { hasPassword?: boolean }
+    settings: { password?: string; expiresAt?: Date | null },
+    optimistic: { hasPassword?: boolean; expiresAt?: Date | null }
   ): Promise<void> => {
     if (!requireOnline(isOnline, setSnack, t)) return
     if (!client || !linkPermission || linkMutating) return
@@ -214,14 +219,16 @@ export default function ShareRoute() {
     setError(null)
     try {
       await updatePublicLinkSettings(client, linkPermission, settings)
-      await refreshSharings()
     } catch (e) {
       console.error('[ShareRoute] update link settings failed', e)
       setLinkOverride(previous)
       setError(t('drive.share.errorMutate'))
-    } finally {
       setLinkMutating(false)
+      return
     }
+    // The stack has the change: a failed refresh must not undo it on screen.
+    await refreshSharings().catch(e => console.error('[ShareRoute] refresh failed', e))
+    setLinkMutating(false)
   }
 
   const close = useCallback((): void => {
@@ -602,12 +609,22 @@ export default function ShareRoute() {
                   </View>
                   <PublicLinkSettings
                     hasPassword={linkHasPassword}
+                    expiresAt={linkExpiresAt}
                     disabled={linkMutating || initialLoading}
                     onSavePassword={password =>
                       void onChangeLinkSettings({ password }, { hasPassword: true })
                     }
                     onRemovePassword={() =>
                       void onChangeLinkSettings({ password: '' }, { hasPassword: false })
+                    }
+                    onSaveExpiry={day =>
+                      void onChangeLinkSettings(
+                        { expiresAt: day },
+                        { expiresAt: toExpirationDate(day) }
+                      )
+                    }
+                    onClearExpiry={() =>
+                      void onChangeLinkSettings({ expiresAt: null }, { expiresAt: null })
                     }
                   />
                 </>

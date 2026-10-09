@@ -13,13 +13,12 @@ import { useKeyboardOffset } from './useKeyboardOffset'
 interface Props {
   hasPassword: boolean
   /** The date the link expires at, null when it never does. */
-  expiresAt?: Date | null
+  expiresAt: Date | null
   disabled?: boolean
   onSavePassword: (password: string) => void
   onRemovePassword: () => void
-  /** The expiry row shows once this is given. */
-  onSaveExpiry?: (day: Date) => void
-  onClearExpiry?: () => void
+  onSaveExpiry: (day: Date) => void
+  onClearExpiry: () => void
 }
 
 interface PasswordDialogProps {
@@ -111,7 +110,7 @@ const PasswordDialog = ({ visible, onDismiss, onSubmit }: PasswordDialogProps) =
 // Only asks; the caller makes the stack call.
 export const PublicLinkSettings = ({
   hasPassword,
-  expiresAt = null,
+  expiresAt,
   disabled = false,
   onSavePassword,
   onRemovePassword,
@@ -160,38 +159,36 @@ export const PublicLinkSettings = ({
           </Button>
         ) : null}
       </View>
-      {onSaveExpiry ? (
-        <View style={styles.row}>
-          <View style={styles.text}>
-            <Text variant="bodyMedium">{t('drive.share.linkExpiryText')}</Text>
-            <Text variant="bodySmall" testID="share-link-expiry-state">
-              {expiryLabel}
-            </Text>
-          </View>
+      <View style={styles.row}>
+        <View style={styles.text}>
+          <Text variant="bodyMedium">{t('drive.share.linkExpiryText')}</Text>
+          <Text variant="bodySmall" testID="share-link-expiry-state">
+            {expiryLabel}
+          </Text>
+        </View>
+        <Button
+          compact
+          testID="share-link-expiry-edit"
+          accessibilityLabel={t(
+            expiresAt ? 'drive.share.linkExpiryChangeLabel' : 'drive.share.linkExpirySetLabel'
+          )}
+          disabled={disabled}
+          onPress={() => setDateOpen(true)}
+        >
+          {t(expiresAt ? 'drive.share.linkChange' : 'drive.share.linkSet')}
+        </Button>
+        {expiresAt ? (
           <Button
             compact
-            testID="share-link-expiry-edit"
-            accessibilityLabel={t(
-              expiresAt ? 'drive.share.linkExpiryChangeLabel' : 'drive.share.linkExpirySetLabel'
-            )}
+            testID="share-link-expiry-clear"
+            accessibilityLabel={t('drive.share.linkExpiryRemoveLabel')}
             disabled={disabled}
-            onPress={() => setDateOpen(true)}
+            onPress={onClearExpiry}
           >
-            {t(expiresAt ? 'drive.share.linkChange' : 'drive.share.linkSet')}
+            {t('drive.share.linkRemove')}
           </Button>
-          {expiresAt ? (
-            <Button
-              compact
-              testID="share-link-expiry-clear"
-              accessibilityLabel={t('drive.share.linkExpiryRemoveLabel')}
-              disabled={disabled}
-              onPress={onClearExpiry}
-            >
-              {t('drive.share.linkRemove')}
-            </Button>
-          ) : null}
-        </View>
-      ) : null}
+        ) : null}
+      </View>
 
       <PasswordDialog
         visible={passwordOpen}
@@ -210,7 +207,7 @@ export const PublicLinkSettings = ({
         onDismiss={() => setDateOpen(false)}
         onConfirm={day => {
           setDateOpen(false)
-          onSaveExpiry?.(day)
+          onSaveExpiry(day)
         }}
       />
     </View>

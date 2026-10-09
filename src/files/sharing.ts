@@ -312,10 +312,17 @@ export const isValidLinkPassword = (password: string): boolean =>
 export const hasLinkPassword = (permission: PublicLinkPermission | null | undefined): boolean =>
   Boolean(permission?.attributes?.password ?? permission?.password)
 
-// The link expires at the END of the picked day, so picking today keeps it reachable until midnight.
-const toExpirationDate = (date: Date): Date => endOfDay(date)
+export const getLinkExpiry = (permission: PublicLinkPermission | null | undefined): Date | null => {
+  const raw = permission?.attributes?.expires_at ?? permission?.expires_at
+  if (!raw) return null
+  const date = new Date(raw)
+  return Number.isNaN(date.getTime()) ? null : date
+}
 
-interface LinkSettingsPatch {
+// The link expires at the END of the picked day, so picking today keeps it reachable until midnight.
+export const toExpirationDate = (date: Date): Date => endOfDay(date)
+
+export interface LinkSettingsPatch {
   /** New verbs for every rule of the link (see READ_ONLY_PERMS / WRITE_PERMS). */
   verbs?: readonly string[]
   /** A new password, or '' to remove the current one. Left out: unchanged. */

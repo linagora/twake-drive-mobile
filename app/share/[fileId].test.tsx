@@ -287,7 +287,7 @@ describe('ShareRoute', () => {
     })
   })
 
-  describe('public link', () => {
+  describe('public link password and expiry', () => {
     const permission = {
       _id: 'perm-1',
       attributes: {
@@ -295,10 +295,13 @@ describe('ShareRoute', () => {
         permissions: { files: { type: 'io.cozy.files', values: ['f1'], verbs: ['GET'] } }
       }
     }
-
     const protectedLink = {
       ...permission,
       attributes: { ...permission.attributes, password: true }
+    }
+    const expiringLink = {
+      ...permission,
+      attributes: { ...permission.attributes, expires_at: '2099-05-01T21:59:59.999Z' }
     }
 
     it('offers no settings while the public link is off', async () => {
@@ -307,21 +310,30 @@ describe('ShareRoute', () => {
       expect(screen.queryByTestId('share-link-settings')).toBeNull()
     })
 
-    it('shows an open link as unprotected', async () => {
+    it('shows an open link as unprotected and without deadline', async () => {
       mockLinkPermission = permission
       render(wrap(<ShareRoute />))
       expect(await screen.findByTestId('share-link-settings')).toBeOnTheScreen()
       expect(screen.getByTestId('share-link-password-state')).toHaveTextContent(
         'drive.share.linkPasswordNone'
       )
+      expect(screen.getByTestId('share-link-expiry-state')).toHaveTextContent(
+        'drive.share.linkExpiryNone'
+      )
     })
 
-    it('reflects a password protected link', async () => {
-      mockLinkPermission = protectedLink
+    it('reflects a password protected, expiring link', async () => {
+      mockLinkPermission = {
+        ...protectedLink,
+        attributes: { ...protectedLink.attributes, ...expiringLink.attributes, password: true }
+      }
       render(wrap(<ShareRoute />))
       expect(await screen.findByTestId('share-link-password-remove')).toBeOnTheScreen()
       expect(screen.getByTestId('share-link-password-state')).toHaveTextContent(
         'drive.share.linkPasswordSet'
+      )
+      expect(screen.getByTestId('share-link-expiry-state')).toHaveTextContent(
+        'drive.share.linkExpiresOn'
       )
     })
 
@@ -347,6 +359,19 @@ describe('ShareRoute', () => {
       expect(await screen.findByText('drive.share.errorMutate')).toBeOnTheScreen()
       expect(screen.getByTestId('share-link-password-state')).toHaveTextContent(
         'drive.share.linkPasswordSet'
+      )
+    })
+
+    it('clears the deadline the same way', async () => {
+      mockLinkPermission = expiringLink
+      mockUpdateLinkSettings.mockReturnValue(new Promise(() => undefined))
+      render(wrap(<ShareRoute />))
+      fireEvent.press(await screen.findByTestId('share-link-expiry-clear'))
+      expect(mockUpdateLinkSettings).toHaveBeenCalledWith(mockClient, expiringLink, {
+        expiresAt: null
+      })
+      expect(screen.getByTestId('share-link-expiry-state')).toHaveTextContent(
+        'drive.share.linkExpiryNone'
       )
     })
 
