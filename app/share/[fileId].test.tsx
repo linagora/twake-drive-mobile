@@ -34,7 +34,11 @@ jest.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (key: string) => key })
 }))
 
-jest.mock('@/client/useFlag', () => ({ useFlag: () => true }))
+let mockSharingEntry: unknown
+let mockFlags: Record<string, unknown> = {}
+jest.mock('@/client/useFlag', () => ({
+  useFlag: (name: string) => (name in mockFlags ? mockFlags[name] : true)
+}))
 jest.mock('@/network/useIsOnline', () => ({ useIsOnline: () => true }))
 let mockContacts: unknown[] = []
 jest.mock('@/files/useReachableContacts', () => ({
@@ -56,7 +60,7 @@ jest.mock('@/files/effectiveRecipients', () => ({
   fetchEffectiveRecipients: (...args: unknown[]) => mockFetchEffectiveRecipients(...args)
 }))
 jest.mock('@/sharing/SharingProvider', () => ({
-  useFileSharing: () => ({ loaded: true, entry: undefined }),
+  useFileSharing: () => ({ loaded: true, entry: mockSharingEntry }),
   useRefreshSharings: () => jest.fn()
 }))
 jest.mock('expo-clipboard', () => ({ setStringAsync: jest.fn() }))
@@ -68,6 +72,8 @@ const wrap = (ui: React.ReactElement) => <PaperProvider>{ui}</PaperProvider>
 describe('ShareRoute', () => {
   beforeEach(() => {
     mockParams = { fileId: 'f1' }
+    mockFlags = {}
+    mockSharingEntry = undefined
     mockFetchEffectiveRecipients.mockReset()
     mockFetchEffectiveRecipients.mockResolvedValue([])
     mockContacts = []
@@ -99,6 +105,44 @@ describe('ShareRoute', () => {
     expect(await screen.findByText('Ada')).toBeOnTheScreen()
     expect(screen.getByTestId('recipient-row')).toBeOnTheScreen()
     expect(mockFetchEffectiveRecipients).toHaveBeenCalledWith(mockClient, 'f1', undefined)
+  })
+
+  describe('when the instance allows no sharing with people', () => {
+    beforeEach(() => {
+      mockFlags = {
+        'drive.shared-drive.enabled': false,
+        'drive.federated-shared-folder.enabled': false,
+        'cozy.hide-sharing-cozy-to-cozy': true
+      }
+    })
+
+    it('hides the recipients section and the add entry', async () => {
+      render(wrap(<ShareRoute />))
+      expect(await screen.findByText('rapport.pdf')).toBeOnTheScreen()
+      expect(screen.queryByTestId('share-recipients-title')).toBeNull()
+      expect(screen.queryByTestId('share-add-recipient')).toBeNull()
+    })
+
+    it('still lists who already has access, without an add entry', async () => {
+      mockSharingEntry = {
+        sharing: {
+          _id: 'own',
+          members: [
+            { status: 'owner', name: 'Me' },
+            { status: 'ready', name: 'Ada', email: 'ada@example.org' }
+          ]
+        }
+      }
+      render(wrap(<ShareRoute />))
+      expect(await screen.findByText('Ada')).toBeOnTheScreen()
+      expect(screen.queryByTestId('share-add-recipient')).toBeNull()
+    })
+
+    it('shows the section again once cozy-to-cozy sharing is not hidden', async () => {
+      mockFlags = { ...mockFlags, 'cozy.hide-sharing-cozy-to-cozy': false }
+      render(wrap(<ShareRoute />))
+      expect(await screen.findByTestId('share-recipients-title')).toBeOnTheScreen()
+    })
   })
 
   it('asks the drive route for a document inside a shared drive', async () => {
