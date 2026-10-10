@@ -28,9 +28,17 @@ jobs:
           MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
           MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
           MATCH_DEPLOY_KEY: ${{ secrets.MATCH_DEPLOY_KEY }}
+          APP_REVIEW_FIRST_NAME: ${{ secrets.APP_REVIEW_FIRST_NAME }}
+          APP_REVIEW_LAST_NAME: ${{ secrets.APP_REVIEW_LAST_NAME }}
+          APP_REVIEW_EMAIL: ${{ secrets.APP_REVIEW_EMAIL }}
+          APP_REVIEW_PHONE: ${{ secrets.APP_REVIEW_PHONE }}
+          APP_REVIEW_DEMO_USER: ${{ secrets.APP_REVIEW_DEMO_USER }}
+          APP_REVIEW_DEMO_PASSWORD: ${{ secrets.APP_REVIEW_DEMO_PASSWORD }}
+          APP_REVIEW_NOTES: ${{ secrets.APP_REVIEW_NOTES }}
         run: |
           android=(ANDROID_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD FIREBASE_APP_ID FIREBASE_SERVICE_ACCOUNT_BASE64)
           ios=(APPLE_TEAM_ID APP_STORE_CONNECT_API_KEY_ID APP_STORE_CONNECT_ISSUER_ID APP_STORE_CONNECT_API_KEY_CONTENT MATCH_GIT_URL MATCH_PASSWORD MATCH_DEPLOY_KEY)
+          app_review=(APP_REVIEW_FIRST_NAME APP_REVIEW_LAST_NAME APP_REVIEW_EMAIL APP_REVIEW_PHONE APP_REVIEW_DEMO_USER APP_REVIEW_DEMO_PASSWORD APP_REVIEW_NOTES)
           missing=0
           report() {
             echo "### $1" >> "$GITHUB_STEP_SUMMARY"
@@ -38,6 +46,8 @@ jobs:
             for name in "$@"; do
               if [ -n "${!name:-}" ]; then
                 echo "- \`$name\` — set" >> "$GITHUB_STEP_SUMMARY"
+              elif [ -n "${optional:-}" ]; then
+                echo "- \`$name\` — not set (optional)" >> "$GITHUB_STEP_SUMMARY"
               else
                 echo "- \`$name\` — **MISSING**" >> "$GITHUB_STEP_SUMMARY"
                 missing=$((missing + 1))
@@ -47,6 +57,7 @@ jobs:
           echo "## Release secrets" >> "$GITHUB_STEP_SUMMARY"
           report "Android" "${android[@]}"
           report "iOS" "${ios[@]}"
+          optional=1 report "iOS App Review (optional)" "${app_review[@]}"
           echo >> "$GITHUB_STEP_SUMMARY"
           if [ "$missing" -gt 0 ]; then
             echo "$missing missing — see docs/ci-cd-signed-release.md." >> "$GITHUB_STEP_SUMMARY"

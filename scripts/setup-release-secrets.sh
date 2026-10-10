@@ -54,6 +54,10 @@ set_secret APP_STORE_CONNECT_ISSUER_ID        "${APP_STORE_CONNECT_ISSUER_ID:-}"
 [[ -z "${APP_STORE_CONNECT_API_KEY_FILE:-}" ]] && set_secret APP_STORE_CONNECT_API_KEY_CONTENT "${APP_STORE_CONNECT_API_KEY_CONTENT:-}"
 set_secret MATCH_GIT_URL                      "${MATCH_GIT_URL:-}"
 set_secret MATCH_PASSWORD                     "${MATCH_PASSWORD:-}"
+for name in APP_REVIEW_FIRST_NAME APP_REVIEW_LAST_NAME APP_REVIEW_EMAIL APP_REVIEW_PHONE \
+            APP_REVIEW_DEMO_USER APP_REVIEW_DEMO_PASSWORD APP_REVIEW_NOTES; do
+  set_secret "$name" "${!name:-}"
+done
 [[ -z "${MATCH_DEPLOY_KEY_FILE:-}" ]]         && set_secret MATCH_DEPLOY_KEY                 "${MATCH_DEPLOY_KEY:-}"
 
 echo "Done. Verify names with:  gh secret list --repo $REPO"
