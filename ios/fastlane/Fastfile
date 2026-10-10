@@ -156,6 +156,7 @@ platform :ios do
       skip_binary_upload: true,
       metadata_path: "./fastlane/metadata",
       skip_screenshots: true,
+      app_rating_config_path: "./fastlane/age_rating.json",
       precheck_include_in_app_purchases: false
     )
   end
