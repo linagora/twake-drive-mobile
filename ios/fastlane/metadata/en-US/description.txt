@@ -1,0 +1,28 @@
+Twake Drive Mobile gives you your drive on your phone. Browse your files, view and edit documents, keep them available offline, and use them in your everyday apps.
+
+BROWSE AND SEARCH
+- Browse files and folders in list or grid view
+- Search your whole drive by name
+- Mark favorites and find them again in one tap
+
+EDIT
+- Open and edit your documents from the app, including Notes, OnlyOffice and Twake Docs
+- No second sign-in needed to start editing
+
+SHARE
+- Send files to your drive from the iOS share sheet
+- Create share links
+- Share with several people at once and change their role
+- Follow what is shared with you and what you shared, in separate tabs
+- Upload files with the + button, in a shared drive too
+
+WORK OFFLINE
+- Pin files and folders to keep them available without a connection
+- Your changes show up right away and sync when you are back online
+
+AND MORE
+- Delete an item permanently from the trash, or empty it
+- Switch between light and dark themes
+- Available in English, French, Spanish, Italian, German, Vietnamese and Russian
+
+Twake Drive Mobile works with your Twake Drive. Sign in with your Twake account to get started.
