@@ -62,6 +62,7 @@ export const CreateFolderDialog = ({ visible, onDismiss, onSubmit }: Props) => {
             onChangeText={setName}
             autoFocus
             autoCapitalize="sentences"
+            autoCorrect={false}
             disabled={submitting}
             onSubmitEditing={handleSubmit}
             returnKeyType="done"
