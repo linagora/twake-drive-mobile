@@ -19,6 +19,13 @@ esac
 exit 0
 `
 
+// Logs every call, and answers the boot probe the driver reset waits on.
+const FAKE_ADB = `#!/usr/bin/env bash
+echo "$*" >>"$FAKE_STATE/adb.log"
+case "$*" in *sys.boot_completed*) echo 1 ;; esac
+exit 0
+`
+
 const FAKE_OK = '#!/usr/bin/env bash\nexit 0\n'
 
 let tmp: string
@@ -30,7 +37,7 @@ beforeEach(() => {
   fs.mkdirSync(path.join(tmp, 'state'))
   fs.mkdirSync(path.join(tmp, 'flows'))
   fs.writeFileSync(path.join(bin, 'maestro'), FAKE_MAESTRO, { mode: 0o755 })
-  fs.writeFileSync(path.join(bin, 'adb'), FAKE_OK, { mode: 0o755 })
+  fs.writeFileSync(path.join(bin, 'adb'), FAKE_ADB, { mode: 0o755 })
   fs.writeFileSync(path.join(bin, 'docker'), FAKE_OK, { mode: 0o755 })
 })
 
@@ -57,14 +64,17 @@ function runFlow(name: string) {
     }
   })
   const report = (file: string) => fs.readFileSync(path.join(tmp, 'reports', file), 'utf8')
-  return { status: result.status, out: result.stdout, report }
+  const adbCalls = () => fs.readFileSync(path.join(tmp, 'state', 'adb.log'), 'utf8')
+  return { status: result.status, out: result.stdout, report, adbCalls }
 }
 
 describe('run-flows.sh', () => {
   it('retries a flow that hangs once and reports it as passed on retry', () => {
-    const { status, out, report } = runFlow('hang-once')
+    const { status, out, report, adbCalls } = runFlow('hang-once')
 
     expect(status).toBe(0)
+    expect(adbCalls()).toContain('forward --remove-all')
+    expect(adbCalls()).toContain('shell am force-stop dev.mobile.maestro.test')
     expect(out).toContain('[Retried] hang-once (timed out after 1s)')
     expect(out).toContain('| hang-once | 🔁 passed on retry')
     expect(report('hang-once.attempt1.xml')).toContain('<skipped message="timed out after 1s"/>')
