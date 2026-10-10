@@ -9,13 +9,18 @@ set -uo pipefail
 # Env: INSTANCE_DOMAIN, INSTANCE_PASSPHRASE, STACK_CONTAINER, and optionally
 # PLATFORM (android by default, or ios), MAESTRO_DEVICE (a udid), E2E_SEED to
 # replay an order, REPORTS_DIR for the JUnit reports, MAESTRO_ENV for extra
-# `-e NAME=value` pairs.
+# `-e NAME=value` pairs, E2E_FLOW_TIMEOUT for the deadline of one flow
+# (12m by default, any `timeout` duration).
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 FLOWS_DIR="$ROOT/e2e/maestro/flows"
 REPORTS="${REPORTS_DIR:-/tmp/maestro-reports}"
 SEED="${E2E_SEED:-$RANDOM}"
 PLATFORM="${PLATFORM:-android}"
+FLOW_TIMEOUT="${E2E_FLOW_TIMEOUT:-12m}"
+# macOS has no `timeout`; Homebrew coreutils installs it as `gtimeout`.
+TIMEOUT_BIN="$(command -v timeout || command -v gtimeout || true)"
+[ -n "$TIMEOUT_BIN" ] || echo "::warning::no timeout/gtimeout found, flows run without a deadline"
 SKIPPED_TAGS='login|ci-login|setup|preauth|shipped|visual|ios-files|onlyoffice|skip'
 # airplane mode and DocumentsUI only exist on Android
 [ "$PLATFORM" = ios ] && SKIPPED_TAGS="$SKIPPED_TAGS|android"
@@ -36,8 +41,10 @@ tags_of() {
 run() {
   local name="$1"
   shift
+  # A frozen flow prints nothing until the job timeout, so each one has a
+  # deadline. `timeout` signals its whole process group: maestro's JVM goes too.
   # shellcheck disable=SC2086
-  "$ROOT/e2e/scripts/maestro.sh" "${DEVICE_ARGS[@]}" test ${MAESTRO_ENV:-} \
+  ${TIMEOUT_BIN:+"$TIMEOUT_BIN" --kill-after=30 "$FLOW_TIMEOUT"} "$ROOT/e2e/scripts/maestro.sh" "${DEVICE_ARGS[@]}" test ${MAESTRO_ENV:-} \
     --env INSTANCE_URL="http://$INSTANCE_DOMAIN" \
     --env INSTANCE_PASSPHRASE="$INSTANCE_PASSPHRASE" \
     --env STACK_URL="http://localhost" \
@@ -45,6 +52,80 @@ run() {
     --env STACK_TOKEN="$(token)" \
     --format junit --output "$REPORTS/$name.xml" \
     "$@"
+}
+
+# Only a timeout is retried (once): a failed assertion is a real failure.
+# Exit codes are 124 (TERM) and 137 (KILL after the grace period).
+is_timeout() { [ "$1" -eq 124 ] || [ "$1" -eq 137 ]; }
+
+xml_escape() {
+  printf '%s' "$1" | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g' -e 's/"/\&quot;/g'
+}
+
+# A killed maestro writes no report. The first timeout is a <skipped> testcase
+# (visible, but a pass on retry stays green); the second is a <failure>.
+record_timeout() {
+  local file="$1" element="$4" name label limit
+  name="$(xml_escape "$2")"
+  label="$(xml_escape "$3")"
+  limit="$(xml_escape "$FLOW_TIMEOUT")"
+  cat >"$REPORTS/$file.xml" <<EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites><testsuite name="Test Suite" tests="1"><testcase id="$label" name="$label" classname="$name"><$element message="timed out after $limit"/></testcase></testsuite></testsuites>
+EOF
+}
+
+# Killing maestro leaves its driver (dev.mobile.maestro.test) and the adb
+# forwards on the device; the next maestro dies in ~150 ms with "Device server
+# died", and so does the flow after it. Stop both packages, drop the forwards,
+# and wait (bounded) until no process is left and the device answers.
+reset_maestro_driver() {
+  [ "$PLATFORM" = android ] || return 0
+  local adb=(adb ${MAESTRO_DEVICE:+-s "$MAESTRO_DEVICE"})
+  "${adb[@]}" forward --remove-all >/dev/null 2>&1
+  "${adb[@]}" shell am force-stop dev.mobile.maestro.test >/dev/null 2>&1
+  "${adb[@]}" shell am force-stop dev.mobile.maestro >/dev/null 2>&1
+  "${adb[@]}" shell cmd connectivity airplane-mode disable >/dev/null 2>&1
+  local deadline=$((SECONDS + 30))
+  while [ "$SECONDS" -lt "$deadline" ]; do
+    if [ -z "$("${adb[@]}" shell pidof dev.mobile.maestro dev.mobile.maestro.test 2>/dev/null | tr -d '\r')" ] &&
+      "${adb[@]}" shell getprop sys.boot_completed 2>/dev/null | grep -q 1; then
+      return 0
+    fi
+    sleep 1
+  done
+  echo "::warning::maestro's driver is still running after 30s"
+}
+
+PASSED=()
+FAILED=()
+RETRIED=()
+HUNG=()
+
+# Records the flow as passed, retried (passed on retry), failed or hung (timed out twice).
+settle() {
+  local name="$1" rc=0
+  run "$@" || rc=$?
+  if ! is_timeout "$rc"; then
+    if [ "$rc" -eq 0 ]; then PASSED+=("$name"); else FAILED+=("$name"); fi
+    return
+  fi
+  record_timeout "$name.attempt1" "$name" "$name (attempt 1, timed out)" skipped
+  echo "[Retried] $name (timed out after $FLOW_TIMEOUT)"
+  echo "::warning::$name timed out after $FLOW_TIMEOUT, retrying once"
+  reset_maestro_driver
+  rc=0
+  run "$@" || rc=$?
+  if [ "$rc" -eq 0 ]; then
+    RETRIED+=("$name")
+  elif is_timeout "$rc"; then
+    record_timeout "$name" "$name" "$name (timed out twice)" failure
+    echo "[Timed out twice] $name"
+    reset_maestro_driver
+    HUNG+=("$name")
+  else
+    FAILED+=("$name")
+  fi
 }
 
 if [ "$#" -eq 0 ]; then
@@ -66,11 +147,8 @@ if [ "$PLATFORM" = android ]; then
     -d file:///sdcard/Download/e2e-share.jpg >/dev/null
 fi
 
-PASSED=()
-FAILED=()
-
 echo "::group::00-welcome"
-if run 00-welcome "$FLOWS_DIR/00-welcome.yaml"; then PASSED+=(00-welcome); else FAILED+=(00-welcome); fi
+settle 00-welcome "$FLOWS_DIR/00-welcome.yaml"
 echo "::endgroup::"
 
 echo "::group::Setup: sign in"
@@ -92,19 +170,21 @@ for flow in "${ORDERED[@]}"; do
   name="$(basename "$flow" .yaml)"
   echo "::group::$name"
   [ "$PLATFORM" = android ] && adb shell cmd connectivity airplane-mode disable >/dev/null 2>&1
-  if run "$name" "$flow"; then PASSED+=("$name"); else FAILED+=("$name"); fi
+  settle "$name" "$flow"
   echo "::endgroup::"
 done
 
 {
-  echo "### E2E $PLATFORM: ${#PASSED[@]} passed, ${#FAILED[@]} failed"
+  echo "### E2E $PLATFORM: $((${#PASSED[@]} + ${#RETRIED[@]})) passed (${#RETRIED[@]} on retry), $((${#FAILED[@]} + ${#HUNG[@]})) failed"
   echo
   echo "Order seed \`$SEED\`."
   echo
   echo "| Flow | Result |"
   echo "|---|---|"
   for name in ${PASSED[@]+"${PASSED[@]}"}; do echo "| $name | ✅ |"; done
+  for name in ${RETRIED[@]+"${RETRIED[@]}"}; do echo "| $name | 🔁 passed on retry (timed out after $FLOW_TIMEOUT) |"; done
   for name in ${FAILED[@]+"${FAILED[@]}"}; do echo "| $name | ❌ |"; done
+  for name in ${HUNG[@]+"${HUNG[@]}"}; do echo "| $name | ❌ timed out twice (after $FLOW_TIMEOUT) |"; done
 } | tee -a "${GITHUB_STEP_SUMMARY:-/dev/null}"
 
-[ "${#FAILED[@]}" -eq 0 ]
+[ "$((${#FAILED[@]} + ${#HUNG[@]}))" -eq 0 ]
