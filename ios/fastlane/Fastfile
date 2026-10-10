@@ -29,6 +29,22 @@ def testflight_notes
   end
 end
 
+# App Review contact and demo account, from the environment so none of it is in
+# git. Only what is set is sent, so deliver leaves the rest of the page alone.
+# A demo user without its password (or the reverse) is dropped: reviewers could not sign in.
+def app_review_information
+  info = {
+    first_name: ENV["APP_REVIEW_FIRST_NAME"],
+    last_name: ENV["APP_REVIEW_LAST_NAME"],
+    email_address: ENV["APP_REVIEW_EMAIL"],
+    phone_number: ENV["APP_REVIEW_PHONE"],
+    demo_user: ENV["APP_REVIEW_DEMO_USER"],
+    demo_password: ENV["APP_REVIEW_DEMO_PASSWORD"],
+    notes: ENV["APP_REVIEW_NOTES"]
+  }.reject { |_, value| value.to_s.strip.empty? }
+  info.slice(:demo_user, :demo_password).size == 2 ? info : info.except(:demo_user, :demo_password)
+end
+
 platform :ios do
   # One-off provisioning: create any MISSING match profiles (e.g. a newly-added
   # extension) in WRITE mode, so the readonly release lane can then fetch them.
@@ -157,6 +173,7 @@ platform :ios do
       metadata_path: "./fastlane/metadata",
       skip_screenshots: true,
       app_rating_config_path: "./fastlane/age_rating.json",
+      app_review_information: app_review_information,
       precheck_include_in_app_purchases: false
     )
   end
