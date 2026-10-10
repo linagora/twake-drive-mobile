@@ -32,6 +32,7 @@
     "logoutTitle": "¿Cerrar sesión?",
     "logoutMessage": "Los archivos guardados sin conexión y los documentos que ha abierto permanecen en este dispositivo. Bórrelos si no es suyo.",
     "logoutAndErase": "Cerrar sesión y borrar",
+    "privacyPolicy": "Política de privacidad",
     "termsOfService": "Condiciones generales de uso"
   },
   "auth": {

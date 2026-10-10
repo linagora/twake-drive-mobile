@@ -32,6 +32,7 @@
     "logoutTitle": "Disconnettersi?",
     "logoutMessage": "I file mantenuti offline e i documenti che hai aperto restano su questo dispositivo. Cancellali se non ti appartiene.",
     "logoutAndErase": "Disconnetti ed elimina",
+    "privacyPolicy": "Informativa sulla privacy",
     "termsOfService": "Condizioni generali di utilizzo"
   },
   "auth": {
