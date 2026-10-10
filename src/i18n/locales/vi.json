@@ -32,6 +32,7 @@
     "logoutTitle": "Đăng xuất?",
     "logoutMessage": "Các tệp được giữ ngoại tuyến và tài liệu bạn đã mở vẫn còn trên thiết bị này. Hãy xóa chúng nếu đây không phải thiết bị của bạn.",
     "logoutAndErase": "Đăng xuất và xóa",
+    "privacyPolicy": "Chính sách quyền riêng tư",
     "termsOfService": "Điều khoản sử dụng"
   },
   "auth": {
