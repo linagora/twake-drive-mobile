@@ -60,11 +60,18 @@ is_timeout() { [ "$1" -eq 124 ] || [ "$1" -eq 137 ]; }
 
 # A killed maestro writes no report. The first timeout is a <skipped> testcase
 # (visible, but a pass on retry stays green); the second is a <failure>.
+xml_escape() {
+  printf '%s' "$1" | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g' -e 's/"/\&quot;/g'
+}
+
 record_timeout() {
-  local file="$1" name="$2" label="$3" element="$4"
+  local file="$1" element="$4" name label limit
+  name="$(xml_escape "$2")"
+  label="$(xml_escape "$3")"
+  limit="$(xml_escape "$FLOW_TIMEOUT")"
   cat >"$REPORTS/$file.xml" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuites><testsuite name="Test Suite" tests="1"><testcase id="$label" name="$label" classname="$name"><$element message="timed out after $FLOW_TIMEOUT"/></testcase></testsuite></testsuites>
+<testsuites><testsuite name="Test Suite" tests="1"><testcase id="$label" name="$label" classname="$name"><$element message="timed out after $limit"/></testcase></testsuite></testsuites>
 EOF
 }
 
