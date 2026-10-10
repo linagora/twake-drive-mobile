@@ -138,6 +138,13 @@ describe('ShareRoute', () => {
       expect(screen.queryByTestId('share-add-recipient')).toBeNull()
     })
 
+    it('keeps the section and the add entry when shared drives are on', async () => {
+      mockFlags = { ...mockFlags, 'drive.shared-drive.enabled': true }
+      render(wrap(<ShareRoute />))
+      expect(await screen.findByTestId('share-recipients-title')).toBeOnTheScreen()
+      expect(screen.getByTestId('share-add-recipient')).toBeOnTheScreen()
+    })
+
     it('shows the section again once cozy-to-cozy sharing is not hidden', async () => {
       mockFlags = { ...mockFlags, 'cozy.hide-sharing-cozy-to-cozy': false }
       render(wrap(<ShareRoute />))
