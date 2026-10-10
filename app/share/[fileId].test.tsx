@@ -31,7 +31,7 @@ jest.mock('cozy-client', () => ({
 }))
 
 jest.mock('react-i18next', () => ({
-  useTranslation: () => ({ t: (key: string) => key })
+  useTranslation: () => ({ t: (key: string) => key, i18n: { language: 'en' } })
 }))
 
 jest.mock('@/client/useFlag', () => ({ useFlag: () => true }))
@@ -44,19 +44,25 @@ const mockCreateSharing = jest.fn()
 const mockAddRecipients = jest.fn()
 const mockSetMemberReadOnly = jest.fn()
 const mockRevokeMember = jest.fn()
+const mockUpdateLinkSettings = jest.fn()
 jest.mock('@/files/sharing', () => ({
   ...jest.requireActual('@/files/sharing'),
   createSharingForFile: (...args: unknown[]) => mockCreateSharing(...args),
   addRecipients: (...args: unknown[]) => mockAddRecipients(...args),
   setMemberReadOnly: (...args: unknown[]) => mockSetMemberReadOnly(...args),
-  revokeSharingMember: (...args: unknown[]) => mockRevokeMember(...args)
+  revokeSharingMember: (...args: unknown[]) => mockRevokeMember(...args),
+  updatePublicLinkSettings: (...args: unknown[]) => mockUpdateLinkSettings(...args)
 }))
 const mockFetchEffectiveRecipients = jest.fn()
 jest.mock('@/files/effectiveRecipients', () => ({
   fetchEffectiveRecipients: (...args: unknown[]) => mockFetchEffectiveRecipients(...args)
 }))
+let mockLinkPermission: unknown = null
 jest.mock('@/sharing/SharingProvider', () => ({
-  useFileSharing: () => ({ loaded: true, entry: undefined }),
+  useFileSharing: () => ({
+    loaded: true,
+    entry: mockLinkPermission ? { linkPermission: mockLinkPermission } : undefined
+  }),
   useRefreshSharings: () => jest.fn()
 }))
 jest.mock('expo-clipboard', () => ({ setStringAsync: jest.fn() }))
@@ -75,6 +81,8 @@ describe('ShareRoute', () => {
     mockAddRecipients.mockReset().mockResolvedValue(undefined)
     mockSetMemberReadOnly.mockReset().mockResolvedValue(undefined)
     mockRevokeMember.mockReset().mockResolvedValue(undefined)
+    mockUpdateLinkSettings.mockReset().mockResolvedValue({})
+    mockLinkPermission = null
   })
 
   it('renders the file name', async () => {
@@ -276,6 +284,106 @@ describe('ShareRoute', () => {
       render(wrap(<ShareRoute />))
       fireEvent.press(await screen.findByTestId('remove-recipient'))
       await waitFor(() => expect(mockRevokeMember).toHaveBeenCalledWith(mockClient, 'own', 1))
+    })
+  })
+
+  describe('public link password and expiry', () => {
+    const permission = {
+      _id: 'perm-1',
+      attributes: {
+        codes: { code: 'abc' },
+        permissions: { files: { type: 'io.cozy.files', values: ['f1'], verbs: ['GET'] } }
+      }
+    }
+    const protectedLink = {
+      ...permission,
+      attributes: { ...permission.attributes, password: true }
+    }
+    const expiringLink = {
+      ...permission,
+      attributes: { ...permission.attributes, expires_at: '2099-05-01T21:59:59.999Z' }
+    }
+
+    it('offers no settings while the public link is off', async () => {
+      render(wrap(<ShareRoute />))
+      await screen.findByText('rapport.pdf')
+      expect(screen.queryByTestId('share-link-settings')).toBeNull()
+    })
+
+    it('shows an open link as unprotected and without deadline', async () => {
+      mockLinkPermission = permission
+      render(wrap(<ShareRoute />))
+      expect(await screen.findByTestId('share-link-settings')).toBeOnTheScreen()
+      expect(screen.getByTestId('share-link-password-state')).toHaveTextContent(
+        'drive.share.linkPasswordNone'
+      )
+      expect(screen.getByTestId('share-link-expiry-state')).toHaveTextContent(
+        'drive.share.linkExpiryNone'
+      )
+    })
+
+    it('reflects a password protected, expiring link', async () => {
+      mockLinkPermission = {
+        ...protectedLink,
+        attributes: { ...protectedLink.attributes, ...expiringLink.attributes, password: true }
+      }
+      render(wrap(<ShareRoute />))
+      expect(await screen.findByTestId('share-link-password-remove')).toBeOnTheScreen()
+      expect(screen.getByTestId('share-link-password-state')).toHaveTextContent(
+        'drive.share.linkPasswordSet'
+      )
+      expect(screen.getByTestId('share-link-expiry-state')).toHaveTextContent(
+        'drive.share.linkExpiresOn'
+      )
+    })
+
+    it('removes the password: shows it at once, PATCHes an empty one', async () => {
+      mockLinkPermission = protectedLink
+      mockUpdateLinkSettings.mockReturnValue(new Promise(() => undefined))
+      render(wrap(<ShareRoute />))
+      fireEvent.press(await screen.findByTestId('share-link-password-remove'))
+      expect(screen.getByTestId('share-link-password-state')).toHaveTextContent(
+        'drive.share.linkPasswordNone'
+      )
+      expect(mockUpdateLinkSettings).toHaveBeenCalledWith(mockClient, protectedLink, {
+        password: ''
+      })
+    })
+
+    it('puts the password back and tells so when the stack refuses', async () => {
+      mockLinkPermission = protectedLink
+      mockUpdateLinkSettings.mockRejectedValue(new Error('boom'))
+      jest.spyOn(console, 'error').mockImplementation(() => undefined)
+      render(wrap(<ShareRoute />))
+      fireEvent.press(await screen.findByTestId('share-link-password-remove'))
+      expect(await screen.findByText('drive.share.errorMutate')).toBeOnTheScreen()
+      expect(screen.getByTestId('share-link-password-state')).toHaveTextContent(
+        'drive.share.linkPasswordSet'
+      )
+    })
+
+    it('clears the deadline the same way', async () => {
+      mockLinkPermission = expiringLink
+      mockUpdateLinkSettings.mockReturnValue(new Promise(() => undefined))
+      render(wrap(<ShareRoute />))
+      fireEvent.press(await screen.findByTestId('share-link-expiry-clear'))
+      expect(mockUpdateLinkSettings).toHaveBeenCalledWith(mockClient, expiringLink, {
+        expiresAt: null
+      })
+      expect(screen.getByTestId('share-link-expiry-state')).toHaveTextContent(
+        'drive.share.linkExpiryNone'
+      )
+    })
+
+    it('swaps Reader/Editor in place, keeping the link', async () => {
+      mockLinkPermission = permission
+      render(wrap(<ShareRoute />))
+      fireEvent.press(await screen.findByText('drive.share.linkRightsEditor'))
+      await waitFor(() =>
+        expect(mockUpdateLinkSettings).toHaveBeenCalledWith(mockClient, permission, {
+          verbs: ['GET', 'POST', 'PUT', 'PATCH']
+        })
+      )
     })
   })
 })

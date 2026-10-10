@@ -30,6 +30,8 @@ import { appendChip, extractEmails, hasEmail, isValidEmail } from '@/files/recip
 import { useReachableContacts } from '@/files/useReachableContacts'
 import {
   LinkEditingRights,
+  READ_ONLY_PERMS,
+  WRITE_PERMS,
   absoluteMemberIndex,
   RecipientInput,
   addRecipients,
@@ -38,10 +40,14 @@ import {
   createSharingForFile,
   findSharingForFile,
   getLinkEditingRights,
+  getLinkExpiry,
   getRecipients,
+  hasLinkPassword,
   revokePublicLink,
   revokeSharingMember,
-  setMemberReadOnly
+  setMemberReadOnly,
+  toExpirationDate,
+  updatePublicLinkSettings
 } from '@/files/sharing'
 import { RecipientView, fetchEffectiveRecipients } from '@/files/effectiveRecipients'
 import { FEDERATED_SHARED_FOLDER_FLAG, SHARED_DRIVE_FLAG } from '@/files/sharingFlags'
@@ -52,6 +58,7 @@ import { ScreenContainer } from '@/ui/ScreenContainer'
 import { LoadingState } from '@/ui/LoadingState'
 import { ErrorState } from '@/ui/ErrorState'
 import { FileThumbnail } from '@/ui/FileThumbnail'
+import { PublicLinkSettings } from '@/ui/PublicLinkSettings'
 
 interface ShareSheetFile {
   _id: string
@@ -181,11 +188,48 @@ export default function ShareRoute() {
   // Re-sync the segmented control whenever the loaded permission changes:
   // - opening the sheet on a fresh file → resets to 'readOnly'
   // - opening on a file that already has an editor link → starts at 'write'
-  // - after a successful swap (revoke+recreate) refreshSharings updates
+  // - after a successful rights change refreshSharings updates
   //   linkPermission, which lands us back here in the matching state
   useEffect(() => {
     setEditingRights(getLinkEditingRights(linkPermission))
   }, [linkPermission])
+
+  // Optimistic password / expiry: shown at once, dropped when the stack refuses
+  // or once the refreshed permission carries the new value.
+  const [linkOverride, setLinkOverride] = useState<{
+    hasPassword?: boolean
+    expiresAt?: Date | null
+  }>({})
+  useEffect(() => {
+    setLinkOverride({})
+  }, [linkPermission])
+  const linkHasPassword = linkOverride.hasPassword ?? hasLinkPassword(linkPermission)
+  const linkExpiresAt =
+    linkOverride.expiresAt !== undefined ? linkOverride.expiresAt : getLinkExpiry(linkPermission)
+
+  const onChangeLinkSettings = async (
+    settings: { password?: string; expiresAt?: Date | null },
+    optimistic: { hasPassword?: boolean; expiresAt?: Date | null }
+  ): Promise<void> => {
+    if (!requireOnline(isOnline, setSnack, t)) return
+    if (!client || !linkPermission || linkMutating) return
+    const previous = linkOverride
+    setLinkOverride(current => ({ ...current, ...optimistic }))
+    setLinkMutating(true)
+    setError(null)
+    try {
+      await updatePublicLinkSettings(client, linkPermission, settings)
+    } catch (e) {
+      console.error('[ShareRoute] update link settings failed', e)
+      setLinkOverride(previous)
+      setError(t('drive.share.errorMutate'))
+      setLinkMutating(false)
+      return
+    }
+    // The stack has the change: a failed refresh must not undo it on screen.
+    await refreshSharings().catch(e => console.error('[ShareRoute] refresh failed', e))
+    setLinkMutating(false)
+  }
 
   const close = useCallback((): void => {
     if (router.canGoBack()) router.back()
@@ -221,17 +265,15 @@ export default function ShareRoute() {
     if (!requireOnline(isOnline, setSnack, t)) return
     if (!linkPermission || !client || !file) return // local-only change before link exists
     if (linkMutating) return
-    // Existing link: swap rights via revoke + recreate. This changes the
-    // public URL — the simplest correct path until cozy-stack exposes a way
-    // to mutate `attributes.permissions[*].verbs` in place.
-    // TODO: replace with PermissionCollection.add/destroy verbs once available
-    //       to avoid invalidating the existing sharecode.
+    // Existing link: the verbs are PATCHed in place, as the web does, so the
+    // public URL, the password and the expiry all stay.
     setLinkMutating(true)
     setMutating(true)
     setError(null)
     try {
-      await revokePublicLink(client, file)
-      await createPublicLink(client, file, next)
+      await updatePublicLinkSettings(client, linkPermission, {
+        verbs: next === 'write' ? WRITE_PERMS : READ_ONLY_PERMS
+      })
       await refreshSharings()
     } catch (e) {
       console.error('[ShareRoute] swap link rights failed', e)
@@ -565,6 +607,26 @@ export default function ShareRoute() {
                       accessibilityLabel={t('drive.share.linkCopy')}
                     />
                   </View>
+                  <PublicLinkSettings
+                    hasPassword={linkHasPassword}
+                    expiresAt={linkExpiresAt}
+                    disabled={linkMutating || initialLoading}
+                    onSavePassword={password =>
+                      void onChangeLinkSettings({ password }, { hasPassword: true })
+                    }
+                    onRemovePassword={() =>
+                      void onChangeLinkSettings({ password: '' }, { hasPassword: false })
+                    }
+                    onSaveExpiry={day =>
+                      void onChangeLinkSettings(
+                        { expiresAt: day },
+                        { expiresAt: toExpirationDate(day) }
+                      )
+                    }
+                    onClearExpiry={() =>
+                      void onChangeLinkSettings({ expiresAt: null }, { expiresAt: null })
+                    }
+                  />
                 </>
               ) : null}
             </View>

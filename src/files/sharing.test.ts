@@ -13,10 +13,14 @@ import {
   findPublicLinkForFile,
   findSharingForFile,
   getLinkEditingRights,
+  getLinkExpiry,
   getRecipients,
+  hasLinkPassword,
+  isValidLinkPassword,
   leaveSharing,
   revokePublicLink,
-  revokeSharingMember
+  revokeSharingMember,
+  updatePublicLinkSettings
 } from './sharing'
 
 beforeEach(() => {
@@ -742,5 +746,95 @@ describe('leaveSharing', () => {
     const client = makeClient({ 'io.cozy.sharings': { revokeSelf } })
     await leaveSharing(client, 'drive-1')
     expect(triggerPouchReplication).toHaveBeenCalledWith(client, 'io.cozy.sharings')
+  })
+})
+
+describe('link password and expiry helpers', () => {
+  it('reads whether a link is password protected, on attributes or flattened', () => {
+    expect(hasLinkPassword({ _id: 'p', attributes: { password: 'x' } })).toBe(true)
+    expect(hasLinkPassword({ _id: 'p', password: true })).toBe(true)
+    expect(hasLinkPassword({ _id: 'p', attributes: {} })).toBe(false)
+    expect(hasLinkPassword(null)).toBe(false)
+  })
+
+  it('reads the expiry date, null when absent or unparsable', () => {
+    expect(
+      getLinkExpiry({ _id: 'p', attributes: { expires_at: '2030-05-01T21:59:59.999Z' } })
+    ).toEqual(new Date('2030-05-01T21:59:59.999Z'))
+    expect(getLinkExpiry({ _id: 'p' })).toBeNull()
+    expect(getLinkExpiry({ _id: 'p', expires_at: 'nope' })).toBeNull()
+    expect(getLinkExpiry(undefined)).toBeNull()
+  })
+
+  it('requires at least 4 characters once trimmed, like the web', () => {
+    expect(isValidLinkPassword('abc')).toBe(false)
+    expect(isValidLinkPassword('  abc  ')).toBe(false)
+    expect(isValidLinkPassword('abcd')).toBe(true)
+  })
+})
+
+describe('updatePublicLinkSettings', () => {
+  const permission = {
+    _id: 'perm-1',
+    attributes: {
+      permissions: { files: { type: 'io.cozy.files', values: ['file-1'], verbs: ['GET', 'PUT'] } }
+    }
+  }
+  const setup = () => {
+    const add = jest.fn().mockResolvedValue({ data: { _id: 'perm-1' } })
+    return { add, client: makeClient({ 'io.cozy.permissions': { add } }) }
+  }
+
+  it('PATCHes the permission keeping its rules, with the password', async () => {
+    const { add, client } = setup()
+    await updatePublicLinkSettings(client, permission, { password: 'secret' })
+    expect(add).toHaveBeenCalledWith(
+      { _id: 'perm-1', _type: 'io.cozy.permissions' },
+      permission.attributes.permissions,
+      { password: 'secret' }
+    )
+  })
+
+  it('swaps the verbs of every rule in place when asked', async () => {
+    const { add, client } = setup()
+    await updatePublicLinkSettings(client, permission, { verbs: ['GET'] })
+    expect(add.mock.calls[0][1]).toEqual({
+      files: { type: 'io.cozy.files', values: ['file-1'], verbs: ['GET'] }
+    })
+    expect(add.mock.calls[0][2]).toEqual({})
+  })
+
+  it('sends an empty password to remove it', async () => {
+    const { add, client } = setup()
+    await updatePublicLinkSettings(client, permission, { password: '' })
+    expect(add.mock.calls[0][2]).toEqual({ password: '' })
+  })
+
+  it('sends the end of the picked day as expiresAt', async () => {
+    const { add, client } = setup()
+    const day = new Date(2030, 4, 1, 9, 30)
+    await updatePublicLinkSettings(client, permission, { expiresAt: day })
+    expect(add.mock.calls[0][2]).toEqual({
+      expiresAt: new Date(2030, 4, 1, 23, 59, 59, 999).toISOString()
+    })
+  })
+
+  it('sends an empty expiresAt to clear it, and leaves untouched fields out', async () => {
+    const { add, client } = setup()
+    await updatePublicLinkSettings(client, permission, { expiresAt: null })
+    expect(add.mock.calls[0][2]).toEqual({ expiresAt: '' })
+  })
+
+  it('triggers a permissions replication on success only', async () => {
+    const { client } = setup()
+    await updatePublicLinkSettings(client, permission, { password: 'secret' })
+    expect(triggerPouchReplication).toHaveBeenCalledWith(client, 'io.cozy.permissions')
+    ;(triggerPouchReplication as jest.Mock).mockClear()
+    const add = jest.fn().mockRejectedValue(new Error('boom'))
+    const failing = makeClient({ 'io.cozy.permissions': { add } })
+    await expect(updatePublicLinkSettings(failing, permission, { password: 'x' })).rejects.toThrow(
+      'boom'
+    )
+    expect(triggerPouchReplication).not.toHaveBeenCalled()
   })
 })
