@@ -224,4 +224,12 @@ describe('SettingsIndex', () => {
       expect(mockOpenBrowser).toHaveBeenCalledWith('https://twake.app/en/terms-of-use/')
     })
   })
+
+  describe('privacy policy', () => {
+    it('opens the privacy policy in the in-app browser', () => {
+      const { getByTestId } = renderScreen()
+      fireEvent.press(getByTestId('settings-privacy-policy'))
+      expect(mockOpenBrowser).toHaveBeenCalledWith('https://twake.app/en/privacy-policy/')
+    })
+  })
 })

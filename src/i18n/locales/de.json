@@ -32,6 +32,7 @@
     "logoutTitle": "Abmelden?",
     "logoutMessage": "Offline gespeicherte Dateien und die von Ihnen geöffneten Dokumente verbleiben auf diesem Gerät. Löschen Sie sie, wenn es nicht Ihnen gehört.",
     "logoutAndErase": "Abmelden und löschen",
+    "privacyPolicy": "Datenschutzerklärung",
     "termsOfService": "Allgemeine Nutzungsbedingungen"
   },
   "auth": {

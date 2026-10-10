@@ -24,6 +24,8 @@ import { useThemePreference, ThemePref } from '@/preferences/themePreference'
 import { useAuth } from '@/auth/useAuth'
 import { isKeepOfflineEnabled } from '@/offline/keepOfflineFlag'
 
+const PRIVACY_POLICY_URL = 'https://twake.app/en/privacy-policy/'
+
 export default function SettingsIndex(): React.ReactElement {
   const keepOfflineEnabled = isKeepOfflineEnabled()
   const { t } = useTranslation()
@@ -129,6 +131,13 @@ export default function SettingsIndex(): React.ReactElement {
             icon="info"
             trailing="chevron"
             onPress={() => void WebBrowser.openBrowserAsync(tosUrl)}
+          />
+          <SettingsRow
+            testID="settings-privacy-policy"
+            title={t('settings.privacyPolicy')}
+            icon="info"
+            trailing="chevron"
+            onPress={() => void WebBrowser.openBrowserAsync(PRIVACY_POLICY_URL)}
           />
           <SettingsRow
             testID="settings-logout"

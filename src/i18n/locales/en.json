@@ -32,6 +32,7 @@
     "logoutTitle": "Log out?",
     "logoutMessage": "The files kept offline and the documents you have opened stay on this device. Erase them if it is not yours to keep.",
     "logoutAndErase": "Log out and erase",
+    "privacyPolicy": "Privacy policy",
     "termsOfService": "Terms of service"
   },
   "auth": {
