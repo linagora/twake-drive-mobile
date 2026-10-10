@@ -18,6 +18,9 @@ REPORTS="${REPORTS_DIR:-/tmp/maestro-reports}"
 SEED="${E2E_SEED:-$RANDOM}"
 PLATFORM="${PLATFORM:-android}"
 FLOW_TIMEOUT="${E2E_FLOW_TIMEOUT:-12m}"
+# macOS has no `timeout`; Homebrew coreutils installs it as `gtimeout`.
+TIMEOUT_BIN="$(command -v timeout || command -v gtimeout || true)"
+[ -n "$TIMEOUT_BIN" ] || echo "::warning::no timeout/gtimeout found, flows run without a deadline"
 SKIPPED_TAGS='login|ci-login|setup|preauth|shipped|visual|ios-files|onlyoffice|skip'
 # airplane mode and DocumentsUI only exist on Android
 [ "$PLATFORM" = ios ] && SKIPPED_TAGS="$SKIPPED_TAGS|android"
@@ -41,7 +44,7 @@ run() {
   # A frozen flow prints nothing until the job timeout, so each one has a
   # deadline. `timeout` signals its whole process group: maestro's JVM goes too.
   # shellcheck disable=SC2086
-  timeout --kill-after=30 "$FLOW_TIMEOUT" "$ROOT/e2e/scripts/maestro.sh" "${DEVICE_ARGS[@]}" test ${MAESTRO_ENV:-} \
+  ${TIMEOUT_BIN:+"$TIMEOUT_BIN" --kill-after=30 "$FLOW_TIMEOUT"} "$ROOT/e2e/scripts/maestro.sh" "${DEVICE_ARGS[@]}" test ${MAESTRO_ENV:-} \
     --env INSTANCE_URL="http://$INSTANCE_DOMAIN" \
     --env INSTANCE_PASSPHRASE="$INSTANCE_PASSPHRASE" \
     --env STACK_URL="http://localhost" \
@@ -55,10 +58,8 @@ run() {
 # Exit codes are 124 (TERM) and 137 (KILL after the grace period).
 is_timeout() { [ "$1" -eq 124 ] || [ "$1" -eq 137 ]; }
 
-# A killed maestro writes no report, so the timeouts are recorded here. The
-# first attempt is a <skipped> testcase in $name.attempt1.xml: visible in the
-# report, and a flow that passes on retry does not turn the job red the way a
-# <failure> would. A second timeout is a <failure> in $name.xml.
+# A killed maestro writes no report. The first timeout is a <skipped> testcase
+# (visible, but a pass on retry stays green); the second is a <failure>.
 record_timeout() {
   local file="$1" name="$2" label="$3" element="$4"
   cat >"$REPORTS/$file.xml" <<EOF
