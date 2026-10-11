@@ -1,0 +1,37 @@
+appId: com.linagora.twakedrive
+tags:
+  - store-screenshots
+---
+# App Store screenshots. Read only, and not part of any e2e run: it expects a
+# demo account that is already signed in, holding a few clean files and a
+# "Projects" folder, on a shipped build (no instance address screen).
+#
+# The PNGs land in the directory maestro is started from, named for fastlane
+# deliver (the device slot comes from the pixel size, the upload order from the
+# file name). Screens that show the account (settings, profile menu) or the
+# instance address are never visited.
+#
+#   cd "$OUT" && maestro --platform ios test --udid <udid> \
+#     /path/to/store-screenshots.yaml
+- launchApp:
+    stopApp: true
+- runFlow: ../../subflows/assertLoggedIn.yaml
+- runFlow: ../../subflows/dismissDevWarnings.yaml
+- waitForAnimationToEnd
+- takeScreenshot: 01_files-list
+- tapOn:
+    id: 'view-toggle'
+- waitForAnimationToEnd
+- takeScreenshot: 02_files-grid
+- tapOn:
+    id: 'view-toggle'
+- tapOn:
+    id: 'folder-row:Projects'
+- waitForAnimationToEnd
+- takeScreenshot: 03_folder
+- tapOn:
+    id: 'appbar-back-button'
+- tapOn:
+    id: 'tab-favorites'
+- waitForAnimationToEnd
+- takeScreenshot: 04_favorites
