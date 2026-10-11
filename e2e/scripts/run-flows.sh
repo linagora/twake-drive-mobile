@@ -21,7 +21,7 @@ FLOW_TIMEOUT="${E2E_FLOW_TIMEOUT:-12m}"
 # macOS has no `timeout`; Homebrew coreutils installs it as `gtimeout`.
 TIMEOUT_BIN="$(command -v timeout || command -v gtimeout || true)"
 [ -n "$TIMEOUT_BIN" ] || echo "::warning::no timeout/gtimeout found, flows run without a deadline"
-SKIPPED_TAGS='login|ci-login|setup|preauth|shipped|visual|ios-files|onlyoffice|skip'
+SKIPPED_TAGS='login|ci-login|setup|preauth|shipped|visual|ios-files|onlyoffice|skip|store-screenshots'
 # airplane mode and DocumentsUI only exist on Android
 [ "$PLATFORM" = ios ] && SKIPPED_TAGS="$SKIPPED_TAGS|android"
 DEVICE_ARGS=(--platform "$PLATFORM")
