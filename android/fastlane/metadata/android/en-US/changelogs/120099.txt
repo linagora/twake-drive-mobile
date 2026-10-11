@@ -1,0 +1,3 @@
+• Protect a public link with a password.
+• Make a public link expire on a chosen day.
+• Read the privacy policy from the settings.

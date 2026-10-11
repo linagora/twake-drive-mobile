@@ -1,0 +1,3 @@
+• Protege un enlace público con una contraseña.
+• Haz que un enlace público caduque el día que elijas.
+• Consulta la política de privacidad desde los ajustes.

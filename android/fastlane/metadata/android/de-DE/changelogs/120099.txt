@@ -1,0 +1,3 @@
+• Einen öffentlichen Link mit einem Passwort schützen.
+• Einen öffentlichen Link an einem gewählten Tag ablaufen lassen.
+• Die Datenschutzerklärung in den Einstellungen lesen.

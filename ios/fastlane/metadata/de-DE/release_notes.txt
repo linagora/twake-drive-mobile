@@ -1,2 +1,3 @@
-• Dateien über die Schaltfläche + auch in einem geteilten Drive hochladen.
-• Die Einträge für Notizen erscheinen nur, wenn die App Notes auf Ihrem Twake installiert ist.
+• Einen öffentlichen Link mit einem Passwort schützen.
+• Einen öffentlichen Link an einem gewählten Tag ablaufen lassen.
+• Die Datenschutzerklärung in den Einstellungen lesen.

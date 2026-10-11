@@ -1,2 +1,3 @@
-• Upload files with the + button in a shared drive too.
-• The Note entries only show when the Notes app is installed on your Twake.
+• Protect a public link with a password.
+• Make a public link expire on a chosen day.
+• Read the privacy policy from the settings.

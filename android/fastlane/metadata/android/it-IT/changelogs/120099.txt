@@ -1,0 +1,3 @@
+• Proteggi un link pubblico con una password.
+• Fai scadere un link pubblico nel giorno che scegli.
+• Leggi l'informativa sulla privacy dalle impostazioni.

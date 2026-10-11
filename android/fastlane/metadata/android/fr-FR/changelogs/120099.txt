@@ -1,0 +1,3 @@
+• Protégez un lien public par un mot de passe.
+• Faites expirer un lien public à la date de votre choix.
+• Consultez la politique de confidentialité depuis les réglages.

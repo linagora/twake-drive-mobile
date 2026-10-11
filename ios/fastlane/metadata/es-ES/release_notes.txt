@@ -1,2 +1,3 @@
-• Sube archivos con el botón + también en una unidad compartida.
-• Las opciones de Nota solo aparecen si la app Notes está instalada en tu Twake.
+• Protege un enlace público con una contraseña.
+• Haz que un enlace público caduque el día que elijas.
+• Consulta la política de privacidad desde los ajustes.

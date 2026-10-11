@@ -1,2 +1,3 @@
-• Tải tệp lên bằng nút + cả trong ổ đĩa được chia sẻ.
-• Các mục Ghi chú chỉ hiện khi ứng dụng Notes được cài trên Twake của bạn.
+• Bảo vệ liên kết công khai bằng mật khẩu.
+• Đặt ngày hết hạn cho liên kết công khai.
+• Xem chính sách quyền riêng tư trong phần cài đặt.

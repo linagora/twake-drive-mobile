@@ -1,2 +1,3 @@
-• Carica file con il pulsante + anche in un drive condiviso.
-• Le voci Nota compaiono solo se l'app Notes è installata sul tuo Twake.
+• Proteggi un link pubblico con una password.
+• Fai scadere un link pubblico nel giorno che scegli.
+• Leggi l'informativa sulla privacy dalle impostazioni.
