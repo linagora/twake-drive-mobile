@@ -119,14 +119,14 @@ describe('ssoLogoutUrl', () => {
   const clientHolding = (instance: unknown) =>
     ({ getQueryFromState: jest.fn(() => ({ data: instance })) }) as never
 
-  // Opened bare, the page has nothing to send the browser back to, so it sits
-  // there until the user closes it by hand.
-  it("is the instance's own SSO logout page, told where to send the browser back", () => {
+  // LemonLDAP answers a `url` it does not trust with PE_BADURL before it logs
+  // anything out, so the organization's page is opened as the stack names it.
+  it("is the organization's own SSO logout page, untouched", () => {
     const client = clientHolding({
       attributes: { oidc_logout_url: 'https://sso.example.com/oauth2/logout' }
     })
     expect(ssoLogoutUrl(client, 'https://sign-up.example.com')).toBe(
-      'https://sso.example.com/oauth2/logout?url=twakedrive://afterlogout'
+      'https://sso.example.com/oauth2/logout'
     )
     expect((client as { getQueryFromState: jest.Mock }).getQueryFromState).toHaveBeenCalledWith(
       'io.cozy.settings/instance'
@@ -136,30 +136,41 @@ describe('ssoLogoutUrl', () => {
   it('reads the instance settings whichever shape the store holds them in', () => {
     expect(
       ssoLogoutUrl(clientHolding({ oidc_logout_url: 'https://sso.example.com/out' }), undefined)
-    ).toBe('https://sso.example.com/out?url=twakedrive://afterlogout')
+    ).toBe('https://sso.example.com/out')
     expect(
       ssoLogoutUrl(clientHolding([{ oidc_logout_url: 'https://sso.example.com/out' }]), undefined)
-    ).toBe('https://sso.example.com/out?url=twakedrive://afterlogout')
+    ).toBe('https://sso.example.com/out')
   })
 
-  it('keeps a query the logout page already carries', () => {
+  it('hands over a logout page that carries a query as it is', () => {
     expect(
       ssoLogoutUrl(
         clientHolding({ oidc_logout_url: 'https://sso.example.com/out?ctx=a' }),
-        undefined
+        'https://sign-up.example.com'
       )
-    ).toBe('https://sso.example.com/out?ctx=a&url=twakedrive://afterlogout')
+    ).toBe('https://sso.example.com/out?ctx=a')
   })
 
-  it('does not ask twice when the stack already named a return address', () => {
-    expect(
-      ssoLogoutUrl(
-        clientHolding({
-          oidc_logout_url: 'https://sso.example.com/out?url=twakedrive://afterlogout'
-        }),
-        undefined
-      )
-    ).toBe('https://sso.example.com/out?url=twakedrive://afterlogout')
+  describe("when the logout page is the sign-up portal's own", () => {
+    const portal = 'https://sign-up.example.com'
+
+    it('tells it where to send the browser back', () => {
+      expect(
+        ssoLogoutUrl(clientHolding({ oidc_logout_url: `${portal}/oauth2/logout` }), `${portal}/`)
+      ).toBe(`${portal}/oauth2/logout?url=twakedrive://afterlogout`)
+    })
+
+    it('keeps the query it carries and does not ask twice', () => {
+      expect(
+        ssoLogoutUrl(clientHolding({ oidc_logout_url: `${portal}/oauth2/logout?ctx=a` }), portal)
+      ).toBe(`${portal}/oauth2/logout?ctx=a&url=twakedrive://afterlogout`)
+      expect(
+        ssoLogoutUrl(
+          clientHolding({ oidc_logout_url: `${portal}/out?url=twakedrive://afterlogout` }),
+          portal
+        )
+      ).toBe(`${portal}/out?url=twakedrive://afterlogout`)
+    })
   })
 
   it('falls back to the sign-up portal when the stack names no logout page', () => {

@@ -20,12 +20,9 @@ const readInstanceSettings = (client: CozyClient | null): InstanceSettings | nul
   }
 }
 
-/**
- * Names where the browser goes once the session is gone. Twake's OIDC logout
- * endpoint forwards `url` to the portal page it bounces to, which honours it;
- * a provider that does not know the parameter ignores it. Without it the page
- * is a dead end and the user has to close the browser by hand.
- */
+const originOf = (url: string): string | undefined =>
+  /^https?:\/\/[^/?#]+/i.exec(url)?.[0].toLowerCase()
+
 const withReturnAddress = (url: string): string => {
   if (url.includes(`url=${AFTER_LOGOUT_REDIRECT}`)) return url
   return `${url}${url.includes('?') ? '&' : '?'}url=${AFTER_LOGOUT_REDIRECT}`
@@ -35,11 +32,20 @@ const withReturnAddress = (url: string): string => {
  * The page that ends the SSO session of the account in `client`: the logout
  * page of the SSO the stack names for the instance, and the sign-up portal's
  * for an instance that has none. Read before the client logs out.
+ *
+ * Only the sign-up portal's own logout is told where to send the browser back:
+ * an organization's LemonLDAP rejects a `url` it does not trust (PE_BADURL)
+ * before it handles the logout, which leaves the session open.
  */
 export const ssoLogoutUrl = (client: CozyClient | null, signupUrl?: string): string | null => {
   const instance = readInstanceSettings(client)
   const oidcLogoutUrl = instance?.oidc_logout_url ?? instance?.attributes?.oidc_logout_url
-  if (oidcLogoutUrl) return withReturnAddress(oidcLogoutUrl)
+  if (oidcLogoutUrl) {
+    const origin = signupUrl ? originOf(signupUrl) : undefined
+    return origin && originOf(oidcLogoutUrl) === origin
+      ? withReturnAddress(oidcLogoutUrl)
+      : oidcLogoutUrl
+  }
   return signupUrl ? `${signupUrl}/logout?url=${AFTER_LOGOUT_REDIRECT}` : null
 }
 
