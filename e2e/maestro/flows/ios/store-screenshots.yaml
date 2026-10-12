@@ -3,20 +3,27 @@ tags:
   - store-screenshots
 ---
 # App Store screenshots. Read only, and not part of any e2e run: it expects a
-# demo account that is already signed in, holding a few clean files and a
-# "Projects" folder, on a shipped build (no instance address screen).
+# demo account that is already signed in, holding a few clean files, among them
+# "New presentation.pptx", on a shipped build (no instance address screen).
 #
-# The PNGs land in the directory maestro is started from, named for fastlane
-# deliver (the device slot comes from the pixel size, the upload order from the
-# file name). Screens that show the account (settings, profile menu) or the
-# instance address are never visited.
+# The PNGs are named for fastlane deliver (the device slot comes from the pixel
+# size, the upload order from the file name). Maestro writes them, next to its
+# logs, under the test output directory; only the PNGs leave it, flattened to
+# drop the alpha channel the App Store refuses. Screens that show the account
+# (settings, profile menu) or the instance address are never visited.
 #
-#   cd "$OUT" && maestro --platform ios test --udid <udid> \
+#   maestro --platform ios test --udid <udid> --test-output-dir "$TMP" \
 #     /path/to/store-screenshots.yaml
+#   find "$TMP" -path '*/takeScreenshot/*.png' -exec sh -c \
+#     'magick "$1" -alpha off ios/fastlane/screenshots/<locale>/"${1##*/}"' _ {} \;
 - launchApp:
     stopApp: true
 - runFlow: ../../subflows/assertLoggedIn.yaml
 - runFlow: ../../subflows/dismissDevWarnings.yaml
+- extendedWaitUntil:
+    visible:
+      id: 'file-actions:New presentation.pptx'
+    timeout: 60000
 - waitForAnimationToEnd
 - takeScreenshot: 01_files-list
 - tapOn:
@@ -26,12 +33,18 @@ tags:
 - tapOn:
     id: 'view-toggle'
 - tapOn:
-    id: 'folder-row:Projects'
+    id: 'file-actions:New presentation.pptx'
 - waitForAnimationToEnd
-- takeScreenshot: 03_folder
+- takeScreenshot: 03_file-actions
 - tapOn:
-    id: 'appbar-back-button'
+    point: '50%,15%'
+- extendedWaitUntil:
+    notVisible:
+      id: 'bottom-drawer-sheet'
+    timeout: 10000
 - tapOn:
-    id: 'tab-favorites'
+    id: 'tab-recent'
 - waitForAnimationToEnd
-- takeScreenshot: 04_favorites
+- takeScreenshot: 04_recent
+- tapOn:
+    id: 'tab-files'
