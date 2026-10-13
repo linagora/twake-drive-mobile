@@ -3,7 +3,8 @@
 # Builds the simulator app start.sh installs, on the Mac $IOS_HOST (ssh), from a copy of this
 # working tree in $IOS_WORKDIR there: a Release build with the instance address screen
 # (EXPO_PUBLIC_E2E), like the Android QA build. node_modules and Pods stay on the Mac between
-# builds, and are installed again when a lockfile changes.
+# builds: npm ci runs again when package-lock.json changes, pod install when the Pods no longer
+# match ios/Podfile.lock.
 #
 #   IOS_HOST=mac-m1 IOS_WORKDIR=/Users/m1/twake-qa/twake-drive-mobile scripts/qa-environment/ios/build.sh
 #
@@ -27,13 +28,18 @@ eval "\$(/opt/homebrew/bin/brew shellenv)"
 . "\$HOME/.nvm/nvm.sh"
 nvm use 20 >/dev/null
 ${IOS_DEVELOPER_DIR:+export DEVELOPER_DIR='$IOS_DEVELOPER_DIR'}
-DEPS="\$(cat package-lock.json ios/Podfile ios/Podfile.lock | shasum)"
-if [ ! -d node_modules ] || [ "\$(cat .qa-deps 2>/dev/null)" != "\$DEPS" ]; then
+NPM="\$(shasum package-lock.json)"
+if [ ! -d node_modules ] || [ "\$(cat .qa-deps 2>/dev/null)" != "\$NPM" ]; then
   [ -d .git ] || git init -q # npm's prepare script installs lefthook's git hooks
   # the native modules build against the macOS SDK of that Xcode, not the Command Line Tools'
   SDKROOT="\$(xcrun --sdk macosx --show-sdk-path)" npm ci
+  echo "\$NPM" > .qa-deps
+  rm -f ios/Pods/Manifest.lock # a new native module needs its pod: install them again below
+fi
+# Xcode refuses Pods out of sync with Podfile.lock, which the copy above may have just replaced
+# (pod install rewrites a Podfile.lock its CocoaPods or the autolinked modules disagree with)
+if ! cmp -s ios/Podfile.lock ios/Pods/Manifest.lock; then
   (cd ios && pod install)
-  echo "\$DEPS" > .qa-deps
 fi
 EXPO_PUBLIC_E2E=1 xcodebuild -workspace ios/TwakeDrive.xcworkspace -scheme TwakeDrive \
   -configuration Release -sdk iphonesimulator -derivedDataPath ios/build \
