@@ -1,4 +1,5 @@
 import React from 'react'
+import { useTranslation } from 'react-i18next'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { useTheme } from 'react-native-paper'
 
@@ -9,6 +10,9 @@ import { PinnedBadge } from '@/offline/PinnedBadge'
 import { folderBadgeEntry } from '@/offline/folderBadgeEntry'
 import { useOfflineState, useOfflineFolderState } from '@/offline/useOfflineState'
 import { NewSharingBadge } from './NewSharingBadge'
+import { SharedBadge } from './SharedBadge'
+import { composeRowLabel } from './rowLabels'
+import { useFileSharingStatus } from '@/sharing/SharingProvider'
 import type { FileQueryResult } from '@/client/queries'
 
 interface Props {
@@ -61,8 +65,10 @@ export function FileGridItem({
   canFavorite,
   onFavoriteChange
 }: Props) {
+  const { t } = useTranslation()
   const { colors, roundness } = useTheme()
   const isFolder = file.type === 'directory'
+  const sharingStatus = useFileSharingStatus(file._id)
   // Offline/pinned indicator — mirror the LIST rows so the badge also shows in
   // grid. Each hook is a no-op when given `undefined`, so only the relevant one
   // subscribes (file → useOfflineState, folder → useOfflineFolderState).
@@ -113,11 +119,17 @@ export function FileGridItem({
         style={styles.tile}
         accessible
         accessibilityRole="button"
-        accessibilityLabel={file.name}
+        accessibilityLabel={composeRowLabel(t, {
+          name: file.name,
+          kind: isFolder ? 'folder' : 'file',
+          shared: !!sharingStatus?.isShared,
+          offlineState: badgeEntry?.state
+        })}
         accessibilityState={selected === undefined ? undefined : { selected }}
       >
         <View testID="file-grid-icon" style={styles.iconWrapper}>
           <FileThumbnail file={file} size={THUMBNAIL_SIZE} />
+          <SharedBadge status={sharingStatus} testID={`shared-badge:${file.name}`} />
           <PinnedBadge entry={badgeEntry} testID="pinned-badge" />
           {isNewSharing ? <NewSharingBadge placement="tile" /> : null}
         </View>

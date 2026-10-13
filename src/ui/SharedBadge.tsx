@@ -1,5 +1,6 @@
 import React from 'react'
 import { StyleSheet, View } from 'react-native'
+import { useTranslation } from 'react-i18next'
 import twakePalette from '@linagora/twake-css/palette.json'
 import { CozyIcon } from '@/ui/icons/CozyIcon'
 
@@ -9,6 +10,7 @@ interface Props {
   status: FileSharingStatus | null
   /** Diameter of the green badge. */
   size?: number
+  testID?: string
 }
 
 /**
@@ -20,10 +22,17 @@ interface Props {
  * can unconditionally render it inside a thumbnail wrapper without an
  * extra branch.
  */
-export const SharedBadge = ({ status, size = 16 }: Props) => {
+export const SharedBadge = ({ status, size = 16, testID = 'shared-badge' }: Props) => {
+  const { t } = useTranslation()
   if (!status?.isShared) return null
   return (
-    <View style={[styles.badge, { width: size, height: size, borderRadius: size / 2 }]}>
+    <View
+      testID={testID}
+      accessible
+      accessibilityRole="image"
+      accessibilityLabel={t('a11y.row.shared')}
+      style={[styles.badge, { width: size, height: size, borderRadius: size / 2 }]}
+    >
       <CozyIcon name="shareCircle" size={size} color={twakePalette.Success[600]} />
     </View>
   )

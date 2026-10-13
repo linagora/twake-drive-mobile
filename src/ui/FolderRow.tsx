@@ -161,7 +161,7 @@ export const FolderRow = ({
             ) : (
               <View style={styles.thumbWrap}>
                 <FileTypeIcon icon="folder" size={40} />
-                <SharedBadge status={sharingStatus} />
+                <SharedBadge status={sharingStatus} testID={`shared-badge:${folder.name}`} />
                 <PinnedBadge
                   entry={
                     isPinned && folderOfflineState.aggregate

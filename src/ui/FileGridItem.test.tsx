@@ -16,6 +16,10 @@ jest.mock('@/files/favorites', () => ({
 
 jest.mock('@/pouchdb/triggerReplication', () => ({ triggerPouchReplication: jest.fn() }))
 
+jest.mock('@/sharing/SharingProvider', () => ({
+  useFileSharingStatus: jest.fn().mockReturnValue(null)
+}))
+
 jest.mock('@/offline/useOfflineState', () => ({
   useOfflineState: jest.fn().mockReturnValue(undefined),
   useOfflineFolderState: jest.fn().mockReturnValue({
@@ -30,6 +34,7 @@ jest.mock('@/offline/useOfflineState', () => ({
 }))
 
 import { FileGridItem } from './FileGridItem'
+import { useFileSharingStatus } from '@/sharing/SharingProvider'
 import { useOfflineState, useOfflineFolderState } from '@/offline/useOfflineState'
 import type { FileQueryResult } from '@/client/queries'
 
@@ -86,6 +91,18 @@ describe('FileGridItem', () => {
     render(wrap(<FileGridItem file={file} onPress={() => {}} selected />))
     // Container should still render the name
     expect(screen.getByText('rapport-annuel.pdf')).toBeOnTheScreen()
+  })
+
+  it('renders the shared badge when the entry is shared', () => {
+    ;(useFileSharingStatus as jest.Mock).mockReturnValueOnce({ isShared: true })
+    render(wrap(<FileGridItem file={folder} onPress={() => {}} />))
+    expect(screen.getByTestId('shared-badge:Projets')).toBeOnTheScreen()
+    expect(screen.getByLabelText(/Projets.*a11y.row.shared/)).toBeOnTheScreen()
+  })
+
+  it('renders no shared badge when the entry is not shared', () => {
+    render(wrap(<FileGridItem file={folder} onPress={() => {}} />))
+    expect(screen.queryByTestId('shared-badge:Projets')).toBeNull()
   })
 
   it('renders the offline pinned badge when a file is kept offline', () => {
