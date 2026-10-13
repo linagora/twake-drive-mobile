@@ -15,7 +15,8 @@ import { useAutoHidingChrome } from './useAutoHidingChrome'
  *   back and the actions floating over it.
  * - `player`: the same bar, hiding itself the same way, but with its room kept
  *   clear of the document. For a document that draws controls of its own: two
- *   layers sharing the same band fight, whoever is on top.
+ *   layers sharing the same band fight, whoever is on top. Also for a text,
+ *   whose first line would sit under the bar.
  * - `editor`: the web editor draws its own header inside, so the native bar
  *   stays down to the way back.
  */
