@@ -74,6 +74,8 @@ export default function SearchScreen() {
         onChangeText={setTerm}
         icon="arrow-left"
         onIconPress={() => router.back()}
+        searchAccessibilityLabel={t('common.back')}
+        clearAccessibilityLabel={t('common.clear')}
         autoFocus
       />
       {!enabled ? (

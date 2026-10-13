@@ -92,6 +92,13 @@ describe('SearchScreen', () => {
     expect(screen.getByTestId('search-input')).toBeTruthy()
   })
 
+  it('labels the back arrow and the clear button with the app language keys', () => {
+    render(<SearchScreen />)
+    fireEvent.changeText(screen.getByPlaceholderText('drive.search.placeholder'), 're')
+    expect(screen.getByLabelText('common.back')).toBeTruthy()
+    expect(screen.getByLabelText('common.clear')).toBeTruthy()
+  })
+
   it('active la recherche et affiche les résultats à partir de 2 caractères', () => {
     setSearch({
       status: 'success',
