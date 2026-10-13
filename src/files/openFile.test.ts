@@ -140,6 +140,34 @@ describe('openFileNatively', () => {
     ).rejects.toBeInstanceOf(NoCompatibleAppError)
   })
 
+  it('treats "No Activity found" (no store to suggest apps) as NoCompatibleAppError', async () => {
+    ;(FileSystem.downloadAsync as jest.Mock).mockResolvedValueOnce({
+      status: 200,
+      uri: 'file:///cache/twake-drive/abc-t.bin'
+    })
+    ;(FileViewer.open as jest.Mock).mockRejectedValueOnce(
+      new Error(
+        'No Activity found to handle Intent { act=android.intent.action.VIEW dat=market://search }'
+      )
+    )
+    await expect(
+      openFileNatively(makeClient(), { _id: 'abc', name: 't.bin' })
+    ).rejects.toBeInstanceOf(NoCompatibleAppError)
+  })
+
+  it('treats an undetectable file type as NoCompatibleAppError', async () => {
+    ;(FileSystem.downloadAsync as jest.Mock).mockResolvedValueOnce({
+      status: 200,
+      uri: 'file:///cache/twake-drive/abc-t.bin'
+    })
+    ;(FileViewer.open as jest.Mock).mockRejectedValueOnce(
+      new Error("It wasn't possible to detect the type of the file")
+    )
+    await expect(
+      openFileNatively(makeClient(), { _id: 'abc', name: 't.bin' })
+    ).rejects.toBeInstanceOf(NoCompatibleAppError)
+  })
+
   it('passes a generic FileViewer error through unchanged', async () => {
     ;(FileSystem.downloadAsync as jest.Mock).mockResolvedValueOnce({
       status: 200,

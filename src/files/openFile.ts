@@ -27,16 +27,19 @@ interface MinimalStackClient {
 const cacheAliasPath = (cacheDir: string, file: OpenableFile): string =>
   `${cacheDir}twake-drive/${file._id}-${file._rev ?? 'norev'}-${sanitizeName(file.name)}`
 
-// Hand a local path to the OS viewer. Android's FileViewer rejects with
-// "No app associated with this mime type" when nothing can open it; translate
-// that into a typed error so callers can surface a friendly message instead of
-// leaking the raw string. Other failures pass through unchanged.
+// Hand a local path to the OS viewer. On Android, FileViewer rejects with one of
+// three messages when no app can open the file: "No app associated with this
+// mime type", "It wasn't possible to detect the type of the file", or "No
+// Activity found" (the market:// suggestion has no store to open on a device
+// without Google Play). They become a typed error so callers can show a
+// friendly message. Other failures pass through unchanged.
 export const openInViewer = async (path: string): Promise<void> => {
   try {
     await FileViewer.open(path, { showOpenWithDialog: true, showAppsSuggestions: true })
   } catch (e) {
     const message = (e as { message?: string } | null)?.message ?? ''
-    if (/no app associated/i.test(message)) throw new NoCompatibleAppError()
+    if (/no app associated|no activity found|wasn't possible to detect the type/i.test(message))
+      throw new NoCompatibleAppError()
     throw e instanceof Error ? e : new Error(String(e))
   }
 }
