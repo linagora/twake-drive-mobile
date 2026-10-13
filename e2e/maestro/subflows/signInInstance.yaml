@@ -68,6 +68,14 @@ appId: com.linagora.twakedrive
 # so this is the only thing between the password and the app.
 - waitForAnimationToEnd:
     timeout: 10000
+# A simulator with password AutoFill on offers to save the passphrase, over
+# the permission page.
+- runFlow:
+    when:
+      visible: 'Save Password\?|Enregistrer le mot de passe.*'
+    commands:
+      - tapOn: 'Not Now|Pas maintenant|Plus tard'
+      - waitForAnimationToEnd
 - runFlow:
     when:
       visible: 'Autoriser|Authorize'
