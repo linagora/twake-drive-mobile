@@ -17,7 +17,7 @@ import { buildCozyAppUrl } from '@/files/cozyAppLink'
 import { optimisticFiles } from '@/files/optimisticFiles'
 import { optimisticCreated } from '@/files/optimisticCreated'
 import { uploadBatch } from '@/share/uploadBatch'
-import { batchMessage, optimisticUploaded } from '@/share/importFeedback'
+import { batchMessage } from '@/share/importFeedback'
 import { pickDocuments } from './pickDocuments'
 import { triggerPouchReplication } from '@/pouchdb/triggerReplication'
 
@@ -149,14 +149,13 @@ export const useCreateHandlers = ({
             driveId
           )
           notify(batchMessage(t, res))
-          // As for the other creates, our store holds nothing of a shared
-          // drive: its screen shows the uploaded rows from onCreated instead.
+          // As for the other creates: a screen that lists from its own state
+          // (a shared drive, owned or not) shows the uploaded rows from onCreated.
           const uploaded = res.results.flatMap(r => (r.file ? [r.file] : []))
-          if (driveId && uploaded.length > 0) {
+          if (uploaded.length > 0) {
             for (const file of uploaded) afterCreate(file, 'file')
             return
           }
-          if (!driveId) optimisticUploaded(client, res, dirId)
           onCreated?.()
         } catch (e) {
           console.error('[CreateMenu] upload failed', e)

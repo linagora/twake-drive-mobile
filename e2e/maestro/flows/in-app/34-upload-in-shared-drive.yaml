@@ -1,0 +1,92 @@
+appId: com.linagora.twakedrive
+tags:
+  - inapp
+  - android
+  - disposable
+env:
+  RECIPIENT: 'e2e-recipient@example.org'
+onFlowComplete:
+  - runFlow: ../../subflows/cleanup.yaml
+---
+# A file uploaded into a shared folder opened from Partage > Par moi is listed
+# at once (#523). The runner pushes e2e-share.jpg to Download.
+#
+# Tagged `disposable`: once shared by email the folder is a shared drive, and
+# nothing in the UI revokes it, so it only runs on the throwaway instance.
+- runScript:
+    file: ../../scripts/seed.js
+    env:
+      SEED: '[{"key":"folder","kind":"folder","prefix":"E2E-drive"}]'
+- runFlow: ../../subflows/openDrive.yaml
+- extendedWaitUntil:
+    visible:
+      id: 'folder-row:${output.folder.name}'
+    timeout: 60000
+- tapOn:
+    id: 'folder-actions:${output.folder.name}'
+- waitForAnimationToEnd
+- tapOn:
+    id: 'action-share'
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: 'share-recipients-title'
+    timeout: 20000
+- tapOn:
+    id: 'share-add-recipient'
+- tapOn:
+    id: 'share-email-input'
+- inputText: '${RECIPIENT}'
+- tapOn:
+    id: 'share-recipients-title'
+- tapOn:
+    id: 'share-send'
+- extendedWaitUntil:
+    visible:
+      id: 'recipient-row'
+    timeout: 25000
+- tapOn:
+    id: 'share-close'
+- tapOn:
+    id: 'tab-shared'
+- tapOn:
+    id: 'sharings-tab-by-me'
+- extendedWaitUntil:
+    visible: '${output.folder.name}'
+    timeout: 50000
+- tapOn: '${output.folder.name}'
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: 'drive-fab'
+    timeout: 20000
+- tapOn:
+    id: 'drive-fab'
+- waitForAnimationToEnd
+- tapOn:
+    id: 'create-upload(-container-outer-layer)?'
+- extendedWaitUntil:
+    visible:
+      id: 'com.android.documentsui:id/option_menu_search'
+    timeout: 20000
+- tapOn:
+    id: 'com.android.documentsui:id/option_menu_search'
+- inputText: 'e2e-share'
+- pressKey: Enter
+- waitForAnimationToEnd
+- tapOn:
+    text: 'List view|Affichage en liste'
+    optional: true
+- extendedWaitUntil:
+    visible: 'e2e-share.jpg'
+    timeout: 20000
+- tapOn: 'e2e-share.jpg'
+- extendedWaitUntil:
+    notVisible:
+      id: 'com.android.documentsui:id/option_menu_search'
+    timeout: 20000
+# the folder was empty: the row is the upload. The short deadline leaves no time
+# for the replication to bring it, so the screen's own update has to do it.
+- extendedWaitUntil:
+    visible: 'e2e-share.jpg'
+    timeout: 5000
