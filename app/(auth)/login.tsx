@@ -88,7 +88,11 @@ export default function LoginScreen() {
           accessibilityLabel={t('auth.emailLabel')}
           placeholder={t('auth.emailPlaceholder')}
           value={email}
-          onChangeText={setEmail}
+          onChangeText={v => {
+            setEmail(v)
+            setError(null)
+          }}
+          disabled={loading}
           autoCapitalize="none"
           keyboardType="email-address"
           autoComplete="email"
