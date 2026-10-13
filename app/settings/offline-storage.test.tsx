@@ -95,6 +95,7 @@ const file = (
     size: number
     localBytes: number
     parentFolderPins: string[]
+    isDirectPin: boolean
     state: string
   }> = {}
 ) => ({
@@ -172,5 +173,66 @@ describe('OfflineStorageScreen', () => {
 
     expect(screen.getByText(folderSummary(2, 800))).toBeOnTheScreen()
     expect(screen.getByText(folderSummary(1, 700))).toBeOnTheScreen()
+  })
+
+  it('lists the folder that was pinned with its whole tree, not its subfolders and files', () => {
+    mockGetAllFolders.mockReturnValue([
+      { dirId: 'root', name: 'Charge', pinnedAt: 1 },
+      { dirId: 'sub', name: 'Dossier-1', pinnedAt: 2, ancestorPins: ['root'] }
+    ])
+    mockGetAll.mockReturnValue([
+      file('a', { size: 500, parentFolderPins: ['sub'], isDirectPin: false }),
+      file('b', { size: 300, parentFolderPins: ['sub'], isDirectPin: false }),
+      file('own', { size: 1, localBytes: 1 })
+    ])
+
+    show()
+
+    expect(screen.getByText('Charge')).toBeOnTheScreen()
+    expect(screen.getByText(folderSummary(2, 800))).toBeOnTheScreen()
+    expect(screen.queryByText('Dossier-1')).toBeNull()
+    expect(screen.queryByText('a')).toBeNull()
+    expect(screen.getByText('own')).toBeOnTheScreen()
+  })
+
+  it('hides what any pinned ancestor brought along, however high it sits', () => {
+    mockGetAllFolders.mockReturnValue([
+      { dirId: 'root', name: 'Charge', pinnedAt: 1 },
+      { dirId: 'mid', name: 'Mid', pinnedAt: 2, ancestorPins: ['root'] },
+      { dirId: 'leaf', name: 'Leaf', pinnedAt: 3, ancestorPins: ['root', 'mid'] }
+    ])
+    mockGetAll.mockReturnValue([file('deep', { parentFolderPins: ['leaf'], isDirectPin: false })])
+
+    show()
+
+    expect(screen.getByText('Charge')).toBeOnTheScreen()
+    expect(screen.queryByText('Mid')).toBeNull()
+    expect(screen.queryByText('Leaf')).toBeNull()
+    expect(screen.queryByText('deep')).toBeNull()
+  })
+
+  it('keeps a file pinned on its own inside a pinned folder', () => {
+    mockGetAllFolders.mockReturnValue([{ dirId: 'root', name: 'Charge', pinnedAt: 1 }])
+    mockGetAll.mockReturnValue([file('mine', { parentFolderPins: ['root'], isDirectPin: true })])
+
+    show()
+
+    expect(screen.getByText('mine')).toBeOnTheScreen()
+  })
+
+  it('lists what is left of a tree whose pinned ancestor was unpinned', () => {
+    mockGetAllFolders.mockReturnValue([
+      { dirId: 'sub', name: 'Orphan', pinnedAt: 2, ancestorPins: ['gone'] }
+    ])
+    mockGetAll.mockReturnValue([
+      file('stray', { parentFolderPins: ['sub'], isDirectPin: false }),
+      file('lost', { parentFolderPins: ['gone'], isDirectPin: false })
+    ])
+
+    show()
+
+    expect(screen.getByText('Orphan')).toBeOnTheScreen()
+    expect(screen.getByText('lost')).toBeOnTheScreen()
+    expect(screen.queryByText('stray')).toBeNull()
   })
 })
