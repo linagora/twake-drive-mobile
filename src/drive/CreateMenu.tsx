@@ -176,7 +176,10 @@ export const CreateMenu = ({
 }
 
 const styles = StyleSheet.create({
-  fabGroup: { zIndex: cozyTokens.zIndex.fab },
+  // Paper pads the group by the window's bottom inset. The tab bar under every
+  // screen with a FAB already clears the navigation bar, so that padding lifts
+  // the button past the room the list reserves for it (`fabClearance`).
+  fabGroup: { zIndex: cozyTokens.zIndex.fab, paddingBottom: 0 },
   // Same gutter as the list and the bar: the right edge lines up with the
   // content, and the button sits one gutter above the bottom navigation.
   fab: { marginHorizontal: cozyTokens.spacing.md, marginBottom: cozyTokens.spacing.md }

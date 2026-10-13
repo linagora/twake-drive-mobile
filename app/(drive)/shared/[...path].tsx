@@ -548,6 +548,7 @@ export default function SharedScreen() {
               ? 'drive.emptySharedByMe'
               : 'drive.emptyShared'
         }
+        contentContainerStyle={styles.listContent}
       />
       <CreateMenu dirId={safeCurrentDirId} canWrite={canWrite} notify={actions.notify} />
       <ConfirmDialog
@@ -567,5 +568,6 @@ export default function SharedScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  row: { paddingVertical: 4 }
+  row: { paddingVertical: 4 },
+  listContent: { paddingBottom: cozyTokens.fabClearance }
 })
