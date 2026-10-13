@@ -126,7 +126,7 @@ export const FolderPicker = ({
               testID="folder-picker-up"
             />
           ) : null}
-          <Appbar.Content title={title} />
+          <Appbar.Content title={title} testID="folder-picker-title" />
           <Appbar.Action
             icon={p => <CozyIcon name="folderAdd" size={p?.size ?? 24} color={p?.color} />}
             accessibilityLabel={t('drive.move.newFolder')}
