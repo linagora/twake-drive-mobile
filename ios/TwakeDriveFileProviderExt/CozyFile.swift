@@ -13,6 +13,7 @@ struct CozyFile: Equatable {
   /// Path of the thumbnail the stack signed for this file. It carries a secret,
   /// so it cannot be rebuilt from the id.
   var thumbnailLink: String? = nil
+  var trashed: Bool = false
 
   var hasThumbnail: Bool { klass == "image" }
 
@@ -63,7 +64,9 @@ struct CozyFile: Equatable {
       klass: str("class"),
       updatedAt: parseDate(str("updated_at")),
       path: str("path"),
-      thumbnailLink: thumbnailLink(links)
+      thumbnailLink: thumbnailLink(links),
+      // directories never carry `trashed`: their path says it
+      trashed: (a["trashed"] as? Bool) == true || str("path")?.hasPrefix("/.cozy_trash/") == true
     )
   }
 }

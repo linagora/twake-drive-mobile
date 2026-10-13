@@ -33,6 +33,23 @@ final class ItemMapperTests: XCTestCase {
     XCTAssertTrue(ItemMapper.item(from: f).contentType.conforms(to: .image))
   }
 
+  func testLiveItemsCanBeTrashedAndTrashedOnesCannot() {
+    let live = CozyFile.fromAttributes(id: "f", ["type": "file", "name": "a", "dir_id": "d"])
+    XCTAssertTrue(ItemMapper.item(from: live).capabilities.contains(.allowsTrashing))
+    let binned = CozyFile.fromAttributes(id: "f", ["type": "file", "name": "a", "dir_id": "io.cozy.files.trash-dir", "trashed": true])
+    let item = ItemMapper.item(from: binned)
+    XCTAssertFalse(item.capabilities.contains(.allowsTrashing))
+    XCTAssertEqual(item.parentItemIdentifier, .trashContainer)
+  }
+
+  func testTrashedFolderIsKnownByItsPath() {
+    let dir = CozyFile.fromAttributes(id: "d", ["type": "directory", "name": "D", "dir_id": "io.cozy.files.trash-dir", "path": "/.cozy_trash/D"])
+    XCTAssertTrue(dir.trashed)
+    XCTAssertFalse(ItemMapper.item(from: dir).capabilities.contains(.allowsTrashing))
+    let live = CozyFile.fromAttributes(id: "d", ["type": "directory", "name": "D", "dir_id": "io.cozy.files.root-dir", "path": "/D"])
+    XCTAssertFalse(live.trashed)
+  }
+
   func testHiddenIdsAreFiltered() {
     XCTAssertTrue(ItemMapper.isHidden("io.cozy.files.trash-dir"))
     XCTAssertTrue(ItemMapper.isHidden("io.cozy.files.shared-drives-dir"))

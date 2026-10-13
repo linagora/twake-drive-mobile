@@ -50,7 +50,11 @@ final class FileProviderExtension: NSObject, NSFileProviderReplicatedExtension {
   func item(for identifier: NSFileProviderItemIdentifier,
             request: NSFileProviderRequest,
             completionHandler: @escaping (NSFileProviderItem?, Error?) -> Void) -> Progress {
-    if identifier == .trashContainer || identifier == .workingSet {
+    if identifier == .trashContainer {
+      completionHandler(ItemMapper.trashItem, nil)
+      return Progress()
+    }
+    if identifier == .workingSet {
       completionHandler(nil, Self.nsError(CozyError.noSuchItem))
       return Progress()
     }
@@ -148,7 +152,14 @@ final class FileProviderExtension: NSObject, NSFileProviderReplicatedExtension {
           current = try await api.rename(id: id, name: item.filename)
         }
         if changedFields.contains(.parentItemIdentifier) {
-          current = try await api.move(id: id, toParent: dirId(for: item.parentItemIdentifier))
+          if item.parentItemIdentifier == .trashContainer {
+            if !current.trashed { try await api.trash(id: id) }
+            current = try await api.get(id)
+          } else {
+            let parent = dirId(for: item.parentItemIdentifier)
+            if current.trashed { current = try await api.restore(id: id) }
+            if current.dirId != parent { current = try await api.move(id: id, toParent: parent) }
+          }
         }
         if changedFields.contains(.contents), let newContents {
           let mime = current.mime ?? item.contentType?.preferredMIMEType ?? "application/octet-stream"
@@ -175,7 +186,12 @@ final class FileProviderExtension: NSObject, NSFileProviderReplicatedExtension {
     Task {
       do {
         let api = try makeApi()
-        try await api.trash(id: identifier.rawValue)
+        let file = try await api.get(identifier.rawValue)
+        if file.trashed || file.dirId == ItemMapper.trashDocID {
+          try await api.destroy(id: file.id)
+        } else {
+          try await api.trash(id: file.id)
+        }
         completionHandler(nil)
       } catch {
         completionHandler(Self.nsError(error))
@@ -188,11 +204,11 @@ final class FileProviderExtension: NSObject, NSFileProviderReplicatedExtension {
 
   func enumerator(for containerItemIdentifier: NSFileProviderItemIdentifier,
                   request: NSFileProviderRequest) throws -> NSFileProviderEnumerator {
-    if containerItemIdentifier == .trashContainer {
-      throw Self.nsError(CozyError.noSuchItem)
-    }
     do {
       let api = try makeApi()
+      if containerItemIdentifier == .trashContainer {
+        return FileProviderEnumerator(api: api, containerDirId: ItemMapper.trashDocID)
+      }
       if containerItemIdentifier == .workingSet {
         return FileProviderEnumerator(api: api, containerDirId: nil)
       }

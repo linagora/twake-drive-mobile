@@ -1,0 +1,76 @@
+appId: com.linagora.twakedrive
+tags:
+  - ios-files
+onFlowComplete:
+  - runFlow: ../../subflows/cleanup.yaml
+---
+# Files offers "Delete", not "Delete Now": what it deletes goes to the Twake
+# Drive trash, where the app puts it back from. A folder and a file, both
+# seeded for the flow, so a failure leaves nothing behind.
+- runScript:
+    file: ../../scripts/seed.js
+    env:
+      SEED: '[{"key":"folder","kind":"folder","prefix":"Tr"},{"key":"file","kind":"file","prefix":"Tf","ext":"txt"}]'
+- runFlow: ../../subflows/openDrive.yaml
+- extendedWaitUntil:
+    visible:
+      id: 'file-row:${output.file.name}'
+    timeout: 60000
+- launchApp:
+    appId: com.apple.DocumentsApp
+    stopApp: true
+- tapOn: 'Browse|Explorer'
+- tapOn: 'Browse|Explorer'
+- tapOn: 'Twake Drive'
+- extendedWaitUntil:
+    visible: '${output.folder.name}'
+    timeout: 30000
+- longPressOn: '${output.folder.name}'
+- waitForAnimationToEnd
+- swipe:
+    start: 40%, 55%
+    end: 40%, 25%
+- assertNotVisible: 'Delete Now|Supprimer immédiatement'
+- tapOn: 'Delete|Supprimer'
+- extendedWaitUntil:
+    notVisible: '${output.folder.name}'
+    timeout: 30000
+- longPressOn: '${output.file.name.replace(".txt", "")}'
+- waitForAnimationToEnd
+- swipe:
+    start: 40%, 55%
+    end: 40%, 25%
+- tapOn: 'Delete|Supprimer'
+- extendedWaitUntil:
+    notVisible: '${output.file.name.replace(".txt", "")}'
+    timeout: 30000
+- launchApp:
+    appId: com.linagora.twakedrive
+- tapOn:
+    id: 'tab-trash'
+- extendedWaitUntil:
+    visible: '${output.folder.name}.*'
+    timeout: 60000
+- assertVisible: '${output.file.name}.*'
+- tapOn:
+    id: 'folder-actions:${output.folder.name}'
+- waitForAnimationToEnd
+- tapOn:
+    id: 'action-restore'
+- extendedWaitUntil:
+    notVisible: '${output.folder.name}.*'
+    timeout: 15000
+- tapOn:
+    id: 'file-actions:${output.file.name}'
+- waitForAnimationToEnd
+- tapOn:
+    id: 'action-restore'
+- extendedWaitUntil:
+    notVisible: '${output.file.name}.*'
+    timeout: 15000
+- tapOn:
+    id: 'tab-files'
+- extendedWaitUntil:
+    visible:
+      id: 'folder-row:${output.folder.name}'
+    timeout: 30000

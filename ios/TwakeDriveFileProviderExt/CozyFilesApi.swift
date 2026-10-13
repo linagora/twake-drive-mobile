@@ -128,8 +128,9 @@ struct CozyFilesApi {
     let deleted: [String]
   }
 
-  /// What changed after `seq`. A trashed document counts as deleted: the working set holds
-  /// the live tree only.
+  /// What changed after `seq`. What sits directly in the trash is an update, which the mapper
+  /// parents to the trash container; what is deeper in a trashed folder is gone from the
+  /// system's view with its folder.
   func changes(since seq: String) async throws -> Changes {
     let fields = "type,name,dir_id,size,mime,class,updated_at,trashed,path"
     let data = try await send("/files/_changes?since=\(Self.encode(seq))&limit=200&include_docs=true&fields=\(fields)",
@@ -140,13 +141,17 @@ struct CozyFilesApi {
     var deleted: [String] = []
     for result in (root["results"] as? [[String: Any]]) ?? [] {
       guard let id = result["id"] as? String, !ItemMapper.isHidden(id), id != ItemMapper.rootDocID else { continue }
-      let doc = result["doc"] as? [String: Any]
-      let trashed = (doc?["trashed"] as? Bool) == true || (doc?["path"] as? String)?.hasPrefix("/.cozy_trash") == true
-      if (result["deleted"] as? Bool) == true || trashed {
+      guard (result["deleted"] as? Bool) != true, let doc = result["doc"] as? [String: Any] else {
         deleted.append(id)
-      } else if let doc {
-        let file = CozyFile.fromAttributes(id: id, doc)
-        if !(file.dirId.map(ItemMapper.isHidden) ?? false) { updated.append(file) }
+        continue
+      }
+      let file = CozyFile.fromAttributes(id: id, doc)
+      if file.dirId == ItemMapper.trashDocID {
+        updated.append(file)
+      } else if file.trashed {
+        deleted.append(id)
+      } else if !(file.dirId.map(ItemMapper.isHidden) ?? false) {
+        updated.append(file)
       }
     }
     return Changes(lastSeq: lastSeq, hasMore: ((root["pending"] as? Int) ?? 0) > 0, updated: updated, deleted: deleted)
@@ -218,6 +223,15 @@ extension CozyFilesApi {
 
   func trash(id: String) async throws {
     _ = try await send("/files/\(try Self.validId(id))", method: .delete)
+  }
+
+  /// Puts a trashed item back where it was trashed from.
+  func restore(id: String) async throws -> CozyFile {
+    try parseData(try await send("/files/trash/\(try Self.validId(id))", method: .post))
+  }
+
+  func destroy(id: String) async throws {
+    _ = try await send("/files/trash/\(try Self.validId(id))", method: .delete)
   }
 
   func statByPath(_ path: String) async throws -> CozyFile? {
