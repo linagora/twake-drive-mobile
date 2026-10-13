@@ -1,0 +1,56 @@
+appId: com.linagora.twakedrive
+tags:
+  - inapp
+onFlowComplete:
+  - runFlow: ../../subflows/cleanup.yaml
+---
+# The role menu and the link password dialog open above the share sheet,
+# not behind it (iOS draws the sheet in its own window).
+- runScript:
+    file: ../../scripts/seed.js
+    env:
+      SEED: '[{"key":"folder","kind":"folder","prefix":"E2E-menus"}]'
+- runFlow: ../../subflows/openDrive.yaml
+- extendedWaitUntil:
+    visible:
+      id: 'folder-row:${output.folder.name}'
+    timeout: 60000
+- tapOn:
+    id: 'folder-actions:${output.folder.name}'
+- waitForAnimationToEnd
+- tapOn:
+    id: 'action-share'
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: 'share-recipients-title'
+    timeout: 20000
+- tapOn:
+    id: 'share-add-recipient'
+- tapOn:
+    id: 'share-role'
+- extendedWaitUntil:
+    visible:
+      id: 'share-role-editor'
+    timeout: 5000
+- tapOn:
+    id: 'share-role-editor'
+- tapOn:
+    id: 'share-link-switch'
+- extendedWaitUntil:
+    visible:
+      id: 'share-link-password-edit'
+    timeout: 25000
+- tapOn:
+    id: 'share-link-password-edit'
+- extendedWaitUntil:
+    visible:
+      id: 'share-link-password-input'
+    timeout: 5000
+- inputText: 'cozy-pass-1'
+- tapOn:
+    id: 'share-link-password-submit'
+- extendedWaitUntil:
+    visible:
+      id: 'share-link-password-remove'
+    timeout: 25000

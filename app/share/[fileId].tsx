@@ -531,7 +531,7 @@ export default function ShareRoute() {
 
   return (
     <ScreenContainer sheet>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         <View style={styles.header}>
           <FileThumbnail file={file} size={64} />
           <Text variant="titleMedium" style={styles.name} numberOfLines={2}>
@@ -566,6 +566,7 @@ export default function ShareRoute() {
                     <ActivityIndicator animating />
                   ) : (
                     <Switch
+                      testID="share-link-switch"
                       value={linkPermission !== null}
                       onValueChange={onToggleLink}
                       disabled={initialLoading}

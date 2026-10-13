@@ -113,7 +113,7 @@ const InnerLayout = () => {
                         options={{ presentation: 'pageSheet', animation: 'slide_from_bottom' }}
                       />
                       <Stack.Screen
-                        name="share/[fileId]"
+                        name="share"
                         options={{ presentation: 'pageSheet', animation: 'slide_from_bottom' }}
                       />
                       <Stack.Screen
