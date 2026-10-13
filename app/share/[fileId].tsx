@@ -950,10 +950,9 @@ const styles = StyleSheet.create({
   },
   sectionHint: { opacity: 0.7 },
   linkRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  // Slot keeps a fixed width matching Paper's Switch so swapping in the
-  // spinner during a mutation doesn't shift the title left.
+  // At least the width of Paper's Switch, and it grows to fit the wider iOS one.
   linkSwitchSlot: {
-    width: 52,
+    minWidth: 52,
     height: 32,
     alignItems: 'center',
     justifyContent: 'center'
