@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import { StyleSheet } from 'react-native'
 import { useFocusEffect, useLocalSearchParams } from 'expo-router'
 import { useClient } from 'cozy-client'
 import { useTranslation } from 'react-i18next'
@@ -25,6 +26,7 @@ import {
 import { useIsOnline } from '@/network/useIsOnline'
 import { FileQueryResult } from '@/client/queries'
 import { useFileRowActions } from '@/files/useFileRowActions'
+import { cozyTokens } from '@/ui/theme'
 
 interface Props {
   /** Route prefix of the tab this screen is mounted in, so its own pushes stay
@@ -227,6 +229,7 @@ export const SharedDriveScreen = ({ basePath }: Props): React.ReactElement => {
           refreshing={refreshing}
           onRefresh={() => void onRefresh()}
           emptyMessage="drive.emptyFolder"
+          contentContainerStyle={styles.listContent}
         />
       )}
       {!isRoot ? (
@@ -242,3 +245,7 @@ export const SharedDriveScreen = ({ basePath }: Props): React.ReactElement => {
     </ScreenContainer>
   )
 }
+
+const styles = StyleSheet.create({
+  listContent: { paddingBottom: cozyTokens.fabClearance }
+})
