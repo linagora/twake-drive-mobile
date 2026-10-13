@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native'
+import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import {
   ActivityIndicator,
@@ -11,7 +11,6 @@ import {
   Snackbar,
   Switch,
   Text,
-  TextInput,
   useTheme
 } from 'react-native-paper'
 import { useTranslation } from 'react-i18next'
@@ -699,7 +698,6 @@ export default function ShareRoute() {
                     </View>
                   ))}
                   <TextInput
-                    mode="flat"
                     testID="share-email-input"
                     placeholder={t('drive.share.emailPlaceholder')}
                     accessibilityLabel={t('drive.share.emailPlaceholder')}
@@ -712,10 +710,18 @@ export default function ShareRoute() {
                     autoCapitalize="none"
                     autoCorrect={false}
                     keyboardType="email-address"
-                    dense
-                    underlineColor="transparent"
-                    activeUnderlineColor="transparent"
-                    style={styles.chipInput}
+                    autoComplete="email"
+                    textContentType="emailAddress"
+                    placeholderTextColor={theme.colors.onSurfaceVariant}
+                    selectionColor={theme.colors.primary}
+                    cursorColor={theme.colors.primary}
+                    style={[
+                      styles.chipInput,
+                      {
+                        color: theme.colors.onSurface,
+                        fontFamily: theme.fonts.bodyLarge.fontFamily
+                      }
+                    ]}
                   />
                 </View>
                 {inputError ? (
@@ -1001,7 +1007,9 @@ const styles = StyleSheet.create({
   },
   chipLabel: { flexShrink: 1 },
   chipClose: { margin: 0 },
-  chipInput: { flexGrow: 1, flexBasis: 140, backgroundColor: 'transparent', height: 40 },
+  // A plain input: Paper's flat TextInput measures about 80 pt tall inside this
+  // wrapping row, so its line sticks out of the box.
+  chipInput: { flexGrow: 1, flexBasis: 140, height: 40, paddingVertical: 0, fontSize: 16 },
   roleButtonContent: { flexDirection: 'row-reverse' },
   suggestionsHint: { opacity: 0.7 },
   suggestionsBox: {
