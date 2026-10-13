@@ -50,10 +50,13 @@ jest.mock('@/share/PendingShareProvider', () => ({
 }))
 // FolderPicker is exercised elsewhere; stub it to a confirm button that hands back a folder.
 jest.mock('@/ui/FolderPicker', () => {
-  const { Button } = require('react-native-paper')
+  const { Button, Text } = require('react-native-paper')
   return {
-    FolderPicker: ({ onConfirm, confirmLabel }: any) => (
-      <Button onPress={() => onConfirm({ _id: 'dest1', name: 'Docs' })}>{confirmLabel}</Button>
+    FolderPicker: ({ onConfirm, confirmLabel, title }: any) => (
+      <>
+        <Text>{title}</Text>
+        <Button onPress={() => onConfirm({ _id: 'dest1', name: 'Docs' })}>{confirmLabel}</Button>
+      </>
     )
   }
 })
@@ -82,6 +85,11 @@ beforeAll(async () => {
 beforeEach(() => {
   mockUploadBatch.mockReset()
   mockOnline = true
+})
+
+test('titles the picker with what it is for', () => {
+  const { getByText } = wrap()
+  expect(getByText('Import to…')).toBeTruthy()
 })
 
 test('confirming a destination uploads the pending items there', async () => {

@@ -64,6 +64,7 @@ export const MoveScreen = ({ pathSegments }: Props): React.ReactElement => {
   return (
     <FolderPicker
       currentFolderId={currentFolderId}
+      title={t('drive.move.title')}
       excludeIds={excludeIds}
       confirmLabel={t('drive.move.action')}
       isBusy={ctx.isBusy}

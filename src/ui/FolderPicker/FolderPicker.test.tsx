@@ -81,6 +81,7 @@ const setupQueries = (folderName: string, children: ReadonlyArray<unknown>): voi
 
 const defaultProps = {
   currentFolderId: 'src',
+  title: 'Move',
   excludeIds: new Set<string>(),
   confirmLabel: 'Move here',
   isBusy: false,
@@ -100,9 +101,10 @@ describe('FolderPicker', () => {
     defaultProps.onCancel.mockReset()
   })
 
-  it('renders the current folder name and its subfolders', () => {
+  it('renders its title, the current folder name and its subfolders', () => {
     setupQueries('Work', [subfolder('a', 'Q1'), subfolder('b', 'Q2')])
     render(wrap(<FolderPicker {...defaultProps} currentFolderId="src" />))
+    expect(screen.getByText('Move')).toBeOnTheScreen()
     expect(screen.getByText('Work')).toBeOnTheScreen()
     expect(screen.getByText('Q1')).toBeOnTheScreen()
     expect(screen.getByText('Q2')).toBeOnTheScreen()

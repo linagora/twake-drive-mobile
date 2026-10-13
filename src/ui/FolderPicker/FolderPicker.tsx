@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { FlatList, StyleSheet, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { Appbar, Button, Portal, useTheme } from 'react-native-paper'
+import { Appbar, Button, Portal, Text, useTheme } from 'react-native-paper'
 import { useTranslation } from 'react-i18next'
 import { useClient, useQuery } from 'cozy-client'
 
@@ -34,6 +34,7 @@ export interface FolderPickerSelection {
 
 export interface FolderPickerProps {
   currentFolderId: string
+  title: string
   excludeIds: Set<string>
   confirmLabel: string
   isBusy: boolean
@@ -46,6 +47,7 @@ export interface FolderPickerProps {
 
 export const FolderPicker = ({
   currentFolderId,
+  title,
   excludeIds,
   confirmLabel,
   isBusy,
@@ -85,7 +87,7 @@ export const FolderPicker = ({
   const isLoading = isFirstLoad(folderLookup, subfoldersQuery)
   const hasError = folderLookup.fetchStatus === 'failed' || subfoldersQuery.fetchStatus === 'failed'
 
-  const title = currentFolderId === ROOT_DIR_ID ? t('drive.myDrive') : (folderDoc?.name ?? '')
+  const folderName = currentFolderId === ROOT_DIR_ID ? t('drive.myDrive') : (folderDoc?.name ?? '')
   const canNavigateUp = currentFolderId !== ROOT_DIR_ID
 
   const handleDrillIn = (item: FolderPickerRowItem): void => {
@@ -131,6 +133,9 @@ export const FolderPicker = ({
             onPress={() => setCreatingFolder(true)}
           />
         </Appbar.Header>
+        <Text variant="titleSmall" numberOfLines={1} style={styles.folderName}>
+          {folderName}
+        </Text>
         {hasError ? (
           <ErrorState
             message={t('drive.preview.loadFailed')}
@@ -176,7 +181,7 @@ export const FolderPicker = ({
             testID="folder-picker-confirm"
             disabled={confirmDisabled}
             loading={isBusy}
-            onPress={() => onConfirm({ _id: currentFolderId, name: title })}
+            onPress={() => onConfirm({ _id: currentFolderId, name: folderName })}
             style={styles.footerButton}
           >
             {confirmLabel}
@@ -200,5 +205,6 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderTopWidth: StyleSheet.hairlineWidth
   },
-  footerButton: { flex: 1 }
+  footerButton: { flex: 1 },
+  folderName: { paddingHorizontal: 16, paddingVertical: 8 }
 })

@@ -42,6 +42,7 @@ export const ImportScreen = ({ pathSegments }: Props): React.ReactElement => {
   return (
     <FolderPicker
       currentFolderId={currentFolderId}
+      title={t('drive.import.title')}
       excludeIds={new Set<string>()}
       confirmLabel={t('drive.import.confirm')}
       isBusy={ctx.isBusy}
