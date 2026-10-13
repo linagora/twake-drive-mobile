@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { Snackbar } from 'react-native-paper'
 import { Stack, useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
@@ -26,6 +26,9 @@ export default function ImportLayout({ children }: { children?: React.ReactNode 
   const close = useCallback((): void => {
     closeSheet(router as unknown as SheetRouter)
   }, [router])
+
+  // A swipe down closes the sheet without going through onCancel.
+  useEffect(() => clear, [clear])
 
   // Declining the import must also drop the staged share — otherwise `pending`
   // stays populated and a later client/pending effect re-pop `/import` again.

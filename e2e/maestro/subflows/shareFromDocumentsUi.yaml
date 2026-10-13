@@ -1,0 +1,26 @@
+appId: com.android.documentsui
+---
+# From the system file picker to the Twake Drive entry of its share sheet, for
+# the image the runner pushed to Download (e2e/scripts/run-flows.sh).
+- launchApp:
+    stopApp: true
+- tapOn:
+    id: 'com.android.documentsui:id/option_menu_search'
+- inputText: 'e2e-share'
+- pressKey: Enter
+- waitForAnimationToEnd
+- tapOn:
+    text: 'List view|Affichage en liste'
+    optional: true
+- extendedWaitUntil:
+    visible: 'e2e-share.jpg'
+    timeout: 20000
+# a long press starts a drag; a tap on the icon selects
+- tapOn:
+    id: 'com.android.documentsui:id/icon'
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible: 'Share|Partager'
+    timeout: 10000
+- tapOn: 'Share|Partager'
+- tapOn: 'Twake Drive'

@@ -1,0 +1,44 @@
+appId: com.android.documentsui
+tags:
+  - android
+onFlowComplete:
+  - runFlow: ../../subflows/cleanup.yaml
+---
+# An image shared to Twake Drive while signed out opens the folder picker once
+# the user is back in, and a later share opens it again with the app still
+# running. The runner pushes the image to Download (e2e/scripts/run-flows.sh).
+- runFlow: ../../subflows/openDrive.yaml
+- tapOn:
+    id: 'appbar-avatar'
+- tapOn:
+    id: 'appbar-logout'
+- tapOn:
+    id: 'logout-dialog-submit'
+- extendedWaitUntil:
+    visible:
+      id: 'welcome-login'
+    timeout: 60000
+- runFlow: ../../subflows/shareFromDocumentsUi.yaml
+- extendedWaitUntil:
+    visible:
+      id: 'welcome-dev-instance-link'
+    timeout: 30000
+- runFlow:
+    file: ../../subflows/signInInstance.yaml
+    env:
+      SKIP_DRIVE_ASSERT: 'true'
+- extendedWaitUntil:
+    visible:
+      id: 'folder-picker-confirm'
+    timeout: 60000
+- tapOn: 'Annuler|Cancel'
+- extendedWaitUntil:
+    notVisible:
+      id: 'folder-picker-confirm'
+    timeout: 10000
+- runFlow: ../../subflows/shareFromDocumentsUi.yaml
+- extendedWaitUntil:
+    visible:
+      id: 'folder-picker-confirm'
+    timeout: 60000
+- tapOn: 'Annuler|Cancel'

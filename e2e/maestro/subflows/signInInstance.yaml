@@ -89,8 +89,13 @@ appId: com.linagora.twakedrive
           text: 'Autoriser|Authorize'
           below: '.*(vous autorisez|you accept that the application).*'
           retryTapIfNoChange: true
-# Back in the app, on the drive.
-- extendedWaitUntil:
-    visible:
-      id: 'drive-fab'
-    timeout: 120000
+# Back in the app, on the drive. A flow that expects something over the drive
+# (a share picked up while signed out) sets SKIP_DRIVE_ASSERT.
+- runFlow:
+    when:
+      true: ${!SKIP_DRIVE_ASSERT}
+    commands:
+      - extendedWaitUntil:
+          visible:
+            id: 'drive-fab'
+          timeout: 120000
