@@ -1,0 +1,46 @@
+appId: com.linagora.twakedrive
+tags:
+  - inapp
+# Same reason as 22-logout-asks-to-erase.yaml: signed out, the flows after this
+# one need a fresh session, and a replica past its first sync.
+onFlowComplete:
+  - runFlow: ../00-login-instance.yaml
+  - runScript:
+      file: ../../scripts/seed.js
+      env:
+        SEED: '[{"key":"settled","kind":"folder","prefix":"E2E-settled"}]'
+  - extendedWaitUntil:
+      visible:
+        id: 'folder-row:${output.settled.name}'
+      timeout: 180000
+  - runFlow: ../../subflows/cleanup.yaml
+---
+# On the organization login, the "domain does not support Twake Drive" error
+# belongs to the address that was submitted: it goes as soon as the field
+# changes. Needs internet: example.org answers the discovery with a 404, which
+# is what makes the domain unsupported.
+- runFlow: ../../subflows/openDrive.yaml
+- tapOn:
+    id: 'appbar-avatar'
+- tapOn:
+    id: 'appbar-logout'
+- tapOn:
+    id: 'logout-dialog-submit'
+- extendedWaitUntil:
+    visible:
+      id: 'welcome-org-server-link'
+    timeout: 60000
+- tapOn:
+    id: 'welcome-org-server-link'
+- tapOn:
+    id: 'login-email-input'
+- inputText: 'someone@example.org'
+- pressKey: Enter
+- extendedWaitUntil:
+    visible: 'This domain does not support Twake Drive\.|Ce domaine ne supporte pas Twake Drive\.'
+    timeout: 60000
+- tapOn:
+    id: 'login-email-input'
+- eraseText
+- inputText: 'abc'
+- assertNotVisible: 'This domain does not support Twake Drive\.|Ce domaine ne supporte pas Twake Drive\.'
