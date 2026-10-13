@@ -24,17 +24,17 @@ describe('formatFileSize', () => {
   })
 
   it('formats kibibytes', () => {
-    expect(formatFileSize(1024)).toBe('1.0 Ko')
-    expect(formatFileSize(2560)).toBe('2.5 Ko')
+    expect(formatFileSize(1024)).toBe('1,0 Ko')
+    expect(formatFileSize(2560)).toBe('2,5 Ko')
   })
 
   it('formats mebibytes', () => {
-    expect(formatFileSize(1024 * 1024)).toBe('1.0 Mo')
-    expect(formatFileSize(1024 * 1024 * 3.7)).toBe('3.7 Mo')
+    expect(formatFileSize(1024 * 1024)).toBe('1,0 Mo')
+    expect(formatFileSize(1024 * 1024 * 3.7)).toBe('3,7 Mo')
   })
 
   it('formats gibibytes', () => {
-    expect(formatFileSize(1024 ** 3)).toBe('1.0 Go')
+    expect(formatFileSize(1024 ** 3)).toBe('1,0 Go')
   })
 
   it('says the units in the language in use', async () => {
@@ -45,8 +45,20 @@ describe('formatFileSize', () => {
     expect(formatFileSize(1024 ** 3)).toBe('1.0 GB')
   })
 
+  it('uses the decimal separator of the language', async () => {
+    await i18n.changeLanguage('en')
+    expect(formatFileSize(1536)).toBe('1.5 KB')
+    await i18n.changeLanguage('de')
+    expect(formatFileSize(1536)).toBe('1,5 KB')
+  })
+
+  it('does not group thousands, so 1023.9 Ko stays one run of digits', async () => {
+    await i18n.changeLanguage('fr')
+    expect(formatFileSize(1023.9 * 1024)).toBe('1023,9 Ko')
+  })
+
   it('says them in a language with its own alphabet too', async () => {
     await i18n.changeLanguage('ru')
-    expect(formatFileSize(1024)).toBe('1.0 КБ')
+    expect(formatFileSize(1024)).toBe('1,0 КБ')
   })
 })
