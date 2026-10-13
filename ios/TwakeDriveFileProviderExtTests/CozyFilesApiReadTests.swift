@@ -30,6 +30,35 @@ final class CozyFilesApiReadTests: XCTestCase {
     XCTAssertEqual(f.size, 3)
   }
 
+  func testChangesSplitsUpdatesFromDeletionsAndTrash() async throws {
+    let api = makeApi { req in
+      XCTAssertEqual(req.url?.path, "/files/_changes")
+      XCTAssertTrue(req.url?.query?.contains("since=s1") == true)
+      return httpResponse(req.url!, 200, #"""
+        {"last_seq":"s2","pending":3,"results":[
+          {"id":"new","doc":{"type":"directory","name":"New","dir_id":"io.cozy.files.root-dir"}},
+          {"id":"gone","deleted":true},
+          {"id":"bin","doc":{"type":"file","name":"b.txt","dir_id":"io.cozy.files.trash-dir","trashed":true}},
+          {"id":"io.cozy.files.trash-dir","doc":{"type":"directory","name":".cozy_trash"}},
+          {"id":"shared","doc":{"type":"directory","name":"S","dir_id":"io.cozy.files.shared-drives-dir"}},
+          {"id":"io.cozy.files.root-dir","doc":{"type":"directory"}}]}
+        """#)
+    }
+    let changes = try await api.changes(since: "s1")
+    XCTAssertEqual(changes.lastSeq, "s2")
+    XCTAssertTrue(changes.hasMore)
+    XCTAssertEqual(changes.updated.map(\.id), ["new"])
+    XCTAssertEqual(changes.deleted, ["gone", "bin"])
+  }
+
+  func testCurrentChangesSeqReadsLastSeq() async throws {
+    let api = makeApi { req in
+      httpResponse(req.url!, 200, #"{"last_seq":"s9","pending":0,"results":[]}"#)
+    }
+    let seq = try await api.currentChangesSeq()
+    XCTAssertEqual(seq, "s9")
+  }
+
   // The stack signs thumbnail paths with a secret and answers 404 without it,
   // so the url is read off the document and never rebuilt from the id (#276).
   func testThumbnailFetchesTheLinkTheStackSigned() async throws {

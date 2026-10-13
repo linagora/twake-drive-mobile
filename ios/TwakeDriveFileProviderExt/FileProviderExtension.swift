@@ -5,7 +5,10 @@ import UniformTypeIdentifiers
 final class FileProviderExtension: NSObject, NSFileProviderReplicatedExtension {
   private static let appGroup = "group.com.linagora.twakedrive"
 
+  private let manager: NSFileProviderManager?
+
   required init(domain: NSFileProviderDomain) {
+    manager = NSFileProviderManager(for: domain)
     super.init()
   }
 
@@ -193,6 +196,9 @@ final class FileProviderExtension: NSObject, NSFileProviderReplicatedExtension {
       if containerItemIdentifier == .workingSet {
         return FileProviderEnumerator(api: api, containerDirId: nil)
       }
+      // Files only asks for changes when told: browsing is the moment to learn what moved on the
+      // stack since, whoever moved it.
+      manager?.signalEnumerator(for: .workingSet) { _ in }
       return FileProviderEnumerator(api: api, containerDirId: dirId(for: containerItemIdentifier))
     } catch {
       throw Self.nsError(error)
@@ -240,12 +246,46 @@ final class FileProviderEnumerator: NSObject, NSFileProviderEnumerator {
   }
 
   func currentSyncAnchor(completionHandler: @escaping (NSFileProviderSyncAnchor?) -> Void) {
-    completionHandler(NSFileProviderSyncAnchor(Data("v1".utf8)))
+    // Only the working set follows the changes feed; a folder has nothing to report.
+    guard containerDirId == nil else {
+      completionHandler(NSFileProviderSyncAnchor(Data("v1".utf8)))
+      return
+    }
+    Task {
+      do {
+        let seq = try await api.currentChangesSeq()
+        completionHandler(NSFileProviderSyncAnchor(Data(seq.utf8)))
+      } catch {
+        // no anchor: the system asks again later
+        completionHandler(nil)
+      }
+    }
   }
 
   func enumerateChanges(for observer: NSFileProviderChangeObserver,
                         from anchor: NSFileProviderSyncAnchor) {
-    observer.finishEnumeratingChanges(upTo: anchor, moreComing: false)
+    guard containerDirId == nil else {
+      observer.finishEnumeratingChanges(upTo: anchor, moreComing: false)
+      return
+    }
+    guard let seq = String(data: anchor.rawValue, encoding: .utf8) else {
+      observer.finishEnumeratingWithError(NSFileProviderError(.syncAnchorExpired))
+      return
+    }
+    Task {
+      do {
+        let changes = try await api.changes(since: seq)
+        observer.didUpdate(changes.updated.map { ItemMapper.item(from: $0) })
+        observer.didDeleteItems(withIdentifiers: changes.deleted.map { NSFileProviderItemIdentifier($0) })
+        observer.finishEnumeratingChanges(upTo: NSFileProviderSyncAnchor(Data(changes.lastSeq.utf8)),
+                                          moreComing: changes.hasMore)
+      } catch CozyError.server(400) {
+        // an anchor the stack rejects, such as the constant one of earlier builds
+        observer.finishEnumeratingWithError(NSFileProviderError(.syncAnchorExpired))
+      } catch {
+        observer.finishEnumeratingWithError(FileProviderExtension.nsError(error))
+      }
+    }
   }
 
   private static func decodePage(_ page: NSFileProviderPage) -> String? {
