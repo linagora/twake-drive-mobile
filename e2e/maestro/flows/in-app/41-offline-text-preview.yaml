@@ -1,0 +1,38 @@
+appId: com.linagora.twakedrive
+tags:
+  - inapp
+  - android
+onFlowComplete:
+  - runFlow: ../../subflows/cleanup.yaml
+---
+# A text file whose bytes were never fetched cannot be previewed offline. The
+# preview says so in the app's language, like the image and PDF previews do,
+# instead of showing the network layer's own message. cleanup.yaml turns
+# airplane mode off again whether the flow passed or not.
+- runScript:
+    file: ../../scripts/seed.js
+    env:
+      SEED: '[{"key":"folder","kind":"folder","prefix":"E2E-txt"},{"key":"inner","kind":"file","prefix":"E2E-txt-inner","ext":"txt","parent":"folder"}]'
+- runFlow: ../../subflows/openDrive.yaml
+- extendedWaitUntil:
+    visible:
+      id: 'folder-row:${output.folder.name}'
+    timeout: 60000
+# the listing reaches the replica before the radio goes off
+- tapOn:
+    id: 'folder-row:${output.folder.name}'
+- extendedWaitUntil:
+    visible:
+      id: 'file-row:${output.inner.name}'
+    timeout: 30000
+- setAirplaneMode: enabled
+- extendedWaitUntil:
+    visible:
+      id: 'offline-banner'
+    timeout: 30000
+- tapOn:
+    id: 'file-row:${output.inner.name}'
+- extendedWaitUntil:
+    visible: "Impossible de charger l'aperçu|Could not load preview"
+    timeout: 20000
+- assertNotVisible: 'Network request failed'
