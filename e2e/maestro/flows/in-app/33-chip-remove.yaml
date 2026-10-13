@@ -1,0 +1,48 @@
+appId: com.linagora.twakedrive
+tags:
+  - inapp
+env:
+  FIRST: 'e2e-first@example.org'
+  SECOND: 'e2e-second@example.org'
+onFlowComplete:
+  - runFlow: ../../subflows/cleanup.yaml
+---
+# The cross of a recipient chip removes it on the first tap, at the middle of
+# the chip, not only on its bottom edge. Two chips: the strip only shrinks once
+# the address field has moved to a line of its own.
+- runScript:
+    file: ../../scripts/seed.js
+    env:
+      SEED: '[{"key":"folder","kind":"folder","prefix":"E2E-chip"}]'
+- runFlow: ../../subflows/openDrive.yaml
+- extendedWaitUntil:
+    visible:
+      id: 'folder-row:${output.folder.name}'
+    timeout: 60000
+- tapOn:
+    id: 'folder-actions:${output.folder.name}'
+- waitForAnimationToEnd
+- tapOn:
+    id: 'action-share'
+- extendedWaitUntil:
+    visible:
+      id: 'share-recipients-title'
+    timeout: 20000
+- tapOn:
+    id: 'share-add-recipient'
+- tapOn:
+    id: 'share-email-input'
+- inputText: '${FIRST}'
+- pressKey: Enter
+- inputText: '${SECOND}'
+- pressKey: Enter
+- assertVisible: '${SECOND}'
+# the cross, at the chip's vertical middle
+- tapOn:
+    id: 'recipient-chip'
+    index: 0
+    point: '90%,50%'
+- assertNotVisible: '${FIRST}'
+- assertVisible: '${SECOND}'
+- tapOn:
+    id: 'share-close'
