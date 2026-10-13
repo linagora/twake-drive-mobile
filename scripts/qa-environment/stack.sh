@@ -30,9 +30,18 @@ EOF
     "$root/e2e/stack/setup.sh" "$domain" cozycozy
 }
 
-# The stack goes down again when start.sh fails after starting it
+# The stack goes down again when start.sh fails after starting it, after the optional cleanup
+# command given second
 stop_stack_on_failure() {
-  local project="$1"
-  # shellcheck disable=SC2064 # the project is known now
-  trap "[ \$? = 0 ] || docker compose -p '$project' down --volumes --remove-orphans >/dev/null 2>&1" EXIT
+  local project="$1" cleanup="${2:-true}"
+  # shellcheck disable=SC2064 # the project and the command are known now
+  trap "[ \$? = 0 ] || { $cleanup; docker compose -p '$project' down --volumes --remove-orphans >/dev/null 2>&1; }" EXIT
+}
+
+# close_tunnel <control socket> <ssh host>: the ssh tunnel of ios/start.sh, even when its control
+# socket no longer answers
+close_tunnel() {
+  [ -S "$1" ] && ssh -S "$1" -O exit "$2" 2>/dev/null
+  pkill -f -- "-S $1" 2>/dev/null
+  rm -f "$1"
 }
