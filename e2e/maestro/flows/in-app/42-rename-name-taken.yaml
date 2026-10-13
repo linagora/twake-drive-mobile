@@ -1,0 +1,43 @@
+appId: com.linagora.twakedrive
+tags:
+  - inapp
+onFlowComplete:
+  - runFlow: ../../subflows/cleanup.yaml
+---
+# Renaming to a name another item already has keeps the dialog open and says
+# why, under the field; nothing is renamed.
+- runScript:
+    file: ../../scripts/seed.js
+    env:
+      SEED: '[{"key":"taken","kind":"file","prefix":"tk"},{"key":"other","kind":"file","prefix":"ot"}]'
+- runFlow: ../../subflows/openDrive.yaml
+- extendedWaitUntil:
+    visible:
+      id: 'file-row:${output.other.name}'
+    timeout: 60000
+- tapOn:
+    id: 'file-actions:${output.other.name}'
+- waitForAnimationToEnd
+- tapOn:
+    id: 'action-rename'
+- waitForAnimationToEnd
+- tapOn:
+    id: 'rename-name-input'
+- eraseText
+- inputText: '${output.taken.name}'
+- assertVisible:
+    id: 'rename-name-input'
+    text: '${output.taken.name}'
+- tapOn:
+    id: 'rename-submit'
+- extendedWaitUntil:
+    visible: 'Un élément avec ce nom existe déjà\.|An item with this name already exists\.'
+    timeout: 15000
+- assertVisible:
+    id: 'rename-name-input'
+- tapOn: 'Annuler|Cancel'
+- waitForAnimationToEnd
+- assertNotVisible:
+    id: 'rename-name-input'
+- assertVisible:
+    id: 'file-row:${output.other.name}'
