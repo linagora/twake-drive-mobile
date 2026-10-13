@@ -350,7 +350,9 @@
     "showDetails": "Chi tiết",
     "hideDetails": "Ẩn chi tiết",
     "copyDetails": "Sao chép chi tiết",
-    "copied": "Đã sao chép"
+    "copied": "Đã sao chép",
+    "linkNotFound": "Liên kết này không dẫn đến đâu cả",
+    "backToDrive": "Đến Drive của tôi"
   },
   "units": {
     "byte": "B",

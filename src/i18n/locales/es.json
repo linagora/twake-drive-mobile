@@ -368,7 +368,9 @@
     "showDetails": "Detalles",
     "hideDetails": "Ocultar detalles",
     "copyDetails": "Copiar detalles",
-    "copied": "Copiado"
+    "copied": "Copiado",
+    "linkNotFound": "Este enlace no lleva a ninguna parte",
+    "backToDrive": "Ir a Mi Drive"
   },
   "units": {
     "byte": "B",

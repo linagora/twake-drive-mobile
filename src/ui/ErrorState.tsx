@@ -7,10 +7,11 @@ import { CozyIcon } from '@/ui/icons/CozyIcon'
 interface Props {
   message: string
   onRetry?: () => void
+  retryLabel?: string
   icon?: string
 }
 
-export const ErrorState = ({ message, onRetry, icon = 'info' }: Props) => {
+export const ErrorState = ({ message, onRetry, retryLabel, icon = 'info' }: Props) => {
   const theme = useTheme()
   const { t } = useTranslation()
   return (
@@ -21,7 +22,7 @@ export const ErrorState = ({ message, onRetry, icon = 'info' }: Props) => {
       </Text>
       {onRetry ? (
         <Button mode="contained" onPress={onRetry} style={styles.button}>
-          {t('common.retry')}
+          {retryLabel ?? t('common.retry')}
         </Button>
       ) : null}
     </View>

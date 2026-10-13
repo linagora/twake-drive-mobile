@@ -377,7 +377,9 @@
     "showDetails": "Подробности",
     "hideDetails": "Скрыть подробности",
     "copyDetails": "Копировать подробности",
-    "copied": "Скопировано"
+    "copied": "Скопировано",
+    "linkNotFound": "Эта ссылка никуда не ведёт",
+    "backToDrive": "Перейти в Мой Drive"
   },
   "units": {
     "byte": "Б",
