@@ -1,0 +1,25 @@
+appId: com.linagora.twakedrive
+tags:
+  - inapp
+  - android
+onFlowComplete:
+  - runFlow: ../../subflows/cleanup.yaml
+---
+# A file no installed app can open is handed to the system, and the app says
+# so. Needs an emulator image without Google Play: with a store, the system
+# opens a store search instead, and there is no message to assert.
+- runScript:
+    file: ../../scripts/seed.js
+    env:
+      SEED: '[{"key":"file","kind":"file","prefix":"E2E-noapp","ext":"bin","mime":"application/octet-stream"}]'
+- runFlow: ../../subflows/openDrive.yaml
+- extendedWaitUntil:
+    visible:
+      id: 'file-row:${output.file.name}'
+    timeout: 60000
+- tapOn:
+    id: 'file-row:${output.file.name}'
+- extendedWaitUntil:
+    visible: 'Aucune application ne peut ouvrir ce type de fichier|No app on your device can open this file type'
+    timeout: 30000
+- assertNotVisible: "Impossible de charger l'aperçu|Could not load preview"
