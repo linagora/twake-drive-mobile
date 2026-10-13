@@ -6,8 +6,10 @@ import { useClient } from 'cozy-client'
 
 import { uploadBatch } from '@/share/uploadBatch'
 import { batchMessage, optimisticUploaded } from '@/share/importFeedback'
+import { useIsOnline } from '@/network/useIsOnline'
 import { usePendingShare } from '@/share/PendingShareProvider'
 import { ImportContext, ImportContextValue } from '@/drive/importContext'
+import { OfflineBanner } from '@/ui/OfflineBanner'
 import { closeSheet, SheetRouter } from '@/ui/closeSheet'
 
 const SNACKBAR_DISMISS_DELAY_MS = 200
@@ -16,6 +18,7 @@ export default function ImportLayout({ children }: { children?: React.ReactNode 
   const { t } = useTranslation()
   const router = useRouter()
   const client = useClient()
+  const isOnline = useIsOnline()
   const { items, clear } = usePendingShare()
   const [isBusy, setIsBusy] = useState(false)
   const [snackbar, setSnackbar] = useState<string | null>(null)
@@ -34,6 +37,10 @@ export default function ImportLayout({ children }: { children?: React.ReactNode 
   const onConfirm = useCallback(
     async (dest: { _id: string; name: string }): Promise<void> => {
       if (!client || items.length === 0) return
+      if (!isOnline) {
+        setSnackbar(t('drive.import.errorOffline'))
+        return
+      }
       setIsBusy(true)
       setSnackbar(null)
       try {
@@ -51,7 +58,7 @@ export default function ImportLayout({ children }: { children?: React.ReactNode 
         setIsBusy(false)
       }
     },
-    [client, items, t, close, clear]
+    [client, items, isOnline, t, close, clear]
   )
 
   const value = useMemo<ImportContextValue>(
@@ -61,6 +68,7 @@ export default function ImportLayout({ children }: { children?: React.ReactNode 
 
   return (
     <ImportContext.Provider value={value}>
+      <OfflineBanner />
       {children ?? (
         <Stack
           screenOptions={{

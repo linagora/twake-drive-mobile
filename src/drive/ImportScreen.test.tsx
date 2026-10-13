@@ -34,6 +34,9 @@ jest.mock('cozy-client', () => ({
   useClient: () => ({})
 }))
 
+let mockOnline = true
+jest.mock('@/network/useIsOnline', () => ({ useIsOnline: () => mockOnline }))
+
 // See mockBack/mockPush note above re: the `mock`-prefix hoisting requirement.
 const mockUploadBatch = jest.fn()
 jest.mock('@/share/uploadBatch', () => ({
@@ -76,7 +79,10 @@ beforeAll(async () => {
   await i18n.changeLanguage('en')
 })
 
-beforeEach(() => mockUploadBatch.mockReset())
+beforeEach(() => {
+  mockUploadBatch.mockReset()
+  mockOnline = true
+})
 
 test('confirming a destination uploads the pending items there', async () => {
   mockUploadBatch.mockResolvedValueOnce({ results: [], succeeded: 1, failed: 0 })
@@ -86,4 +92,13 @@ test('confirming a destination uploads the pending items there', async () => {
   const [, items, dirId] = mockUploadBatch.mock.calls[0]
   expect(items).toEqual([{ uri: 'file:///a.jpg', name: 'a.jpg', mimeType: 'image/jpeg' }])
   expect(dirId).toBe('dest1')
+})
+
+test('offline, confirming says a connection is required and uploads nothing', async () => {
+  mockOnline = false
+  const { getByText, getByTestId, findByText } = wrap()
+  fireEvent.press(getByText('Import here'))
+  expect(await findByText('Connection required to import')).toBeTruthy()
+  expect(getByTestId('offline-banner')).toBeTruthy()
+  expect(mockUploadBatch).not.toHaveBeenCalled()
 })
