@@ -1,0 +1,47 @@
+appId: com.android.documentsui
+tags:
+  - android
+env:
+  SHARED_IMAGE: 'e2e-share.jpg'
+onFlowComplete:
+  - runFlow: ../../subflows/cleanup.yaml
+---
+# Importing a shared file offline says a connection is required, uploads
+# nothing and leaves the picker open. cleanup.yaml turns airplane mode off.
+- launchApp:
+    stopApp: true
+- tapOn:
+    id: 'com.android.documentsui:id/option_menu_search'
+- inputText: 'e2e-share'
+- pressKey: Enter
+- waitForAnimationToEnd
+- tapOn:
+    text: 'List view|Affichage en liste'
+    optional: true
+- extendedWaitUntil:
+    visible: '${SHARED_IMAGE}'
+    timeout: 20000
+- tapOn:
+    id: 'com.android.documentsui:id/icon'
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible: 'Share|Partager'
+    timeout: 10000
+- tapOn: 'Share|Partager'
+- tapOn: 'Twake Drive'
+- extendedWaitUntil:
+    visible:
+      id: 'folder-picker-confirm'
+    timeout: 60000
+- setAirplaneMode: enabled
+- extendedWaitUntil:
+    visible:
+      id: 'offline-banner'
+    timeout: 30000
+- tapOn:
+    id: 'folder-picker-confirm'
+- extendedWaitUntil:
+    visible: 'Connection required to import|Connexion requise pour importer'
+    timeout: 10000
+- assertVisible:
+    id: 'folder-picker-confirm'
