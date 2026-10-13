@@ -1,0 +1,28 @@
+appId: com.linagora.twakedrive
+tags:
+  - inapp
+onFlowComplete:
+  - runFlow: ../../subflows/cleanup.yaml
+---
+# With the list scrolled to its end, the "+" button does not sit over the menu
+# of the last row: a tap on that menu opens the row's actions, not the create
+# menu. The files are named to sort after everything else on the instance.
+- runScript:
+    file: ../../scripts/seed.js
+    env:
+      SEED: '[{"key":"a","kind":"file","prefix":"zz-fab-a","ext":"txt"},{"key":"b","kind":"file","prefix":"zz-fab-b","ext":"txt"},{"key":"c","kind":"file","prefix":"zz-fab-c","ext":"txt"},{"key":"d","kind":"file","prefix":"zz-fab-d","ext":"txt"},{"key":"e","kind":"file","prefix":"zz-fab-e","ext":"txt"},{"key":"f","kind":"file","prefix":"zz-fab-f","ext":"txt"},{"key":"g","kind":"file","prefix":"zz-fab-g","ext":"txt"},{"key":"h","kind":"file","prefix":"zz-fab-h","ext":"txt"},{"key":"i","kind":"file","prefix":"zz-fab-i","ext":"txt"},{"key":"j","kind":"file","prefix":"zz-fab-j","ext":"txt"}]'
+- runFlow: ../../subflows/openDrive.yaml
+- scrollUntilVisible:
+    element:
+      id: 'file-actions:${output.j.name}'
+    timeout: 60000
+- scroll
+- scroll
+- tapOn:
+    id: 'file-actions:${output.j.name}'
+- extendedWaitUntil:
+    visible:
+      id: 'action-share'
+    timeout: 10000
+- assertNotVisible:
+    id: 'create-folder(-container-outer-layer)?'
