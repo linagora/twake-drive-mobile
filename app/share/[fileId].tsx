@@ -9,11 +9,11 @@ import {
   Menu,
   SegmentedButtons,
   Snackbar,
-  Switch,
   Text,
   TextInput,
   useTheme
 } from 'react-native-paper'
+import { Switch } from '@/ui/Switch'
 import { useTranslation } from 'react-i18next'
 import { useClient, useQuery } from 'cozy-client'
 import * as Clipboard from 'expo-clipboard'
