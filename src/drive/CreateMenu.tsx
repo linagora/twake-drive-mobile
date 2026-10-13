@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useCallback, useState } from 'react'
 import { StyleSheet } from 'react-native'
 import { FAB } from 'react-native-paper'
 import { useTranslation } from 'react-i18next'
@@ -7,6 +7,7 @@ import { CreateActionName, createActionNames } from './createActions'
 import { CreatedEntry, useCreateHandlers } from './useCreateHandlers'
 
 import { cozyTokens } from '@/ui/theme'
+import { useBackPress } from '@/ui/useBackPress'
 import { CozyIcon } from '@/ui/icons/CozyIcon'
 import { FileTypeIcon } from '@/ui/icons/FileTypeIcon'
 import { CreateFolderDialog } from '@/ui/CreateFolderDialog'
@@ -73,6 +74,8 @@ export const CreateMenu = ({
   const isOnline = useIsOnline()
 
   const [fabOpen, setFabOpen] = useState(false)
+  const closeFab = useCallback(() => setFabOpen(false), [])
+  useBackPress(fabOpen, closeFab)
   const [createFolderVisible, setCreateFolderVisible] = useState(false)
   const [createShortcutVisible, setCreateShortcutVisible] = useState(false)
   const [creatingClass, setCreatingClass] = useState<CreatableFileClass | null>(null)
