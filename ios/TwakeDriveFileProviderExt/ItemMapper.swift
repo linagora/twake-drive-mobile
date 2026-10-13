@@ -41,13 +41,30 @@ final class FileProviderItem: NSObject, NSFileProviderItem {
 
 enum ItemMapper {
   static let rootDocID = "io.cozy.files.root-dir"                       // DocumentMapper.ROOT_DOC_ID
-  static let hiddenIDs: Set<String> = ["io.cozy.files.trash-dir", "io.cozy.files.shared-drives-dir"]
+  static let trashDocID = "io.cozy.files.trash-dir"
+  static let hiddenIDs: Set<String> = [trashDocID, "io.cozy.files.shared-drives-dir"]
 
   static func isHidden(_ id: String) -> Bool { hiddenIDs.contains(id) }
 
   static func identifier(for id: String) -> NSFileProviderItemIdentifier {
-    id == rootDocID ? .rootContainer : NSFileProviderItemIdentifier(id)
+    switch id {
+    case rootDocID: return .rootContainer
+    case trashDocID: return .trashContainer
+    default: return NSFileProviderItemIdentifier(id)
+    }
   }
+
+  /// The folder Files shows as the provider's "Recently Deleted", backed by the cozy trash.
+  static let trashItem = FileProviderItem(
+    itemIdentifier: .trashContainer,
+    parentItemIdentifier: .rootContainer,
+    filename: "Trash",
+    contentType: .folder,
+    capabilities: [.allowsReading, .allowsContentEnumerating],
+    documentSize: nil,
+    contentModificationDate: nil,
+    itemVersion: NSFileProviderItemVersion(contentVersion: Data("trash".utf8), metadataVersion: Data("trash".utf8))
+  )
 
   static func item(from f: CozyFile) -> FileProviderItem {
     let parent: NSFileProviderItemIdentifier = f.dirId.map { identifier(for: $0) } ?? .rootContainer
@@ -56,6 +73,7 @@ enum ItemMapper {
       : (f.mime.flatMap { UTType(mimeType: $0) } ?? .data)
 
     var caps: NSFileProviderItemCapabilities = [.allowsReading, .allowsDeleting, .allowsRenaming, .allowsReparenting]
+    if !f.trashed && f.dirId != trashDocID { caps.insert(.allowsTrashing) }
     if f.isDir {
       caps.insert(.allowsAddingSubItems)
       caps.insert(.allowsContentEnumerating)

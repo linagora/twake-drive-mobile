@@ -39,6 +39,9 @@ final class CozyFilesApiReadTests: XCTestCase {
           {"id":"new","doc":{"type":"directory","name":"New","dir_id":"io.cozy.files.root-dir"}},
           {"id":"gone","deleted":true},
           {"id":"bin","doc":{"type":"file","name":"b.txt","dir_id":"io.cozy.files.trash-dir","trashed":true}},
+          {"id":"bindir","doc":{"type":"directory","name":"D","dir_id":"io.cozy.files.trash-dir","path":"/.cozy_trash/D"}},
+          {"id":"deep","doc":{"type":"file","name":"c.txt","dir_id":"bindir","trashed":true}},
+          {"id":"deepdir","doc":{"type":"directory","name":"E","dir_id":"bindir","path":"/.cozy_trash/D/E"}},
           {"id":"io.cozy.files.trash-dir","doc":{"type":"directory","name":".cozy_trash"}},
           {"id":"shared","doc":{"type":"directory","name":"S","dir_id":"io.cozy.files.shared-drives-dir"}},
           {"id":"io.cozy.files.root-dir","doc":{"type":"directory"}}]}
@@ -47,8 +50,10 @@ final class CozyFilesApiReadTests: XCTestCase {
     let changes = try await api.changes(since: "s1")
     XCTAssertEqual(changes.lastSeq, "s2")
     XCTAssertTrue(changes.hasMore)
-    XCTAssertEqual(changes.updated.map(\.id), ["new"])
-    XCTAssertEqual(changes.deleted, ["gone", "bin"])
+    XCTAssertEqual(changes.updated.map(\.id), ["new", "bin", "bindir"])
+    XCTAssertEqual(changes.updated.map { ItemMapper.item(from: $0).parentItemIdentifier },
+                   [.rootContainer, .trashContainer, .trashContainer])
+    XCTAssertEqual(changes.deleted, ["gone", "deep", "deepdir"])
   }
 
   func testCurrentChangesSeqReadsLastSeq() async throws {
