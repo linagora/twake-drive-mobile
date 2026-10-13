@@ -147,6 +147,18 @@ describe('useCreateHandlers uploadFiles', () => {
     expect(notify).toHaveBeenLastCalledWith('drive.import.successFile')
   })
 
+  it('hands the screen the uploaded row, as a folder opened from Par moi lists from its own state', async () => {
+    const onCreated = jest.fn()
+    mockPickDocuments.mockResolvedValue([item])
+    mockUploadBatch.mockResolvedValue({
+      results: [{ item, ok: true, file: { _id: 'f1', name: 'a (1).pdf' } }],
+      succeeded: 1,
+      failed: 0
+    })
+    await handlers({ onCreated }).uploadFiles()
+    expect(onCreated).toHaveBeenCalledWith({ _id: 'f1', name: 'a (1).pdf', type: 'file' })
+  })
+
   it('does nothing when the picker is cancelled', async () => {
     mockPickDocuments.mockResolvedValue([])
     await handlers().uploadFiles()
