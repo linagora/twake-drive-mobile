@@ -126,8 +126,9 @@ export const downloadFolder = async (
     name: `${folder.name}.zip`,
     mime: 'application/zip'
   }
-  await FileSystem.makeDirectoryAsync(`${cacheDir}twake-drive/`, { intermediates: true })
-  const target = `${cacheDir}twake-drive/${folder._id}-${archive.name.replace(/[/\\?%*:|"<>]/g, '_')}`
+  const targetDir = `${cacheDir}twake-drive/${folder._id}/`
+  await FileSystem.makeDirectoryAsync(targetDir, { intermediates: true })
+  const target = `${targetDir}${archive.name.replace(/[/\\?%*:|"<>]/g, '_')}`
   const token = stackClient.getAccessToken()
   if (!token) throw new Error('No access token available')
   const result = await FileSystem.downloadAsync(stackClient.fullpath(href), target, {
