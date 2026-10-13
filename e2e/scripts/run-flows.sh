@@ -159,6 +159,32 @@ if ! run 00-login-instance "$FLOWS_DIR/00-login-instance.yaml"; then
 fi
 echo "::endgroup::"
 
+# A share whose content URI has no readable row used to kill the running app
+# (CursorIndexOutOfBoundsException in expo-share-intent). Maestro cannot send an
+# intent, so it is checked here, with the app signed in and running.
+if [ "$PLATFORM" = android ]; then
+  echo "::group::unreadable-share"
+  PKG=com.linagora.twakedrive
+  MEDIA_ID="$(adb shell content query --uri content://media/external/images/media \
+    --projection _id:_data --where "_data='/storage/emulated/0/Download/e2e-share.jpg'" |
+    sed -n 's/.*_id=\([0-9]*\).*/\1/p' | head -1)"
+  adb shell am start -n "$PKG/.MainActivity" >/dev/null
+  sleep 3
+  PID_BEFORE="$(adb shell pidof "$PKG" | tr -d '\r')"
+  adb logcat -c
+  adb shell "am start -a android.intent.action.SEND -t image/jpeg --eu android.intent.extra.STREAM content://media/external/images/media/$((${MEDIA_ID:-0} + 100000)) --grant-read-uri-permission -n $PKG/.MainActivity" >/dev/null 2>&1
+  sleep 5
+  if [ -n "$PID_BEFORE" ] && [ "$(adb shell pidof "$PKG" | tr -d '\r')" = "$PID_BEFORE" ] &&
+    ! adb logcat -d | grep -q "FATAL EXCEPTION"; then
+    echo "[Passed] unreadable-share"
+    PASSED+=("unreadable-share")
+  else
+    echo "[Failed] unreadable-share (the app died on a share it cannot read)"
+    FAILED+=("unreadable-share")
+  fi
+  echo "::endgroup::"
+fi
+
 echo "Order seed: $SEED (E2E_SEED=$SEED replays this order)"
 ORDERED=()
 while IFS= read -r flow; do ORDERED+=("$flow"); done < <(
