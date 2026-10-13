@@ -1,5 +1,6 @@
 import { useWindowDimensions } from 'react-native'
 import { gridColumnsForWidth } from './gridColumns'
+import { useSideInset } from './useSideInset'
 import { useViewMode } from './useViewMode'
 
 /**
@@ -8,7 +9,7 @@ import { useViewMode } from './useViewMode'
  */
 export function useGridLayout(): { isGrid: boolean; numColumns: number | undefined } {
   const { mode } = useViewMode()
-  const columns = gridColumnsForWidth(useWindowDimensions().width)
+  const columns = gridColumnsForWidth(useWindowDimensions().width - 2 * useSideInset())
   const isGrid = mode === 'grid'
   return { isGrid, numColumns: isGrid ? columns : undefined }
 }

@@ -23,6 +23,13 @@ if (typeof FormData === 'undefined') {
 const nodeFetch = require('node-fetch')
 ;(global as unknown as { fetch: unknown }).fetch = nodeFetch
 
+// Zero insets without a SafeAreaProvider; a test that needs real ones mocks the
+// module itself.
+jest.mock(
+  'react-native-safe-area-context',
+  () => require('react-native-safe-area-context/jest/mock').default
+)
+
 jest.mock('expo-secure-store', () => ({
   getItemAsync: jest.fn(),
   setItemAsync: jest.fn(),

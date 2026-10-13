@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native'
 import { cozyTokens } from './theme'
 import { SortControl } from './SortControl'
 import { ViewSwitcher } from './ViewSwitcher'
+import { useSideInset } from './useSideInset'
 
 interface Props {
   /** Show the sort control on the left. Off for screens whose order is fixed. */
@@ -14,8 +15,12 @@ interface Props {
  * can be sorted) and the list/grid toggle on the right.
  */
 export function FileListToolbar({ sortable = true }: Props): React.ReactElement {
+  const sideInset = useSideInset()
   return (
-    <View style={styles.toolbar} testID="file-list-toolbar">
+    <View
+      style={[styles.toolbar, { paddingHorizontal: cozyTokens.spacing.sm + sideInset }]}
+      testID="file-list-toolbar"
+    >
       {sortable ? <SortControl /> : <View />}
       <ViewSwitcher />
     </View>
@@ -27,7 +32,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: cozyTokens.spacing.sm,
     paddingVertical: cozyTokens.spacing.xs
   }
 })
