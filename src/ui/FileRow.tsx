@@ -160,7 +160,7 @@ export const FileRow = ({
             ) : (
               <View style={styles.thumbWrap}>
                 <FileThumbnail file={file} size={40} />
-                <SharedBadge status={sharingStatus} />
+                <SharedBadge status={sharingStatus} testID={`shared-badge:${file.name}`} />
                 <PinnedBadge entry={offlineEntry} testID="pinned-badge" />
               </View>
             )}

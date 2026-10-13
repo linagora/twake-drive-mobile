@@ -1,0 +1,63 @@
+appId: com.linagora.twakedrive
+tags:
+  - inapp
+env:
+  RECIPIENT: 'e2e-recipient@example.org'
+onFlowComplete:
+  # the view mode is kept between launches: leave the list as found
+  - runFlow:
+      when:
+        visible:
+          id: 'file-grid-item'
+      commands:
+        - tapOn:
+            id: 'view-toggle'
+  - runFlow: ../../subflows/cleanup.yaml
+---
+# A shared folder keeps its share badge when the list turns into a grid.
+- runScript:
+    file: ../../scripts/seed.js
+    env:
+      SEED: '[{"key":"folder","kind":"folder","prefix":"E2E-grid-share"}]'
+- runFlow: ../../subflows/openDrive.yaml
+- extendedWaitUntil:
+    visible:
+      id: 'folder-row:${output.folder.name}'
+    timeout: 60000
+- tapOn:
+    id: 'folder-actions:${output.folder.name}'
+- waitForAnimationToEnd
+- tapOn:
+    id: 'action-share'
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: 'share-recipients-title'
+    timeout: 20000
+- tapOn:
+    id: 'share-add-recipient'
+- tapOn:
+    id: 'share-email-input'
+- inputText: '${RECIPIENT}'
+- tapOn:
+    id: 'share-recipients-title'
+- tapOn:
+    id: 'share-send'
+- extendedWaitUntil:
+    visible:
+      id: 'recipient-row'
+    timeout: 25000
+- tapOn:
+    id: 'share-close'
+- extendedWaitUntil:
+    visible:
+      id: 'shared-badge:${output.folder.name}'
+    timeout: 25000
+- tapOn:
+    id: 'view-toggle'
+- extendedWaitUntil:
+    visible:
+      id: 'file-grid-item'
+    timeout: 15000
+- assertVisible:
+    id: 'shared-badge:${output.folder.name}'
