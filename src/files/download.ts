@@ -1,8 +1,10 @@
 import { Platform } from 'react-native'
 import * as FileSystem from 'expo-file-system/legacy'
 import { createMMKV } from 'react-native-mmkv'
+import ReactNativeBlobUtil from 'react-native-blob-util'
 import type CozyClient from 'cozy-client'
 
+import { accountDir } from '@/storage/accountScope'
 import { ensureLocalCopy, openFileNatively, openInViewer } from './openFile'
 
 export interface DownloadableFile {
@@ -105,35 +107,77 @@ export const download = async (
   await saveLocalCopy(await ensureLocalCopy(client, file, driveId), file)
 }
 
+/** How long a request to the system downloader has to fail to count as refused. */
+const ENQUEUE_GRACE_MS = 1500
+
+const sanitizeZipName = (name: string): string => `${name}.zip`.replace(/[/\\?%*:|"<>]/g, '_')
+
 /**
- * Saves a folder as a zip, the way twake-drive web does (`downloadArchive`):
- * the stack builds the archive on request, and the link it answers is fetched
- * like a file would be.
+ * Asks the system downloader for the zip: it fetches it into the public
+ * Downloads folder, shows its own notification and carries on when the app is
+ * left, so nothing goes through JS memory. The promise of a task only settles
+ * once the file is complete, so a request still running after the grace
+ * period is taken as accepted.
+ */
+const enqueueSystemDownload = async (url: string, zipName: string): Promise<void> => {
+  const task = ReactNativeBlobUtil.config({
+    addAndroidDownloads: {
+      useDownloadManager: true,
+      notification: true,
+      storeInDownloads: true,
+      mediaScannable: true,
+      title: zipName,
+      description: zipName,
+      mime: 'application/zip'
+    }
+  }).fetch('GET', url)
+  const refused = task.then(
+    () => null,
+    (e: unknown) => e ?? new Error('Download refused')
+  )
+  const rejection = await Promise.race([
+    refused,
+    new Promise<null>(resolve => setTimeout(() => resolve(null), ENQUEUE_GRACE_MS))
+  ])
+  if (rejection) throw rejection instanceof Error ? rejection : new Error(String(rejection))
+}
+
+/**
+ * Hands a folder to the device as a zip, the way twake-drive web does
+ * (`downloadArchive`): the stack builds the archive on request and answers a
+ * link to it, which needs no token of its own.
+ *
+ * Android has the system download manager fetch it into Downloads ('queued');
+ * iOS fetches it into the account's viewer cache, where the previous one is
+ * replaced and a logout wipes it, and shows the system sheet ('opened').
  */
 export const downloadFolder = async (
   client: CozyClient,
   folder: { _id: string; name: string }
-): Promise<void> => {
-  const cacheDir = FileSystem.cacheDirectory
-  if (!cacheDir) throw new Error('Cache directory unavailable')
+): Promise<'queued' | 'opened'> => {
   const stackClient = client.getStackClient()
   const href = (await stackClient.collection('io.cozy.files').createArchiveLinkByIds({
     ids: [folder._id],
     name: folder.name
   })) as string
-  const archive: DownloadableFile = {
-    _id: folder._id,
-    name: `${folder.name}.zip`,
-    mime: 'application/zip'
+  const zipName = sanitizeZipName(folder.name)
+  const url = stackClient.fullpath(href)
+  if (Platform.OS === 'android') {
+    await enqueueSystemDownload(url, zipName)
+    return 'queued'
   }
-  const targetDir = `${cacheDir}twake-drive/${folder._id}/`
-  await FileSystem.makeDirectoryAsync(targetDir, { intermediates: true })
-  const target = `${targetDir}${archive.name.replace(/[/\\?%*:|"<>]/g, '_')}`
+  const cacheDir = FileSystem.cacheDirectory
+  if (!cacheDir) throw new Error('Cache directory unavailable')
+  const archives = `${accountDir(`${cacheDir}twake-drive/viewer/`)}archives/`
+  await FileSystem.deleteAsync(archives, { idempotent: true })
+  // a folder of its own, so the preview opens the zip under its plain name
+  const dir = `${archives}${folder._id}/`
+  await FileSystem.makeDirectoryAsync(dir, { intermediates: true })
   const token = stackClient.getAccessToken()
-  if (!token) throw new Error('No access token available')
-  const result = await FileSystem.downloadAsync(stackClient.fullpath(href), target, {
-    headers: { Authorization: `Bearer ${token}` }
+  const result = await FileSystem.downloadAsync(url, `${dir}${zipName}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {}
   })
   if (result.status >= 400) throw new Error(`Download failed (HTTP ${result.status})`)
-  await saveLocalCopy(result.uri, archive)
+  await openInViewer(result.uri)
+  return 'opened'
 }

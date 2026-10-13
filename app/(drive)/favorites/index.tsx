@@ -13,6 +13,7 @@ import { FileGridItem } from '@/ui/FileGridItem'
 import { FileListToolbar } from '@/ui/FileListToolbar'
 import { useGridLayout } from '@/ui/useGridLayout'
 import { FolderRow } from '@/ui/FolderRow'
+import { useFolderDownload } from '@/files/useFolderDownload'
 import { useAuth } from '@/auth/useAuth'
 import { favoritesQuery, favoritesQueryAs, FileQueryResult, TRASH_DIR_ID } from '@/client/queries'
 import { isFavorite } from '@/files/favorites'
@@ -62,6 +63,8 @@ export default function FavoritesScreen() {
     }, [])
   )
 
+  const downloadAsZip = useFolderDownload('FavoritesScreen', setSnackbar)
+
   const renderItem = ({ item }: { item: FileQueryResult }) => {
     if (item.type === 'directory') {
       return (
@@ -76,6 +79,7 @@ export default function FavoritesScreen() {
           onPress={() => guardedPush(`/(drive)/favorites/${item._id}`)}
           onShare={folder => router.push(`/share/${folder._id}`)}
           onMove={folder => router.push(`/move/${folder._id}`)}
+          onDownload={downloadAsZip}
           onFavoriteChange={() => {
             setRemovedIds(prev => new Set(prev).add(item._id))
             void query.fetch()
@@ -120,6 +124,7 @@ export default function FavoritesScreen() {
         }}
         onShare={file => router.push(`/share/${file._id}`)}
         onMove={file => router.push(`/move/${file._id}`)}
+        onDownload={downloadAsZip}
         onInfo={isFolder ? undefined : file => router.push(`/metadata/${file._id}`)}
         onFavoriteChange={() => {
           setRemovedIds(prev => new Set(prev).add(item._id))

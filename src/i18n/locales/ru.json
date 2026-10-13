@@ -69,6 +69,8 @@
     "emptySharedDrives": "Пока нет общих Drive",
     "emptyRecent": "Нет недавних файлов",
     "emptyTrash": "Корзина пуста",
+    "folderZipPreparing": "Подготовка архива…",
+    "folderZipStarted": "Загрузка началась",
     "sortAZ": "A-Z",
     "sortZA": "Z-A",
     "sortRecent": "Сначала новые",

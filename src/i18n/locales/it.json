@@ -69,6 +69,8 @@
     "emptySharedDrives": "Ancora nessun drive condiviso",
     "emptyRecent": "Nessun file recente",
     "emptyTrash": "Il cestino è vuoto",
+    "folderZipPreparing": "Preparazione dello zip…",
+    "folderZipStarted": "Download avviato",
     "sortAZ": "A-Z",
     "sortZA": "Z-A",
     "sortRecent": "Più recenti",

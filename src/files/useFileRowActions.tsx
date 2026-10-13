@@ -12,6 +12,7 @@ import { OfflineFilesStore } from '@/offline/OfflineFilesStore'
 import { useOfflineActions } from '@/offline/useOfflineActions'
 import { useIsOnline } from '@/network/useIsOnline'
 import { requireOnline } from '@/network/requireOnline'
+import { useFolderDownload } from './useFolderDownload'
 import { softDeleteEntry } from './deleteFile'
 import { renameEntry } from './renameEntry'
 import { optimisticFiles, optimisticTrashed } from './optimisticFiles'
@@ -46,6 +47,7 @@ interface FolderHandlers {
   onDelete?: () => void
   onMove?: (folder: { _id: string }) => void
   onTogglePin?: (folder: { _id: string; name: string }) => void
+  onDownload?: (folder: { _id: string; name: string }) => void
 }
 
 export interface FileRowActions {
@@ -69,6 +71,8 @@ export interface FileRowActionsOptions {
     move?: boolean
     info?: boolean
     pin?: boolean
+    /** A folder as a zip. Not wired inside a shared drive yet, so off there by default. */
+    download?: boolean
   }
 }
 
@@ -102,7 +106,8 @@ export const useFileRowActions = ({
     delete: can.delete ?? true,
     move: can.move ?? true,
     info: can.info ?? true,
-    pin: can.pin ?? true
+    pin: can.pin ?? true,
+    download: can.download ?? !driveId
   }
 
   const togglePin = (file: { _id: string; name: string; size?: number | null }): void => {
@@ -115,6 +120,8 @@ export const useFileRowActions = ({
     if (OfflineFilesStore.getFolder(folder._id)) void offlineActions.unpinFolder(folder._id)
     else void offlineActions.pinFolder({ _id: folder._id, name: folder.name })
   }
+
+  const downloadAsZip = useFolderDownload(screen, setSnackbar)
 
   const share = (id: string): void => {
     if (!requireOnline(isOnline, setSnackbar, t)) return
@@ -196,7 +203,8 @@ export const useFileRowActions = ({
     onRename: allowed.rename ? () => setPendingRename(item) : undefined,
     onDelete: allowed.delete ? () => setPendingDelete(item) : undefined,
     onMove: allowed.move ? folder => router.push(`/move/${folder._id}`) : undefined,
-    onTogglePin: allowed.pin ? toggleFolderPin : undefined
+    onTogglePin: allowed.pin ? toggleFolderPin : undefined,
+    onDownload: allowed.download ? downloadAsZip : undefined
   })
 
   const dialogs = (

@@ -45,6 +45,12 @@ jest.mock('@/files/openFromList', () => ({
   openFileFromList: (...args: unknown[]) => mockOpenFileFromList(...args)
 }))
 
+const mockDownloadFolder = jest.fn().mockResolvedValue(undefined)
+jest.mock('@/files/download', () => ({
+  downloadFolder: (...args: unknown[]) => mockDownloadFolder(...args),
+  DownloadCancelledError: class extends Error {}
+}))
+
 import React from 'react'
 import { Pressable } from 'react-native'
 import { Provider as PaperProvider } from 'react-native-paper'
@@ -105,6 +111,15 @@ describe('useFileRowActions', () => {
     mockGetFolder.mockReturnValue(undefined)
     setup().folderProps(folder).onTogglePin?.({ _id: 'd1', name: 'Dossier' })
     expect(mockPinFolder).toHaveBeenCalledWith({ _id: 'd1', name: 'Dossier' })
+  })
+
+  it('downloads a folder as a zip', () => {
+    setup().folderProps(folder).onDownload?.({ _id: 'd1', name: 'Dossier' })
+    expect(mockDownloadFolder).toHaveBeenCalledWith(mockClient, { _id: 'd1', name: 'Dossier' })
+  })
+
+  it('offers no zip inside a shared drive', () => {
+    expect(setup({ driveId: 'drive-1' }).folderProps(folder).onDownload).toBeUndefined()
   })
 
   it('opens the share screen on the document alone outside a drive', () => {

@@ -69,6 +69,8 @@
     "emptySharedDrives": "Noch keine geteilten Drives",
     "emptyRecent": "Keine kürzlich verwendeten Dateien",
     "emptyTrash": "Papierkorb ist leer",
+    "folderZipPreparing": "ZIP wird vorbereitet…",
+    "folderZipStarted": "Download gestartet",
     "sortAZ": "A-Z",
     "sortZA": "Z-A",
     "sortRecent": "Neueste zuerst",

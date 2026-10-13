@@ -69,6 +69,8 @@
     "emptySharedDrives": "Chưa có drive chia sẻ nào",
     "emptyRecent": "Không có tệp gần đây",
     "emptyTrash": "Thùng rác trống",
+    "folderZipPreparing": "Đang chuẩn bị tệp zip…",
+    "folderZipStarted": "Đã bắt đầu tải xuống",
     "sortAZ": "A-Z",
     "sortZA": "Z-A",
     "sortRecent": "Mới nhất",

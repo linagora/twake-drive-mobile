@@ -77,6 +77,7 @@ jest.mock('@/pouchdb/pouchdb', () => ({ __esModule: true, default: {} }))
 
 jest.mock('@op-engineering/op-sqlite', () => ({}))
 jest.mock('react-native-quick-crypto', () => ({}))
+jest.mock('react-native-blob-util', () => ({ __esModule: true, default: {} }))
 jest.mock('@craftzdog/react-native-buffer', () => ({}))
 jest.mock('@craftzdog/pouchdb-collate-react-native', () => ({}))
 jest.mock('readable-stream', () => ({}))
