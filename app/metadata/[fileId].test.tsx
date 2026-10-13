@@ -19,6 +19,14 @@ jest.mock('expo-router', () => ({
 }))
 
 const mockUseQuery = jest.fn()
+let mockLanguage = 'en'
+
+jest.mock('react-i18next', () => ({
+  useTranslation: () => ({
+    t: (key: string) => key,
+    i18n: { language: mockLanguage }
+  })
+}))
 
 const mockClient = {
   collection: jest.fn(),
@@ -114,6 +122,13 @@ describe('MetadataRoute', () => {
       fireEvent.press(screen.getByText('drive.rename.submit'))
     })
     expect(mockRevert).toHaveBeenCalled()
+  })
+
+  it('formats the modification date in the app language', () => {
+    mockLanguage = 'fr'
+    render(wrap(<MetadataRoute />))
+    expect(screen.getByText(/^29 avr\. 2026/)).toBeOnTheScreen()
+    mockLanguage = 'en'
   })
 
   it('renders the file name', () => {
