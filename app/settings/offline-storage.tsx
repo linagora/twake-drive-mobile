@@ -179,11 +179,19 @@ export default function OfflineStorageScreen() {
 
   const totalBytes = useMemo(() => files.reduce((sum, f) => sum + diskBytes(f), 0), [files])
 
-  // One pass over the files rather than one filter per folder.
+  // One pass over the files rather than one filter per folder. A file counts
+  // for the folder it was pinned through and for every ancestor above it, so a
+  // folder holding only subfolders still reads what its whole tree holds.
   const folderAggregates = useMemo(() => {
+    const ancestorsOf = new Map(folders.map(f => [f.dirId, f.ancestorPins ?? []]))
     const byDirId = new Map<string, FolderAggregate>()
     for (const file of files) {
+      const dirIds = new Set<string>()
       for (const dirId of file.parentFolderPins) {
+        dirIds.add(dirId)
+        for (const ancestor of ancestorsOf.get(dirId) ?? []) dirIds.add(ancestor)
+      }
+      for (const dirId of dirIds) {
         const current = byDirId.get(dirId)
         if (current) {
           current.count += 1
@@ -194,15 +202,22 @@ export default function OfflineStorageScreen() {
       }
     }
     return byDirId
-  }, [files])
+  }, [files, folders])
 
   const downloading = useMemo(() => files.filter(f => f.state === 'downloading').length, [files])
   const failed = useMemo(() => files.filter(f => f.state === 'failed').sort(byNewestPin), [files])
   const isEmpty = files.length === 0 && folders.length === 0
 
   const sections = useMemo(() => {
-    const sortedFolders = folders.slice().sort(byNewestPin)
-    const sortedFiles = files.slice().sort(byNewestPin)
+    // What the user pinned: what a pinned folder brought along is not listed
+    // on its own, unless that folder is no longer pinned.
+    const pinned = new Set(folders.map(f => f.dirId))
+    const sortedFolders = folders
+      .filter(f => !f.ancestorPins?.some(id => pinned.has(id)))
+      .sort(byNewestPin)
+    const sortedFiles = files
+      .filter(f => f.isDirectPin || !f.parentFolderPins.some(id => pinned.has(id)))
+      .sort(byNewestPin)
     return [
       ...(failed.length > 0
         ? [

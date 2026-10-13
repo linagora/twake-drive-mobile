@@ -1,0 +1,74 @@
+appId: com.linagora.twakedrive
+tags:
+  - inapp
+onFlowComplete:
+  - runFlow:
+      commands:
+        - extendedWaitUntil:
+            visible:
+              id: 'folder-actions:${output.root.name}'
+            timeout: 15000
+            optional: true
+        - tapOn:
+            id: 'folder-actions:${output.root.name}'
+            optional: true
+        - tapOn:
+            id: 'action-unpin'
+            optional: true
+  - runFlow: ../../subflows/cleanup.yaml
+---
+# Keeping a folder offline lists that folder alone in the offline storage, not
+# the subfolders and files it brought along.
+- runScript:
+    file: ../../scripts/seed.js
+    env:
+      SEED: '[{"key":"root","kind":"folder","prefix":"E2E-tree"},{"key":"sub","kind":"folder","prefix":"E2E-sub","parent":"root"},{"key":"file","kind":"file","prefix":"E2E-leaf","ext":"txt","parent":"sub"}]'
+- runFlow: ../../subflows/openDrive.yaml
+- extendedWaitUntil:
+    visible:
+      id: 'folder-row:${output.root.name}'
+    timeout: 60000
+- tapOn:
+    id: 'folder-actions:${output.root.name}'
+- waitForAnimationToEnd
+- tapOn:
+    id: 'action-pin'
+- waitForAnimationToEnd
+# the files come down once the whole tree was walked
+- tapOn:
+    id: 'folder-row:${output.root.name}'
+- tapOn:
+    id: 'folder-row:${output.sub.name}'
+- extendedWaitUntil:
+    visible:
+      id: 'pinned-badge:downloaded'
+    timeout: 60000
+- tapOn:
+    id: 'appbar-back-button'
+- tapOn:
+    id: 'appbar-back-button'
+- tapOn:
+    id: 'appbar-avatar'
+- waitForAnimationToEnd
+- tapOn:
+    id: 'menu-item'
+    index: 0
+- extendedWaitUntil:
+    visible:
+      id: 'settings-offline-storage'
+    timeout: 15000
+- tapOn:
+    id: 'settings-offline-storage'
+- extendedWaitUntil:
+    visible: '.*${output.root.name}.*'
+    timeout: 15000
+- assertNotVisible: '.*${output.sub.name}.*'
+- assertNotVisible: '.*${output.file.name}.*'
+- tapOn:
+    id: 'appbar-back-button'
+- tapOn:
+    id: 'appbar-close-button'
+    optional: true
+- tapOn:
+    id: 'appbar-back-button'
+    optional: true
