@@ -1,0 +1,82 @@
+appId: com.linagora.twakedrive
+tags:
+  - inapp
+onFlowComplete:
+  - runFlow: ../../subflows/cleanup.yaml
+---
+# A trashed file opens in a read-only preview, its menu offers to open, restore
+# or destroy it, and restoring brings the file back.
+- runScript:
+    file: ../../scripts/seed.js
+    env:
+      SEED: '[{"key":"file","kind":"file","prefix":"E2E-trash-tap","ext":"txt"}]'
+- runFlow: ../../subflows/openDrive.yaml
+- extendedWaitUntil:
+    visible:
+      id: 'file-row:${output.file.name}'
+    timeout: 60000
+- tapOn:
+    id: 'file-actions:${output.file.name}'
+- waitForAnimationToEnd
+- tapOn:
+    id: 'action-delete'
+- waitForAnimationToEnd
+- tapOn:
+    id: 'confirm-delete-submit'
+- extendedWaitUntil:
+    notVisible:
+      id: 'file-row:${output.file.name}'
+    timeout: 15000
+- tapOn:
+    id: 'tab-trash'
+- extendedWaitUntil:
+    visible:
+      id: 'file-row:${output.file.name}'
+    timeout: 30000
+# a tap opens the read-only preview, with nothing but the way back
+- tapOn:
+    id: 'file-row:${output.file.name}'
+- extendedWaitUntil:
+    visible:
+      id: 'document-chrome'
+    timeout: 20000
+- assertVisible: '.*e2e ${output.file.name}.*'
+- assertNotVisible:
+    id: 'document-share'
+- assertNotVisible:
+    id: 'document-download'
+- assertNotVisible:
+    id: 'document-info'
+# the bar hides itself: a tap on the document brings it back
+- tapOn:
+    id: 'document-content'
+- tapOn:
+    id: 'document-back-button'
+# the menu offers to open it, restore it or destroy it, nothing else
+- tapOn:
+    id: 'file-actions:${output.file.name}'
+- waitForAnimationToEnd
+- assertVisible:
+    id: 'action-open'
+- assertVisible:
+    id: 'action-destroy'
+- assertNotVisible:
+    id: 'action-share'
+- assertNotVisible:
+    id: 'action-rename'
+- assertNotVisible:
+    id: 'action-pin'
+- assertNotVisible:
+    id: 'action-download'
+- tapOn:
+    id: 'action-restore'
+- extendedWaitUntil:
+    notVisible:
+      id: 'file-row:${output.file.name}'
+    timeout: 15000
+- tapOn:
+    id: 'tab-files'
+- extendedWaitUntil:
+    visible:
+      id: 'file-row:${output.file.name}'
+    timeout: 30000

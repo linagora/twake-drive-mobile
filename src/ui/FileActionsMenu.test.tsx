@@ -86,6 +86,14 @@ describe('FileActionsMenu', () => {
       expect(screen.getByTestId('action-destroy')).toBeTruthy()
       expect(screen.getByTestId('action-restore')).toBeTruthy()
       expect(screen.queryByTestId('action-favorite')).toBeNull()
+      expect(screen.queryByTestId('action-download')).toBeNull()
+    })
+
+    it('offers to open the file, to check it before restoring', async () => {
+      const onOpen = jest.fn()
+      open({ onOpen })
+      fireEvent.press(screen.getByTestId('action-open'))
+      await waitFor(() => expect(onOpen).toHaveBeenCalledWith(file))
     })
 
     it('asks to delete when delete permanently is pressed', async () => {

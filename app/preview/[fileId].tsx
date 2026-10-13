@@ -10,7 +10,7 @@ import { download } from '@/files/download'
 import { useIsOnline } from '@/network/useIsOnline'
 import { ErrorState } from '@/ui/ErrorState'
 import { LoadingState } from '@/ui/LoadingState'
-import { fileByIdQuery, fileByIdQueryAs, FileQueryResult } from '@/client/queries'
+import { fileByIdQuery, fileByIdQueryAs, FileQueryResult, TRASH_DIR_ID } from '@/client/queries'
 import {
   buildFileStreamSource,
   buildThumbnailUrl,
@@ -208,42 +208,46 @@ export default function PreviewScreen() {
     }
   }
 
-  const actions: DocumentAction[] = !file
-    ? []
-    : [
-        {
-          icon: 'shareExternal',
-          label: t('drive.fileMeta.share'),
-          disabled: !isOnline,
-          testID: 'document-share',
-          onPress: () =>
-            router.push(driveId ? `/share/${file._id}?driveId=${driveId}` : `/share/${file._id}`)
-        },
-        {
-          icon: 'download',
-          label: t('drive.fileMeta.download'),
-          disabled: !isOnline || !client,
-          testID: 'document-download',
-          onPress: () => {
-            if (!client) return
-            void download(
-              client,
-              { _id: file._id, name: file.name, mime: file.mime },
-              driveId
-            ).catch(e => {
-              if ((e as Error).name === 'DownloadCancelledError') return
-              console.error('[PreviewScreen] download failed', e)
-              setExternalError(t('drive.offline.failed'))
-            })
+  // A file in the trash is there to be checked, then restored or destroyed
+  // from the trash: nothing else is offered on it.
+  const isTrashed = !!file && (file.trashed === true || file.dir_id === TRASH_DIR_ID)
+  const actions: DocumentAction[] =
+    !file || isTrashed
+      ? []
+      : [
+          {
+            icon: 'shareExternal',
+            label: t('drive.fileMeta.share'),
+            disabled: !isOnline,
+            testID: 'document-share',
+            onPress: () =>
+              router.push(driveId ? `/share/${file._id}?driveId=${driveId}` : `/share/${file._id}`)
+          },
+          {
+            icon: 'download',
+            label: t('drive.fileMeta.download'),
+            disabled: !isOnline || !client,
+            testID: 'document-download',
+            onPress: () => {
+              if (!client) return
+              void download(
+                client,
+                { _id: file._id, name: file.name, mime: file.mime },
+                driveId
+              ).catch(e => {
+                if ((e as Error).name === 'DownloadCancelledError') return
+                console.error('[PreviewScreen] download failed', e)
+                setExternalError(t('drive.offline.failed'))
+              })
+            }
+          },
+          {
+            icon: 'info',
+            label: t('drive.fileMeta.info'),
+            testID: 'document-info',
+            onPress: () => router.push(`/metadata/${file._id}`)
           }
-        },
-        {
-          icon: 'info',
-          label: t('drive.fileMeta.info'),
-          testID: 'document-info',
-          onPress: () => router.push(`/metadata/${file._id}`)
-        }
-      ]
+        ]
 
   return (
     <DocumentScreen

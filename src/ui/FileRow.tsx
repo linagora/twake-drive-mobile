@@ -57,6 +57,8 @@ interface Props {
   onMove?: (file: FileItem) => void
   /** Opens the metadata/details sheet for this row. */
   onInfo?: (file: FileItem) => void
+  /** Trash only: a read-only preview of the file. */
+  onOpen?: (file: FileItem) => void
   /** A file somebody shared with us: leaves the sharing. */
   onLeave?: (file: FileItem) => void
   /** The sharing this line stands for was not opened yet. */
@@ -84,6 +86,7 @@ export const FileRow = ({
   driveId,
   onMove,
   onInfo,
+  onOpen,
   onLeave,
   isNewSharing,
   onFavoriteChange,
@@ -123,6 +126,7 @@ export const FileRow = ({
       onTogglePin,
       onMove,
       onInfo,
+      onOpen,
       onLeave
     }) && !selected
 
@@ -183,6 +187,7 @@ export const FileRow = ({
             driveId={driveId}
             onMove={onMove}
             onInfo={onInfo}
+            onOpen={onOpen}
             onLeave={onLeave}
             onFavoriteChange={onFavoriteChange}
             canFavorite={canFavorite}
