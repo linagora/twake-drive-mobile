@@ -39,6 +39,10 @@ onFlowComplete:
     visible:
       id: 'folder-picker-confirm'
     timeout: 60000
+# the header says what the picker is for, not only which folder it shows
+- assertVisible:
+    id: 'folder-picker-title-title-text'
+    text: 'Import to…|Importer dans…'
 - scrollUntilVisible:
     element:
       id: 'folder-picker-row:${output.folder.name}'
