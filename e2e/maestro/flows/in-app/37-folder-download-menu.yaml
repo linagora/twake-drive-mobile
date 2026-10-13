@@ -1,0 +1,40 @@
+appId: com.linagora.twakedrive
+tags:
+  - inapp
+onFlowComplete:
+  # a notification shade left open hides the next flow's screen
+  - runFlow:
+      when:
+        platform: Android
+        visible: 'Download Manager|Gestionnaire de téléchargements?'
+      commands:
+        - swipe:
+            start: 50%, 40%
+            end: 50%, 2%
+  - runFlow: ../../subflows/cleanup.yaml
+---
+# A folder of our own offers the same "download" as a file: a zip.
+- runScript:
+    file: ../../scripts/seed.js
+    env:
+      SEED: '[{"key":"folder","kind":"folder","prefix":"E2E-zip"}]'
+- runFlow: ../../subflows/openDrive.yaml
+- extendedWaitUntil:
+    visible:
+      id: 'folder-row:${output.folder.name}'
+    timeout: 60000
+- tapOn:
+    id: 'folder-actions:${output.folder.name}'
+- waitForAnimationToEnd
+- assertVisible:
+    id: 'action-download'
+# Android hands the zip to the system download manager, which has it in Downloads
+- runFlow:
+    when:
+      platform: Android
+    commands:
+      - tapOn:
+          id: 'action-download'
+      - extendedWaitUntil:
+          visible: 'Téléchargement lancé|Download started'
+          timeout: 30000

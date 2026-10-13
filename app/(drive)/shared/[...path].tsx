@@ -40,7 +40,7 @@ import { SharingContext } from '@/sharing/SharingProvider'
 import { sharedFileLastUpdatedAt } from '@/sharing/lastUpdatedAt'
 import { useSharedDrives } from '@/files/useSharedDrives'
 import { leaveSharing } from '@/files/sharing'
-import { downloadFolder, DownloadCancelledError } from '@/files/download'
+import { useFolderDownload } from '@/files/useFolderDownload'
 import { registerSharedDrive } from '@/files/sharedDriveReplication'
 import { querySharedDriveFile, sharedDriveRowId, SharedDriveEntry } from '@/files/sharedDrives'
 import {
@@ -287,14 +287,7 @@ export default function SharedScreen() {
     return sharingId ? { name: item.name, sharingId, rowKey: item._id } : null
   }
 
-  const downloadSharedFolder = (folder: { _id: string; name: string }): void => {
-    if (!client) return
-    void downloadFolder(client, folder).catch(e => {
-      if (e instanceof DownloadCancelledError) return
-      console.error('[SharedScreen] folder download failed', e)
-      actions.notify(t('errors.generic'))
-    })
-  }
+  const downloadSharedFolder = useFolderDownload('SharedScreen', actions.notify)
 
   const fileHandlers = (item: FileQueryResult) => {
     const target = leaveTargetOf(item)

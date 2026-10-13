@@ -68,6 +68,8 @@
     "emptySharedDrives": "No shared drives yet",
     "emptyRecent": "No recent files",
     "emptyTrash": "Trash is empty",
+    "folderZipPreparing": "Preparing the zip…",
+    "folderZipStarted": "Download started",
     "sortAZ": "A-Z",
     "sortZA": "Z-A",
     "sortRecent": "Most recent",

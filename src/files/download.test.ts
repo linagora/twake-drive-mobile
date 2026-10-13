@@ -25,11 +25,20 @@ const mockCreateFile = jest.fn()
 const mockRead = jest.fn()
 const mockWrite = jest.fn()
 const mockDownloadAsync = jest.fn()
+const mockFetch = jest.fn()
+const mockConfig = jest.fn(() => ({ fetch: mockFetch }))
+jest.mock('react-native-blob-util', () => ({
+  __esModule: true,
+  default: { config: (...args: unknown[]) => (mockConfig as (...a: unknown[]) => unknown)(...args) }
+}))
+const mockDeleteAsync = jest.fn().mockResolvedValue(undefined)
+jest.mock('@/storage/accountScope', () => ({ accountDir: (base: string) => `${base}acc/` }))
 jest.mock('expo-file-system/legacy', () => ({
   __esModule: true,
   EncodingType: { Base64: 'base64' },
   cacheDirectory: 'file:///cache/',
   makeDirectoryAsync: jest.fn().mockResolvedValue(undefined),
+  deleteAsync: (...args: unknown[]) => mockDeleteAsync(...args),
   downloadAsync: (...args: unknown[]) => mockDownloadAsync(...args),
   readAsStringAsync: (...args: unknown[]) => mockRead(...args),
   writeAsStringAsync: (...args: unknown[]) => mockWrite(...args),
@@ -161,6 +170,7 @@ describe('downloadFolder', () => {
   } as unknown as CozyClient
 
   beforeEach(() => {
+    jest.clearAllMocks()
     mockStore.clear()
     createArchiveLinkByIds.mockResolvedValue('/files/archive/secret/Projet.zip')
     mockDownloadAsync.mockResolvedValue({
@@ -175,24 +185,61 @@ describe('downloadFolder', () => {
     Platform.OS = 'ios'
   })
 
-  it('asks the stack for an archive of the folder and saves the zip', async () => {
-    Platform.OS = 'android'
-
-    await downloadFolder(folderClient, { _id: 'd1', name: 'Projet' })
+  it('hands the zip to the system sheet on iOS', async () => {
+    await expect(downloadFolder(folderClient, { _id: 'd1', name: 'Projet' })).resolves.toBe(
+      'opened'
+    )
 
     expect(createArchiveLinkByIds).toHaveBeenCalledWith({ ids: ['d1'], name: 'Projet' })
+    expect(mockDeleteAsync).toHaveBeenCalledWith('file:///cache/twake-drive/viewer/acc/archives/', {
+      idempotent: true
+    })
     expect(mockDownloadAsync).toHaveBeenCalledWith(
       'https://alice.example/files/archive/secret/Projet.zip',
-      'file:///cache/twake-drive/d1/Projet.zip',
+      'file:///cache/twake-drive/viewer/acc/archives/d1/Projet.zip',
       { headers: { Authorization: 'Bearer token' } }
     )
-    expect(mockCreateFile).toHaveBeenCalledWith('content://tree', 'Projet.zip', 'application/zip')
+    expect(mockOpenInViewer).toHaveBeenCalledWith('file:///cache/twake-drive/d1/Projet.zip')
+    expect(mockFetch).not.toHaveBeenCalled()
   })
 
-  it('hands the zip to the system sheet on iOS', async () => {
-    await downloadFolder(folderClient, { _id: 'd1', name: 'Projet' })
+  it('has the system download manager fetch the zip into Downloads on Android', async () => {
+    Platform.OS = 'android'
+    mockFetch.mockReturnValue(new Promise(() => undefined))
+    jest.useFakeTimers()
 
-    expect(mockOpenInViewer).toHaveBeenCalledWith('file:///cache/twake-drive/d1/Projet.zip')
+    const done = downloadFolder(folderClient, { _id: 'd1', name: 'Projet' })
+    await (
+      jest as unknown as { advanceTimersByTimeAsync: (ms: number) => Promise<void> }
+    ).advanceTimersByTimeAsync(2000)
+
+    await expect(done).resolves.toBe('queued')
+    jest.useRealTimers()
+    expect(mockConfig).toHaveBeenCalledWith({
+      addAndroidDownloads: expect.objectContaining({
+        useDownloadManager: true,
+        notification: true,
+        storeInDownloads: true,
+        title: 'Projet.zip',
+        mime: 'application/zip'
+      })
+    })
+    expect(mockFetch).toHaveBeenCalledWith(
+      'GET',
+      'https://alice.example/files/archive/secret/Projet.zip'
+    )
+    expect(mockRead).not.toHaveBeenCalled()
+    expect(mockDownloadAsync).not.toHaveBeenCalled()
+    expect(mockOpenInViewer).not.toHaveBeenCalled()
+  })
+
+  it('fails when the download manager refuses the request on Android', async () => {
+    Platform.OS = 'android'
+    mockFetch.mockRejectedValue(new Error('Failed to create parent directory'))
+
+    await expect(downloadFolder(folderClient, { _id: 'd1', name: 'Projet' })).rejects.toThrow(
+      'Failed to create parent directory'
+    )
   })
 
   it('fails when the archive cannot be fetched', async () => {
