@@ -1,5 +1,6 @@
 import React from 'react'
-import { fireEvent, render, screen } from '@testing-library/react-native'
+import { BackHandler } from 'react-native'
+import { act, fireEvent, render, screen } from '@testing-library/react-native'
 import { Provider as PaperProvider } from 'react-native-paper'
 
 jest.mock('react-i18next', () => ({
@@ -26,6 +27,11 @@ jest.mock('@/network/useIsOnline', () => ({
   useIsOnline: () => mockOnline
 }))
 
+jest.mock('expo-router', () => {
+  const { useEffect } = jest.requireActual<typeof import('react')>('react')
+  return { useFocusEffect: (cb: () => void | (() => void)) => useEffect(cb, [cb]) }
+})
+
 jest.mock('@/viewer/useWebEditor', () => ({
   useWebEditor: () => jest.fn()
 }))
@@ -47,6 +53,22 @@ import { CreateMenu } from './CreateMenu'
 
 const wrap = (ui: React.ReactElement) => <PaperProvider>{ui}</PaperProvider>
 
+const backHandlers = new Set<() => boolean | null | undefined>()
+beforeEach(() => {
+  backHandlers.clear()
+  jest.spyOn(BackHandler, 'addEventListener').mockImplementation((_event, handler) => {
+    backHandlers.add(handler)
+    return { remove: () => backHandlers.delete(handler) }
+  })
+})
+afterEach(() => jest.restoreAllMocks())
+
+const pressBack = (): void => {
+  act(() => {
+    ;[...backHandlers].reverse().some(handler => handler())
+  })
+}
+
 const openFab = (): void => {
   fireEvent.press(screen.getByTestId('drive-fab'))
 }
@@ -66,6 +88,14 @@ describe('CreateMenu', () => {
   it('renders the FAB when the member may write', () => {
     render(wrap(<CreateMenu dirId="d1" canWrite notify={jest.fn()} />))
     expect(screen.getByTestId('drive-fab')).toBeOnTheScreen()
+  })
+
+  it('closes the open menu on system back instead of leaving the app', () => {
+    render(wrap(<CreateMenu dirId="d1" canWrite notify={jest.fn()} />))
+    openFab()
+    expect(screen.queryByLabelText('drive.createMenu.folder')).toBeOnTheScreen()
+    pressBack()
+    expect(screen.queryByLabelText('drive.createMenu.folder')).toBeNull()
   })
 
   it('offers the note entry when the Notes app is installed', () => {

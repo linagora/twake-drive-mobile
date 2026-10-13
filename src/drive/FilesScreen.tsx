@@ -14,6 +14,7 @@ import { FileListView } from '@/ui/FileListView'
 import { gridColumnsForWidth } from '@/ui/gridColumns'
 import { useFileRowActions } from '@/files/useFileRowActions'
 import { useTabBack } from '@/ui/useTabBack'
+import { useBackPress } from '@/ui/useBackPress'
 import { ScreenContainer } from '@/ui/ScreenContainer'
 import { EmptyState } from '@/ui/EmptyState'
 import { isFirstLoad } from '@/client/queryLoading'
@@ -85,6 +86,7 @@ export const FilesScreen = ({ basePath }: FilesScreenProps): React.ReactElement 
   const { mode } = useViewMode()
   const { sort } = useFolderSort()
   const selection = useMultiSelect()
+  useBackPress(selection.isSelecting, selection.clear)
   const offlineActions = useOfflineActions()
   const onToggleFilePin = useCallback(
     (file: { _id: string; name: string; size?: number | null }) => {
