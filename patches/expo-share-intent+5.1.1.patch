@@ -1,8 +1,107 @@
 diff --git a/node_modules/expo-share-intent/android/src/main/java/expo/modules/shareintent/ExpoShareIntentModule.kt b/node_modules/expo-share-intent/android/src/main/java/expo/modules/shareintent/ExpoShareIntentModule.kt
-index 0153c89..51becd4 100644
+index 0153c89..7874694 100644
 --- a/node_modules/expo-share-intent/android/src/main/java/expo/modules/shareintent/ExpoShareIntentModule.kt
 +++ b/node_modules/expo-share-intent/android/src/main/java/expo/modules/shareintent/ExpoShareIntentModule.kt
-@@ -223,15 +223,9 @@ class ExpoShareIntentModule : Module() {
+@@ -56,7 +56,7 @@ class ExpoShareIntentModule : Module() {
+         }
+ 
+         @SuppressLint("Range")
+-        private fun getFileInfo(uri: Uri): Map<String, String?> {
++        private fun getFileInfo(uri: Uri): Map<String, String?>? {
+             val resolver: ContentResolver? = instance?.currentActivity?.contentResolver
+                     ?: instance?.context?.contentResolver
+             if (resolver == null) {
+@@ -66,13 +66,19 @@ class ExpoShareIntentModule : Module() {
+                     "filePath" to instance?.getAbsolutePath(uri),
+                 )
+             }
+-            val queryResult: Cursor = resolver.query(uri, null, null, null, null)!!
+-            queryResult.moveToFirst()
+-            val fileName = queryResult.getString(queryResult.getColumnIndex(OpenableColumns.DISPLAY_NAME))
+-            val fileSize = queryResult.getString(queryResult.getColumnIndex(OpenableColumns.SIZE))
+-            queryResult.close()
++            // A URI without a readable row (no grant, row gone) is skipped instead of crashing the app.
++            var fileName: String? = null
++            var fileSize: String? = null
++            val cursor: Cursor = runCatching { resolver.query(uri, null, null, null, null) }.getOrNull() ?: return null
++            cursor.use {
++                if (!it.moveToFirst()) return null
++                val nameIndex = it.getColumnIndex(OpenableColumns.DISPLAY_NAME)
++                if (nameIndex >= 0) fileName = it.getString(nameIndex)
++                val sizeIndex = it.getColumnIndex(OpenableColumns.SIZE)
++                if (sizeIndex >= 0) fileSize = it.getString(sizeIndex)
++            }
+ 
+-            val mimeType = resolver.getType(uri)!!
++            val mimeType = resolver.getType(uri) ?: "application/octet-stream"
+ 
+             var mediaWidth: String? = null;
+             var mediaHeight: String? = null;
+@@ -81,22 +87,31 @@ class ExpoShareIntentModule : Module() {
+                 val options = BitmapFactory.Options().apply {
+                     inJustDecodeBounds = true
+                 }
+-                BitmapFactory.decodeStream(resolver.openInputStream(uri), null, options)
+-                mediaHeight = options.outHeight.toString()
+-                mediaWidth = options.outWidth.toString()
++                // Size is optional: an unreadable stream must not take the app down.
++                runCatching {
++                    resolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, options) }
++                    mediaHeight = options.outHeight.toString()
++                    mediaWidth = options.outWidth.toString()
++                }
+             }
+             if (mimeType.startsWith("video/")) {
+                 val retriever = MediaMetadataRetriever()
+-                retriever.setDataSource(instance?.getAbsolutePath(uri))
+-                mediaWidth = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)?.toInt().toString() ?: null
+-                mediaHeight = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)?.toInt().toString() ?: null
+-                // Check orientation and flip size if required
+-                val metaRotation = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_ROTATION)?.toInt() ?: 0;
+-                if (metaRotation == 90 || metaRotation == 270) {
+-                    mediaWidth = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)?.toInt().toString() ?: null
+-                    mediaHeight = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)?.toInt().toString() ?: null
++                try {
++                    retriever.setDataSource(instance?.getAbsolutePath(uri))
++                    mediaWidth = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)?.toInt().toString() ?: null
++                    mediaHeight = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)?.toInt().toString() ?: null
++                    // Check orientation and flip size if required
++                    val metaRotation = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_ROTATION)?.toInt() ?: 0;
++                    if (metaRotation == 90 || metaRotation == 270) {
++                        mediaWidth = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)?.toInt().toString() ?: null
++                        mediaHeight = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)?.toInt().toString() ?: null
++                    }
++                    mediaDuration = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toInt().toString() ?: null
++                } catch (e: Exception) {
++                    // size and duration stay null
++                } finally {
++                    retriever.release()
+                 }
+-                mediaDuration = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toInt().toString() ?: null
+             }
+ 
+             return mapOf(
+@@ -141,15 +156,16 @@ class ExpoShareIntentModule : Module() {
+                 // files / medias
+                 if (intent.action == Intent.ACTION_SEND) {
+                     val uri = intent.parcelable<Uri>(Intent.EXTRA_STREAM);
+-                    if (uri != null) {
+-                        notifyShareIntent(mapOf( "files" to arrayOf(getFileInfo(uri), "type" to "file")))
++                    val info = if (uri != null) getFileInfo(uri) else null
++                    if (info != null) {
++                        notifyShareIntent(mapOf( "files" to arrayOf(info), "type" to "file"))
+                     } else {
+                         notifyError("empty uri for file sharing: " + intent.action)
+                     }
+                 } else if (intent.action == Intent.ACTION_SEND_MULTIPLE) {
+                     val uris = intent.parcelableArrayList<Uri>(Intent.EXTRA_STREAM)
+                     if (uris != null) {
+-                        notifyShareIntent(mapOf( "files" to uris.map { getFileInfo(it) }, "type" to "file"))
++                        notifyShareIntent(mapOf( "files" to uris.mapNotNull { getFileInfo(it) }, "type" to "file"))
+                     } else {
+                         notifyError("empty uris array for file sharing: " + intent.action)
+                     }
+@@ -223,15 +239,9 @@ class ExpoShareIntentModule : Module() {
              if (DocumentsContract.isDocumentUri(context, uri)) {
                  // ExternalStorageProvider
                  if (isExternalStorageDocument(uri)) {
