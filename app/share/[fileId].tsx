@@ -4,7 +4,6 @@ import { useLocalSearchParams, useRouter } from 'expo-router'
 import {
   ActivityIndicator,
   Button,
-  Chip,
   Divider,
   IconButton,
   Menu,
@@ -677,15 +676,27 @@ export default function ShareRoute() {
                   ]}
                 >
                   {chips.map(chip => (
-                    <Chip
+                    <View
                       key={chip.email}
                       testID="recipient-chip"
-                      compact
-                      onClose={() => setChips(current => current.filter(c => c !== chip))}
-                      closeIconAccessibilityLabel={t('a11y.removeChip', { email: chip.email })}
+                      style={[styles.chip, { borderColor: theme.colors.outline }]}
                     >
-                      {chip.email}
-                    </Chip>
+                      <Text
+                        variant="labelLarge"
+                        style={styles.chipLabel}
+                        numberOfLines={1}
+                        ellipsizeMode="middle"
+                      >
+                        {chip.email}
+                      </Text>
+                      <IconButton
+                        icon="close"
+                        size={16}
+                        style={styles.chipClose}
+                        onPress={() => setChips(current => current.filter(c => c !== chip))}
+                        accessibilityLabel={t('a11y.removeChip', { email: chip.email })}
+                      />
+                    </View>
                   ))}
                   <TextInput
                     mode="flat"
@@ -979,6 +990,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 6
   },
+  // Paper's Chip puts the close button's hit area on a few pixels of its bottom
+  // edge here, so the chip is drawn by hand with a full-size IconButton.
+  chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingLeft: 12
+  },
+  chipLabel: { flexShrink: 1 },
+  chipClose: { margin: 0 },
   chipInput: { flexGrow: 1, flexBasis: 140, backgroundColor: 'transparent', height: 40 },
   roleButtonContent: { flexDirection: 'row-reverse' },
   suggestionsHint: { opacity: 0.7 },
