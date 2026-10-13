@@ -126,6 +126,8 @@ jobs:
           script: |
             adb install -r android/app/build/outputs/apk/release/app-release.apk
             adb shell pm clear com.linagora.twakedrive || true
+            # The navigation bar is what the landscape flow checks the lists clear of.
+            adb shell cmd overlay enable com.android.internal.systemui.navbar.threebutton || true
             # shellcheck disable=SC2086
             STACK_CONTAINER="$(docker compose -f e2e/stack/docker-compose.yml ps -q stack)" ./e2e/scripts/run-flows.sh $FLOWS
             # Captured, not compared: an Android baseline is committed once these are eyeballed.

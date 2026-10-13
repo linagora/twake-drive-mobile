@@ -1,0 +1,39 @@
+appId: com.linagora.twakedrive
+tags:
+  - inapp
+onFlowComplete:
+  - runFlow: ../../subflows/cleanup.yaml
+  - setOrientation: PORTRAIT
+---
+# In landscape the list toolbar and the row menus stay clear of the navigation
+# bar: the view toggle and a row's "..." can be tapped. Meaningful with
+# 3-button navigation, which the workflow turns on. The folder sorts first, so
+# its menu is not under the create button.
+- runScript:
+    file: ../../scripts/seed.js
+    env:
+      SEED: '[{"key":"folder","kind":"folder","prefix":"AAA-land"}]'
+- runFlow: ../../subflows/openDrive.yaml
+- setOrientation: LANDSCAPE_LEFT
+- extendedWaitUntil:
+    visible:
+      id: 'folder-row:${output.folder.name}'
+    timeout: 60000
+- tapOn:
+    id: 'view-toggle'
+- extendedWaitUntil:
+    visible:
+      id: 'file-grid-item'
+    timeout: 10000
+- tapOn:
+    id: 'view-toggle'
+- extendedWaitUntil:
+    visible:
+      id: 'folder-row:${output.folder.name}'
+    timeout: 10000
+- tapOn:
+    id: 'folder-actions:${output.folder.name}'
+- extendedWaitUntil:
+    visible:
+      id: 'bottom-drawer-header'
+    timeout: 10000
