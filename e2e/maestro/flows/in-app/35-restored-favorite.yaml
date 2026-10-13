@@ -1,0 +1,60 @@
+appId: com.linagora.twakedrive
+tags:
+  - inapp
+onFlowComplete:
+  - runFlow: ../../subflows/cleanup.yaml
+---
+# A favourite folder deleted and restored from Corbeille is back in Favoris
+# (#520).
+- runScript:
+    file: ../../scripts/seed.js
+    env:
+      SEED: '[{"key":"folder","kind":"folder","prefix":"E2E-favres"}]'
+- runFlow: ../../subflows/openDrive.yaml
+- extendedWaitUntil:
+    visible:
+      id: 'folder-row:${output.folder.name}'
+    timeout: 60000
+- tapOn:
+    id: 'folder-actions:${output.folder.name}'
+- waitForAnimationToEnd
+- tapOn:
+    id: 'action-favorite'
+- tapOn:
+    id: 'tab-favorites'
+- extendedWaitUntil:
+    visible: '${output.folder.name}'
+    timeout: 30000
+- tapOn:
+    id: 'tab-files'
+- tapOn:
+    id: 'folder-actions:${output.folder.name}'
+- waitForAnimationToEnd
+- tapOn:
+    id: 'action-delete'
+- waitForAnimationToEnd
+- tapOn:
+    id: 'confirm-delete-submit'
+- extendedWaitUntil:
+    notVisible:
+      id: 'folder-row:${output.folder.name}'
+    timeout: 15000
+- tapOn:
+    id: 'tab-trash'
+- extendedWaitUntil:
+    visible: '${output.folder.name}'
+    timeout: 30000
+- tapOn:
+    id: 'folder-actions:${output.folder.name}'
+- waitForAnimationToEnd
+- tapOn:
+    id: 'action-restore'
+- extendedWaitUntil:
+    notVisible: '${output.folder.name}'
+    timeout: 15000
+- tapOn:
+    id: 'tab-favorites'
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible: '${output.folder.name}'
+    timeout: 20000

@@ -36,7 +36,7 @@ import { useAuth } from '@/auth/useAuth'
 import { getErrorMessageKey } from '@/utils/errorMessages'
 import { triggerPouchReplication } from '@/pouchdb/triggerReplication'
 import { softDeleteEntry } from '@/files/deleteFile'
-import { optimisticFiles } from '@/files/optimisticFiles'
+import { optimisticFiles, optimisticTrashed } from '@/files/optimisticFiles'
 import { renameEntry } from '@/files/renameEntry'
 import { openFileFromList } from '@/files/openFromList'
 import { surfaceOpenError } from '@/files/errors'
@@ -149,7 +149,7 @@ export const FilesScreen = ({ basePath }: FilesScreenProps): React.ReactElement 
     if (items.length === 0) return
     const revert = optimisticFiles(
       client,
-      items.map(item => ({ ...item, dir_id: TRASH_DIR_ID, trashed: true }))
+      items.map(item => optimisticTrashed(item, TRASH_DIR_ID))
     )
     selection.clear()
     setBulkConfirmVisible(false)
