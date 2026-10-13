@@ -113,6 +113,45 @@ struct CozyFilesApi {
     return (files, next)
   }
 
+  /// The stack's current position in the files changes feed.
+  func currentChangesSeq() async throws -> String {
+    let data = try await send("/files/_changes?since=now&limit=0", method: .get, accept: false)
+    guard let root = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any],
+          let seq = root["last_seq"] as? String else { throw CozyError.server(-1) }
+    return seq
+  }
+
+  struct Changes: Equatable {
+    let lastSeq: String
+    let hasMore: Bool
+    let updated: [CozyFile]
+    let deleted: [String]
+  }
+
+  /// What changed after `seq`. A trashed document counts as deleted: the working set holds
+  /// the live tree only.
+  func changes(since seq: String) async throws -> Changes {
+    let fields = "type,name,dir_id,size,mime,class,updated_at,trashed,path"
+    let data = try await send("/files/_changes?since=\(Self.encode(seq))&limit=200&include_docs=true&fields=\(fields)",
+                              method: .get, accept: false)
+    guard let root = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any],
+          let lastSeq = root["last_seq"] as? String else { throw CozyError.server(-1) }
+    var updated: [CozyFile] = []
+    var deleted: [String] = []
+    for result in (root["results"] as? [[String: Any]]) ?? [] {
+      guard let id = result["id"] as? String, !ItemMapper.isHidden(id), id != ItemMapper.rootDocID else { continue }
+      let doc = result["doc"] as? [String: Any]
+      let trashed = (doc?["trashed"] as? Bool) == true || (doc?["path"] as? String)?.hasPrefix("/.cozy_trash") == true
+      if (result["deleted"] as? Bool) == true || trashed {
+        deleted.append(id)
+      } else if let doc {
+        let file = CozyFile.fromAttributes(id: id, doc)
+        if !(file.dirId.map(ItemMapper.isHidden) ?? false) { updated.append(file) }
+      }
+    }
+    return Changes(lastSeq: lastSeq, hasMore: ((root["pending"] as? Int) ?? 0) > 0, updated: updated, deleted: deleted)
+  }
+
   func download(id: String, to dest: URL, progress: Progress = Progress()) async throws {
     let path = "/files/download/\(try Self.validId(id))"
     var token = try await tokens.validAccessToken()

@@ -1,0 +1,65 @@
+appId: com.linagora.twakedrive
+tags:
+  - ios-files
+env:
+  FOLDER_NAME: 'Nw3'
+onFlowComplete:
+  - runFlow:
+      file: ../../subflows/cleanup.yaml
+      env:
+        NAMES: 'Nw3'
+---
+# Files follows the drive: a folder created in the app shows up in a root
+# Files already listed, and one moved to the trash leaves it.
+- runScript:
+    file: ../../scripts/seed.js
+    env:
+      SEED: '[{"key":"folder","kind":"folder","prefix":"Gn"}]'
+- runFlow: ../../subflows/openDrive.yaml
+- extendedWaitUntil:
+    visible:
+      id: 'folder-row:${output.folder.name}'
+    timeout: 60000
+- launchApp:
+    appId: com.apple.DocumentsApp
+    stopApp: true
+- tapOn: 'Browse|Explorer'
+- tapOn: 'Browse|Explorer'
+- tapOn: 'Twake Drive'
+- extendedWaitUntil:
+    visible: '${output.folder.name}'
+    timeout: 30000
+- launchApp
+- tapOn:
+    id: 'drive-fab'
+- tapOn:
+    id: 'create-folder(-container-outer-layer)?'
+- tapOn:
+    id: 'create-folder-name-input'
+- inputText: '${FOLDER_NAME}'
+- tapOn:
+    id: 'create-folder-submit'
+- extendedWaitUntil:
+    visible:
+      id: 'folder-row:${FOLDER_NAME}'
+    timeout: 15000
+- tapOn:
+    id: 'folder-actions:${output.folder.name}'
+- waitForAnimationToEnd
+- tapOn:
+    id: 'action-delete'
+- waitForAnimationToEnd
+- tapOn:
+    id: 'confirm-delete-submit'
+- extendedWaitUntil:
+    notVisible:
+      id: 'folder-row:${output.folder.name}'
+    timeout: 15000
+- launchApp:
+    appId: com.apple.DocumentsApp
+- extendedWaitUntil:
+    visible: '${FOLDER_NAME}'
+    timeout: 30000
+- extendedWaitUntil:
+    notVisible: '${output.folder.name}'
+    timeout: 30000
