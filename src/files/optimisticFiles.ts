@@ -25,3 +25,18 @@ export const optimisticFiles = (
     if (originals.length > 0) c.setData({ [FILES]: originals })
   }
 }
+
+/**
+ * The doc as the trash holds it. Only files carry a `trashed` flag in cozy-stack,
+ * and the store merges shallowly: a flag written on a folder would outlive its
+ * restore, since the stack never sends one to clear it. A folder is found in the
+ * trash by its `dir_id` and `path`.
+ */
+export const optimisticTrashed = (
+  doc: { _id: string; type?: string },
+  trashDirId: string
+): Doc => ({
+  ...doc,
+  dir_id: trashDirId,
+  ...(doc.type === 'directory' ? {} : { trashed: true as const })
+})

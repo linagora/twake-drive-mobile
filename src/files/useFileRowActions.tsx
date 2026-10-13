@@ -14,7 +14,7 @@ import { useIsOnline } from '@/network/useIsOnline'
 import { requireOnline } from '@/network/requireOnline'
 import { softDeleteEntry } from './deleteFile'
 import { renameEntry } from './renameEntry'
-import { optimisticFiles } from './optimisticFiles'
+import { optimisticFiles, optimisticTrashed } from './optimisticFiles'
 import { openFileFromList } from './openFromList'
 import { useWebEditor } from '@/viewer/useWebEditor'
 import { surfaceOpenError } from './errors'
@@ -141,7 +141,7 @@ export const useFileRowActions = ({
     if (!requireOnline(isOnline, setSnackbar, t)) return
     if (!client || !pendingDelete) return
     const doc = pendingDelete
-    const revert = optimisticFiles(client, [{ ...doc, dir_id: TRASH_DIR_ID, trashed: true }])
+    const revert = optimisticFiles(client, [optimisticTrashed(doc, TRASH_DIR_ID)])
     setPendingDelete(null)
     setDeleting(true)
     try {
