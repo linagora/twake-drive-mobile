@@ -22,6 +22,13 @@ class TwakeDocumentsProvider : DocumentsProvider() {
         return true
     }
 
+    // Cached files are served without touching the network, so the session has
+    // to be checked here for a signed-out provider to stop serving them. Only
+    // FileNotFoundException is turned into an error for the caller by DocumentsProvider.
+    private fun requireSession() {
+        if (session.creds() == null) throw FileNotFoundException("no session")
+    }
+
     override fun queryRoots(projection: Array<out String>?): Cursor {
         val cursor = MatrixCursor(projection ?: DocumentMapper.DEFAULT_ROOT_PROJECTION)
         val uri = session.baseUri() ?: return cursor // no session → hide root
@@ -32,6 +39,7 @@ class TwakeDocumentsProvider : DocumentsProvider() {
     }
 
     override fun queryDocument(documentId: String?, projection: Array<out String>?): Cursor {
+        requireSession()
         val cursor = MatrixCursor(projection ?: DocumentMapper.DEFAULT_DOCUMENT_PROJECTION)
         val id = documentId ?: return cursor
         DocumentMapper.addFileRow(cursor, api.get(id))
@@ -43,6 +51,7 @@ class TwakeDocumentsProvider : DocumentsProvider() {
         projection: Array<out String>?,
         sortOrder: String?
     ): Cursor {
+        requireSession()
         val cursor = MatrixCursor(projection ?: DocumentMapper.DEFAULT_DOCUMENT_PROJECTION)
         val parent = parentDocumentId ?: return cursor
         for (f in api.list(parent)) DocumentMapper.addFileRow(cursor, f)
@@ -63,6 +72,7 @@ class TwakeDocumentsProvider : DocumentsProvider() {
         mode: String?,
         signal: CancellationSignal?
     ): ParcelFileDescriptor {
+        requireSession()
         val id = documentId ?: throw java.io.FileNotFoundException("null id")
         val wantsWrite = (mode ?: "r").contains('w')
         if (wantsWrite) return openForWrite(id, mode!!) // Task 9
@@ -75,6 +85,7 @@ class TwakeDocumentsProvider : DocumentsProvider() {
         sizeHint: android.graphics.Point?,
         signal: CancellationSignal?
     ): AssetFileDescriptor {
+        requireSession()
         // The framework dereferences what it gets back, so a missing thumbnail has
         // to be thrown: returning null surfaces as a NullPointerException inside
         // the caller instead of an error it can handle.
@@ -133,6 +144,7 @@ class TwakeDocumentsProvider : DocumentsProvider() {
         mimeType: String?,
         displayName: String?
     ): String {
+        requireSession()
         val parent = parentDocumentId ?: throw java.io.FileNotFoundException("null parent")
         val name = displayName ?: "untitled"
         val created = if (mimeType == android.provider.DocumentsContract.Document.MIME_TYPE_DIR)
@@ -149,6 +161,7 @@ class TwakeDocumentsProvider : DocumentsProvider() {
     }
 
     override fun renameDocument(documentId: String?, displayName: String?): String? {
+        requireSession()
         val id = documentId ?: throw java.io.FileNotFoundException("null id")
         val f = api.rename(id, displayName ?: "untitled")
         notifyChange(f.dirId ?: DocumentMapper.ROOT_DOC_ID)
@@ -158,6 +171,7 @@ class TwakeDocumentsProvider : DocumentsProvider() {
     override fun moveDocument(
         documentId: String?, sourceParentDocumentId: String?, targetParentDocumentId: String?
     ): String {
+        requireSession()
         val id = documentId ?: throw java.io.FileNotFoundException("null id")
         val target = targetParentDocumentId ?: throw java.io.FileNotFoundException("null target")
         api.move(id, target)
@@ -167,6 +181,7 @@ class TwakeDocumentsProvider : DocumentsProvider() {
     }
 
     override fun deleteDocument(documentId: String?) {
+        requireSession()
         val id = documentId ?: throw java.io.FileNotFoundException("null id")
         val parent = parentOf(id)
         api.trash(id)
@@ -174,6 +189,7 @@ class TwakeDocumentsProvider : DocumentsProvider() {
     }
 
     override fun removeDocument(documentId: String?, parentDocumentId: String?) {
+        requireSession()
         val id = documentId ?: throw java.io.FileNotFoundException("null id")
         val parent = parentDocumentId ?: parentOf(id)
         api.trash(id)
@@ -182,6 +198,7 @@ class TwakeDocumentsProvider : DocumentsProvider() {
 
     override fun isChildDocument(parentDocumentId: String?, documentId: String?): Boolean {
         if (parentDocumentId == null || documentId == null) return false
+        if (session.creds() == null) return false
         // enforceTree() asks this before honouring a tree grant, so an id the stack
         // could not have minted stops here rather than at its first use.
         if (!DocumentIds.isValid(parentDocumentId) || !DocumentIds.isValid(documentId)) return false
