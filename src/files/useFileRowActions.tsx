@@ -168,9 +168,9 @@ export const useFileRowActions = ({
     if (!client || !pendingRename) return
     const doc = pendingRename
     const revert = optimisticFiles(client, [{ ...doc, name: newName }])
-    setPendingRename(null)
     try {
       await renameEntry(client, doc._id, newName)
+      setPendingRename(null)
       setSnackbar(
         t(doc.type === 'directory' ? 'drive.rename.successFolder' : 'drive.rename.successFile')
       )

@@ -152,7 +152,7 @@ export default function MetadataRoute() {
       setTimeout(close, SNACKBAR_DISMISS_DELAY_MS)
     } catch (e) {
       revert()
-      setSnackbar(t('drive.rename.errorGeneric'))
+      throw e
     } finally {
       setMutating(false)
     }
