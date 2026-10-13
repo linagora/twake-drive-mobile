@@ -158,6 +158,18 @@ describe('PreviewScreen', () => {
     expect(screen.queryByTestId('document-info')).toBeNull()
   })
 
+  it('keeps the first line of a text out from under the floating bar', () => {
+    mockKind = 'text'
+    render(wrap(<PreviewScreen />))
+    expect(screen.getByTestId('document-content')).toHaveStyle({ paddingTop: 56 })
+  })
+
+  it('lets an image take the whole canvas under the bar', () => {
+    mockKind = 'image'
+    render(wrap(<PreviewScreen />))
+    expect(screen.getByTestId('document-content')).toHaveStyle({ paddingTop: 0 })
+  })
+
   // Regression: a lookup that ends without a document used to leave the screen
   // on the spinner forever, because only `loading` was treated as "not ready".
   describe('when the file lookup does not yield a document', () => {

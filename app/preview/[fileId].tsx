@@ -253,9 +253,9 @@ export default function PreviewScreen() {
     <DocumentScreen
       title={title}
       onBack={() => router.back()}
-      // A player draws controls of its own, on its own schedule: the bar sits
-      // above the video rather than over it.
-      chrome={kind === 'video' ? 'player' : 'immersive'}
+      // A player draws controls of its own, on its own schedule, and a text
+      // starts at the top: the bar sits above them rather than over them.
+      chrome={kind === 'video' || kind === 'text' ? 'player' : 'immersive'}
       actions={actions}
     >
       {isLoadingFile ? (

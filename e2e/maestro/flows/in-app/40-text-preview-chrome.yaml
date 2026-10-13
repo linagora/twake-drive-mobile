@@ -1,0 +1,22 @@
+appId: com.linagora.twakedrive
+tags:
+  - inapp
+env:
+  TEXT_FILE: 'readme.txt'
+---
+# Opens the text file the instance is created with (e2e/stack/setup.sh). Read
+# only. The first line has to be on screen while the bar is shown; whether it
+# clears the bar is judged on the screenshot.
+- runFlow: ../../subflows/openDrive.yaml
+- extendedWaitUntil:
+    visible:
+      id: 'file-row:${TEXT_FILE}'
+    timeout: 30000
+- tapOn:
+    id: 'file-row:${TEXT_FILE}'
+- extendedWaitUntil:
+    visible:
+      id: 'document-chrome'
+    timeout: 20000
+- assertVisible: '.*hello from the e2e stack.*'
+- takeScreenshot: text-preview-chrome
