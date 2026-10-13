@@ -12,6 +12,7 @@ import { withoutSharedDriveRoots } from '@/files/sharedDriveDocuments'
 import { useGuardedPush } from '@/ui/useGuardedPush'
 import { FileListView } from '@/ui/FileListView'
 import { gridColumnsForWidth } from '@/ui/gridColumns'
+import { useSideInset } from '@/ui/useSideInset'
 import { useFileRowActions } from '@/files/useFileRowActions'
 import { useTabBack } from '@/ui/useTabBack'
 import { ScreenContainer } from '@/ui/ScreenContainer'
@@ -67,7 +68,7 @@ export const FilesScreen = ({ basePath }: FilesScreenProps): React.ReactElement 
   const goBack = useTabBack(basePath)
   const { t } = useTranslation()
   const { logout } = useAuth()
-  const gridColumns = gridColumnsForWidth(useWindowDimensions().width)
+  const gridColumns = gridColumnsForWidth(useWindowDimensions().width - 2 * useSideInset())
   const params = useLocalSearchParams<{ path?: string | string[] }>()
   const rawPath = params.path
   const path: string[] | undefined =

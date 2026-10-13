@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { EmptyState } from './EmptyState'
 import { ErrorState } from './ErrorState'
 import { LoadingState } from './LoadingState'
+import { useSideInset } from './useSideInset'
 import { getErrorMessageKey } from '@/utils/errorMessages'
 
 export interface FileListViewProps<T> {
@@ -62,6 +63,7 @@ export const FileListView = <T,>({
   testID
 }: FileListViewProps<T>): React.ReactElement => {
   const { t } = useTranslation()
+  const sideInset = useSideInset()
   const isEmpty = items.length === 0
   const columns = numColumns && numColumns > 1 ? numColumns : undefined
   const data = React.useMemo<(T | Placeholder)[]>(() => {
@@ -108,6 +110,7 @@ export const FileListView = <T,>({
         ListEmptyComponent={<EmptyState icon={emptyIcon} message={t(emptyMessage)} />}
         contentContainerStyle={[
           styles.content,
+          { paddingHorizontal: sideInset },
           isEmpty ? styles.empty : undefined,
           contentContainerStyle
         ]}
