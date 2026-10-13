@@ -358,7 +358,9 @@
     "showDetails": "Details",
     "hideDetails": "Details ausblenden",
     "copyDetails": "Details kopieren",
-    "copied": "Kopiert"
+    "copied": "Kopiert",
+    "linkNotFound": "Dieser Link führt ins Leere",
+    "backToDrive": "Zu „Mein Drive“"
   },
   "units": {
     "byte": "B",

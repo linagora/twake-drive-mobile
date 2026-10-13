@@ -358,7 +358,9 @@
     "showDetails": "Details",
     "hideDetails": "Hide details",
     "copyDetails": "Copy details",
-    "copied": "Copied"
+    "copied": "Copied",
+    "linkNotFound": "This link does not lead anywhere",
+    "backToDrive": "Go to My Drive"
   },
   "units": {
     "byte": "B",
