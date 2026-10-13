@@ -1,0 +1,35 @@
+appId: com.linagora.twakedrive
+tags:
+  - android
+onFlowComplete:
+  - runFlow: ../../subflows/cleanup.yaml
+---
+# The system back closes a selection and the create menu before it leaves the
+# app. Android only: iOS has no hardware back.
+- runScript:
+    file: ../../scripts/seed.js
+    env:
+      SEED: '[{"key":"file","kind":"file","prefix":"E2E-back","ext":"txt"}]'
+- runFlow: ../../subflows/openDrive.yaml
+- extendedWaitUntil:
+    visible:
+      id: 'file-row:${output.file.name}'
+    timeout: 60000
+- longPressOn:
+    id: 'file-row:${output.file.name}'
+- assertVisible:
+    id: 'selection-delete'
+- pressKey: back
+- assertNotVisible:
+    id: 'selection-delete'
+- assertVisible:
+    id: 'tab-files'
+- tapOn:
+    id: 'drive-fab'
+- assertVisible:
+    id: 'create-folder(-container-outer-layer)?'
+- pressKey: back
+- assertNotVisible:
+    id: 'create-folder(-container-outer-layer)?'
+- assertVisible:
+    id: 'tab-files'

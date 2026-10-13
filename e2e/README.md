@@ -92,7 +92,7 @@ e2e/
       00-login.yaml       # login tag (semi-manual, excluded)
       00-welcome.yaml     # preauth tag (app boot + login form)
       in-app/             # inapp tags (iOS + Android): 01-22
-      android/            # android tags: 10 File Provider, 11 Share
+      android/            # android tags: 10 File Provider, 11 Share, 13 system back
     scripts/              # seed.js, seedReceivedShare.js, cleanup.js (stack API, run by the flows)
   scripts/                # run-android.sh, run-ios.sh, run-flows.sh
   fixtures/               # sample.jpg (share)
