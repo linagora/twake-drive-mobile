@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { ScrollView, StyleSheet } from 'react-native'
 import { Text, useTheme } from 'react-native-paper'
+import { useTranslation } from 'react-i18next'
 
 import { StreamSource } from '@/files/streamUrl'
 import { cozyTokens } from '@/ui/theme'
@@ -10,6 +11,7 @@ const TEXT_MAX_BYTES = 1_000_000
 
 export const TextPreview = ({ source }: { source: StreamSource }): React.ReactElement => {
   const theme = useTheme()
+  const { t } = useTranslation()
   const [content, setContent] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [truncated, setTruncated] = useState(false)
@@ -30,13 +32,15 @@ export const TextPreview = ({ source }: { source: StreamSource }): React.ReactEl
         }
         setContent(text)
       } catch (e) {
-        if (!cancelled) setError((e as Error).message ?? 'Fetch error')
+        if (cancelled) return
+        console.error('[TextPreview] fetch failed', e)
+        setError(t('drive.preview.loadFailed'))
       }
     })()
     return () => {
       cancelled = true
     }
-  }, [source.uri, source.headers])
+  }, [source.uri, source.headers, t])
 
   if (error) return <ErrorOverlay message={error} />
   if (content === null) return <LoadingOverlay />
