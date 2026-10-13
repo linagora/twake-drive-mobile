@@ -2,7 +2,7 @@
 // flow uses, and records it for cleanup.js.
 //
 // SEED is a JSON list of { key, kind: 'folder' | 'file', prefix, parent?, ext?,
-// content?, silence? }. Each entry lands in `output[key]` as { id, name };
+// content?, mime?, silence? }. Each entry lands in `output[key]` as { id, name };
 // `parent` is the key of a folder earlier in the same list. `silence: true`
 // makes the file a WAV of silence instead of text (give it ext "wav").
 // The run passes STACK_URL, STACK_HOST and STACK_TOKEN (e2e/scripts/run-flows.sh).
@@ -45,7 +45,7 @@ JSON.parse(SEED).forEach(entry => {
     '&Name=' +
     encodeURIComponent(name)
 
-  const contentType = entry.silence ? 'audio/wav' : 'text/plain'
+  const contentType = entry.silence ? 'audio/wav' : entry.mime || 'text/plain'
   const content = entry.silence ? silenceWav() : entry.content || 'e2e ' + name + '\n'
   const response = http.post(url, {
     headers: isFile ? Object.assign({ 'Content-Type': contentType }, headers) : headers,
