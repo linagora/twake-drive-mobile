@@ -19,10 +19,11 @@ esac
 exit 0
 `
 
-// Logs every call, and answers the boot probe the driver reset waits on.
+// Logs every call, answers the boot probe the driver reset waits on, and keeps
+// the app on one pid for the unreadable-share check.
 const FAKE_ADB = `#!/usr/bin/env bash
 echo "$*" >>"$FAKE_STATE/adb.log"
-case "$*" in *sys.boot_completed*) echo 1 ;; esac
+case "$*" in *sys.boot_completed*) echo 1 ;; *'pidof com.linagora.twakedrive'*) echo 4242 ;; esac
 exit 0
 `
 
