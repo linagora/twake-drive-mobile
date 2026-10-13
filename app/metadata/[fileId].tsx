@@ -13,6 +13,7 @@ import { FileThumbnail } from '@/ui/FileThumbnail'
 import { RenameDialog } from '@/ui/RenameDialog'
 import { ConfirmDeleteDialog } from '@/ui/ConfirmDeleteDialog'
 import { formatFileSize } from '@/utils/formatters'
+import { dateLocaleForLanguage } from '@/i18n/dateLocale'
 import { openFileNatively } from '@/files/openFile'
 import { renameEntry } from '@/files/renameEntry'
 import { optimisticFiles } from '@/files/optimisticFiles'
@@ -47,7 +48,7 @@ const Row = ({ label, value }: { label: string; value: string }) => (
 
 export default function MetadataRoute() {
   const router = useRouter()
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const theme = useTheme()
   const client = useClient()
   const isOnline = useIsOnline()
@@ -242,7 +243,13 @@ export default function MetadataRoute() {
           <Row label={t('drive.fileMeta.size')} value={formatFileSize(file.size)} />
           <Row
             label={t('drive.fileMeta.modified')}
-            value={file.updated_at ? format(new Date(file.updated_at), 'PPp') : '—'}
+            value={
+              file.updated_at
+                ? format(new Date(file.updated_at), 'PPp', {
+                    locale: dateLocaleForLanguage(i18n.language)
+                  })
+                : '—'
+            }
           />
           <Row label={t('drive.fileMeta.path')} value={file.path ?? '—'} />
           <Row
