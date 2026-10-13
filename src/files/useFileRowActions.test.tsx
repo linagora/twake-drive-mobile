@@ -34,13 +34,24 @@ jest.mock('@/offline/OfflineFilesStore', () => ({
   }
 }))
 
+const mockRenameEntry = jest.fn()
+jest.mock('./renameEntry', () => ({
+  renameEntry: (...args: unknown[]) => mockRenameEntry(...args)
+}))
+jest.mock('./optimisticFiles', () => ({ optimisticFiles: () => jest.fn() }))
+
 const mockOpenFileFromList = jest.fn().mockResolvedValue(undefined)
 jest.mock('@/files/openFromList', () => ({
   openFileFromList: (...args: unknown[]) => mockOpenFileFromList(...args)
 }))
 
-import { renderHook } from '@testing-library/react-native'
+import React from 'react'
+import { Pressable } from 'react-native'
+import { Provider as PaperProvider } from 'react-native-paper'
+import { act, fireEvent, render, renderHook, screen } from '@testing-library/react-native'
+import i18n from '@/i18n'
 
+import { RenameDialog } from '@/ui/RenameDialog'
 import { useFileRowActions } from './useFileRowActions'
 import { FileQueryResult } from '@/client/queries'
 
@@ -117,5 +128,48 @@ describe('useFileRowActions', () => {
     expect(actions.fileProps(file).onRename).toBeUndefined()
     expect(actions.fileProps(file).onDelete).toBeUndefined()
     expect(actions.folderProps(folder).onMove).toBeDefined()
+  })
+})
+
+describe('renaming from a list', () => {
+  const Harness = () => {
+    const actions = useFileRowActions({ screen: 'Test' })
+    return (
+      <PaperProvider>
+        {actions.dialogs}
+        <Pressable testID="open-rename" onPress={() => actions.fileProps(file).onRename?.()} />
+      </PaperProvider>
+    )
+  }
+
+  const submit = async (): Promise<void> => {
+    render(<Harness />)
+    fireEvent.press(screen.getByTestId('open-rename'))
+    fireEvent.changeText(await screen.findByTestId('rename-name-input'), 'taken.pdf')
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('rename-submit'))
+    })
+  }
+
+  it('keeps the dialog open with the conflict message when the name is taken', async () => {
+    const conflict = new Error('conflict')
+    conflict.name = 'RenameConflictError'
+    mockRenameEntry.mockRejectedValueOnce(conflict)
+    await submit()
+    expect(screen.getByText('Un élément avec ce nom existe déjà.')).toBeOnTheScreen()
+    expect(screen.UNSAFE_getByType(RenameDialog).props.visible).toBe(true)
+  })
+
+  it('keeps the dialog open with the generic message on any other failure', async () => {
+    mockRenameEntry.mockRejectedValueOnce(new Error('boom'))
+    await submit()
+    expect(screen.getByText(i18n.t('drive.rename.errorGeneric'))).toBeOnTheScreen()
+    expect(screen.UNSAFE_getByType(RenameDialog).props.visible).toBe(true)
+  })
+
+  it('closes the dialog once the rename went through', async () => {
+    mockRenameEntry.mockResolvedValueOnce(undefined)
+    await submit()
+    expect(screen.UNSAFE_getByType(RenameDialog).props.visible).toBe(false)
   })
 })
