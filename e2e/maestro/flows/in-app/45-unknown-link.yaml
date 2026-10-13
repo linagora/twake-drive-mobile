@@ -1,0 +1,17 @@
+appId: com.linagora.twakedrive
+tags:
+  - inapp
+---
+# A link of ours that names nothing opens the app's own page, which leads back
+# to the drive, not the router's developer screen.
+- runFlow: ../../subflows/openDrive.yaml
+- openLink: 'twakedrive://unknown/path'
+- extendedWaitUntil:
+    visible: 'Ce lien ne mène nulle part|This link does not lead anywhere'
+    timeout: 20000
+- assertNotVisible: 'Unmatched Route'
+- tapOn: 'Aller à Mon Drive|Go to My Drive'
+- extendedWaitUntil:
+    visible:
+      id: 'drive-fab'
+    timeout: 20000
