@@ -1,0 +1,26 @@
+appId: com.linagora.twakedrive
+tags:
+  - inapp
+onFlowComplete:
+  - runFlow: ../../subflows/cleanup.yaml
+---
+# The details screen writes the modification date the way the app language
+# does (day, month name, year, 24-hour time), not in US English.
+- runFlow: ../00-set-language-fr.yaml
+- runScript:
+    file: ../../scripts/seed.js
+    env:
+      SEED: '[{"key":"file","kind":"file","prefix":"Details","ext":"txt"}]'
+- runFlow: ../../subflows/openDrive.yaml
+- extendedWaitUntil:
+    visible:
+      id: 'file-row:${output.file.name}'
+    timeout: 60000
+- tapOn:
+    id: 'file-actions:${output.file.name}'
+- waitForAnimationToEnd
+- tapOn:
+    id: 'action-info'
+- extendedWaitUntil:
+    visible: '\d{1,2} [^ ]+ \d{4}, \d{2}:\d{2}'
+    timeout: 15000
