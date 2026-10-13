@@ -1,0 +1,21 @@
+appId: com.linagora.twakedrive
+tags:
+  - inapp
+onFlowComplete:
+  - runFlow: ../../subflows/cleanup.yaml
+---
+# The two buttons of the search field are named in the app language, after
+# what they do.
+- runFlow: ../00-set-language-fr.yaml
+- runFlow: ../../subflows/openDrive.yaml
+- tapOn:
+    id: 'appbar-search-button'
+- extendedWaitUntil:
+    visible:
+      id: 'search-input'
+    timeout: 20000
+- tapOn:
+    id: 'search-input'
+- inputText: 'ab'
+- assertVisible: 'Retour'
+- assertVisible: 'Effacer'
