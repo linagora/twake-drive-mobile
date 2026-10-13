@@ -49,7 +49,7 @@ describe('openFileNatively', () => {
   it('downloads to cache and opens via FileViewer', async () => {
     ;(FileSystem.downloadAsync as jest.Mock).mockResolvedValueOnce({
       status: 200,
-      uri: 'file:///cache/twake-drive/abc-2-aaa-test.pdf'
+      uri: 'file:///cache/twake-drive/abc-2-aaa/test.pdf'
     })
     await openFileNatively(makeClient(), {
       _id: 'abc',
@@ -57,15 +57,18 @@ describe('openFileNatively', () => {
       name: 'test.pdf',
       mime: 'application/pdf'
     })
-    expect(FileSystem.makeDirectoryAsync).toHaveBeenCalledWith('file:///cache/twake-drive/', {
-      intermediates: true
-    })
+    expect(FileSystem.makeDirectoryAsync).toHaveBeenCalledWith(
+      'file:///cache/twake-drive/abc-2-aaa/',
+      {
+        intermediates: true
+      }
+    )
     expect(FileSystem.downloadAsync).toHaveBeenCalledWith(
       expect.stringMatching(/^https:\/\/alice\.example\.com\/files\/download\/abc\?fresh=/),
-      'file:///cache/twake-drive/abc-2-aaa-test.pdf',
+      'file:///cache/twake-drive/abc-2-aaa/test.pdf',
       { headers: { Authorization: 'Bearer tok-1' } }
     )
-    expect(FileViewer.open).toHaveBeenCalledWith('file:///cache/twake-drive/abc-2-aaa-test.pdf', {
+    expect(FileViewer.open).toHaveBeenCalledWith('file:///cache/twake-drive/abc-2-aaa/test.pdf', {
       showOpenWithDialog: true,
       showAppsSuggestions: true
     })
@@ -80,7 +83,7 @@ describe('openFileNatively', () => {
   it('throws when download status is non-2xx', async () => {
     ;(FileSystem.downloadAsync as jest.Mock).mockResolvedValueOnce({
       status: 404,
-      uri: 'file:///cache/twake-drive/abc-2-aaa-test.pdf'
+      uri: 'file:///cache/twake-drive/abc-2-aaa/test.pdf'
     })
     await expect(
       openFileNatively(makeClient(), { _id: 'abc', _rev: '2-aaa', name: 't.pdf' })
@@ -97,10 +100,10 @@ describe('openFileNatively', () => {
     expect(FileSystem.downloadAsync).not.toHaveBeenCalled()
     expect(FileSystem.copyAsync).toHaveBeenCalledWith({
       from: 'file:///offline/abc',
-      to: 'file:///cache/twake-drive/abc-2-aaa-t.pdf'
+      to: 'file:///cache/twake-drive/abc-2-aaa/t.pdf'
     })
     expect(FileViewer.open).toHaveBeenCalledWith(
-      'file:///cache/twake-drive/abc-2-aaa-t.pdf',
+      'file:///cache/twake-drive/abc-2-aaa/t.pdf',
       expect.any(Object)
     )
   })
@@ -114,7 +117,7 @@ describe('openFileNatively', () => {
     await openFileNatively(makeClient(), { _id: 'abc', _rev: '2-aaa', name: 't.pdf' })
     expect(FileSystem.copyAsync).not.toHaveBeenCalled()
     expect(FileViewer.open).toHaveBeenCalledWith(
-      'file:///cache/twake-drive/abc-2-aaa-t.pdf',
+      'file:///cache/twake-drive/abc-2-aaa/t.pdf',
       expect.any(Object)
     )
   })
@@ -154,12 +157,12 @@ describe('openFileNatively', () => {
   it('sanitizes filename slashes', async () => {
     ;(FileSystem.downloadAsync as jest.Mock).mockResolvedValueOnce({
       status: 200,
-      uri: 'file:///cache/twake-drive/abc-2-aaa-weird_name'
+      uri: 'file:///cache/twake-drive/abc-2-aaa/weird_name'
     })
     await openFileNatively(makeClient(), { _id: 'abc', _rev: '2-aaa', name: 'weird/name' })
     expect(FileSystem.downloadAsync).toHaveBeenCalledWith(
       expect.stringMatching(/^https:\/\/alice\.example\.com\/files\/download\/abc\?fresh=/),
-      'file:///cache/twake-drive/abc-2-aaa-weird_name',
+      'file:///cache/twake-drive/abc-2-aaa/weird_name',
       expect.any(Object)
     )
   })

@@ -165,7 +165,7 @@ describe('downloadFolder', () => {
     createArchiveLinkByIds.mockResolvedValue('/files/archive/secret/Projet.zip')
     mockDownloadAsync.mockResolvedValue({
       status: 200,
-      uri: 'file:///cache/twake-drive/d1-Projet.zip'
+      uri: 'file:///cache/twake-drive/d1/Projet.zip'
     })
     mockRead.mockResolvedValue('emlw')
     mockCreateFile.mockResolvedValue('content://tree/doc/Projet.zip')
@@ -183,7 +183,7 @@ describe('downloadFolder', () => {
     expect(createArchiveLinkByIds).toHaveBeenCalledWith({ ids: ['d1'], name: 'Projet' })
     expect(mockDownloadAsync).toHaveBeenCalledWith(
       'https://alice.example/files/archive/secret/Projet.zip',
-      expect.stringContaining('Projet.zip'),
+      'file:///cache/twake-drive/d1/Projet.zip',
       { headers: { Authorization: 'Bearer token' } }
     )
     expect(mockCreateFile).toHaveBeenCalledWith('content://tree', 'Projet.zip', 'application/zip')
@@ -192,7 +192,7 @@ describe('downloadFolder', () => {
   it('hands the zip to the system sheet on iOS', async () => {
     await downloadFolder(folderClient, { _id: 'd1', name: 'Projet' })
 
-    expect(mockOpenInViewer).toHaveBeenCalledWith('file:///cache/twake-drive/d1-Projet.zip')
+    expect(mockOpenInViewer).toHaveBeenCalledWith('file:///cache/twake-drive/d1/Projet.zip')
   })
 
   it('fails when the archive cannot be fetched', async () => {

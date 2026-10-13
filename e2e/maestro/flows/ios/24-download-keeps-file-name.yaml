@@ -1,0 +1,33 @@
+appId: com.linagora.twakedrive
+tags:
+  - ios-files
+env:
+  PREVIEW_FILE: 'sample.jpg'
+---
+# The system preview a download opens names the file after the file, not after
+# the cache copy it was written to.
+- runFlow: ../../subflows/openDrive.yaml
+- extendedWaitUntil:
+    visible:
+      id: 'file-row:${PREVIEW_FILE}'
+    timeout: 30000
+- tapOn:
+    id: 'file-row:${PREVIEW_FILE}'
+- extendedWaitUntil:
+    visible:
+      id: 'preview-image'
+    timeout: 20000
+- tapOn:
+    id: 'preview-image'
+- tapOn:
+    id: 'document-download'
+# the preview hides its bars until a tap
+- extendedWaitUntil:
+    visible: 'Image canvas|Zone de l.image'
+    timeout: 30000
+- tapOn:
+    point: '50%,50%'
+- assertVisible: '.*sample.*'
+- assertNotVisible: '.*norev.*'
+- assertNotVisible: '.*[0-9a-f]{32}.*'
+- tapOn: 'Close|Fermer|Done|Terminé'

@@ -24,8 +24,10 @@ interface MinimalStackClient {
   getAccessToken: () => string | null | undefined
 }
 
-const cacheAliasPath = (cacheDir: string, file: OpenableFile): string =>
-  `${cacheDir}twake-drive/${file._id}-${file._rev ?? 'norev'}-${sanitizeName(file.name)}`
+// One folder per document and revision keeps the copy unique while the file
+// keeps its own name, which is what the iOS preview and share sheet display.
+const cacheAliasDir = (cacheDir: string, file: OpenableFile): string =>
+  `${cacheDir}twake-drive/${file._id}-${file._rev ?? 'norev'}/`
 
 // Hand a local path to the OS viewer. Android's FileViewer rejects with
 // "No app associated with this mime type" when nothing can open it; translate
@@ -49,8 +51,9 @@ export const ensureLocalCopy = async (
 ): Promise<string> => {
   const cacheDir = FileSystem.cacheDirectory
   if (!cacheDir) throw new Error('Cache directory unavailable')
-  const aliasPath = cacheAliasPath(cacheDir, file)
-  await FileSystem.makeDirectoryAsync(`${cacheDir}twake-drive/`, { intermediates: true })
+  const aliasDir = cacheAliasDir(cacheDir, file)
+  const aliasPath = `${aliasDir}${sanitizeName(file.name)}`
+  await FileSystem.makeDirectoryAsync(aliasDir, { intermediates: true })
 
   if (OfflineFilesStore.isPinnedAndDownloaded(file._id)) {
     // The persistent blob is stored as `offline/{fileId}` with no
