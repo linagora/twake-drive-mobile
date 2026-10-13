@@ -5,11 +5,13 @@ set -euo pipefail
 # have something to look at.
 #
 # Usage: e2e/stack/setup.sh [domain] [passphrase]
-# Env: STACK_CONTAINER, PORTAL_URL
+# Env: STACK_CONTAINER, PORTAL_URL, STACK_URL
 
 DOMAIN="${1:-alice.10-0-2-2.nip.io}"
 PASSPHRASE="${2:-cozycozy}"
 STACK="${STACK_CONTAINER:-e2e-stack-1}"
+# Where this host reaches the stack's port 8080.
+STACK_URL="${STACK_URL:-http://localhost}"
 # Where the device reaches the stand-in portal of docker-compose.yml: 10.0.2.2
 # from an Android emulator, 127.0.0.1 from an iOS simulator.
 PORTAL="${PORTAL_URL:-http://10.0.2.2:8090}"
@@ -18,10 +20,10 @@ run() { docker exec "$STACK" cozy-stack "$@"; }
 
 echo "Waiting for the stack to answer…"
 for _ in $(seq 1 60); do
-  if curl -fsS "http://localhost/version" >/dev/null 2>&1; then break; fi
+  if curl -fsS "$STACK_URL/version" >/dev/null 2>&1; then break; fi
   sleep 2
 done
-curl -fsS "http://localhost/version" | head -1
+curl -fsS "$STACK_URL/version" | head -1
 
 # The image creates an instance of its own on startup, and names it
 # `$COZY_STACK_HOST:$COZY_STACK_PORT` unless the port is 80 — so the one a run
@@ -64,17 +66,17 @@ run features flags --domain "$DOMAIN" '{
 echo "Seeding a folder and a file"
 TOKEN="$(run instances token-cli "$DOMAIN" io.cozy.files | tr -d '\r\n')"
 ROOT="io.cozy.files.root-dir"
-curl -fsS -X POST "http://localhost/files/$ROOT?Type=directory&Name=Documents" \
+curl -fsS -X POST "$STACK_URL/files/$ROOT?Type=directory&Name=Documents" \
   -H "Host: $DOMAIN" -H "Authorization: Bearer $TOKEN" >/dev/null
 printf 'hello from the e2e stack\n' | curl -fsS -X POST \
-  "http://localhost/files/$ROOT?Type=file&Name=readme.txt" \
+  "$STACK_URL/files/$ROOT?Type=file&Name=readme.txt" \
   -H "Host: $DOMAIN" -H "Authorization: Bearer $TOKEN" \
   -H 'Content-Type: text/plain' --data-binary @- >/dev/null
 
 # 05-preview opens an image, and an instance the flows can rely on has to carry
 # one: the fixture the Android share flow already uses.
 echo "Seeding an image"
-curl -fsS -X POST "http://localhost/files/$ROOT?Type=file&Name=sample.jpg" \
+curl -fsS -X POST "$STACK_URL/files/$ROOT?Type=file&Name=sample.jpg" \
   -H "Host: $DOMAIN" -H "Authorization: Bearer $TOKEN" \
   -H 'Content-Type: image/jpeg' \
   --data-binary "@$(dirname "$0")/../fixtures/sample.jpg" >/dev/null
@@ -84,16 +86,16 @@ curl -fsS -X POST "http://localhost/files/$ROOT?Type=file&Name=sample.jpg" \
 # run always has one running: 12 folders of 25 files, under one root folder so
 # the flows still see what they create at the top of the drive.
 echo "Seeding a busy instance"
-BULK_ID="$(curl -fsS -X POST "http://localhost/files/$ROOT?Type=directory&Name=Charge" \
+BULK_ID="$(curl -fsS -X POST "$STACK_URL/files/$ROOT?Type=directory&Name=Charge" \
   -H "Host: $DOMAIN" -H "Authorization: Bearer $TOKEN" |
   sed -n 's/.*"id":"\([^"]*\)".*/\1/p' | head -1)"
 for d in $(seq 1 12); do
-  DIR_ID="$(curl -fsS -X POST "http://localhost/files/$BULK_ID?Type=directory&Name=Dossier-$d" \
+  DIR_ID="$(curl -fsS -X POST "$STACK_URL/files/$BULK_ID?Type=directory&Name=Dossier-$d" \
     -H "Host: $DOMAIN" -H "Authorization: Bearer $TOKEN" |
     sed -n 's/.*"id":"\([^"]*\)".*/\1/p' | head -1)"
   for f in $(seq 1 25); do
     printf 'e2e seed %s/%s\n' "$d" "$f" | curl -fsS -X POST \
-      "http://localhost/files/$DIR_ID?Type=file&Name=fichier-$f.txt" \
+      "$STACK_URL/files/$DIR_ID?Type=file&Name=fichier-$f.txt" \
       -H "Host: $DOMAIN" -H "Authorization: Bearer $TOKEN" \
       -H 'Content-Type: text/plain' --data-binary @- >/dev/null
   done
