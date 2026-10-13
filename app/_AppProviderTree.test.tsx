@@ -20,8 +20,12 @@ const mockShareState = {
   })
 }
 const mockAuthState = { client: null as unknown }
+const mockRouter = { push: mockPush }
 
-jest.mock('expo-router', () => ({ useRouter: () => ({ push: mockPush }) }))
+jest.mock('expo-router', () => ({
+  useRouter: () => mockRouter,
+  useSegments: () => ['(drive)', 'files']
+}))
 jest.mock('@/auth/useAuth', () => ({ useAuth: () => mockAuthState }))
 jest.mock('@/share/useIncomingShare', () => ({ useIncomingShare: () => mockShareState }))
 // CozyProvider itself isn't under test here — PendingShareProvider's

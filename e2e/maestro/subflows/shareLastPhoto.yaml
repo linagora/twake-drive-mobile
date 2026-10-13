@@ -1,0 +1,21 @@
+appId: com.apple.mobileslideshow
+---
+# From the Photos app to the Twake Drive entry of its share sheet, for a
+# picture added today (the library names those without a year). Photos comes
+# back on the picture it showed last, so the grid is only tapped when the
+# share button is not there already.
+- launchApp:
+    appId: com.apple.mobileslideshow
+    stopApp: true
+- runFlow:
+    when:
+      notVisible: 'Share|Partager'
+    commands:
+      - tapOn:
+          text: 'Photo, [0-9]+ [^,0-9]+, [0-9:]+'
+      - waitForAnimationToEnd
+- tapOn: 'Share|Partager'
+- extendedWaitUntil:
+    visible: 'Twake Drive'
+    timeout: 20000
+- tapOn: 'Twake Drive'
