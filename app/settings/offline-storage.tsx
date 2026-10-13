@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { InteractionManager, SectionList, View, StyleSheet } from 'react-native'
-import { Button, Switch } from 'react-native-paper'
+import { Button } from 'react-native-paper'
+import { Switch } from '@/ui/Switch'
 import { Redirect, useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import { useClient } from 'cozy-client'
