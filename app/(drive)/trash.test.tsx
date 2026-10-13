@@ -3,9 +3,10 @@ import { Provider as PaperProvider } from 'react-native-paper'
 import { fireEvent, render, screen } from '@testing-library/react-native'
 import { I18nextProvider } from 'react-i18next'
 
+const mockPush = jest.fn()
 jest.mock('expo-router', () => ({
   __esModule: true,
-  useRouter: () => ({ back: jest.fn(), push: jest.fn(), replace: jest.fn() }),
+  useRouter: () => ({ back: jest.fn(), push: mockPush, replace: jest.fn() }),
   useFocusEffect: (cb: () => void) => cb()
 }))
 
@@ -41,7 +42,8 @@ jest.mock('@/ui/FileRow', () => {
   const react = require('react')
   const { Text } = require('react-native')
   return {
-    FileRow: (props: { file: { name: string } }) => react.createElement(Text, null, props.file.name)
+    FileRow: (props: { file: { name: string }; onPress: (file: unknown) => void }) =>
+      react.createElement(Text, { onPress: () => props.onPress(props.file) }, props.file.name)
   }
 })
 jest.mock('@/ui/FolderRow', () => {
@@ -94,5 +96,14 @@ describe('TrashScreen', () => {
     mockUseQuery.mockReturnValue(queryResult([], 'loading'))
     rerender(wrap(<TrashScreen />))
     expect(screen.getByText('Corbeille vide')).toBeOnTheScreen()
+  })
+
+  it('opens the read-only preview of a tapped file', () => {
+    mockUseQuery.mockImplementation((def: unknown, opts: { as: string }) =>
+      queryResult(opts.as.endsWith('/files') ? [{ _id: 'f1', name: 'note.txt', type: 'file' }] : [])
+    )
+    render(wrap(<TrashScreen />))
+    fireEvent.press(screen.getByText('note.txt'))
+    expect(mockPush).toHaveBeenCalledWith('/preview/f1')
   })
 })

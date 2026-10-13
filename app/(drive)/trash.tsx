@@ -149,7 +149,9 @@ export default function TrashScreen() {
     return (
       <FileRow
         file={{ ...item, size: item.size ?? null }}
-        onPress={file => router.push(`/metadata/${file._id}`)}
+        testID={`file-row:${item.name}`}
+        onPress={file => router.push(`/preview/${file._id}`)}
+        onOpen={file => router.push(`/preview/${file._id}`)}
         onRestore={() => void handleRestore(item)}
         onDestroy={() => setPendingDestroy(item)}
         canFavorite={false}

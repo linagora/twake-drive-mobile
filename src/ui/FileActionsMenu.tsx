@@ -19,6 +19,8 @@ interface Props {
   file: FileItem
   onShare?: (file: FileItem) => void
   onRename?: (file: FileItem) => void
+  /** Trash only: a read-only preview, the one thing a trashed file can be asked for. */
+  onOpen?: (file: FileItem) => void
   onRestore?: (file: FileItem) => void
   /** Trash only: deletes the file for good, after a confirmation. */
   onDestroy?: (file: FileItem) => void
@@ -45,6 +47,7 @@ export const FileActionsMenu = ({
   file,
   onShare,
   onRename,
+  onOpen,
   onRestore,
   onDestroy,
   onDelete,
@@ -113,6 +116,14 @@ export const FileActionsMenu = ({
             onPress={() => drawer.run(() => onRename(file))}
           />
         ) : null}
+        {onOpen ? (
+          <BottomDrawerItem
+            icon="shareExternal"
+            label={t('drive.fileMeta.open')}
+            testID="action-open"
+            onPress={() => drawer.run(() => onOpen(file))}
+          />
+        ) : null}
         {onRestore ? (
           <BottomDrawerItem
             icon="restoreOutline"
@@ -176,21 +187,24 @@ export const FileActionsMenu = ({
             }
           />
         ) : null}
-        <BottomDrawerItem
-          icon="downloadOutline"
-          label={t('drive.fileMeta.download')}
-          testID="action-download"
-          disabled={!isDownloadable}
-          onPress={() =>
-            drawer.run(() => {
-              if (!client) return
-              void download(client, file, driveId).catch(e => {
-                if (e instanceof DownloadCancelledError) return
-                console.error('[FileActionsMenu] download failed', e)
+        {/* A trashed file offers to restore or destroy, nothing else. */}
+        {onRestore ? null : (
+          <BottomDrawerItem
+            icon="downloadOutline"
+            label={t('drive.fileMeta.download')}
+            testID="action-download"
+            disabled={!isDownloadable}
+            onPress={() =>
+              drawer.run(() => {
+                if (!client) return
+                void download(client, file, driveId).catch(e => {
+                  if (e instanceof DownloadCancelledError) return
+                  console.error('[FileActionsMenu] download failed', e)
+                })
               })
-            })
-          }
-        />
+            }
+          />
+        )}
         {onLeave ? (
           <BottomDrawerItem
             icon="logoutOutline"

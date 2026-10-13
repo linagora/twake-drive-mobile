@@ -45,7 +45,8 @@ jest.mock('cozy-client', () => ({
 jest.mock('@/client/queries', () => ({
   __esModule: true,
   fileByIdQuery: () => ({}),
-  fileByIdQueryAs: () => undefined
+  fileByIdQueryAs: () => undefined,
+  TRASH_DIR_ID: 'io.cozy.files.trash-dir'
 }))
 
 // Native / heavy modules imported at load time — stub so the file resolves.
@@ -145,6 +146,16 @@ describe('PreviewScreen', () => {
     render(wrap(<PreviewScreen />))
     expect(screen.getByText('demande.pdf')).toBeOnTheScreen()
     expect(screen.getByTestId('document-back-button')).toBeOnTheScreen()
+  })
+
+  it('offers nothing but the way back on a file in the trash', () => {
+    mockKind = 'image'
+    mockLookup = { data: { ...pdfFile, trashed: true }, fetchStatus: 'loaded' }
+    render(wrap(<PreviewScreen />))
+    expect(screen.getByTestId('document-back-button')).toBeOnTheScreen()
+    expect(screen.queryByTestId('document-share')).toBeNull()
+    expect(screen.queryByTestId('document-download')).toBeNull()
+    expect(screen.queryByTestId('document-info')).toBeNull()
   })
 
   // Regression: a lookup that ends without a document used to leave the screen
