@@ -170,8 +170,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const logout = useCallback(
     async (options?: { expired?: boolean; wipe?: boolean }): Promise<void> => {
-      const logoutUrl = ssoLogoutUrl(clientRef.current, flag('signup.url') as string | undefined)
-      if (!options?.expired) await closeSsoSession(logoutUrl)
+      if (!options?.expired) {
+        const logoutUrl = await ssoLogoutUrl(
+          clientRef.current,
+          flag('signup.url') as string | undefined
+        )
+        await closeSsoSession(logoutUrl)
+      }
       // While the account is still in scope and its Pouch not yet destroyed.
       await teardownOfflineSubsystem()
       if (clientRef.current) await dropAllFileNameIndexes(clientRef.current)
