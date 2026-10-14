@@ -19,9 +19,18 @@ jest.mock('expo-audio', () => ({
   useAudioPlayerStatus: () => mockStatus
 }))
 
-jest.mock('cozy-client', () => ({ __esModule: true, useClient: () => null }))
+let mockClient: object | null = null
+jest.mock('cozy-client', () => ({ __esModule: true, useClient: () => mockClient }))
+
+const mockOpenFileNatively = jest.fn()
+jest.mock('@/files/openFile', () => ({
+  openFileNatively: (...args: unknown[]) => mockOpenFileNatively(...args)
+}))
+let mockUnsupported = false
+jest.mock('@/files/audioSupport', () => ({ isUnsupportedAudio: () => mockUnsupported }))
 
 import { AudioPreview } from './AudioPreview'
+import { NoCompatibleAppError } from '@/files/errors'
 
 const renderPlayer = () =>
   render(
@@ -99,5 +108,37 @@ describe('AudioPreview playback', () => {
     fireEvent.press(screen.getByTestId('audio-play-pause'))
     await waitFor(() => expect(mockPlayer.play).toHaveBeenCalled())
     expect(mockPlayer.seekTo).not.toHaveBeenCalled()
+  })
+})
+
+describe('AudioPreview opened with another app', () => {
+  beforeEach(() => {
+    mockUnsupported = true
+    mockClient = {}
+    mockOpenFileNatively.mockReset()
+    jest.spyOn(console, 'error').mockImplementation(() => {})
+  })
+  afterEach(() => {
+    mockUnsupported = false
+    mockClient = null
+    jest.restoreAllMocks()
+  })
+
+  it('says no app can open the file', async () => {
+    mockOpenFileNatively.mockRejectedValueOnce(new NoCompatibleAppError())
+    renderPlayer()
+    fireEvent.press(screen.getByText('Ouvrir avec…'))
+    expect(
+      await screen.findByText('Aucune application ne peut ouvrir ce type de fichier')
+    ).toBeOnTheScreen()
+    expect(console.error).not.toHaveBeenCalled()
+  })
+
+  it('shows a translated message, not the raw one, on any other failure', async () => {
+    mockOpenFileNatively.mockRejectedValueOnce(new Error('kaboom'))
+    renderPlayer()
+    fireEvent.press(screen.getByText('Ouvrir avec…'))
+    expect(await screen.findByText("Impossible de charger l'aperçu")).toBeOnTheScreen()
+    expect(screen.queryByText('kaboom')).toBeNull()
   })
 })

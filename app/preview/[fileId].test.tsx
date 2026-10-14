@@ -75,7 +75,10 @@ jest.mock('expo-file-system/legacy', () => ({
   getInfoAsync: jest.fn().mockResolvedValue({ exists: false }),
   copyAsync: jest.fn()
 }))
-jest.mock('@/files/openFile', () => ({ openFileNatively: jest.fn() }))
+const mockOpenFileNatively = jest.fn()
+jest.mock('@/files/openFile', () => ({
+  openFileNatively: (...args: unknown[]) => mockOpenFileNatively(...args)
+}))
 jest.mock('@/files/audioSupport', () => ({ isUnsupportedAudio: () => false }))
 jest.mock('@/offline/OfflineFilesStore', () => ({
   OfflineFilesStore: { isPinnedAndDownloaded: () => false }
@@ -108,6 +111,7 @@ jest.mock('@/ui/icons/CozyIcon', () => {
 })
 
 import PreviewScreen from './[fileId]'
+import { NoCompatibleAppError } from '@/files/errors'
 
 const wrap = (ui: React.ReactElement) => <PaperProvider>{ui}</PaperProvider>
 
@@ -164,6 +168,29 @@ describe('PreviewScreen', () => {
       mockLookup = { data: null, fetchStatus: 'loading' }
       render(wrap(<PreviewScreen />))
       expect(screen.queryByText('drive.preview.loadFailed')).toBeNull()
+    })
+  })
+
+  describe('a file only another app can open', () => {
+    beforeEach(() => {
+      mockKind = 'unsupported'
+      mockOpenFileNatively.mockReset()
+      jest.spyOn(console, 'error').mockImplementation(() => {})
+    })
+    afterEach(() => jest.restoreAllMocks())
+
+    it('says no app can open it', async () => {
+      mockOpenFileNatively.mockRejectedValueOnce(new NoCompatibleAppError())
+      render(wrap(<PreviewScreen />))
+      expect((await screen.findAllByText('drive.open.noApp')).length).toBeGreaterThan(0)
+      expect(console.error).not.toHaveBeenCalled()
+    })
+
+    it('shows a translated message on any other failure', async () => {
+      mockOpenFileNatively.mockRejectedValueOnce(new Error('kaboom'))
+      render(wrap(<PreviewScreen />))
+      expect((await screen.findAllByText('drive.preview.loadFailed')).length).toBeGreaterThan(0)
+      expect(screen.queryByText('kaboom')).toBeNull()
     })
   })
 })
