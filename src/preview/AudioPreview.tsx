@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { StyleSheet, View } from 'react-native'
-import { AudioModule, useAudioPlayer, useAudioPlayerStatus } from 'expo-audio'
+import { AudioModule, AudioPlayer, useAudioPlayer, useAudioPlayerStatus } from 'expo-audio'
 import { Button, IconButton, ProgressBar, Text, useTheme } from 'react-native-paper'
 import { useTranslation } from 'react-i18next'
 import { useClient } from 'cozy-client'
@@ -98,8 +98,6 @@ const SupportedAudioPlayer = ({
   const player = useAudioPlayer({ uri: source.uri, headers: source.headers })
   const status = useAudioPlayerStatus(player)
   // Keep audio playing when the app is backgrounded or the device is silenced.
-  // iOS additionally requires UIBackgroundModes: audio in Info.plist; without
-  // it the OS still suspends on background. Note as v2.
   useEffect(() => {
     void AudioModule.setAudioModeAsync({
       playsInSilentMode: true,
@@ -107,6 +105,8 @@ const SupportedAudioPlayer = ({
       shouldRouteThroughEarpiece: false
     })
   }, [])
+  // Releasing the player, on unmount or when the source changes, clears its session.
+  const registered = useRef<AudioPlayer | null>(null)
   const ready = status.isLoaded
   const duration = ready ? status.duration : 0
   const position = ready ? status.currentTime : 0
@@ -117,6 +117,14 @@ const SupportedAudioPlayer = ({
     }
     // A finished player stays at its end, and play() from there ends at once.
     if (status.didJustFinish || (duration > 0 && position >= duration)) await player.seekTo(0)
+    if (registered.current !== player) {
+      registered.current = player
+      player.setActiveForLockScreen(
+        true,
+        { title: name },
+        { showSeekBackward: true, showSeekForward: true }
+      )
+    }
     player.play()
   }
   return (
