@@ -1,0 +1,63 @@
+appId: com.linagora.twakedrive
+tags:
+  - inapp
+onFlowComplete:
+  - runFlow: ../../subflows/cleanup.yaml
+---
+# With no language chosen in the app ("Automatic"), the app speaks the language of
+# the instance (French on the e2e stack, whose device is in English), also
+# after a restart. An explicit choice still wins.
+- runFlow: ../../subflows/openDrive.yaml
+- tapOn:
+    id: 'appbar-avatar'
+- waitForAnimationToEnd
+- tapOn:
+    id: 'menu-item'
+    index: 0
+- extendedWaitUntil:
+    visible:
+      id: 'settings-language'
+    timeout: 15000
+- tapOn:
+    id: 'settings-language'
+- extendedWaitUntil:
+    visible:
+      id: 'settings-language-en'
+    timeout: 15000
+- tapOn:
+    id: 'settings-language-en'
+- extendedWaitUntil:
+    visible: 'Language'
+    timeout: 15000
+- runFlow: ../../subflows/openDrive.yaml
+- tapOn:
+    id: 'appbar-avatar'
+- waitForAnimationToEnd
+- tapOn:
+    id: 'menu-item'
+    index: 0
+- extendedWaitUntil:
+    visible:
+      id: 'settings-language'
+    timeout: 15000
+- tapOn:
+    id: 'settings-language'
+- extendedWaitUntil:
+    visible:
+      id: 'settings-language-automatic'
+    timeout: 15000
+- tapOn:
+    id: 'settings-language-automatic'
+- extendedWaitUntil:
+    visible: 'Langue'
+    timeout: 15000
+- runFlow: ../../subflows/openDrive.yaml
+- tapOn:
+    id: 'appbar-avatar'
+- waitForAnimationToEnd
+- tapOn:
+    id: 'menu-item'
+    index: 0
+- extendedWaitUntil:
+    visible: 'Langue'
+    timeout: 15000
