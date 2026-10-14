@@ -1,0 +1,57 @@
+appId: com.linagora.twakedrive
+tags:
+  - android
+onFlowComplete:
+  - runFlow: ../../subflows/cleanup.yaml
+---
+# Audio keeps playing once the app is in the background, and the notification
+# shade lists it as a media player titled with the file name. The file name is
+# not on screen anywhere else after Home.
+- runScript:
+    file: ../../scripts/seed.js
+    env:
+      SEED: '[{"key":"track","kind":"file","prefix":"E2E-notif","ext":"wav","silence":true}]'
+- runFlow: ../../subflows/openDrive.yaml
+- extendedWaitUntil:
+    visible:
+      id: 'file-row:${output.track.name}'
+    timeout: 60000
+- tapOn:
+    id: 'file-row:${output.track.name}'
+- extendedWaitUntil:
+    visible:
+      id: 'audio-play-pause'
+      enabled: true
+    timeout: 30000
+- tapOn:
+    id: 'audio-play-pause'
+
+# Closing the preview while it plays ends the playback and stays on the drive.
+- pressKey: Back
+- extendedWaitUntil:
+    visible:
+      id: 'file-row:${output.track.name}'
+    timeout: 15000
+- tapOn:
+    id: 'file-row:${output.track.name}'
+- extendedWaitUntil:
+    visible:
+      id: 'audio-play-pause'
+      enabled: true
+    timeout: 30000
+- tapOn:
+    id: 'audio-play-pause'
+- pressKey: Home
+- swipe:
+    start: 50%, 0%
+    end: 50%, 70%
+- swipe:
+    start: 50%, 0%
+    end: 50%, 70%
+- extendedWaitUntil:
+    visible: '${output.track.name}'
+    timeout: 15000
+# Close the shade: pressKey Back leaves it open and the next flows cannot see the app.
+- swipe:
+    start: 50%, 90%
+    end: 50%, 10%
