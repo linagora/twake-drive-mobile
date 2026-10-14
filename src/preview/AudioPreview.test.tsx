@@ -3,7 +3,12 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react-nativ
 import { Provider as PaperProvider } from 'react-native-paper'
 import '@/i18n'
 
-const mockPlayer = { play: jest.fn(), pause: jest.fn(), seekTo: jest.fn() }
+const mockPlayer = {
+  play: jest.fn(),
+  pause: jest.fn(),
+  seekTo: jest.fn(),
+  setActiveForLockScreen: jest.fn()
+}
 let mockStatus = {
   isLoaded: true,
   playing: false,
@@ -99,5 +104,16 @@ describe('AudioPreview playback', () => {
     fireEvent.press(screen.getByTestId('audio-play-pause'))
     await waitFor(() => expect(mockPlayer.play).toHaveBeenCalled())
     expect(mockPlayer.seekTo).not.toHaveBeenCalled()
+  })
+
+  it('registers the file name on the lock screen and notification when playback starts', async () => {
+    mockStatus = { ...mockStatus, playing: false, didJustFinish: false, currentTime: 50 }
+    mockPlayer.setActiveForLockScreen.mockReset()
+    renderPlayer()
+    expect(mockPlayer.setActiveForLockScreen).not.toHaveBeenCalled()
+    fireEvent.press(screen.getByTestId('audio-play-pause'))
+    await waitFor(() => expect(mockPlayer.play).toHaveBeenCalled())
+    expect(mockPlayer.setActiveForLockScreen).toHaveBeenCalledTimes(1)
+    expect(mockPlayer.setActiveForLockScreen.mock.calls[0][1]).toEqual({ title: 'song.mp3' })
   })
 })
