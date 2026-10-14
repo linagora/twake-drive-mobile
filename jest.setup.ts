@@ -1,4 +1,8 @@
 import '@testing-library/react-native/extend-expect'
+import { configure } from '@testing-library/react-native'
+
+// CI runners stall the JS thread for seconds; the 1 s default makes findBy*/waitFor flake.
+configure({ asyncUtilTimeout: 5000 })
 
 // Node 16 does not ship FormData globally; jest-expo's winter runtime requires it.
 if (typeof FormData === 'undefined') {
