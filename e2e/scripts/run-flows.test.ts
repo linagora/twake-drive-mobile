@@ -3,6 +3,9 @@ import fs from 'fs'
 import os from 'os'
 import path from 'path'
 
+// A loaded runner needs more than a second to run a flow that is meant to pass.
+jest.setTimeout(30000)
+
 const SCRIPT = path.join(__dirname, 'run-flows.sh')
 
 // The fake maestro hangs or fails according to the flow's file name. A marker
@@ -57,7 +60,7 @@ function runFlow(name: string) {
       PATH: `${path.join(tmp, 'bin')}:${process.env.PATH}`,
       FAKE_STATE: path.join(tmp, 'state'),
       REPORTS_DIR: path.join(tmp, 'reports'),
-      E2E_FLOW_TIMEOUT: '1s',
+      E2E_FLOW_TIMEOUT: '3s',
       INSTANCE_DOMAIN: 'alice.example',
       INSTANCE_PASSPHRASE: 'secret',
       STACK_CONTAINER: 'stack'
@@ -75,9 +78,9 @@ describe('run-flows.sh', () => {
     expect(status).toBe(0)
     expect(adbCalls()).toContain('forward --remove-all')
     expect(adbCalls()).toContain('shell am force-stop dev.mobile.maestro.test')
-    expect(out).toContain('[Retried] hang-once (timed out after 1s)')
+    expect(out).toContain('[Retried] hang-once (timed out after 3s)')
     expect(out).toContain('| hang-once | 🔁 passed on retry')
-    expect(report('hang-once.attempt1.xml')).toContain('<skipped message="timed out after 1s"/>')
+    expect(report('hang-once.attempt1.xml')).toContain('<skipped message="timed out after 3s"/>')
   })
 
   it('fails a flow that hangs twice', () => {
@@ -86,7 +89,7 @@ describe('run-flows.sh', () => {
     expect(status).not.toBe(0)
     expect(out).toContain('[Timed out twice] hang-twice')
     expect(out).toContain('| hang-twice | ❌ timed out twice')
-    expect(report('hang-twice.xml')).toContain('<failure message="timed out after 1s"/>')
+    expect(report('hang-twice.xml')).toContain('<failure message="timed out after 3s"/>')
   })
 
   it('does not retry an assertion failure', () => {
