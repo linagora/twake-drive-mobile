@@ -41,7 +41,7 @@ export default function SettingsIndex(): React.ReactElement {
   const [logoutAsked, setLogoutAsked] = React.useState(false)
   const localePref = getLocalePreference()
   const languageValue =
-    localePref === LOCALE_SYSTEM ? t('settings.systemLanguage') : localeDisplayName(localePref)
+    localePref === LOCALE_SYSTEM ? t('settings.automaticLanguage') : localeDisplayName(localePref)
   const { pref: themePref, setPref: setThemePref } = useThemePreference()
   const themeOptions: { key: ThemePref; label: string }[] = [
     { key: 'system', label: t('settings.themeSystem') },

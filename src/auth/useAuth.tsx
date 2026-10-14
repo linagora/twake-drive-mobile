@@ -12,7 +12,8 @@ import flag from 'cozy-flags'
 
 import { certifyFlagship as certifyFlagshipModule } from './certifyFlagship'
 import { createClient } from '@/client/createClient'
-import i18n, { resolveDeviceLanguage } from '@/i18n'
+import i18n, { resolveStartupLanguage } from '@/i18n'
+import { setInstanceLocale } from '@/preferences/localePreference'
 import { clearNativeSession, mirrorSessionToNative } from '@/native/twakeAuthBridge'
 import { teardownOfflineSubsystem } from '@/offline/initOffline'
 import { destroyLocalData } from '@/pouchdb/destroyLocalData'
@@ -63,6 +64,13 @@ const AuthContext = createContext<AuthContextValue | null>(null)
 
 let devResyncInFlight = false
 
+// No session: the language goes back to the device's, a kept instance
+// locale would otherwise colour the login screen.
+const dropInstanceLanguage = (): void => {
+  setInstanceLocale(undefined)
+  void i18n.changeLanguage(resolveStartupLanguage())
+}
+
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [state, setState] = useState<AuthState>({ status: 'loading', client: null })
   const [authenticating, setAuthenticating] = useState(false)
@@ -83,6 +91,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         const session = await getSession()
         if (!session) {
           await clearNativeSession()
+          dropInstanceLanguage()
           setState({ status: 'unauthenticated', client: null })
           return
         }
@@ -103,6 +112,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         // Only a session that existed and then failed is worth reporting; a
         // first launch with no stored session is not an error.
         if (hadStoredSession) setSessionExpired(true)
+        dropInstanceLanguage()
         setState({ status: 'unauthenticated', client: null })
       }
     }
@@ -183,9 +193,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setAccountScope(null)
       setSessionExpired(!!options?.expired)
       setState({ status: 'unauthenticated', client: null })
-      // Drop the instance locale that synced during the session; the login
-      // screen returns to the device language, like a cold launch.
-      void i18n.changeLanguage(resolveDeviceLanguage())
+      dropInstanceLanguage()
     },
     []
   )

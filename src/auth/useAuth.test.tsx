@@ -72,16 +72,21 @@ jest.mock('cozy-flags', () => ({
   default: Object.assign(jest.fn(), { plugin: jest.fn() })
 }))
 
+const mockSetInstanceLocale = jest.fn()
+jest.mock('@/preferences/localePreference', () => ({
+  setInstanceLocale: (locale?: string) => mockSetInstanceLocale(locale)
+}))
+
 jest.mock('@/i18n', () => ({
   __esModule: true,
   default: { changeLanguage: jest.fn() },
-  resolveDeviceLanguage: jest.fn(() => 'en')
+  resolveStartupLanguage: jest.fn(() => 'en')
 }))
 
 import CozyClient from 'cozy-client'
 import flag from 'cozy-flags'
 
-import i18n, { resolveDeviceLanguage } from '@/i18n'
+import i18n, { resolveStartupLanguage } from '@/i18n'
 import * as tokenStorage from './tokenStorage'
 import * as twakeAuthBridge from '@/native/twakeAuthBridge'
 import * as freshInstall from './freshInstall'
@@ -141,6 +146,17 @@ describe('useAuth', () => {
       </AuthProvider>
     )
     await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('unauthenticated'))
+  })
+
+  it('drops the kept instance language when a launch finds no session', async () => {
+    jest.spyOn(tokenStorage, 'getSession').mockResolvedValue(null)
+    render(
+      <AuthProvider>
+        <Probe />
+      </AuthProvider>
+    )
+    await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('unauthenticated'))
+    expect(mockSetInstanceLocale).toHaveBeenCalledWith(undefined)
   })
 
   it('clears what the native side holds when a launch finds no session', async () => {
@@ -258,8 +274,9 @@ describe('useAuth', () => {
     await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('unauthenticated'))
     expect(clearSpy).toHaveBeenCalled()
     // login screen returns to the device language, dropping the instance locale
-    expect(resolveDeviceLanguage).toHaveBeenCalled()
+    expect(resolveStartupLanguage).toHaveBeenCalled()
     expect(i18n.changeLanguage).toHaveBeenCalledWith('en')
+    expect(mockSetInstanceLocale).toHaveBeenCalledWith(undefined)
   })
 
   it('a logout the user asked for closes the SSO session too', async () => {

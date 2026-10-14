@@ -12,25 +12,23 @@ import {
   LOCALE_SYSTEM,
   getLocalePreference,
   setLocalePreference,
-  resolveLanguage
+  resolveLanguage,
+  getInstanceLocale
 } from '@/preferences/localePreference'
 import { getLocales } from 'expo-localization'
-
-import { useCurrentUser } from '@/account/useCurrentUser'
 
 export default function LanguageScreen(): React.ReactElement {
   const { t } = useTranslation()
   const router = useRouter()
   const current = getLocalePreference()
   const available = Object.keys(i18n.options.resources ?? {})
-  const { locale: instanceLocale } = useCurrentUser()
 
   const choose = (pref: string): void => {
     setLocalePreference(pref)
     const device = getLocales()[0]?.languageCode ?? undefined
     // Same precedence as useSyncInstanceLocale: the choice, then the instance,
     // then the device.
-    const resolved = resolveLanguage(pref, instanceLocale ?? device, available)
+    const resolved = resolveLanguage(pref, [getInstanceLocale(), device], available)
     // Navigate back FIRST, then switch the language on the next tick.
     // i18n.changeLanguage() synchronously re-renders every useTranslation consumer
     // (including the navigators' screen titles); doing that before/around
@@ -49,7 +47,9 @@ export default function LanguageScreen(): React.ReactElement {
       <AppBar sheet title={t('settings.language')} onBack={() => router.back()} />
       <ScrollView>
         <SettingsRow
-          title={t('settings.systemLanguage')}
+          testID="settings-language-automatic"
+          title={t('settings.automaticLanguage')}
+          description={t('settings.automaticLanguageHint')}
           trailing={current === LOCALE_SYSTEM ? 'check' : 'none'}
           onPress={() => choose(LOCALE_SYSTEM)}
         />
