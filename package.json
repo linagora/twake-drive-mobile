@@ -39,6 +39,8 @@
     "@linagora/twake-css": "1.0.0",
     "@op-engineering/op-sqlite": "18.2.5",
     "@react-native-community/netinfo": "^11.5.2",
+    "@react-native-firebase/app": "^26.4.0",
+    "@react-native-firebase/messaging": "^26.4.0",
     "@sentry/core": "10.12.0",
     "@sentry/react-native": "~7.2.0",
     "cozy-client": "^60.39.0",

@@ -24,7 +24,7 @@
         "usesNonExemptEncryption": false
       },
       "infoPlist": {
-        "UIBackgroundModes": ["audio"]
+        "UIBackgroundModes": ["audio", "remote-notification"]
       },
       "associatedDomains": ["applinks:links.twake.app"]
     },

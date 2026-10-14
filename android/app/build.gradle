@@ -278,3 +278,12 @@ dependencies {
     // CozyStackApi and CozyFile rely on for parsing cozy-stack responses.
     testImplementation("org.json:json:20260522")
 }
+
+// Push notifications (FCM). The file has to come from the Firebase project the
+// stack's `notifications.fcm_credentials_file` belongs to: a token from any
+// other project makes the stack delete this device's OAuth client on the
+// first push. Without the file, Firebase stays uninitialised and no token is
+// ever registered.
+if (file('google-services.json').exists()) {
+  apply plugin: 'com.google.gms.google-services'
+}

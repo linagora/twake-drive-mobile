@@ -46,6 +46,13 @@ jest.mock('@/offline/initOffline', () => ({
   teardownOfflineSubsystem: () => mockTeardownOfflineSubsystem()
 }))
 
+let mockPushEnabled = false
+const mockRemoveNotificationDeviceToken = jest.fn(async (..._a: unknown[]) => undefined)
+jest.mock('@/notifications/notificationDeviceToken', () => ({
+  isPushEnabled: () => mockPushEnabled,
+  removeNotificationDeviceToken: (...a: unknown[]) => mockRemoveNotificationDeviceToken(...a)
+}))
+
 const mockCloseSsoSession = jest.fn(async () => undefined)
 const mockSsoLogoutUrl = jest.fn((_client: unknown, signupUrl?: string) =>
   signupUrl ? `resolved:${signupUrl}` : null
@@ -131,6 +138,8 @@ describe('useAuth', () => {
     mockDestroyLocalData.mockClear()
     mockDropAllFileNameIndexes.mockClear()
     mockTeardownOfflineSubsystem.mockClear()
+    mockRemoveNotificationDeviceToken.mockClear()
+    mockPushEnabled = false
   })
 
   it('starts loading then transitions to unauthenticated when no session', async () => {
@@ -483,5 +492,49 @@ describe('useAuth', () => {
       mockDestroyLocalData.mock.invocationCallOrder[0]
     )
     await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('authenticated'))
+  })
+
+  // Offline, client.logout() cannot delete the OAuth client: without this the
+  // device would keep getting the pushes of the account it left.
+  it('a logout clears the push token before the client is unregistered', async () => {
+    mockPushEnabled = true
+    jest.spyOn(tokenStorage, 'getSession').mockResolvedValue(mockSession)
+    jest.spyOn(tokenStorage, 'clearSession').mockResolvedValue()
+    render(
+      <AuthProvider>
+        <Probe />
+      </AuthProvider>
+    )
+    await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('authenticated'))
+    const clients = (CozyClient as unknown as jest.Mock).mock.results
+    const client = clients[clients.length - 1].value as { logout: jest.Mock }
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('logout'))
+    })
+
+    await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('unauthenticated'))
+    expect(mockRemoveNotificationDeviceToken).toHaveBeenCalledWith(client)
+    expect(mockRemoveNotificationDeviceToken.mock.invocationCallOrder[0]).toBeLessThan(
+      client.logout.mock.invocationCallOrder[0]
+    )
+  })
+
+  it('a logout leaves the OAuth client alone while push is off', async () => {
+    jest.spyOn(tokenStorage, 'getSession').mockResolvedValue(mockSession)
+    jest.spyOn(tokenStorage, 'clearSession').mockResolvedValue()
+    render(
+      <AuthProvider>
+        <Probe />
+      </AuthProvider>
+    )
+    await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('authenticated'))
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('logout'))
+    })
+
+    await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('unauthenticated'))
+    expect(mockRemoveNotificationDeviceToken).not.toHaveBeenCalled()
   })
 })

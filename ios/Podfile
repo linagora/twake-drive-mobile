@@ -20,6 +20,10 @@ platform :ios, podfile_properties['ios.deploymentTarget'] || '15.1'
 
 prepare_react_native_project!
 
+# react-native-firebase resolves Firebase through SPM by default, which it
+# refuses next to static pods (duplicate symbols): take it from CocoaPods.
+$RNFirebaseDisableSPM = true
+
 target 'TwakeDrive' do
   use_expo_modules!
 
@@ -42,6 +46,16 @@ target 'TwakeDrive' do
   config = use_native_modules!(config_command)
 
   pod 'RNIOS11DeviceCheck', :path => '../node_modules/react-native-ios11-devicecheck/ios'
+
+  # Firebase's Swift pods, and `import FirebaseCore` in AppDelegate.swift, need
+  # module maps from these Objective-C pods, which static linkage leaves out.
+  pod 'FirebaseCore', :modular_headers => true
+  pod 'FirebaseCoreExtension', :modular_headers => true
+  pod 'FirebaseCoreInternal', :modular_headers => true
+  pod 'FirebaseInstallations', :modular_headers => true
+  pod 'GoogleDataTransport', :modular_headers => true
+  pod 'GoogleUtilities', :modular_headers => true
+  pod 'nanopb', :modular_headers => true
 
   use_frameworks! :linkage => podfile_properties['ios.useFrameworks'].to_sym if podfile_properties['ios.useFrameworks']
   use_frameworks! :linkage => ENV['USE_FRAMEWORKS'].to_sym if ENV['USE_FRAMEWORKS']

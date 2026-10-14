@@ -11,6 +11,7 @@ import { useFlagsRefresh } from '@/client/useFlagsRefresh'
 import { useSharedDriveReplication } from '@/files/useSharedDriveReplication'
 import { useSyncInstanceLocale } from '@/i18n/useSyncInstanceLocale'
 import { initOfflineSubsystem } from '@/offline/initOffline'
+import { usePushNotifications } from '@/notifications/usePushNotifications'
 import { formatBadgeCount, useNewSharesCount } from '@/sharing/newShares'
 import { useAuth } from '@/auth/useAuth'
 import { LoadingState } from '@/ui/LoadingState'
@@ -38,6 +39,7 @@ function DriveTabs() {
   useFlagsRefresh()
   useSharedDriveReplication()
   useSyncInstanceLocale()
+  usePushNotifications()
   const newSharesCount = useNewSharesCount()
   useEffect(() => {
     if (!client) return
