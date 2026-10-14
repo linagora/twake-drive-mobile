@@ -14,6 +14,7 @@ import { RenameDialog } from '@/ui/RenameDialog'
 import { ConfirmDeleteDialog } from '@/ui/ConfirmDeleteDialog'
 import { formatFileSize } from '@/utils/formatters'
 import { openFileNatively } from '@/files/openFile'
+import { surfaceOpenError } from '@/files/errors'
 import { renameEntry } from '@/files/renameEntry'
 import { optimisticFiles } from '@/files/optimisticFiles'
 import { softDeleteEntry } from '@/files/deleteFile'
@@ -112,7 +113,7 @@ export default function MetadataRoute() {
         close()
         await Linking.openURL(url)
       } catch (e) {
-        setOpenError((e as Error).message ?? 'open failed')
+        surfaceOpenError(e, setOpenError, t, 'MetadataScreen')
       } finally {
         setOpening(false)
       }
@@ -128,7 +129,7 @@ export default function MetadataRoute() {
         mime: file.mime
       })
     } catch (e) {
-      setOpenError((e as Error).message ?? 'open failed')
+      surfaceOpenError(e, setOpenError, t, 'MetadataScreen')
     } finally {
       setOpening(false)
     }
@@ -152,7 +153,7 @@ export default function MetadataRoute() {
       setTimeout(close, SNACKBAR_DISMISS_DELAY_MS)
     } catch (e) {
       revert()
-      setSnackbar(t('drive.rename.errorGeneric'))
+      throw e
     } finally {
       setMutating(false)
     }

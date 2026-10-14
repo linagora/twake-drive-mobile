@@ -18,6 +18,7 @@ import {
   StreamSource
 } from '@/files/streamUrl'
 import { openFileNatively } from '@/files/openFile'
+import { surfaceOpenError } from '@/files/errors'
 import { DocumentViewer } from '@/viewer/DocumentViewer'
 import { localViewerFor } from '@/viewer/documentKind'
 import { OfflineFilesStore } from '@/offline/OfflineFilesStore'
@@ -137,8 +138,7 @@ export default function PreviewScreen() {
         )
         router.back()
       } catch (e) {
-        console.error('[PreviewScreen] native fallback failed', e)
-        setExternalError((e as Error).message ?? t('drive.preview.loadFailed'))
+        surfaceOpenError(e, setExternalError, t, 'PreviewScreen')
         fallbackTriggered.current = false
       }
     })()
@@ -232,7 +232,8 @@ export default function PreviewScreen() {
               driveId
             ).catch(e => {
               if ((e as Error).name === 'DownloadCancelledError') return
-              setExternalError((e as Error).message ?? t('drive.preview.loadFailed'))
+              console.error('[PreviewScreen] download failed', e)
+              setExternalError(t('drive.offline.failed'))
             })
           }
         },

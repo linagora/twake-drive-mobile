@@ -8,6 +8,7 @@ import { useClient } from 'cozy-client'
 import { CozyIcon } from '@/ui/icons/CozyIcon'
 import { StreamSource } from '@/files/streamUrl'
 import { openFileNatively } from '@/files/openFile'
+import { surfaceOpenError } from '@/files/errors'
 import { isUnsupportedAudio } from '@/files/audioSupport'
 import { cozyTokens } from '@/ui/theme'
 import { LoadingOverlay } from './PreviewOverlays'
@@ -53,8 +54,7 @@ const UnsupportedAudio = ({
       // knows whether a sheet actually appeared.
       setPresented(true)
     } catch (e) {
-      console.error('[AudioPreview] open externally failed', e)
-      setError((e as Error).message ?? 'open failed')
+      surfaceOpenError(e, setError, t, 'AudioPreview')
     } finally {
       setBusy(false)
     }
