@@ -25,6 +25,10 @@ class DocumentCache(private val context: Context) {
         return f
     }
 
+    fun clear() {
+        dir().deleteRecursively()
+    }
+
     fun cachedFile(id: String): File = under(dir(), id)
 
     /** Read-only fast path over the RN-owned pinned offline blob. */
