@@ -22,9 +22,11 @@ describe('LanguageScreen', () => {
   beforeEach(() => jest.useFakeTimers())
   afterEach(() => jest.useRealTimers())
 
-  it('lists a System row plus one row per bundled locale, and switches on tap', () => {
+  it('lists an Automatic row plus one row per bundled locale, and switches on tap', () => {
     const changeSpy = jest.spyOn(i18n, 'changeLanguage')
     const { getByText } = render(<LanguageScreen />)
+    getByText(i18n.t('settings.automaticLanguage'))
+    getByText(i18n.t('settings.automaticLanguageHint'))
     getByText('Français')
     getByText('English')
     fireEvent.press(getByText('English'))

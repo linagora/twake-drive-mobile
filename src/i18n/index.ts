@@ -3,7 +3,11 @@ import 'intl-pluralrules'
 import i18n from 'i18next'
 import { initReactI18next } from 'react-i18next'
 import { getLocales } from 'expo-localization'
-import { getLocalePreference, resolveLanguage } from '@/preferences/localePreference'
+import {
+  getInstanceLocale,
+  getLocalePreference,
+  resolveLanguage
+} from '@/preferences/localePreference'
 
 import en from './locales/en.json'
 import fr from './locales/fr.json'
@@ -23,19 +27,19 @@ const resources = {
   ru: { translation: ru }
 }
 
-// Cold-launch language: the user override, else the device locale, else English —
-// no instance locale (there is no logged-in account). Reused on logout to drop
-// the instance locale that useSyncInstanceLocale applied during the session.
-export const resolveDeviceLanguage = (): string =>
+// Cold-launch language: the user override, else the last instance locale, else
+// the device locale, else English. Reused on logout, once the stored instance
+// locale is cleared, to drop the one useSyncInstanceLocale applied.
+export const resolveStartupLanguage = (): string =>
   resolveLanguage(
     getLocalePreference(),
-    getLocales()[0]?.languageCode ?? undefined,
+    [getInstanceLocale(), getLocales()[0]?.languageCode ?? undefined],
     Object.keys(resources)
   )
 
 i18n.use(initReactI18next).init({
   resources,
-  lng: resolveDeviceLanguage(),
+  lng: resolveStartupLanguage(),
   fallbackLng: 'en',
   interpolation: { escapeValue: false }
 })
