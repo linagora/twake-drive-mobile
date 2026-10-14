@@ -1,6 +1,6 @@
 import React from 'react'
 import { Provider as PaperProvider } from 'react-native-paper'
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react-native'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react-native'
 
 let mockParams: { fileId: string; driveId?: string } = { fileId: 'f1' }
 jest.mock('expo-router', () => ({
@@ -302,10 +302,17 @@ describe('ShareRoute', () => {
       manageable: true
     }
 
+    // Paper's Menu hides itself on mount with a 250 ms animation: on a loaded runner it
+    // ends after the test opened the menu and detaches the item the test found.
+    beforeEach(() => jest.useFakeTimers())
+    afterEach(() => jest.useRealTimers())
+    const settleMenus = () => act(() => jest.advanceTimersByTime(1000))
+
     it('shows the role and changes it through the stack', async () => {
       mockFetchEffectiveRecipients.mockResolvedValue([member])
       render(wrap(<ShareRoute />))
       const role = await screen.findByTestId('recipient-role')
+      await settleMenus()
       expect(screen.getByText('drive.share.roleEditor')).toBeOnTheScreen()
       fireEvent.press(role)
       fireEvent.press(await screen.findByTestId('recipient-role-viewer'))
@@ -319,7 +326,9 @@ describe('ShareRoute', () => {
       mockSetMemberReadOnly.mockRejectedValue(new Error('boom'))
       jest.spyOn(console, 'error').mockImplementation(() => {})
       render(wrap(<ShareRoute />))
-      fireEvent.press(await screen.findByTestId('recipient-role'))
+      const role = await screen.findByTestId('recipient-role')
+      await settleMenus()
+      fireEvent.press(role)
       fireEvent.press(await screen.findByTestId('recipient-role-viewer'))
       expect(await screen.findByText('drive.share.errorMutate')).toBeOnTheScreen()
       expect(screen.getByText('drive.share.roleEditor')).toBeOnTheScreen()
