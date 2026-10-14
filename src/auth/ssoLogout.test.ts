@@ -9,6 +9,7 @@ jest.mock('expo-web-browser', () => ({
   dismissBrowser: jest.fn(() => Promise.resolve()),
   WebBrowserResultType: { CANCEL: 'cancel', DISMISS: 'dismiss', OPENED: 'opened', LOCKED: 'locked' }
 }))
+jest.mock('expo-crypto', () => ({ randomUUID: () => 'fixed-state' }))
 jest.mock('expo-linking', () => ({ addEventListener: jest.fn() }))
 
 const wb = WebBrowser as unknown as { openBrowserAsync: jest.Mock; dismissBrowser: jest.Mock }
@@ -31,22 +32,32 @@ describe('closeSsoSession', () => {
 
   it('opens the logout page in the browser the login ran in', () => {
     wb.openBrowserAsync.mockReturnValue(new Promise(() => undefined))
-    void closeSsoSession('https://sso.example.com/oauth2/logout')
+    void closeSsoSession({ url: 'https://sso.example.com/oauth2/logout' })
     expect(wb.openBrowserAsync).toHaveBeenCalledWith('https://sso.example.com/oauth2/logout')
   })
 
   it('closes the browser once the portal says the session is gone', async () => {
     wb.openBrowserAsync.mockReturnValue(new Promise(() => undefined))
-    const done = closeSsoSession('https://sso.example.com/oauth2/logout')
+    const done = closeSsoSession({ url: 'https://sso.example.com/oauth2/logout' })
     urlHandler({ url: 'twakedrive://afterlogout' })
     await done
     expect(wb.dismissBrowser).toHaveBeenCalled()
     expect(remove).toHaveBeenCalled()
   })
 
+  it('ignores a return that carries another state', () => {
+    wb.openBrowserAsync.mockReturnValue(new Promise(() => undefined))
+    void closeSsoSession({ url: 'https://sso.example.com/oauth2/logout', state: 'mine' })
+    urlHandler({ url: 'twakedrive://afterlogout?state=other' })
+    urlHandler({ url: 'twakedrive://afterlogout' })
+    expect(wb.dismissBrowser).not.toHaveBeenCalled()
+    urlHandler({ url: 'twakedrive://afterlogout?state=mine' })
+    expect(wb.dismissBrowser).toHaveBeenCalled()
+  })
+
   it('leaves the browser alone for a link that is not the end of the logout', () => {
     wb.openBrowserAsync.mockReturnValue(new Promise(() => undefined))
-    void closeSsoSession('https://sso.example.com/oauth2/logout')
+    void closeSsoSession({ url: 'https://sso.example.com/oauth2/logout' })
     urlHandler({ url: 'twakedrive:///search' })
     expect(wb.dismissBrowser).not.toHaveBeenCalled()
     expect(remove).not.toHaveBeenCalled()
@@ -54,7 +65,7 @@ describe('closeSsoSession', () => {
 
   it('stops listening when the user closes the browser themselves', async () => {
     wb.openBrowserAsync.mockResolvedValue({ type: 'cancel' })
-    await closeSsoSession('https://sso.example.com/oauth2/logout')
+    await closeSsoSession({ url: 'https://sso.example.com/oauth2/logout' })
     expect(remove).toHaveBeenCalled()
   })
 
@@ -81,7 +92,7 @@ describe('closeSsoSession', () => {
     it('ends when the app comes back to the front', async () => {
       AppState.currentState = 'active'
       let ended = false
-      const done = closeSsoSession('https://sso.example.com/oauth2/logout').then(() => {
+      const done = closeSsoSession({ url: 'https://sso.example.com/oauth2/logout' }).then(() => {
         ended = true
       })
       await Promise.resolve()
@@ -95,7 +106,7 @@ describe('closeSsoSession', () => {
 
     it('ends when the tab had already covered the app by the time it answered', async () => {
       AppState.currentState = 'background'
-      const done = closeSsoSession('https://sso.example.com/oauth2/logout')
+      const done = closeSsoSession({ url: 'https://sso.example.com/oauth2/logout' })
       await Promise.resolve()
       await Promise.resolve()
       appStateHandler('active')
@@ -105,7 +116,9 @@ describe('closeSsoSession', () => {
 
   it('never fails the logout when the browser cannot open', async () => {
     wb.openBrowserAsync.mockRejectedValue(new Error('already presented'))
-    await expect(closeSsoSession('https://sso.example.com/oauth2/logout')).resolves.toBeUndefined()
+    await expect(
+      closeSsoSession({ url: 'https://sso.example.com/oauth2/logout' })
+    ).resolves.toBeUndefined()
     expect(remove).toHaveBeenCalled()
   })
 
@@ -118,65 +131,95 @@ describe('closeSsoSession', () => {
 describe('ssoLogoutUrl', () => {
   const clientHolding = (instance: unknown) =>
     ({ getQueryFromState: jest.fn(() => ({ data: instance })) }) as never
+  const RETURN =
+    'post_logout_redirect_uri=twakedrive%3A%2F%2Fafterlogout&state=fixed-state&confirm=1'
+  const fetchMock = jest.fn()
+  const urlOf = async (...args: Parameters<typeof ssoLogoutUrl>) =>
+    (await ssoLogoutUrl(...args))?.url ?? null
 
-  // Opened bare, the page has nothing to send the browser back to, so it sits
-  // there until the user closes it by hand.
-  it("is the instance's own SSO logout page, told where to send the browser back", () => {
+  beforeEach(() => {
+    fetchMock.mockReset().mockRejectedValue(new Error('offline'))
+    global.fetch = fetchMock as never
+  })
+
+  it("is the instance's own SSO logout page, told where to send the browser back", async () => {
     const client = clientHolding({
       attributes: { oidc_logout_url: 'https://sso.example.com/oauth2/logout' }
     })
-    expect(ssoLogoutUrl(client, 'https://sign-up.example.com')).toBe(
-      'https://sso.example.com/oauth2/logout?url=twakedrive://afterlogout'
+    expect(await urlOf(client, 'https://sign-up.example.com')).toBe(
+      `https://sso.example.com/oauth2/logout?${RETURN}`
     )
     expect((client as { getQueryFromState: jest.Mock }).getQueryFromState).toHaveBeenCalledWith(
       'io.cozy.settings/instance'
     )
   })
 
-  it('reads the instance settings whichever shape the store holds them in', () => {
-    expect(
-      ssoLogoutUrl(clientHolding({ oidc_logout_url: 'https://sso.example.com/out' }), undefined)
-    ).toBe('https://sso.example.com/out?url=twakedrive://afterlogout')
-    expect(
-      ssoLogoutUrl(clientHolding([{ oidc_logout_url: 'https://sso.example.com/out' }]), undefined)
-    ).toBe('https://sso.example.com/out?url=twakedrive://afterlogout')
-  })
-
-  it('keeps a query the logout page already carries', () => {
-    expect(
-      ssoLogoutUrl(
-        clientHolding({ oidc_logout_url: 'https://sso.example.com/out?ctx=a' }),
-        undefined
-      )
-    ).toBe('https://sso.example.com/out?ctx=a&url=twakedrive://afterlogout')
-  })
-
-  it('does not ask twice when the stack already named a return address', () => {
-    expect(
-      ssoLogoutUrl(
-        clientHolding({
-          oidc_logout_url: 'https://sso.example.com/out?url=twakedrive://afterlogout'
-        }),
-        undefined
-      )
-    ).toBe('https://sso.example.com/out?url=twakedrive://afterlogout')
-  })
-
-  it('falls back to the sign-up portal when the stack names no logout page', () => {
-    expect(ssoLogoutUrl(clientHolding({ attributes: {} }), 'https://sign-up.example.com')).toBe(
-      'https://sign-up.example.com/logout?url=twakedrive://afterlogout'
+  it('reads the instance settings whichever shape the store holds them in', async () => {
+    const out = `https://sso.example.com/out?${RETURN}`
+    expect(await urlOf(clientHolding({ oidc_logout_url: 'https://sso.example.com/out' }))).toBe(out)
+    expect(await urlOf(clientHolding([{ oidc_logout_url: 'https://sso.example.com/out' }]))).toBe(
+      out
     )
   })
 
-  it('falls back to the sign-up portal when the settings were never loaded', () => {
+  it('hands back the state it generated, whatever the logout page already carries', async () => {
+    const logout = await ssoLogoutUrl(
+      clientHolding({ oidc_logout_url: 'https://sso.example.com/out?state=theirs' })
+    )
+    expect(logout?.state).toBe('fixed-state')
+    expect(logout?.url).toBe(`https://sso.example.com/out?state=theirs&${RETURN}`)
+  })
+
+  it('sends the sign-up portal no state to wait for', async () => {
+    expect(await ssoLogoutUrl(clientHolding({}), 'https://sign-up.example.com')).toEqual({
+      url: 'https://sign-up.example.com/logout?url=twakedrive://afterlogout'
+    })
+  })
+
+  it('keeps a query the logout page already carries', async () => {
+    expect(
+      await urlOf(clientHolding({ oidc_logout_url: 'https://sso.example.com/out?ctx=a' }))
+    ).toBe(`https://sso.example.com/out?ctx=a&${RETURN}`)
+  })
+
+  it("goes to the end_session_endpoint the provider's discovery names", async () => {
+    fetchMock.mockResolvedValue({
+      json: async () => ({ end_session_endpoint: 'https://sso.example.com/oauth2/logout' })
+    })
+    expect(await urlOf(clientHolding({ oidc_logout_url: 'https://sso.example.com/portal/' }))).toBe(
+      `https://sso.example.com/oauth2/logout?${RETURN}`
+    )
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://sso.example.com/.well-known/openid-configuration',
+      expect.anything()
+    )
+  })
+
+  it('does not follow an end_session_endpoint on another origin', async () => {
+    fetchMock.mockResolvedValue({
+      json: async () => ({ end_session_endpoint: 'https://evil.example.org/logout' })
+    })
+    expect(await urlOf(clientHolding({ oidc_logout_url: 'https://sso.example.com/out' }))).toBe(
+      `https://sso.example.com/out?${RETURN}`
+    )
+  })
+
+  it('falls back to the sign-up portal when the stack names no logout page', async () => {
+    expect(await urlOf(clientHolding({ attributes: {} }), 'https://sign-up.example.com')).toBe(
+      'https://sign-up.example.com/logout?url=twakedrive://afterlogout'
+    )
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('falls back to the sign-up portal when the settings were never loaded', async () => {
     const client = { getQueryFromState: jest.fn(() => null) } as never
-    expect(ssoLogoutUrl(client, 'https://sign-up.example.com')).toBe(
+    expect(await urlOf(client, 'https://sign-up.example.com')).toBe(
       'https://sign-up.example.com/logout?url=twakedrive://afterlogout'
     )
   })
 
-  it('is nothing on an instance with neither', () => {
-    expect(ssoLogoutUrl(clientHolding({}), undefined)).toBeNull()
-    expect(ssoLogoutUrl(null, undefined)).toBeNull()
+  it('is nothing on an instance with neither', async () => {
+    expect(await urlOf(clientHolding({}), undefined)).toBeNull()
+    expect(await urlOf(null, undefined)).toBeNull()
   })
 })
