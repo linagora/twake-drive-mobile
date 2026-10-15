@@ -26,6 +26,12 @@ if command -v ccache >/dev/null; then
     CCACHE_COMPILERCHECK=content CCACHE_BASEDIR="$ROOT" CCACHE_NOHASHDIR=true \
     CCACHE_SLOPPINESS=time_macros,include_file_mtime,include_file_ctime,pch_defines
 fi
+
+# compose up only pulls the images that are missing: cozy-app-dev:latest would never move. A local
+# copy is as good when the registry does not answer.
+echo "==> Images of the e2e stack"
+docker compose -f "$ROOT/e2e/stack/docker-compose.yml" pull --quiet --ignore-pull-failures
+
 cd android
 EXPO_PUBLIC_E2E=1 ./gradlew assembleRelease -PusesCleartextTraffic=true --no-daemon --build-cache \
   -PreactNativeArchitectures=x86_64
