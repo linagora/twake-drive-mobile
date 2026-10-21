@@ -50,7 +50,7 @@ import {
   SharingRow,
   SharingsTab
 } from '@/files/sharingRows'
-import { openFileFromList } from '@/files/openDriveFile'
+import { useOpenFile } from '@/files/useOpenFile'
 import { useFileRowActions } from '@/files/useFileRowActions'
 import { surfaceOpenError } from '@/files/errors'
 import { cozyTokens } from '@/ui/theme'
@@ -98,6 +98,7 @@ export default function SharedScreen() {
   // Rows of sharings being left: gone at once, back if the stack refuses.
   const [leftKeys, setLeftKeys] = useState<ReadonlySet<string>>(() => new Set())
   const client = useClient()
+  const openFile = useOpenFile()
   // Which of these a row offers depends on whose sharing it is, see
   // `fileRowHandlersFor`: the owner renames and trashes, a recipient does not.
   const actions = useFileRowActions({ screen: 'SharedScreen' })
@@ -240,7 +241,7 @@ export default function SharedScreen() {
         actions.notify(t('drive.sharings.driveFileSyncing'))
         return
       }
-      await openFileFromList(client, router, doc, drive.owner ? undefined : drive.driveId)
+      await openFile(doc, { driveId: drive.owner ? undefined : drive.driveId })
     } catch (e) {
       surfaceOpenError(e, actions.notify, t, 'SharedScreen')
     }

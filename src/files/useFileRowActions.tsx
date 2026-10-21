@@ -16,8 +16,8 @@ import { useFolderDownload } from './useFolderDownload'
 import { softDeleteEntry } from './deleteFile'
 import { renameEntry } from './renameEntry'
 import { optimisticFiles, optimisticTrashed } from './optimisticFiles'
-import { openFileFromList } from './openDriveFile'
-import { useWebEditor } from '@/viewer/useWebEditor'
+import { useOpenFile } from './useOpenFile'
+import type { DriveFile } from './openDriveFile'
 import { surfaceOpenError } from './errors'
 import { FileQueryResult, TRASH_DIR_ID } from '@/client/queries'
 import { cozyTokens } from '@/ui/theme'
@@ -92,7 +92,7 @@ export const useFileRowActions = ({
   const { t } = useTranslation()
   const router = useRouter()
   const client = useClient()
-  const openEditor = useWebEditor()
+  const openFile = useOpenFile()
   const isOnline = useIsOnline()
   const offlineActions = useOfflineActions()
   const [snackbar, setSnackbar] = useState<string | null>(null)
@@ -131,17 +131,8 @@ export const useFileRowActions = ({
     router.push(driveId ? `/share/${id}?driveId=${driveId}` : `/share/${id}`)
   }
 
-  const open = (file: {
-    _id: string
-    name: string
-    mime?: string
-    class?: string
-    metadata?: { externalId?: string }
-  }): void => {
-    if (!client) return
-    void openFileFromList(client, router, file, driveId, openEditor).catch(e =>
-      surfaceOpenError(e, setSnackbar, t, screen)
-    )
+  const open = (file: DriveFile): void => {
+    void openFile(file, { driveId }).catch(e => surfaceOpenError(e, setSnackbar, t, screen))
   }
 
   const confirmDelete = async (): Promise<void> => {

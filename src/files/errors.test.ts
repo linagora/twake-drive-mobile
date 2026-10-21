@@ -31,7 +31,7 @@ describe('surfaceOpenError', () => {
     const err = new Error('kaboom')
     surfaceOpenError(err, onMessage, t, 'Test')
     expect(onMessage).toHaveBeenCalledWith('drive.preview.loadFailed')
-    expect(spy).toHaveBeenCalledWith('[Test] openFileFromList failed', err)
+    expect(spy).toHaveBeenCalledWith('[Test] opening the file failed', err)
     spy.mockRestore()
   })
 })

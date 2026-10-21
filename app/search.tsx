@@ -4,7 +4,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { StatusBar } from 'expo-status-bar'
 import { Searchbar } from 'react-native-paper'
 import { useRouter } from 'expo-router'
-import { useClient } from 'cozy-client'
 import { useTranslation } from 'react-i18next'
 
 import { ScreenContainer } from '@/ui/ScreenContainer'
@@ -14,7 +13,7 @@ import { LoadingState } from '@/ui/LoadingState'
 import { FileRow } from '@/ui/FileRow'
 import { FolderRow } from '@/ui/FolderRow'
 import { getErrorMessageKey } from '@/utils/errorMessages'
-import { openFileFromList } from '@/files/openDriveFile'
+import { useOpenFile } from '@/files/useOpenFile'
 import { useDebouncedValue } from '@/search/useDebouncedValue'
 import { SearchResult, useFileSearch } from '@/search/useFileSearch'
 import { useActiveColorScheme } from '@/preferences/themePreference'
@@ -24,7 +23,7 @@ const DEBOUNCE_MS = 300
 
 export default function SearchScreen() {
   const router = useRouter()
-  const client = useClient()
+  const openFile = useOpenFile()
   const { t } = useTranslation()
   const activeScheme = useActiveColorScheme()
   // Top-level route with no navigation header — pad the top safe-area so the
@@ -57,8 +56,7 @@ export default function SearchScreen() {
         file={{ ...item, size: item.size ?? null }}
         driveId={item.driveId}
         onPress={file => {
-          if (!client) return
-          void openFileFromList(client, router, file, item.driveId).catch(() => undefined)
+          void openFile(file, { driveId: item.driveId }).catch(() => undefined)
         }}
       />
     )
