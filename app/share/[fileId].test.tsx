@@ -216,6 +216,12 @@ describe('ShareRoute', () => {
       expect(screen.getAllByTestId('recipient-chip')).toHaveLength(2)
     })
 
+    // A taller field wraps under the chips and sticks out of the box on iOS.
+    it('keeps the email field one line tall', async () => {
+      const input = await openForm()
+      expect(input).toHaveStyle({ minHeight: 40, paddingVertical: 0 })
+    })
+
     it('offers the autocomplete again after a first chip', async () => {
       mockContacts = [
         { _id: 'c1', fullname: 'Ada', email: [{ address: 'ada@example.org', primary: true }] },
