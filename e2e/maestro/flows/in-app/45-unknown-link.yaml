@@ -1,10 +1,27 @@
 appId: com.linagora.twakedrive
 tags:
   - inapp
+onFlowComplete:
+  - runFlow: ../../subflows/cleanup.yaml
 ---
 # A link of ours that names nothing opens the app's own page, which leads back
-# to the drive, not the router's developer screen.
+# to the drive root, not the router's developer screen nor the folder left
+# open in Mon Drive (#602).
+- runScript:
+    file: ../../scripts/seed.js
+    env:
+      SEED: '[{"key":"folder","kind":"folder","prefix":"E2E-link"}]'
 - runFlow: ../../subflows/openDrive.yaml
+- extendedWaitUntil:
+    visible:
+      id: 'folder-row:${output.folder.name}'
+    timeout: 60000
+- tapOn:
+    id: 'folder-row:${output.folder.name}'
+- extendedWaitUntil:
+    notVisible:
+      id: 'folder-row:${output.folder.name}'
+    timeout: 20000
 - openLink: 'twakedrive://unknown/path'
 - extendedWaitUntil:
     visible: 'Ce lien ne mène nulle part|This link does not lead anywhere'
@@ -13,5 +30,5 @@ tags:
 - tapOn: 'Aller à Mon Drive|Go to My Drive'
 - extendedWaitUntil:
     visible:
-      id: 'drive-fab'
+      id: 'folder-row:${output.folder.name}'
     timeout: 20000
