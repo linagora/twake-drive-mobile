@@ -1,0 +1,96 @@
+diff --git a/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioControlsService.kt b/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioControlsService.kt
+index 04486e2..e2b980b 100644
+--- a/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioControlsService.kt
++++ b/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioControlsService.kt
+@@ -19,6 +19,7 @@ import androidx.annotation.OptIn
+ import androidx.core.app.NotificationCompat
+ import androidx.media3.common.Player
+ import androidx.media3.common.util.UnstableApi
++import androidx.media3.common.util.Util
+ import androidx.media3.session.CommandButton
+ import androidx.media3.session.MediaSession
+ import androidx.media3.session.MediaSessionService
+@@ -48,6 +49,9 @@ class AudioControlsService : MediaSessionService() {
+ 
+   private var playbackListener: Player.Listener? = null
+ 
++  @Volatile
++  private var lastIsPlaying = false
++
+   inner class AudioControlsBinder : Binder() {
+     fun getService(): AudioControlsService = this@AudioControlsService
+   }
+@@ -55,7 +59,8 @@ class AudioControlsService : MediaSessionService() {
+   override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+     // Handle media button actions dispatched from notification
+     when (intent?.action) {
+-      ACTION_PLAY -> withPlayerOnAppThread { it.play() }
++      // Restarts an ended track, as the session's play/pause command does from Android 13.
++      ACTION_PLAY -> withPlayerOnAppThread { Util.handlePlayButtonAction(it) }
+       ACTION_PAUSE -> withPlayerOnAppThread { it.pause() }
+       ACTION_TOGGLE -> withPlayerOnAppThread { player ->
+         if (player.isPlaying) player.pause() else player.play()
+@@ -125,14 +130,60 @@ class AudioControlsService : MediaSessionService() {
+       .setAutoCancel(false)
+       .setCategory(NotificationCompat.CATEGORY_TRANSPORT)
+ 
+-    // Using only session custom layout: do NOT call setShowActionsInCompactView.
+-    // The compact layout will follow the order of the custom layout provided to the session.
+-    builder.setStyle(MediaStyleNotificationHelper.MediaStyle(session))
++    val style = MediaStyleNotificationHelper.MediaStyle(session)
++
++    // Backport of expo/expo#44754: up to Android 12 the system UI draws only the
++    // actions of the notification itself, not the session's custom layout.
++    if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.S_V2) {
++      // Not session.player.isPlaying: the artwork loader builds the notification off the player's thread.
++      val isPlaying = lastIsPlaying
++      var actionCount = 1
++      if (currentOptions?.showSeekBackward == true) {
++        actionCount++
++        builder.addAction(
++          NotificationCompat.Action(
++            androidx.media3.session.R.drawable.media3_icon_skip_back,
++            "Seek Backward",
++            buildActionPendingIntent(ACTION_SEEK_BACKWARD)
++          )
++        )
++      }
++      builder.addAction(
++        NotificationCompat.Action(
++          if (isPlaying) androidx.media3.session.R.drawable.media3_icon_pause else androidx.media3.session.R.drawable.media3_icon_play,
++          if (isPlaying) "Pause" else "Play",
++          buildActionPendingIntent(if (isPlaying) ACTION_PAUSE else ACTION_PLAY)
++        )
++      )
++      if (currentOptions?.showSeekForward == true) {
++        actionCount++
++        builder.addAction(
++          NotificationCompat.Action(
++            androidx.media3.session.R.drawable.media3_icon_skip_forward,
++            "Seek Forward",
++            buildActionPendingIntent(ACTION_SEEK_FORWARD)
++          )
++        )
++      }
++      style.setShowActionsInCompactView(*IntArray(actionCount) { it })
++    }
+ 
++    builder.setStyle(style)
+     return builder.build()
+   }
+ 
++  private fun buildActionPendingIntent(action: String): PendingIntent {
++    val intent = Intent(this, AudioControlsService::class.java).setAction(action)
++    return PendingIntent.getService(
++      this,
++      action.hashCode(),
++      intent,
++      PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
++    )
++  }
++
+   private fun updateSessionCustomLayout(isPlaying: Boolean) {
++    lastIsPlaying = isPlaying
+     val session = mediaSession ?: return
+     val customLayout = mutableListOf<CommandButton>()
+ 

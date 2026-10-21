@@ -5,8 +5,8 @@ onFlowComplete:
   - runFlow: ../../subflows/cleanup.yaml
 ---
 # Audio keeps playing once the app is in the background, and the notification
-# shade lists it as a media player titled with the file name. The file name is
-# not on screen anywhere else after Home.
+# shade lists it as a media player titled with the file name, with its play or
+# pause button. The file name is not on screen anywhere else after Home.
 - runScript:
     file: ../../scripts/seed.js
     env:
@@ -51,6 +51,8 @@ onFlowComplete:
 - extendedWaitUntil:
     visible: '${output.track.name}'
     timeout: 15000
+# Up to Android 12 the shade draws only the notification's own buttons (#597).
+- assertVisible: 'Pause|Play'
 # Close the shade: pressKey Back leaves it open and the next flows cannot see the app.
 - swipe:
     start: 50%, 90%
