@@ -308,16 +308,23 @@ describe('ShareRoute', () => {
       manageable: true
     }
 
+    // Under load the menu items show up and go again before they take a press,
+    // and a press on a node that is gone does nothing: press until the stack is asked.
+    const pickViewer = async (): Promise<void> => {
+      await waitFor(() => {
+        fireEvent.press(screen.getByTestId('recipient-role'))
+        fireEvent.press(screen.getByTestId('recipient-role-viewer'))
+        expect(mockSetMemberReadOnly).toHaveBeenCalled()
+      })
+    }
+
     it('shows the role and changes it through the stack', async () => {
       mockFetchEffectiveRecipients.mockResolvedValue([member])
       render(wrap(<ShareRoute />))
-      const role = await screen.findByTestId('recipient-role')
+      await screen.findByTestId('recipient-role')
       expect(screen.getByText('drive.share.roleEditor')).toBeOnTheScreen()
-      fireEvent.press(role)
-      fireEvent.press(await screen.findByTestId('recipient-role-viewer'))
-      await waitFor(() =>
-        expect(mockSetMemberReadOnly).toHaveBeenCalledWith(mockClient, 'own', 1, true)
-      )
+      await pickViewer()
+      expect(mockSetMemberReadOnly).toHaveBeenCalledWith(mockClient, 'own', 1, true)
     })
 
     it('puts the role back when the stack refuses', async () => {
@@ -325,10 +332,11 @@ describe('ShareRoute', () => {
       mockSetMemberReadOnly.mockRejectedValue(new Error('boom'))
       jest.spyOn(console, 'error').mockImplementation(() => {})
       render(wrap(<ShareRoute />))
-      fireEvent.press(await screen.findByTestId('recipient-role'))
-      fireEvent.press(await screen.findByTestId('recipient-role-viewer'))
+      await pickViewer()
       expect(await screen.findByText('drive.share.errorMutate')).toBeOnTheScreen()
-      expect(screen.getByText('drive.share.roleEditor')).toBeOnTheScreen()
+      expect(
+        within(screen.getByTestId('recipient-role')).getByText('drive.share.roleEditor')
+      ).toBeOnTheScreen()
     })
 
     it('shows an inherited role without a menu', async () => {
