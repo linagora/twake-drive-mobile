@@ -62,21 +62,27 @@ jest.mock('@/ui/FolderPicker', () => {
 })
 
 import ImportLayout from '../../app/import/_layout'
+import { SnackbarHost, SnackbarOutlet } from '@/ui/SnackbarHost'
 import { ImportScreen } from './ImportScreen'
 
 // PaperProvider: ImportLayout renders a real react-native-paper Snackbar.
 // SafeAreaProvider: Snackbar reads safe-area insets via useSafeAreaInsets,
 // which throws without a provider ancestor (see AppBar.test.tsx).
-const wrap = () =>
-  render(
-    <PaperProvider>
-      <SafeAreaProvider>
-        <ImportLayout>
-          <ImportScreen pathSegments={[]} />
-        </ImportLayout>
-      </SafeAreaProvider>
-    </PaperProvider>
-  )
+const Harness = ({ open = true }: { open?: boolean }) => (
+  <PaperProvider>
+    <SafeAreaProvider>
+      <SnackbarHost>
+        <SnackbarOutlet />
+        {open && (
+          <ImportLayout>
+            <ImportScreen pathSegments={[]} />
+          </ImportLayout>
+        )}
+      </SnackbarHost>
+    </SafeAreaProvider>
+  </PaperProvider>
+)
+const wrap = () => render(<Harness />)
 
 beforeAll(async () => {
   await i18n.changeLanguage('en')
@@ -84,6 +90,7 @@ beforeAll(async () => {
 
 beforeEach(() => {
   mockUploadBatch.mockReset()
+  mockBack.mockClear()
   mockOnline = true
 })
 
@@ -100,6 +107,15 @@ test('confirming a destination uploads the pending items there', async () => {
   const [, items, dirId] = mockUploadBatch.mock.calls[0]
   expect(items).toEqual([{ uri: 'file:///a.jpg', name: 'a.jpg', mimeType: 'image/jpeg' }])
   expect(dirId).toBe('dest1')
+})
+
+test('the import confirmation outlives the sheet it closes', async () => {
+  mockUploadBatch.mockResolvedValueOnce({ results: [], succeeded: 1, failed: 0 })
+  const { getByText, rerender } = wrap()
+  fireEvent.press(getByText('Import here'))
+  await waitFor(() => expect(mockBack).toHaveBeenCalledTimes(1))
+  rerender(<Harness open={false} />)
+  expect(getByText('File imported')).toBeTruthy()
 })
 
 test('offline, confirming says a connection is required and uploads nothing', async () => {

@@ -29,6 +29,7 @@ import { useKeepTokenInStep } from '@/auth/useKeepTokenInStep'
 import { triggerPouchReplication } from '@/pouchdb/triggerReplication'
 import { ErrorBoundary } from '@/ui/ErrorBoundary'
 import { AuthTransitionOverlay } from '@/ui/AuthTransitionOverlay'
+import { SnackbarHost, withSnackbarOutlet } from '@/ui/SnackbarHost'
 import { PiPSessionProvider } from '@/preview/PiPSession'
 import { SharingProvider } from '@/sharing/SharingProvider'
 import { useActiveColorScheme } from '@/preferences/themePreference'
@@ -93,43 +94,48 @@ const InnerLayout = () => {
               <PiPSessionProvider>
                 <SharingProvider>
                   <ErrorBoundary>
-                    <Stack screenOptions={{ headerShown: false }}>
-                      <Stack.Screen name="(auth)" />
-                      <Stack.Screen name="(drive)" />
-                      <Stack.Screen name="index" />
-                      <Stack.Screen
-                        name="preview/[fileId]"
-                        options={{
-                          // Native iOS pageSheet: rounded-corner modal that
-                          // the OS lets the user drag down to dismiss,
-                          // coordinated with any inner UIScrollView (PDF,
-                          // text). Works for every preview kind for free.
-                          presentation: 'pageSheet',
-                          animation: 'slide_from_bottom'
-                        }}
-                      />
-                      <Stack.Screen
-                        name="metadata/[fileId]"
-                        options={{ presentation: 'pageSheet', animation: 'slide_from_bottom' }}
-                      />
-                      <Stack.Screen
-                        name="share"
-                        options={{ presentation: 'pageSheet', animation: 'slide_from_bottom' }}
-                      />
-                      <Stack.Screen
-                        name="move/[ids]"
-                        options={{ presentation: 'pageSheet', animation: 'slide_from_bottom' }}
-                      />
-                      <Stack.Screen
-                        name="import"
-                        options={{ presentation: 'pageSheet', animation: 'slide_from_bottom' }}
-                      />
-                      <Stack.Screen
-                        name="settings"
-                        options={{ presentation: 'pageSheet', animation: 'slide_from_bottom' }}
-                      />
-                      <Stack.Screen name="search" options={{ animation: 'slide_from_bottom' }} />
-                    </Stack>
+                    <SnackbarHost>
+                      <Stack
+                        screenOptions={{ headerShown: false }}
+                        screenLayout={withSnackbarOutlet}
+                      >
+                        <Stack.Screen name="(auth)" />
+                        <Stack.Screen name="(drive)" />
+                        <Stack.Screen name="index" />
+                        <Stack.Screen
+                          name="preview/[fileId]"
+                          options={{
+                            // Native iOS pageSheet: rounded-corner modal that
+                            // the OS lets the user drag down to dismiss,
+                            // coordinated with any inner UIScrollView (PDF,
+                            // text). Works for every preview kind for free.
+                            presentation: 'pageSheet',
+                            animation: 'slide_from_bottom'
+                          }}
+                        />
+                        <Stack.Screen
+                          name="metadata/[fileId]"
+                          options={{ presentation: 'pageSheet', animation: 'slide_from_bottom' }}
+                        />
+                        <Stack.Screen
+                          name="share"
+                          options={{ presentation: 'pageSheet', animation: 'slide_from_bottom' }}
+                        />
+                        <Stack.Screen
+                          name="move/[ids]"
+                          options={{ presentation: 'pageSheet', animation: 'slide_from_bottom' }}
+                        />
+                        <Stack.Screen
+                          name="import"
+                          options={{ presentation: 'pageSheet', animation: 'slide_from_bottom' }}
+                        />
+                        <Stack.Screen
+                          name="settings"
+                          options={{ presentation: 'pageSheet', animation: 'slide_from_bottom' }}
+                        />
+                        <Stack.Screen name="search" options={{ animation: 'slide_from_bottom' }} />
+                      </Stack>
+                    </SnackbarHost>
                     {authenticating && <AuthTransitionOverlay />}
                   </ErrorBoundary>
                 </SharingProvider>

@@ -9,8 +9,7 @@ import { optimisticFiles } from '@/files/optimisticFiles'
 import { filesByIdsQuery, filesByIdsQueryAs, FileQueryResult } from '@/client/queries'
 import { MoveContext, MoveContextValue } from '@/drive/moveContext'
 import { closeSheet, SheetRouter } from '@/ui/closeSheet'
-
-const SNACKBAR_DISMISS_DELAY_MS = 200
+import { useNotify } from '@/ui/SnackbarHost'
 
 export default function MoveLayout() {
   const { t } = useTranslation()
@@ -41,6 +40,7 @@ export default function MoveLayout() {
 
   const [isBusy, setIsBusy] = useState(false)
   const [snackbar, setSnackbar] = useState<string | null>(null)
+  const notify = useNotify()
 
   const close = useCallback((): void => {
     closeSheet(router as unknown as SheetRouter)
@@ -75,8 +75,8 @@ export default function MoveLayout() {
             : firstDoc.type === 'directory'
               ? 'drive.move.successFolder'
               : 'drive.move.successFile'
-        setSnackbar(t(key, { count: idList.length }))
-        setTimeout(close, SNACKBAR_DISMISS_DELAY_MS)
+        notify(t(key, { count: idList.length }))
+        close()
       } catch (e) {
         console.error('[MoveLayout] move failed', e)
         revert()
@@ -85,7 +85,7 @@ export default function MoveLayout() {
         setIsBusy(false)
       }
     },
-    [client, firstDoc, docById, idList, t, close]
+    [client, firstDoc, docById, idList, t, notify, close]
   )
 
   const value = useMemo<MoveContextValue>(

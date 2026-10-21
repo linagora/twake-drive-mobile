@@ -11,8 +11,7 @@ import { usePendingShare } from '@/share/PendingShareProvider'
 import { ImportContext, ImportContextValue } from '@/drive/importContext'
 import { OfflineBanner } from '@/ui/OfflineBanner'
 import { closeSheet, SheetRouter } from '@/ui/closeSheet'
-
-const SNACKBAR_DISMISS_DELAY_MS = 200
+import { useNotify } from '@/ui/SnackbarHost'
 
 export default function ImportLayout({ children }: { children?: React.ReactNode }) {
   const { t } = useTranslation()
@@ -22,6 +21,7 @@ export default function ImportLayout({ children }: { children?: React.ReactNode 
   const { items, clear } = usePendingShare()
   const [isBusy, setIsBusy] = useState(false)
   const [snackbar, setSnackbar] = useState<string | null>(null)
+  const notify = useNotify()
 
   const close = useCallback((): void => {
     closeSheet(router as unknown as SheetRouter)
@@ -49,10 +49,12 @@ export default function ImportLayout({ children }: { children?: React.ReactNode 
       try {
         const res = await uploadBatch(client, items, dest._id)
         optimisticUploaded(client, res, dest._id)
-        setSnackbar(batchMessage(t, res))
         if (res.succeeded > 0) {
+          notify(batchMessage(t, res))
           clear()
-          setTimeout(close, SNACKBAR_DISMISS_DELAY_MS)
+          close()
+        } else {
+          setSnackbar(batchMessage(t, res))
         }
       } catch (e) {
         console.error('[ImportLayout] upload failed', e)
@@ -61,7 +63,7 @@ export default function ImportLayout({ children }: { children?: React.ReactNode 
         setIsBusy(false)
       }
     },
-    [client, items, isOnline, t, close, clear]
+    [client, items, isOnline, t, notify, close, clear]
   )
 
   const value = useMemo<ImportContextValue>(

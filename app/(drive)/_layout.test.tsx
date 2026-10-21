@@ -29,8 +29,21 @@ jest.mock('expo-router', () => {
     )
   }
 
-  function MockTabs({ children }: { children: React.ReactNode }) {
-    return <View testID="tabs-container">{children}</View>
+  // One scene, drawn through screenLayout the way the navigator draws each tab.
+  function MockTabs({
+    children,
+    screenLayout
+  }: {
+    children: React.ReactNode
+    screenLayout?: (props: { children: React.ReactElement }) => React.ReactElement
+  }) {
+    const scene = <Text testID="tab-scene">scene</Text>
+    return (
+      <View testID="tabs-container">
+        {children}
+        {screenLayout ? screenLayout({ children: scene }) : scene}
+      </View>
+    )
   }
   MockTabs.Screen = MockTabsScreen
 
@@ -80,8 +93,19 @@ jest.mock('@/sharing/newShares', () => ({
 
 import DriveLayout from './_layout'
 import i18n from '@/i18n'
+import { SnackbarHost, useNotify } from '@/ui/SnackbarHost'
 
-const wrap = (ui: React.ReactElement) => <PaperProvider>{ui}</PaperProvider>
+const wrap = (ui: React.ReactElement) => (
+  <PaperProvider>
+    <SnackbarHost>{ui}</SnackbarHost>
+  </PaperProvider>
+)
+
+const NotifyOnMount = () => {
+  const notify = useNotify()
+  React.useEffect(() => notify('File moved'), [notify])
+  return null
+}
 
 describe('DriveLayout — bottom tabs', () => {
   beforeEach(() => {
@@ -109,6 +133,20 @@ describe('DriveLayout — bottom tabs', () => {
     render(wrap(<DriveLayout />))
     expect(screen.queryByTestId('redirect')).toBeNull()
     expect(screen.queryByTestId('tab-label')).toBeNull()
+  })
+
+  // A sheet that confirms and closes lands on a tab: the tab draws the message.
+  it('shows a confirmation sent from a sheet in the tab scene', () => {
+    render(
+      wrap(
+        <>
+          <DriveLayout />
+          <NotifyOnMount />
+        </>
+      )
+    )
+    expect(screen.getByTestId('tab-scene')).toBeOnTheScreen()
+    expect(screen.getByText('File moved')).toBeOnTheScreen()
   })
 
   it('renders exactly 5 visible tab labels', () => {
