@@ -177,7 +177,7 @@ export default function PreviewScreen() {
       case 'image':
         return <ImagePreview source={source} thumbnailUrl={thumbnailUrl} />
       case 'video':
-        return <VideoPreview fileId={fileId!} source={source} />
+        return <VideoPreview fileId={fileId!} source={source} name={file?.name ?? ''} />
       case 'audio':
         return (
           <AudioPreview

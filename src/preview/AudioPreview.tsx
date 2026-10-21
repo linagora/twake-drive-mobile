@@ -119,8 +119,8 @@ const SupportedAudioPlayer = ({
     }
     // Keep audio playing when the app is backgrounded or the device is silenced.
     // On iOS expo-audio defaults to mixWithOthers, and a mixing session never
-    // becomes the Now Playing app. Set before every play: expo-video puts the
-    // shared session back to mixWithOthers whenever a video stops.
+    // becomes the Now Playing app. Set before every play: expo-video re-sets
+    // the shared session whenever a video starts or stops.
     await AudioModule.setAudioModeAsync({
       playsInSilentMode: true,
       shouldPlayInBackground: true,
