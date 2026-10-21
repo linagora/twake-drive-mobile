@@ -142,9 +142,31 @@ const enqueueSystemDownload = async (url: string, zipName: string): Promise<void
   if (rejection) throw rejection instanceof Error ? rejection : new Error(String(rejection))
 }
 
+const CHILDREN_PAGE = 1000
+
+interface DirListing {
+  included?: { _id: string }[]
+  links?: { next?: string }
+}
+
+const listChildIds = async (
+  files: { statById: (id: string, options: object) => Promise<DirListing> },
+  dirId: string
+): Promise<string[]> => {
+  const ids: string[] = []
+  for (;;) {
+    const { included = [], links } = await files.statById(dirId, {
+      'page[limit]': CHILDREN_PAGE,
+      'page[skip]': ids.length
+    })
+    ids.push(...included.map(child => child._id))
+    if (!links?.next) return ids
+  }
+}
+
 /**
- * Hands a folder to the device as a zip, the way twake-drive web does
- * (`downloadArchive`): the stack builds the archive on request and answers a
+ * Hands a folder to the device as a zip, through the stack archive twake-drive
+ * web uses (`downloadArchive`): the stack builds it on request and answers a
  * link to it, which needs no token of its own.
  *
  * Android has the system download manager fetch it into Downloads ('queued');
@@ -156,8 +178,13 @@ export const downloadFolder = async (
   folder: { _id: string; name: string }
 ): Promise<'queued' | 'opened'> => {
   const stackClient = client.getStackClient()
-  const href = (await stackClient.collection('io.cozy.files').createArchiveLinkByIds({
-    ids: [folder._id],
+  const files = stackClient.collection('io.cozy.files')
+  // The stack puts each archived item under `name/`: archiving the folder
+  // itself would hold it twice (Projet/Projet/…), so archive its content. An
+  // empty folder has none, and the stack refuses an empty archive.
+  const children = await listChildIds(files, folder._id)
+  const href = (await files.createArchiveLinkByIds({
+    ids: children.length > 0 ? children : [folder._id],
     name: folder.name
   })) as string
   const zipName = sanitizeZipName(folder.name)

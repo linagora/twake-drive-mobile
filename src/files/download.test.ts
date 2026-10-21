@@ -161,9 +161,10 @@ describe('download', () => {
 
 describe('downloadFolder', () => {
   const createArchiveLinkByIds = jest.fn()
+  const statById = jest.fn()
   const folderClient = {
     getStackClient: () => ({
-      collection: () => ({ createArchiveLinkByIds }),
+      collection: () => ({ createArchiveLinkByIds, statById }),
       fullpath: (href: string) => `https://alice.example${href}`,
       getAccessToken: () => 'token'
     })
@@ -173,6 +174,7 @@ describe('downloadFolder', () => {
     jest.clearAllMocks()
     mockStore.clear()
     createArchiveLinkByIds.mockResolvedValue('/files/archive/secret/Projet.zip')
+    statById.mockResolvedValue({ included: [] })
     mockDownloadAsync.mockResolvedValue({
       status: 200,
       uri: 'file:///cache/twake-drive/d1/Projet.zip'
@@ -240,6 +242,26 @@ describe('downloadFolder', () => {
     await expect(downloadFolder(folderClient, { _id: 'd1', name: 'Projet' })).rejects.toThrow(
       'Failed to create parent directory'
     )
+  })
+
+  it('archives the content under the folder name, so the zip holds the folder once', async () => {
+    statById.mockResolvedValue({ included: [{ _id: 'sub' }, { _id: 'f1' }] })
+
+    await downloadFolder(folderClient, { _id: 'd1', name: 'Projet' })
+
+    expect(createArchiveLinkByIds).toHaveBeenCalledWith({ ids: ['sub', 'f1'], name: 'Projet' })
+  })
+
+  it('lists every page of a large folder', async () => {
+    const page = Array.from({ length: 1000 }, (_, i) => ({ _id: `c${i}` }))
+    statById
+      .mockResolvedValueOnce({ included: page, links: { next: '/files/d1?page[skip]=1000' } })
+      .mockResolvedValueOnce({ included: [{ _id: 'last' }] })
+
+    await downloadFolder(folderClient, { _id: 'd1', name: 'Projet' })
+
+    expect(statById).toHaveBeenLastCalledWith('d1', { 'page[limit]': 1000, 'page[skip]': 1000 })
+    expect(createArchiveLinkByIds.mock.calls[0][0].ids).toHaveLength(1001)
   })
 
   it('fails when the archive cannot be fetched', async () => {
