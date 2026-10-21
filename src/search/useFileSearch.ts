@@ -9,7 +9,7 @@ import { getSearchDatabases, isReplicating, SearchDatabase } from './searchDatab
 
 export type SearchStatus = 'idle' | 'loading' | 'indexing' | 'success' | 'error'
 
-export type SearchResult = FileQueryResult & { driveId?: string }
+export type SearchResult = FileQueryResult & { driveId?: string; location?: string }
 
 export interface FileSearchState {
   status: SearchStatus
@@ -48,7 +48,10 @@ const searchDatabase = async (
       return []
     }
     const hits: FileNameHit[] = await searchFileNames(db, term, FILE_SEARCH_RESULT_LIMIT)
-    return hits.map(({ doc, rank }) => ({ doc: driveId ? { ...doc, driveId } : doc, rank }))
+    return hits.map(({ doc, rank, location }) => ({
+      doc: { ...doc, ...(driveId ? { driveId } : {}), location },
+      rank
+    }))
   } catch (error) {
     if (!driveId) throw error
     console.warn('[search] shared drive skipped', driveId, error)

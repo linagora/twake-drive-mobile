@@ -38,10 +38,12 @@ export default function SearchScreen() {
   const data = search.data
 
   const renderItem = ({ item }: { item: SearchResult }) => {
+    const location = item.location === '/' ? t('drive.myDrive') : item.location
     if (item.type === 'directory') {
       return (
         <FolderRow
           folder={item}
+          location={location}
           onPress={folder =>
             router.push(
               item.driveId
@@ -56,6 +58,7 @@ export default function SearchScreen() {
       <FileRow
         file={{ ...item, size: item.size ?? null }}
         driveId={item.driveId}
+        location={location}
         onPress={file => {
           if (!client) return
           void openFileFromList(client, router, file, item.driveId).catch(() => undefined)

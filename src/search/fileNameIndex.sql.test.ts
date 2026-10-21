@@ -124,6 +124,32 @@ describe('the file name index on a real database', () => {
     await expect(idsOf(db, 'resume general')).resolves.toEqual(['accented'])
   })
 
+  it('tells where each hit is', async () => {
+    writeRevision(sqlite, 'charge', '1-a', { name: 'Charge', type: 'directory', path: '/Charge' })
+    writeRevision(sqlite, 'broken', '1-a', '{"path": "/Bro')
+    writeRevision(sqlite, 'd3', '1-a', {
+      name: 'Dossier-3',
+      type: 'directory',
+      dir_id: 'charge',
+      path: '/Charge/Dossier-3'
+    })
+    writeRevision(sqlite, 'f12', '1-a', file('fichier-12.txt', { dir_id: 'd3' }))
+    writeRevision(sqlite, 'lost', '1-a', file('fichier-12 bis.txt', { dir_id: 'gone' }))
+    writeRevision(sqlite, 'orphan', '1-a', file('fichier-12 ter.txt', { dir_id: 'broken' }))
+    const { db } = wrap(sqlite)
+    await ensureFileNameIndex(db)
+    const where = async (term: string) =>
+      Object.fromEntries(
+        (await searchFileNames(db, term, 100)).map(hit => [hit.doc._id, hit.location])
+      )
+    await expect(where('fichier-12')).resolves.toEqual({
+      f12: '/Charge/Dossier-3',
+      lost: undefined,
+      orphan: undefined
+    })
+    await expect(where('Dossier-3')).resolves.toEqual({ d3: '/Charge' })
+  })
+
   it('follows a rename', async () => {
     const { db } = wrap(sqlite)
     await ensureFileNameIndex(db)

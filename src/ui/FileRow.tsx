@@ -68,6 +68,8 @@ interface Props {
   onFavoriteChange?: () => void
   /** Off for a trashed file, which cannot be made a favorite. */
   canFavorite?: boolean
+  /** Where the file is, shown instead of its size and date (search results). */
+  location?: string
   /** Stable id for E2E (Maestro) selection. */
   testID?: string
 }
@@ -91,6 +93,7 @@ export const FileRow = ({
   isNewSharing,
   onFavoriteChange,
   canFavorite,
+  location,
   testID
 }: Props) => {
   const { t, i18n } = useTranslation()
@@ -114,7 +117,7 @@ export const FileRow = ({
     offlineEntry?.state === 'downloading' && offlineEntry.bytesDownloaded !== undefined
       ? `${formatFileSize(offlineEntry.bytesDownloaded)} / ${formatFileSize(file.size)}`
       : undefined
-  const description = offlineDescription ?? (date ? `${size} · ${date}` : size)
+  const description = offlineDescription ?? location ?? (date ? `${size} · ${date}` : size)
   const sharingStatus = useFileSharingStatus(file._id)
   const hasMenu =
     hasFileActions({
