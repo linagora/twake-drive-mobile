@@ -104,6 +104,7 @@ export default function SettingsIndex(): React.ReactElement {
               <Switch
                 value={crashReports}
                 onValueChange={setCrashReportsEnabled}
+                accessibilityLabel={t('settings.crashReports')}
                 testID="settings-crash-reports-switch"
               />
             }

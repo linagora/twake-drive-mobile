@@ -336,6 +336,7 @@ export default function OfflineStorageScreen() {
             <Switch
               value={wifiOnly}
               onValueChange={v => OfflineSettingsAPI.set({ wifiOnly: v })}
+              accessibilityLabel={t('drive.offline.wifiOnly')}
               testID="offline-wifi-only"
             />
           }
