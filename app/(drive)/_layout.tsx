@@ -14,6 +14,7 @@ import { initOfflineSubsystem } from '@/offline/initOffline'
 import { formatBadgeCount, useNewSharesCount } from '@/sharing/newShares'
 import { useAuth } from '@/auth/useAuth'
 import { LoadingState } from '@/ui/LoadingState'
+import { SnackbarOutlet } from '@/ui/SnackbarHost'
 
 /** Glyph side in the bottom bar: the 16-grid icons read as a list-item icon, not the default 24. */
 const TAB_ICON_SIZE = 20
@@ -47,6 +48,13 @@ function DriveTabs() {
     <>
       <OfflineBanner />
       <Tabs
+        // Drawn in the scene, the snackbar sits above the tab bar.
+        screenLayout={({ children }) => (
+          <>
+            {children}
+            <SnackbarOutlet />
+          </>
+        )}
         screenOptions={{
           headerShown: false,
           tabBarActiveTintColor: theme.colors.primary,
