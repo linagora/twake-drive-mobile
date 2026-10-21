@@ -7,6 +7,7 @@ import React, {
   useRef,
   useState
 } from 'react'
+import { Platform } from 'react-native'
 import { useVideoPlayer, VideoPlayer } from 'expo-video'
 
 import type { StreamSource } from '@/files/streamUrl'
@@ -14,6 +15,7 @@ import type { StreamSource } from '@/files/streamUrl'
 export interface PiPSessionState {
   fileId: string
   source: StreamSource
+  title: string
 }
 
 export interface PiPSessionContextValue {
@@ -25,7 +27,7 @@ export interface PiPSessionContextValue {
   // the iOS PiP layer would freeze. Hoisting the player here keeps it
   // alive for the whole app lifetime.
   player: VideoPlayer
-  claim: (fileId: string, source: StreamSource) => void
+  claim: (fileId: string, source: StreamSource, title: string) => void
   release: () => void
   /** Told by the player view when the OS takes the video into a PiP window. */
   setPictureInPicture: (inPictureInPicture: boolean) => void
@@ -44,6 +46,10 @@ export const PiPSessionProvider = ({ children }: { children: React.ReactNode }) 
     // longer in front. Left on for good, it turned "the view is gone" into
     // "the sound follows you around".
     p.staysActiveInBackground = false
+    // Gives the lock screen and Control Center a way to pause a PiP video.
+    // Not on Android: it would post a media notification for every video
+    // played in the foreground, and the PiP window there has its own controls.
+    p.showNowPlayingNotification = Platform.OS === 'ios'
   })
   const pictureInPicture = useRef(false)
 
@@ -51,19 +57,23 @@ export const PiPSessionProvider = ({ children }: { children: React.ReactNode }) 
   // than inside claim) avoids touching the player from a render path.
   useEffect(() => {
     if (active) {
-      player.replace({ uri: active.source.uri, headers: active.source.headers })
+      player.replace({
+        uri: active.source.uri,
+        headers: active.source.headers,
+        metadata: { title: active.title }
+      })
       player.play()
     } else {
       player.replace(null)
     }
   }, [active, player])
 
-  const claim = useCallback((fileId: string, source: StreamSource): void => {
+  const claim = useCallback((fileId: string, source: StreamSource, title: string): void => {
     setActive(prev => {
       if (prev && prev.fileId === fileId && prev.source.uri === source.uri) {
         return prev
       }
-      return { fileId, source }
+      return { fileId, source, title }
     })
   }, [])
 

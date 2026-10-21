@@ -76,7 +76,11 @@ describe('VideoPreview', () => {
   // The controls appear with the view and hide a few seconds later, so on a
   // slow stream they were already gone by the time the first frame arrived.
   it('keeps the native controls off until the player is ready', () => {
-    render(wrap(<VideoPreview fileId="f1" source={{ uri: 'https://x/v.mp4', headers: {} }} />))
+    render(
+      wrap(
+        <VideoPreview fileId="f1" source={{ uri: 'https://x/v.mp4', headers: {} }} name="v.mp4" />
+      )
+    )
     expect(captured.nativeControls).toBe(false)
   })
 
@@ -94,7 +98,7 @@ describe('VideoPreview', () => {
     }
     render(
       <PiPSessionContext.Provider value={ctxValue}>
-        <VideoPreview fileId="f1" source={{ uri: 'https://x/v.mp4', headers: {} }} />
+        <VideoPreview fileId="f1" source={{ uri: 'https://x/v.mp4', headers: {} }} name="v.mp4" />
       </PiPSessionContext.Provider>
     )
     expect(captured.nativeControls).toBe(false)
@@ -104,7 +108,11 @@ describe('VideoPreview', () => {
   })
 
   it('dismisses the modal when PiP starts', () => {
-    render(wrap(<VideoPreview fileId="f1" source={{ uri: 'https://x/v.mp4', headers: {} }} />))
+    render(
+      wrap(
+        <VideoPreview fileId="f1" source={{ uri: 'https://x/v.mp4', headers: {} }} name="v.mp4" />
+      )
+    )
     captured.onStart!()
     expect(mockBack).toHaveBeenCalledTimes(1)
   })
@@ -115,7 +123,10 @@ describe('VideoPreview', () => {
     // rationale. The push is deferred one tick to let iOS finish its
     // PiP teardown.
     render(
-      wrap(<VideoPreview fileId="f1" source={{ uri: 'https://x/v.mp4', headers: {} }} />, true)
+      wrap(
+        <VideoPreview fileId="f1" source={{ uri: 'https://x/v.mp4', headers: {} }} name="v.mp4" />,
+        true
+      )
     )
     captured.onStop!()
     await new Promise(resolve => setTimeout(resolve, 10))
@@ -124,7 +135,10 @@ describe('VideoPreview', () => {
 
   it('still re-pushes on PiP stop when the player is paused', async () => {
     render(
-      wrap(<VideoPreview fileId="f1" source={{ uri: 'https://x/v.mp4', headers: {} }} />, false)
+      wrap(
+        <VideoPreview fileId="f1" source={{ uri: 'https://x/v.mp4', headers: {} }} name="v.mp4" />,
+        false
+      )
     )
     captured.onStop!()
     await new Promise(resolve => setTimeout(resolve, 10))
@@ -134,7 +148,9 @@ describe('VideoPreview', () => {
   // The video kept playing, sound and all, once the preview was gone.
   it('stops the video when the preview is left', () => {
     const view = render(
-      wrap(<VideoPreview fileId="f1" source={{ uri: 'https://x/v.mp4', headers: {} }} />)
+      wrap(
+        <VideoPreview fileId="f1" source={{ uri: 'https://x/v.mp4', headers: {} }} name="v.mp4" />
+      )
     )
 
     view.unmount()
@@ -146,7 +162,9 @@ describe('VideoPreview', () => {
   // it for the OS layer to keep going.
   it('leaves the player alone when PiP took the video', () => {
     const view = render(
-      wrap(<VideoPreview fileId="f1" source={{ uri: 'https://x/v.mp4', headers: {} }} />)
+      wrap(
+        <VideoPreview fileId="f1" source={{ uri: 'https://x/v.mp4', headers: {} }} name="v.mp4" />
+      )
     )
     act(() => captured.onStart!())
 
@@ -157,7 +175,11 @@ describe('VideoPreview', () => {
   })
 
   it('tells the session the PiP window is gone', () => {
-    render(wrap(<VideoPreview fileId="f1" source={{ uri: 'https://x/v.mp4', headers: {} }} />))
+    render(
+      wrap(
+        <VideoPreview fileId="f1" source={{ uri: 'https://x/v.mp4', headers: {} }} name="v.mp4" />
+      )
+    )
     act(() => captured.onStart!())
 
     act(() => captured.onStop!())

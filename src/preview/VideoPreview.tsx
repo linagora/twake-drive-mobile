@@ -10,9 +10,10 @@ import { usePiPSession } from './PiPSession'
 interface VideoPreviewProps {
   fileId: string
   source: StreamSource
+  name: string
 }
 
-export const VideoPreview = ({ fileId, source }: VideoPreviewProps): React.ReactElement => {
+export const VideoPreview = ({ fileId, source, name }: VideoPreviewProps): React.ReactElement => {
   const router = useRouter()
   const { player, claim, release, setPictureInPicture, isPictureInPicture } = usePiPSession()
   const { width } = useWindowDimensions()
@@ -23,8 +24,8 @@ export const VideoPreview = ({ fileId, source }: VideoPreviewProps): React.React
   const [ready, setReady] = useState(() => player.status === 'readyToPlay')
 
   useEffect(() => {
-    claim(fileId, source)
-  }, [fileId, source, claim])
+    claim(fileId, source, name)
+  }, [fileId, source, name, claim])
 
   // Leaving the preview stops the video, however it is left: the back control
   // or the sheet swiped away. Starting PiP also unmounts this view, on purpose
