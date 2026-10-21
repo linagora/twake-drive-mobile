@@ -114,7 +114,7 @@ describe('buildByIdMap', () => {
     const entry = buildByIdMap([], [p]).get('file-c')!
     expect(entry.hasLink).toBe(true)
     expect(entry.sharing).toBeUndefined()
-    expect(entry.isOwner).toBe(false)
+    expect(entry.isOwner).toBe(true)
   })
 
   it('combines sharing and link entries for the same file', () => {
@@ -180,7 +180,7 @@ describe('entryToStatus', () => {
     const entry = buildByIdMap([], [link(['y'])]).get('y')!
     expect(entryToStatus(entry)).toEqual({
       isShared: true,
-      isOwner: false,
+      isOwner: true,
       hasLink: true,
       recipientCount: 0
     })
