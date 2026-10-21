@@ -168,6 +168,44 @@ describe('MetadataRoute', () => {
     expect(screen.getByText('drive.preview.loadFailed')).toBeOnTheScreen()
   })
 
+  it('opens the web editor before closing the sheet', async () => {
+    mockUseQuery.mockReturnValue({
+      data: { ...defaultFileData, name: 'croquis.excalidraw', mime: 'application/json' },
+      fetchStatus: 'loaded',
+      fetch: jest.fn()
+    })
+    let closeBrowser = (): void => undefined
+    mockOpenEditor.mockReturnValue(new Promise<void>(resolve => (closeBrowser = resolve)))
+    render(wrap(<MetadataRoute />))
+    await act(async () => {
+      fireEvent.press(screen.getByText('drive.fileMeta.open'))
+    })
+    expect(mockOpenEditor).toHaveBeenCalledWith(
+      expect.objectContaining({ _id: 'f1', name: 'croquis.excalidraw' }),
+      undefined
+    )
+    expect(mockBack).not.toHaveBeenCalled()
+    await act(async () => closeBrowser())
+    expect(mockBack).toHaveBeenCalled()
+  })
+
+  it('keeps the sheet open with an error when the web editor fails to open', async () => {
+    mockUseQuery.mockReturnValue({
+      data: { ...defaultFileData, name: 'croquis.excalidraw', mime: 'application/json' },
+      fetchStatus: 'loaded',
+      fetch: jest.fn()
+    })
+    mockOpenEditor.mockRejectedValue(new Error('no session code'))
+    const spy = jest.spyOn(console, 'error').mockImplementation(() => undefined)
+    render(wrap(<MetadataRoute />))
+    await act(async () => {
+      fireEvent.press(screen.getByText('drive.fileMeta.open'))
+    })
+    expect(screen.getByText('drive.preview.loadFailed')).toBeOnTheScreen()
+    expect(mockBack).not.toHaveBeenCalled()
+    spy.mockRestore()
+  })
+
   it('calls pin when the offline switch is toggled on', () => {
     render(wrap(<MetadataRoute />))
     const sw = screen.getByRole('switch')

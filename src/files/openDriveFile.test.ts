@@ -73,6 +73,44 @@ describe('openDriveFile', () => {
     )
   })
 
+  it('closes the sheet it was opened from only once the web editor is dismissed', async () => {
+    let dismissBrowser = (): void => undefined
+    const pendingEditor = jest.fn(() => new Promise<void>(resolve => (dismissBrowser = resolve)))
+    const closeSheet = jest.fn()
+
+    const opening = openDriveFile(
+      client,
+      router,
+      { _id: 'f6', name: 'croquis.excalidraw' },
+      {
+        openEditor: pendingEditor,
+        closeSheet
+      }
+    )
+    await Promise.resolve()
+    expect(pendingEditor).toHaveBeenCalled()
+    expect(closeSheet).not.toHaveBeenCalled()
+
+    dismissBrowser()
+    await opening
+    expect(closeSheet).toHaveBeenCalled()
+  })
+
+  it('closes the sheet it was opened from before showing the preview', async () => {
+    const closeSheet = jest.fn()
+
+    await openDriveFile(
+      client,
+      router,
+      { _id: 'f7', name: 'photo.jpg', mime: 'image/jpeg' },
+      { openEditor, closeSheet }
+    )
+
+    expect(closeSheet.mock.invocationCallOrder[0]).toBeLessThan(
+      (router.push as jest.Mock).mock.invocationCallOrder[0]
+    )
+  })
+
   it('previews a type no editor claims', async () => {
     await openDriveFile(
       client,
