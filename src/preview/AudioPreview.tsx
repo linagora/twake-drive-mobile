@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useRef, useState } from 'react'
 import { StyleSheet, View } from 'react-native'
 import { AudioModule, AudioPlayer, useAudioPlayer, useAudioPlayerStatus } from 'expo-audio'
 import { Button, IconButton, ProgressBar, Text, useTheme } from 'react-native-paper'
@@ -97,14 +97,6 @@ const SupportedAudioPlayer = ({
   const { t } = useTranslation()
   const player = useAudioPlayer({ uri: source.uri, headers: source.headers })
   const status = useAudioPlayerStatus(player)
-  // Keep audio playing when the app is backgrounded or the device is silenced.
-  useEffect(() => {
-    void AudioModule.setAudioModeAsync({
-      playsInSilentMode: true,
-      shouldPlayInBackground: true,
-      shouldRouteThroughEarpiece: false
-    })
-  }, [])
   // Releasing the player, on unmount or when the source changes, clears its session.
   const registered = useRef<AudioPlayer | null>(null)
   const ready = status.isLoaded
@@ -125,6 +117,16 @@ const SupportedAudioPlayer = ({
         { showSeekBackward: true, showSeekForward: true }
       )
     }
+    // Keep audio playing when the app is backgrounded or the device is silenced.
+    // On iOS expo-audio defaults to mixWithOthers, and a mixing session never
+    // becomes the Now Playing app. Set before every play: expo-video puts the
+    // shared session back to mixWithOthers whenever a video stops.
+    await AudioModule.setAudioModeAsync({
+      playsInSilentMode: true,
+      shouldPlayInBackground: true,
+      shouldRouteThroughEarpiece: false,
+      interruptionMode: 'doNotMix'
+    }).catch(e => console.warn('[AudioPreview] audio mode not applied', e))
     player.play()
   }
   return (

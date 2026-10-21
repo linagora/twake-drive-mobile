@@ -34,6 +34,7 @@ jest.mock('@/files/openFile', () => ({
 let mockUnsupported = false
 jest.mock('@/files/audioSupport', () => ({ isUnsupportedAudio: () => mockUnsupported }))
 
+import { AudioModule } from 'expo-audio'
 import { AudioPreview } from './AudioPreview'
 import { NoCompatibleAppError } from '@/files/errors'
 
@@ -124,6 +125,25 @@ describe('AudioPreview playback', () => {
     await waitFor(() => expect(mockPlayer.play).toHaveBeenCalled())
     expect(mockPlayer.setActiveForLockScreen).toHaveBeenCalledTimes(1)
     expect(mockPlayer.setActiveForLockScreen.mock.calls[0][1]).toEqual({ title: 'song.mp3' })
+  })
+
+  it('takes the audio session for itself before every play', async () => {
+    mockStatus = { ...mockStatus, playing: false, didJustFinish: false, currentTime: 50 }
+    const setAudioMode = AudioModule.setAudioModeAsync as jest.Mock
+    setAudioMode.mockClear()
+    renderPlayer()
+    expect(setAudioMode).not.toHaveBeenCalled()
+    fireEvent.press(screen.getByTestId('audio-play-pause'))
+    await waitFor(() => expect(mockPlayer.play).toHaveBeenCalled())
+    expect(setAudioMode).toHaveBeenCalledWith(
+      expect.objectContaining({ shouldPlayInBackground: true, interruptionMode: 'doNotMix' })
+    )
+    expect(setAudioMode.mock.invocationCallOrder[0]).toBeLessThan(
+      mockPlayer.play.mock.invocationCallOrder[0]
+    )
+    fireEvent.press(screen.getByTestId('audio-play-pause'))
+    await waitFor(() => expect(mockPlayer.play).toHaveBeenCalledTimes(2))
+    expect(setAudioMode).toHaveBeenCalledTimes(2)
   })
 })
 
