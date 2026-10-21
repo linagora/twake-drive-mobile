@@ -1,0 +1,19 @@
+diff --git a/node_modules/expo-video/ios/NowPlayingManager.swift b/node_modules/expo-video/ios/NowPlayingManager.swift
+index 414c01a..1d1b8c1 100644
+--- a/node_modules/expo-video/ios/NowPlayingManager.swift
++++ b/node_modules/expo-video/ios/NowPlayingManager.swift
+@@ -226,6 +226,14 @@ class NowPlayingManager: VideoPlayerObserverDelegate {
+         }
+         return .commandFailed
+       }
++
++      // Backport of expo/expo@bb8c3bafed (#46753), released in expo-video 56.1.4: expo-audio disables
++      // these shared commands when its lock screen player is released, and nothing here turned them back on.
++      commandCenter.playCommand.isEnabled = true
++      commandCenter.pauseCommand.isEnabled = true
++      commandCenter.skipForwardCommand.isEnabled = true
++      commandCenter.skipBackwardCommand.isEnabled = true
++      commandCenter.changePlaybackPositionCommand.isEnabled = true
+     }
+   }
+ 
