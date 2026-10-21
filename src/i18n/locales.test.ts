@@ -57,3 +57,15 @@ describe('locale parity', () => {
     })
   }
 })
+
+// Five tabs share the bar's width: past 13 characters, a label is cut on a
+// 440 pt wide iPhone.
+describe('tab bar labels', () => {
+  for (const code of Object.keys(bundles) as LanguageCode[]) {
+    it(`fit in full in ${code}`, () => {
+      const drive = bundles[code].drive
+      const labels = [drive.myDrive, drive.favorites, drive.recent, drive.shares, drive.trash]
+      expect(labels.filter(label => label.length > 13)).toEqual([])
+    })
+  }
+})
