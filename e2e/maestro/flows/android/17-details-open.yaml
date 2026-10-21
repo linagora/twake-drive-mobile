@@ -1,0 +1,64 @@
+appId: com.linagora.twakedrive
+tags:
+  - android
+onFlowComplete:
+  - runFlow: ../../subflows/cleanup.yaml
+---
+# Open in the details sheet opens the file the way a tap on its row does: a
+# drawing in its web editor, an image in the preview. Coming back lands on the
+# list, the sheet gone, and the row still opens the drawing.
+- runScript:
+    file: ../../scripts/seed.js
+    env:
+      SEED: '[{"key":"file","kind":"file","prefix":"E2E-croquis","ext":"excalidraw","content":"{}","mime":"application/vnd.excalidraw+json"}]'
+- runFlow: ../../subflows/openDrive.yaml
+- extendedWaitUntil:
+    visible:
+      id: 'file-row:${output.file.name}'
+    timeout: 60000
+- tapOn:
+    id: 'file-actions:${output.file.name}'
+- waitForAnimationToEnd
+- tapOn:
+    id: 'action-info'
+- waitForAnimationToEnd
+- tapOn: 'Ouvrir|Open'
+- extendedWaitUntil:
+    notVisible:
+      id: 'file-row:${output.file.name}'
+    timeout: 15000
+# the editor is a browser tab of its own: coming back to the app, not through its history
+- launchApp
+- extendedWaitUntil:
+    visible:
+      id: 'file-row:${output.file.name}'
+    timeout: 15000
+- assertNotVisible: 'Ouvrir|Open'
+- tapOn:
+    id: 'file-row:${output.file.name}'
+- extendedWaitUntil:
+    notVisible:
+      id: 'file-row:${output.file.name}'
+    timeout: 15000
+- launchApp
+- extendedWaitUntil:
+    visible:
+      id: 'file-row:sample.jpg'
+    timeout: 15000
+- tapOn:
+    id: 'file-actions:sample.jpg'
+- waitForAnimationToEnd
+- tapOn:
+    id: 'action-info'
+- waitForAnimationToEnd
+- tapOn: 'Ouvrir|Open'
+- extendedWaitUntil:
+    visible:
+      id: 'document-chrome'
+    timeout: 15000
+- back
+- extendedWaitUntil:
+    visible:
+      id: 'file-row:sample.jpg'
+    timeout: 15000
+- assertNotVisible: 'Ouvrir|Open'
