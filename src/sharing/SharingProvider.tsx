@@ -88,7 +88,9 @@ const sharingOwner = (s: SharingDoc): boolean | undefined => s.attributes?.owner
  * - For sharings, `isOwner` becomes true if ANY active sharing for this file
  *   has the owner flag (a file can in theory appear in multiple sharings).
  * - The first non-empty recipient list wins; we don't merge across sharings.
- * - Public-link permissions only contribute `hasLink`.
+ * - Public-link permissions contribute `hasLink`. A file with a link and no
+ *   sharing is owned: links are per instance, so only its owner made it
+ *   (cozy-sharing's `isOwner` is true for a document without a sharing).
  */
 export const buildByIdMap = (
   sharings: SharingDoc[],
@@ -115,7 +117,7 @@ export const buildByIdMap = (
   for (const p of perms) {
     for (const fid of linkFilesIds(p)) {
       if (!fid) continue
-      const existing = map.get(fid) ?? { isOwner: false, hasLink: false, recipients: [] }
+      const existing = map.get(fid) ?? { isOwner: true, hasLink: false, recipients: [] }
       map.set(fid, {
         ...existing,
         hasLink: true,
