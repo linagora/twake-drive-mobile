@@ -44,8 +44,17 @@ jest.mock('@/ui/FileRow', () => {
   const React = require('react')
   const { Text } = require('react-native')
   return {
-    FileRow: (props: { file: { name: string }; onPress: (f: { name: string }) => void }) =>
-      React.createElement(Text, { onPress: () => props.onPress(props.file) }, props.file.name)
+    FileRow: (props: {
+      file: { name: string }
+      location?: string
+      onPress: (f: { name: string }) => void
+    }) =>
+      React.createElement(
+        React.Fragment,
+        null,
+        React.createElement(Text, { onPress: () => props.onPress(props.file) }, props.file.name),
+        props.location ? React.createElement(Text, null, props.location) : null
+      )
   }
 })
 jest.mock('@/ui/FolderRow', () => {
@@ -54,9 +63,19 @@ jest.mock('@/ui/FolderRow', () => {
   return {
     FolderRow: (props: {
       folder: { name: string; _id: string }
+      location?: string
       onPress: (f: { _id: string }) => void
     }) =>
-      React.createElement(Text, { onPress: () => props.onPress(props.folder) }, props.folder.name)
+      React.createElement(
+        React.Fragment,
+        null,
+        React.createElement(
+          Text,
+          { onPress: () => props.onPress(props.folder) },
+          props.folder.name
+        ),
+        props.location ? React.createElement(Text, null, props.location) : null
+      )
   }
 })
 
@@ -95,6 +114,22 @@ describe('SearchScreen', () => {
     fireEvent.changeText(screen.getByPlaceholderText('drive.search.placeholder'), 're')
     expect(screen.getByLabelText('common.back')).toBeTruthy()
     expect(screen.getByLabelText('common.clear')).toBeTruthy()
+  })
+
+  it('tells where each result is, so same-named files can be told apart', () => {
+    setSearch({
+      status: 'success',
+      data: [
+        { _id: 'f1', name: 'fichier-12.txt', type: 'file', location: '/Charge/Dossier-3' },
+        { _id: 'f2', name: 'fichier-12.txt', type: 'file', location: '/' },
+        { _id: 'd1', name: 'Dossier-3', type: 'directory', location: '/Charge' }
+      ]
+    })
+    render(<SearchScreen />)
+    fireEvent.changeText(screen.getByPlaceholderText('drive.search.placeholder'), 'fichier')
+    expect(screen.getByText('/Charge/Dossier-3')).toBeTruthy()
+    expect(screen.getByText('/Charge')).toBeTruthy()
+    expect(screen.getByText('drive.myDrive')).toBeTruthy()
   })
 
   it('active la recherche et affiche les résultats à partir de 2 caractères', () => {

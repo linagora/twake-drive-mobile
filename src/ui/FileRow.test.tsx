@@ -103,6 +103,17 @@ describe('FileRow', () => {
       )
     })
 
+    it('announces where the file is when a location is given', () => {
+      render(
+        wrap(
+          <FileRow file={file} location="/Charge/Dossier-3" onPress={() => {}} testID="file-row" />
+        )
+      )
+      expect(screen.getByTestId('file-row').props.accessibilityLabel).toBe(
+        'rapport.pdf, a11y.row.file, /Charge/Dossier-3'
+      )
+    })
+
     it('is announced as a button', () => {
       render(wrap(<FileRow file={file} onPress={() => {}} testID="file-row" />))
       expect(screen.getByTestId('file-row').props.accessibilityRole).toBe('button')

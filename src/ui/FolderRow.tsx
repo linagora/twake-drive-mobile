@@ -60,6 +60,8 @@ interface Props {
   /** Called after a favorite toggle so the parent can refetch its query — the
    * lists are non-reactive, so without this a removed favorite lingers. */
   onFavoriteChange?: () => void
+  /** Where the folder is, shown under its name (search results). */
+  location?: string
   /** Stable id for E2E (Maestro) selection. */
   testID?: string
 }
@@ -81,6 +83,7 @@ export const FolderRow = ({
   isNewSharing,
   canFavorite,
   onFavoriteChange,
+  location,
   testID
 }: Props) => {
   const { t } = useTranslation()
@@ -110,7 +113,7 @@ export const FolderRow = ({
           count: folderOfflineState.downloaded,
           total: folderOfflineState.total
         })
-      : undefined
+      : location
 
   // The 3-dot menu button is an absolutely-positioned SIBLING of the List.Item,
   // NOT its `right` slot (the List.Item spans the full row so its ripple does too).

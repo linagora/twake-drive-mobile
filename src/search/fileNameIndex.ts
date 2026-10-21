@@ -15,6 +15,8 @@ export interface SearchDb {
 export interface FileNameHit {
   doc: FileQueryResult
   rank: number
+  /** Path of the folder holding the hit. */
+  location?: string
 }
 
 const MAX_NAME_LENGTH = 255
@@ -58,7 +60,13 @@ const BACKFILL = `INSERT INTO file_names(rowid, name, reversed, doc_id)
 
 const TRASHED = "CASE WHEN json_valid(s.json) THEN json_extract(s.json, '$.trashed') END"
 
-const SEARCH = `SELECT s.json AS json, s.doc_id AS doc_id, s.rev AS rev, f.rank AS rank
+// A subquery rather than a join, so the plan still starts from file_names.
+const PARENT_PATH = `(SELECT CASE WHEN json_valid(ps.json) THEN json_extract(ps.json, '$.path') END
+   FROM 'document-store' pd JOIN 'by-sequence' ps ON ps.seq = pd.winningseq
+   WHERE pd.id = json_extract(s.json, '$.dir_id'))`
+
+const SEARCH = `SELECT s.json AS json, s.doc_id AS doc_id, s.rev AS rev, f.rank AS rank,
+     ${PARENT_PATH} AS parent_path
    FROM file_names f
    CROSS JOIN 'by-sequence' s ON s.seq = f.rowid
    CROSS JOIN 'document-store' d ON d.id = s.doc_id AND d.winningseq = s.seq
@@ -127,7 +135,11 @@ const toHit = (row: Record<string, unknown>): FileNameHit | null => {
       _rev: row.rev as string,
       _type: 'io.cozy.files'
     } as FileQueryResult
-    return { doc, rank: Number(row.rank) }
+    return {
+      doc,
+      rank: Number(row.rank),
+      location: typeof row.parent_path === 'string' ? row.parent_path : undefined
+    }
   } catch {
     return null
   }
