@@ -1,10 +1,23 @@
+import React from 'react'
+import { Text } from 'react-native'
+import { act, render, waitFor } from '@testing-library/react-native'
+
+let mockClient: unknown = null
 jest.mock('cozy-client', () => ({
   __esModule: true,
-  useClient: () => null
+  useClient: () => mockClient
 }))
+let mockOnline = true
+jest.mock('@/network/useIsOnline', () => ({ useIsOnline: () => mockOnline }))
 
 import { PublicLinkPermission, SharingDoc } from '@/files/sharing'
-import { buildByIdMap, entryToStatus } from './SharingProvider'
+import {
+  buildByIdMap,
+  entryToStatus,
+  SharingProvider,
+  useFileSharingStatus,
+  useRefreshSharings
+} from './SharingProvider'
 
 const sharing = (overrides: Partial<SharingDoc['attributes']>, id = 's1'): SharingDoc => ({
   _id: id,
@@ -171,5 +184,67 @@ describe('entryToStatus', () => {
       hasLink: true,
       recipientCount: 0
     })
+  })
+})
+
+describe('SharingProvider', () => {
+  afterEach(() => {
+    mockClient = null
+    mockOnline = true
+  })
+
+  it('loads the sharings again when the network comes back after a failed load', async () => {
+    const findByDoctype = jest
+      .fn()
+      .mockRejectedValueOnce(new Error('Network request failed'))
+      .mockResolvedValue({
+        data: [sharing({ rules: [{ doctype: 'io.cozy.files', values: ['file-a'] }] })]
+      })
+    const findLinksByDoctype = jest.fn().mockResolvedValue({ data: [] })
+    mockClient = {
+      collection: (doctype: string) =>
+        doctype === 'io.cozy.sharings' ? { findByDoctype } : { findLinksByDoctype }
+    }
+    const Badge = () => <Text>{useFileSharingStatus('file-a') ? 'shared' : 'not shared'}</Text>
+    const tree = () => (
+      <SharingProvider>
+        <Badge />
+      </SharingProvider>
+    )
+
+    const { rerender, findByText } = render(tree())
+    await waitFor(() => expect(findByDoctype).toHaveBeenCalledTimes(1))
+    expect(await findByText('not shared')).toBeTruthy()
+
+    mockOnline = false
+    rerender(tree())
+    mockOnline = true
+    rerender(tree())
+    expect(await findByText('shared')).toBeTruthy()
+    expect(findByDoctype).toHaveBeenCalledTimes(2)
+  })
+
+  it('does not call the stack while offline and still settles refresh()', async () => {
+    mockOnline = false
+    const findByDoctype = jest.fn()
+    mockClient = { collection: () => ({ findByDoctype, findLinksByDoctype: jest.fn() }) }
+    const grabbed: { refresh?: () => Promise<void> } = {}
+    const Grab = () => {
+      grabbed.refresh = useRefreshSharings()
+      return null
+    }
+
+    render(
+      <SharingProvider>
+        <Grab />
+      </SharingProvider>
+    )
+
+    let refreshed: Promise<void> | undefined
+    act(() => {
+      refreshed = grabbed.refresh?.()
+    })
+    await expect(refreshed).resolves.toBeUndefined()
+    expect(findByDoctype).not.toHaveBeenCalled()
   })
 })
