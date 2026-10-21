@@ -1,6 +1,6 @@
 import React from 'react'
 import { Provider as PaperProvider } from 'react-native-paper'
-import { fireEvent, render, screen } from '@testing-library/react-native'
+import { act, fireEvent, render, screen } from '@testing-library/react-native'
 
 const mockBack = jest.fn()
 const mockPush = jest.fn()
@@ -113,6 +113,7 @@ jest.mock('@/ui/icons/CozyIcon', () => {
 
 import PreviewScreen from './[fileId]'
 import { NoCompatibleAppError } from '@/files/errors'
+import { CHROME_VISIBLE_MS } from '@/ui/useAutoHidingChrome'
 
 const wrap = (ui: React.ReactElement) => <PaperProvider>{ui}</PaperProvider>
 
@@ -162,6 +163,21 @@ describe('PreviewScreen', () => {
     mockKind = 'text'
     render(wrap(<PreviewScreen />))
     expect(screen.getByTestId('document-content')).toHaveStyle({ paddingTop: 56 })
+  })
+
+  describe('over a text', () => {
+    beforeEach(() => jest.useFakeTimers())
+    afterEach(() => jest.useRealTimers())
+
+    // The room kept for the bar would otherwise stay as an empty band above the page.
+    it('keeps the bar up', () => {
+      mockKind = 'text'
+      render(wrap(<PreviewScreen />))
+      act(() => {
+        jest.advanceTimersByTime(CHROME_VISIBLE_MS + 100)
+      })
+      expect(screen.getByTestId('document-chrome').props.pointerEvents).not.toBe('none')
+    })
   })
 
   it('lets an image take the whole canvas under the bar', () => {
