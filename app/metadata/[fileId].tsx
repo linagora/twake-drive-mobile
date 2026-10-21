@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react'
-import { Image, Linking, ScrollView, StyleSheet, View } from 'react-native'
+import { Image, ScrollView, StyleSheet, View } from 'react-native'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { Button, Divider, Portal, Snackbar, Text, useTheme } from 'react-native-paper'
 import { Switch } from '@/ui/Switch'
@@ -15,14 +15,12 @@ import { RenameDialog } from '@/ui/RenameDialog'
 import { ConfirmDeleteDialog } from '@/ui/ConfirmDeleteDialog'
 import { formatFileSize } from '@/utils/formatters'
 import { dateLocaleForLanguage } from '@/i18n/dateLocale'
-import { openFileNatively } from '@/files/openFile'
+import { useOpenFile } from '@/files/useOpenFile'
 import { surfaceOpenError } from '@/files/errors'
 import { renameEntry } from '@/files/renameEntry'
 import { optimisticFiles } from '@/files/optimisticFiles'
 import { softDeleteEntry } from '@/files/deleteFile'
-import { isCozyNoteFile, isDocsNoteFile, isOfficeFile, isShortcutFile } from '@/files/fileTypes'
-import { fetchShortcutUrl } from '@/files/shortcuts'
-import { canPreviewInApp } from '@/files/streamUrl'
+import { isCozyNoteFile, isDocsNoteFile, isOfficeFile } from '@/files/fileTypes'
 import { fileByIdQuery, fileByIdQueryAs, FileQueryResult } from '@/client/queries'
 import { useIsOnline } from '@/network/useIsOnline'
 import { useOfflineState } from '@/offline/useOfflineState'
@@ -30,8 +28,6 @@ import { useOfflineActions } from '@/offline/useOfflineActions'
 import { isKeepOfflineEnabled } from '@/offline/keepOfflineFlag'
 import { FileSystemRepo } from '@/offline/FileSystemRepo'
 import { fileOwnerLabel } from '@/files/fileOwner'
-import { webEditorKindOf } from '@/viewer/webEditor'
-import { useWebEditor } from '@/viewer/useWebEditor'
 import { useCurrentUser } from '@/account/useCurrentUser'
 
 // Brief delay so the success snackbar is visible before the modal dismisses.
@@ -55,7 +51,7 @@ export default function MetadataRoute() {
   const client = useClient()
   const isOnline = useIsOnline()
   const currentUser = useCurrentUser()
-  const openEditor = useWebEditor()
+  const openFile = useOpenFile()
   const { fileId } = useLocalSearchParams<{ fileId: string }>()
 
   const fileLookup = useQuery(fileByIdQuery(fileId ?? ''), {
@@ -90,46 +86,11 @@ export default function MetadataRoute() {
   }, [router])
 
   const onOpen = async (): Promise<void> => {
-    if (!client || !file) return
-    if (webEditorKindOf(file)) {
-      close()
-      await openEditor({
-        _id: file._id,
-        name: file.name,
-        mime: file.mime,
-        metadata: file.metadata
-      })
-      return
-    }
-    if (canPreviewInApp(file)) {
-      close()
-      router.push(`/preview/${file._id}`)
-      return
-    }
-    if (isShortcutFile(file)) {
-      setOpening(true)
-      setOpenError(null)
-      try {
-        const url = await fetchShortcutUrl(client, file._id)
-        if (!url) throw new Error('Shortcut has no target URL')
-        close()
-        await Linking.openURL(url)
-      } catch (e) {
-        surfaceOpenError(e, setOpenError, t, 'MetadataScreen')
-      } finally {
-        setOpening(false)
-      }
-      return
-    }
+    if (!file) return
     setOpening(true)
     setOpenError(null)
     try {
-      await openFileNatively(client, {
-        _id: file._id,
-        _rev: file._rev,
-        name: file.name,
-        mime: file.mime
-      })
+      await openFile(file, { closeSheet: close })
     } catch (e) {
       surfaceOpenError(e, setOpenError, t, 'MetadataScreen')
     } finally {

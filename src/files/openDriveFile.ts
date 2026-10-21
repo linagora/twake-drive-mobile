@@ -21,19 +21,18 @@ export interface DriveFile {
 export interface OpenDriveFileOptions {
   openEditor: (file: EditableDocument, driveId?: string) => Promise<void>
   driveId?: string
+  closeSheet?: () => void
 }
 
 /**
  * Opens a file in what it opens with: a local viewer, its web editor, the
  * in-app preview, a shortcut's target, or another app on the device.
- *
- * Throws on failure; callers surface the error.
  */
 export const openDriveFile = async (
   client: CozyClient,
   router: Router,
   file: DriveFile,
-  { openEditor, driveId }: OpenDriveFileOptions
+  { openEditor, driveId, closeSheet }: OpenDriveFileOptions
 ): Promise<void> => {
   // A file inside a shared drive is served by the owner instance through the
   // drive routes, so every viewer has to be told which drive it came from.
@@ -41,23 +40,28 @@ export const openDriveFile = async (
   // A type with a local viewer opens in it, online or not; the web editor is
   // then one tap away from the viewer.
   if (localViewerFor(file)) {
+    closeSheet?.()
     router.push(`/preview/${file._id}${scope}`)
     return
   }
   if (webEditorKindOf(file)) {
+    // The sheet closes after the browser: iOS drops a browser presented over a sheet being dismissed.
     await openEditor(
       { _id: file._id, name: file.name, mime: file.mime, metadata: file.metadata },
       driveId
     )
+    closeSheet?.()
     return
   }
   if (canPreviewInApp(file)) {
+    closeSheet?.()
     router.push(`/preview/${file._id}${scope}`)
     return
   }
   if (isShortcutFile(file)) {
     const url = await fetchShortcutUrl(client, file._id)
     if (!url) throw new Error('Shortcut has no target URL')
+    closeSheet?.()
     await Linking.openURL(url)
     return
   }
