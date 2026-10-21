@@ -8,7 +8,7 @@ import type CozyClient from 'cozy-client'
 import flag from 'cozy-flags'
 import type { Router } from 'expo-router'
 
-import { openFileFromList } from './openFromList'
+import { openFileFromList } from './openDriveFile'
 
 const mockFlag = flag as unknown as jest.Mock
 const client = {} as CozyClient

@@ -41,7 +41,7 @@ jest.mock('./renameEntry', () => ({
 jest.mock('./optimisticFiles', () => ({ optimisticFiles: () => jest.fn() }))
 
 const mockOpenFileFromList = jest.fn().mockResolvedValue(undefined)
-jest.mock('@/files/openFromList', () => ({
+jest.mock('@/files/openDriveFile', () => ({
   openFileFromList: (...args: unknown[]) => mockOpenFileFromList(...args)
 }))
 
