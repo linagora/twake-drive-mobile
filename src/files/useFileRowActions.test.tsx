@@ -1,5 +1,3 @@
-const mockOpenEditor = jest.fn()
-jest.mock('@/viewer/useWebEditor', () => ({ useWebEditor: () => mockOpenEditor }))
 const mockPush = jest.fn()
 jest.mock('expo-router', () => ({ useRouter: () => ({ push: mockPush }) }))
 
@@ -40,10 +38,8 @@ jest.mock('./renameEntry', () => ({
 }))
 jest.mock('./optimisticFiles', () => ({ optimisticFiles: () => jest.fn() }))
 
-const mockOpenFileFromList = jest.fn().mockResolvedValue(undefined)
-jest.mock('@/files/openDriveFile', () => ({
-  openFileFromList: (...args: unknown[]) => mockOpenFileFromList(...args)
-}))
+const mockOpenFile = jest.fn().mockResolvedValue(undefined)
+jest.mock('./useOpenFile', () => ({ useOpenFile: () => mockOpenFile }))
 
 const mockDownloadFolder = jest.fn().mockResolvedValue(undefined)
 jest.mock('@/files/download', () => ({
@@ -73,26 +69,14 @@ describe('useFileRowActions', () => {
     mockOnline = true
   })
 
-  it('opens a file through the list opener', () => {
+  it('opens a file through the shared opener', () => {
     setup().fileProps(file).onPress(file)
-    expect(mockOpenFileFromList).toHaveBeenCalledWith(
-      mockClient,
-      expect.anything(),
-      file,
-      undefined,
-      mockOpenEditor
-    )
+    expect(mockOpenFile).toHaveBeenCalledWith(file, { driveId: undefined })
   })
 
   it('opens a file of a shared drive through that drive', () => {
     setup({ driveId: 'drive-1' }).fileProps(file).onPress(file)
-    expect(mockOpenFileFromList).toHaveBeenCalledWith(
-      mockClient,
-      expect.anything(),
-      file,
-      'drive-1',
-      mockOpenEditor
-    )
+    expect(mockOpenFile).toHaveBeenCalledWith(file, { driveId: 'drive-1' })
   })
 
   it('pins a file that is not kept offline yet', () => {

@@ -23,9 +23,7 @@ jest.mock('@/search/useFileSearch', () => ({
 }))
 
 const mockOpen = jest.fn().mockResolvedValue(undefined)
-jest.mock('@/files/openDriveFile', () => ({
-  openFileFromList: (...args: unknown[]) => mockOpen(...args)
-}))
+jest.mock('@/files/useOpenFile', () => ({ useOpenFile: () => mockOpen }))
 
 jest.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (k: string) => k })
@@ -156,12 +154,9 @@ describe('SearchScreen', () => {
     render(<SearchScreen />)
     fireEvent.changeText(screen.getByPlaceholderText('drive.search.placeholder'), 'no')
     fireEvent.press(screen.getByText('note.txt'))
-    expect(mockOpen).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.anything(),
-      expect.objectContaining({ _id: 'file-1' }),
-      'drive-a'
-    )
+    expect(mockOpen).toHaveBeenCalledWith(expect.objectContaining({ _id: 'file-1' }), {
+      driveId: 'drive-a'
+    })
   })
 
   it("n'affiche PAS l'état vide pendant 'loading'", () => {

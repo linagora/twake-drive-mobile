@@ -32,7 +32,7 @@ export const surfaceOpenError = (
   tag: string
 ): void => {
   if (!(e instanceof NoCompatibleAppError)) {
-    console.error(`[${tag}] openFileFromList failed`, e)
+    console.error(`[${tag}] opening the file failed`, e)
   }
   onMessage(t(openErrorMessageKey(e)))
 }

@@ -70,9 +70,8 @@ jest.mock('@/network/useIsOnline', () => ({
   useIsOnline: () => true
 }))
 
-jest.mock('@/files/openDriveFile', () => ({
-  openFileFromList: jest.fn().mockResolvedValue(undefined)
-}))
+const mockOpenFile = jest.fn().mockResolvedValue(undefined)
+jest.mock('@/files/useOpenFile', () => ({ useOpenFile: () => mockOpenFile }))
 
 jest.mock('@/pouchdb/triggerReplication', () => ({
   getPouchLink: () => null

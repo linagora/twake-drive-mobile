@@ -9,7 +9,7 @@ import { fetchShortcutUrl } from './shortcuts'
 import { openFileNatively } from './openFile'
 import { localViewerFor } from '@/viewer/documentKind'
 
-interface FileLike {
+export interface DriveFile {
   _id: string
   _rev?: string
   name: string
@@ -18,22 +18,22 @@ interface FileLike {
   metadata?: { externalId?: string }
 }
 
+export interface OpenDriveFileOptions {
+  openEditor: (file: EditableDocument, driveId?: string) => Promise<void>
+  driveId?: string
+}
+
 /**
- * Routes a file to its correct viewer when the user taps it in a list.
- * Mirrors the dispatch table that lived in FileMetadataSheet#onOpen, but
- * skips the intermediate metadata sheet — competitor Drives (Google Drive,
- * Apple Files, Dropbox, OneDrive, Proton Drive, Nextcloud) all open
- * straight into the viewer on tap. Metadata + actions are reached via the
- * row's 3-dot menu or long-press.
+ * Opens a file in what it opens with: a local viewer, its web editor, the
+ * in-app preview, a shortcut's target, or another app on the device.
  *
- * Throws on failure; callers should catch + surface via Snackbar/Toast.
+ * Throws on failure; callers surface the error.
  */
-export const openFileFromList = async (
+export const openDriveFile = async (
   client: CozyClient,
   router: Router,
-  file: FileLike,
-  driveId?: string,
-  openEditor?: (file: EditableDocument, driveId?: string) => Promise<void>
+  file: DriveFile,
+  { openEditor, driveId }: OpenDriveFileOptions
 ): Promise<void> => {
   // A file inside a shared drive is served by the owner instance through the
   // drive routes, so every viewer has to be told which drive it came from.
@@ -44,7 +44,7 @@ export const openFileFromList = async (
     router.push(`/preview/${file._id}${scope}`)
     return
   }
-  if (webEditorKindOf(file) && openEditor) {
+  if (webEditorKindOf(file)) {
     await openEditor(
       { _id: file._id, name: file.name, mime: file.mime, metadata: file.metadata },
       driveId
