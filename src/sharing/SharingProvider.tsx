@@ -10,6 +10,7 @@ import React, {
 import { useClient } from 'cozy-client'
 
 import { PublicLinkPermission, SharingDoc, SharingMember } from '@/files/sharing'
+import { useIsOnline } from '@/network/useIsOnline'
 
 /**
  * Per-file aggregated sharing entry. Mirrors what cozy-sharing's
@@ -164,13 +165,20 @@ export const SharingProvider = ({ children }: { children: React.ReactNode }) => 
   // them once the useEffect below applies the fresh data, so callers that
   // awaited refresh() know the context is up to date.
   const pendingResolversRef = useRef<(() => void)[]>([])
+  const isOnline = useIsOnline()
 
+  // Reruns when the network comes back, otherwise a load skipped or failed
+  // offline leaves the badges missing for the rest of the session.
   useEffect(() => {
     if (!client) return
     let cancelled = false
 
     const run = async () => {
       try {
+        if (!isOnline) {
+          setLoaded(true)
+          return
+        }
         const sharingCol = client.collection('io.cozy.sharings') as unknown as SharingsCollectionApi
         const permCol = client.collection(
           'io.cozy.permissions'
@@ -201,7 +209,7 @@ export const SharingProvider = ({ children }: { children: React.ReactNode }) => 
     return () => {
       cancelled = true
     }
-  }, [client, refreshTick])
+  }, [client, refreshTick, isOnline])
 
   const refresh = useCallback((): Promise<void> => {
     const promise = new Promise<void>(resolve => {
