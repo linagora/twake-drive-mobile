@@ -1,6 +1,7 @@
 import type CozyClient from 'cozy-client'
 
 import type { FileQueryResult } from '@/client/queries'
+import { applyStackDoc } from '@/files/applyStackDoc'
 import { optimisticFiles } from '@/files/optimisticFiles'
 
 /**
@@ -13,7 +14,7 @@ interface FilesCollection {
   updateAttributes: (
     id: string,
     attributes: { cozyMetadata: Record<string, unknown> }
-  ) => Promise<{ data: unknown }>
+  ) => Promise<{ data: { _id: string } }>
 }
 
 /**
@@ -27,9 +28,10 @@ interface FilesCollection {
  * on the next sync (the folder reappeared in Favoris). Merge into the existing
  * cozyMetadata to preserve the server-managed fields.
  *
- * The store is updated first so the lists re-evaluate their queries at once:
- * the stack mutation does not write to the local replica, so without this the
- * change only surfaced on the next replication. Reverted if the stack refuses.
+ * The store is updated first so the lists re-evaluate their queries at once.
+ * The stack mutation does not write to the local replica, so the document it
+ * returns goes there too: a list refetched before the next replication would
+ * read the old flag back.
  */
 export const toggleFavorite = async (
   client: CozyClient,
@@ -38,11 +40,13 @@ export const toggleFavorite = async (
 ): Promise<void> => {
   const cozyMetadata = { ...file.cozyMetadata, favorite: next }
   const revert = optimisticFiles(client, [{ ...file, cozyMetadata }])
+  let result: { data: { _id: string } }
   try {
     const collection = client.collection('io.cozy.files') as unknown as FilesCollection
-    await collection.updateAttributes(file._id, { cozyMetadata })
+    result = await collection.updateAttributes(file._id, { cozyMetadata })
   } catch (e) {
     revert()
     throw e
   }
+  await applyStackDoc(client, result.data)
 }

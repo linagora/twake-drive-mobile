@@ -1,10 +1,14 @@
 import { isFavorite, toggleFavorite } from './favorites'
 import { optimisticFiles } from '@/files/optimisticFiles'
+import { applyStackDoc } from '@/files/applyStackDoc'
 import type { FileQueryResult } from '@/client/queries'
 
 const mockRevert = jest.fn()
 jest.mock('@/files/optimisticFiles', () => ({
   optimisticFiles: jest.fn(() => mockRevert)
+}))
+jest.mock('@/files/applyStackDoc', () => ({
+  applyStackDoc: jest.fn().mockResolvedValue(undefined)
 }))
 
 // Minimal fake file used across tests
@@ -68,6 +72,15 @@ describe('toggleFavorite', () => {
     updateAttributes.mockRejectedValue(new Error('403'))
     await expect(toggleFavorite(client, makeFile(false), true)).rejects.toThrow('403')
     expect(mockRevert).toHaveBeenCalled()
+    expect(applyStackDoc).not.toHaveBeenCalled()
+  })
+
+  it('writes what the stack returned into the local replica', async () => {
+    const { client, updateAttributes } = makeMockClient()
+    const updated = { _id: 'file-1', _rev: '2-b', cozyMetadata: { favorite: true } }
+    updateAttributes.mockResolvedValue({ data: updated })
+    await toggleFavorite(client, makeFile(false), true)
+    expect(applyStackDoc).toHaveBeenCalledWith(client, updated)
   })
 
   it('keeps the store update when the stack accepts', async () => {
