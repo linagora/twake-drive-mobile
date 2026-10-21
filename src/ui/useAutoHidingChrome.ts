@@ -16,17 +16,18 @@ export interface AutoHidingChrome {
 /**
  * The viewer's floating bar: on screen when the document opens, gone shortly
  * after, back on the next touch. It sits over the document, so leaving it up
- * hides the first line of what is being read.
+ * hides the first line of what is being read. With `autoHide` off it stays.
  */
-export const useAutoHidingChrome = (): AutoHidingChrome => {
+export const useAutoHidingChrome = (autoHide = true): AutoHidingChrome => {
   const opacity = useMemo(() => new Animated.Value(1), [])
-  const [visible, setVisible] = useState(true)
+  const [shown, setVisible] = useState(true)
+  const visible = shown || !autoHide
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const hideLater = useCallback(() => {
     if (timer.current) clearTimeout(timer.current)
-    timer.current = setTimeout(() => setVisible(false), CHROME_VISIBLE_MS)
-  }, [])
+    if (autoHide) timer.current = setTimeout(() => setVisible(false), CHROME_VISIBLE_MS)
+  }, [autoHide])
 
   const reveal = useCallback(() => {
     setVisible(true)

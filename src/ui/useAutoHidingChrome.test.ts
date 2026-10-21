@@ -49,4 +49,18 @@ describe('useAutoHidingChrome', () => {
 
     expect(() => act(() => jest.advanceTimersByTime(CHROME_VISIBLE_MS))).not.toThrow()
   })
+
+  // A text is only known once the file has loaded, by which time the bar may be gone.
+  it('brings it back for good once it stops hiding', () => {
+    const { result, rerender } = renderHook(
+      ({ autoHide }: { autoHide: boolean }) => useAutoHidingChrome(autoHide),
+      { initialProps: { autoHide: true } }
+    )
+    act(() => jest.advanceTimersByTime(CHROME_VISIBLE_MS))
+
+    rerender({ autoHide: false })
+    act(() => jest.advanceTimersByTime(CHROME_VISIBLE_MS))
+
+    expect(result.current.visible).toBe(true)
+  })
 })

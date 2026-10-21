@@ -15,12 +15,14 @@ import { useAutoHidingChrome } from './useAutoHidingChrome'
  *   back and the actions floating over it.
  * - `player`: the same bar, hiding itself the same way, but with its room kept
  *   clear of the document. For a document that draws controls of its own: two
- *   layers sharing the same band fight, whoever is on top. Also for a text,
- *   whose first line would sit under the bar.
+ *   layers sharing the same band fight, whoever is on top.
+ * - `reader`: the bar's room kept clear the same way, with the bar staying in
+ *   it. For a text, whose first line would sit under the bar, and whose page
+ *   would leave the room as an empty dark band once the bar faded.
  * - `editor`: the web editor draws its own header inside, so the native bar
  *   stays down to the way back.
  */
-export type DocumentChrome = 'immersive' | 'player' | 'editor'
+export type DocumentChrome = 'immersive' | 'player' | 'reader' | 'editor'
 
 export interface DocumentAction {
   icon: string
@@ -46,7 +48,7 @@ export const DOCUMENT_BACK_TEST_ID = 'document-back-button'
 export const DOCUMENT_CONTENT_TEST_ID = 'document-content'
 export const DOCUMENT_CHROME_TEST_ID = 'document-chrome'
 
-/** Height of the bar's controls, the room the `player` chrome keeps for it. */
+/** Height of the bar's controls, the room `player` and `reader` keep for it. */
 const CHROME_BAR_HEIGHT = 40
 
 export const DocumentScreen = ({
@@ -59,16 +61,15 @@ export const DocumentScreen = ({
   const theme = useTheme()
   const insets = useSafeAreaInsets()
   const { t } = useTranslation()
-  const { visible, opacity, reveal } = useAutoHidingChrome()
+  const { visible, opacity, reveal } = useAutoHidingChrome(chrome !== 'reader')
   const androidTopInset = Platform.OS === 'ios' ? 0 : insets.top || StatusBar.currentHeight || 0
   const barTopInset = Platform.OS === 'ios' ? 0 : insets.top
 
-  if (chrome === 'immersive' || chrome === 'player') {
+  if (chrome !== 'editor') {
     const barTop = barTopInset + cozyTokens.spacing.sm
-    // `player` keeps the document out from under the bar rather than out of
-    // its way: the room stays reserved, so nothing moves when the bar fades.
+    // `player` and `reader` keep the bar's room reserved, so nothing moves when it fades.
     const contentTop =
-      chrome === 'player' ? barTop + CHROME_BAR_HEIGHT + cozyTokens.spacing.sm : androidTopInset
+      chrome === 'immersive' ? androidTopInset : barTop + CHROME_BAR_HEIGHT + cozyTokens.spacing.sm
     const bar = (
       <Animated.View
         testID={DOCUMENT_CHROME_TEST_ID}
