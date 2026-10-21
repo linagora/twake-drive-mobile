@@ -6,6 +6,7 @@ import { EmptyState } from './EmptyState'
 import { ErrorState } from './ErrorState'
 import { LoadingState } from './LoadingState'
 import { useSideInset } from './useSideInset'
+import { gridTileBox } from './gridColumns'
 import { getErrorMessageKey } from '@/utils/errorMessages'
 
 export interface FileListViewProps<T> {
@@ -104,7 +105,11 @@ export const FileListView = <T,>({
           isPlaceholder(item) ? `placeholder-${item[PLACEHOLDER]}` : keyExtractor(item)
         }
         renderItem={({ item }) =>
-          isPlaceholder(item) ? <View style={styles.placeholder} /> : renderItem({ item })
+          isPlaceholder(item) ? (
+            <View testID="grid-placeholder" style={styles.placeholder} />
+          ) : (
+            renderItem({ item })
+          )
         }
         numColumns={numColumns}
         ListEmptyComponent={<EmptyState icon={emptyIcon} message={t(emptyMessage)} />}
@@ -127,6 +132,5 @@ export const FileListView = <T,>({
 const styles = StyleSheet.create({
   content: { flexGrow: 1 },
   empty: { justifyContent: 'center' },
-  // Same flex and margin as a grid tile, so it takes exactly one column.
-  placeholder: { flex: 1, margin: 4 }
+  placeholder: gridTileBox
 })

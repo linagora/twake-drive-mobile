@@ -1,8 +1,9 @@
 import React from 'react'
-import { FlatList, RefreshControl, Text } from 'react-native'
+import { FlatList, RefreshControl, StyleSheet, Text } from 'react-native'
 import { render, screen, fireEvent } from '@testing-library/react-native'
 
 import { FileListView } from './FileListView'
+import { gridTileBox } from './gridColumns'
 
 interface Row {
   _id: string
@@ -66,6 +67,13 @@ describe('FileListView', () => {
     // one item + two placeholders fill the three-column row
     expect(list.props.data).toHaveLength(3)
     expect(screen.getAllByText('alpha')).toHaveLength(1)
+  })
+
+  it('gives a placeholder the same box as a tile', () => {
+    renderView({ numColumns: 3 })
+    for (const placeholder of screen.getAllByTestId('grid-placeholder')) {
+      expect(StyleSheet.flatten(placeholder.props.style)).toEqual(gridTileBox)
+    }
   })
 
   it('does not pad a list', () => {
