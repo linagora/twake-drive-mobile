@@ -38,6 +38,28 @@ describe('AccessibleRow', () => {
     expect(screen.getByTestId('row').props.accessibilityRole).toBeUndefined()
   })
 
+  it('leaves what it holds to be reached on its own when it is not pressable', () => {
+    render(wrap(<AccessibleRow testID="row" title="Wi-Fi" label="Wi-Fi" />))
+    expect(screen.getByTestId('row').props.accessible).toBe(false)
+  })
+
+  it('stays one element when it is pressable', () => {
+    render(wrap(<AccessibleRow testID="row" title="Wi-Fi" label="Wi-Fi" onPress={jest.fn()} />))
+    expect(screen.getByTestId('row').props.accessible).not.toBe(false)
+  })
+
+  it('stays one element when it is only long-pressable', () => {
+    render(wrap(<AccessibleRow testID="row" title="Wi-Fi" label="Wi-Fi" onLongPress={jest.fn()} />))
+    expect(screen.getByTestId('row').props.accessible).not.toBe(false)
+  })
+
+  // A folder picker row that cannot receive the move is announced dimmed, as
+  // one element carrying its composed label.
+  it('stays one element when it is disabled', () => {
+    render(wrap(<AccessibleRow testID="row" title="Archives" label="Archives" disabled />))
+    expect(screen.getByTestId('row').props.accessible).not.toBe(false)
+  })
+
   it('honours an explicit role over the pressable default', () => {
     render(
       wrap(

@@ -105,6 +105,13 @@ describe('SettingsIndex', () => {
     expect(mockSetPref).toHaveBeenCalledWith('dark')
   })
 
+  it('names the crash reports switch after its row', () => {
+    const { getByTestId } = renderScreen()
+    expect(getByTestId('settings-crash-reports-switch').props.accessibilityLabel).toBe(
+      'Rapports de plantage'
+    )
+  })
+
   // The check icon is the only visual cue for the active theme; a screen
   // reader needs the same information as a checked radio button in a group.
   it('announces the theme options as a radio group with the current one checked', () => {

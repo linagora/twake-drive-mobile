@@ -54,6 +54,10 @@ export const AccessibleRow = ({
   return (
     <List.Item
       {...listItemProps}
+      // A row with nothing to press is announced dimmed as one element, and
+      // hides the switch or button it holds: let its parts be reached instead.
+      // A row disabled on purpose keeps its label and dimmed state.
+      accessible={!!onPress || !!listItemProps.onLongPress || !!disabled}
       onPress={onPress}
       accessibilityLabel={label}
       accessibilityHint={hint}
