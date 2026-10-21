@@ -8,6 +8,7 @@ on:
       - '**/*.md'
       - 'docs/**'
       - 'ios/**'
+      - 'scripts/qa-environment/**'
       - '.github/workflows/release-*.yml'
   workflow_dispatch:
     inputs:
