@@ -12,6 +12,7 @@ import { useOfflineState, useOfflineFolderState } from '@/offline/useOfflineStat
 import { NewSharingBadge } from './NewSharingBadge'
 import { SharedBadge } from './SharedBadge'
 import { composeRowLabel } from './rowLabels'
+import { gridTileBox } from './gridColumns'
 import { useFileSharingStatus } from '@/sharing/SharingProvider'
 import type { FileQueryResult } from '@/client/queries'
 
@@ -177,9 +178,7 @@ export function FileGridItem({
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    margin: 4,
-    padding: 8,
+    ...gridTileBox,
     alignItems: 'center'
   },
   // Stretched so the icon and the name sit exactly where they did when they

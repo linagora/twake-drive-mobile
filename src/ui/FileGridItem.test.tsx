@@ -1,4 +1,5 @@
 import React from 'react'
+import { StyleSheet } from 'react-native'
 import { Provider as PaperProvider } from 'react-native-paper'
 import { fireEvent, render, screen, within, waitFor } from '@testing-library/react-native'
 
@@ -34,6 +35,7 @@ jest.mock('@/offline/useOfflineState', () => ({
 }))
 
 import { FileGridItem } from './FileGridItem'
+import { gridTileBox } from './gridColumns'
 import { useFileSharingStatus } from '@/sharing/SharingProvider'
 import { useOfflineState, useOfflineFolderState } from '@/offline/useOfflineState'
 import type { FileQueryResult } from '@/client/queries'
@@ -85,6 +87,16 @@ describe('FileGridItem', () => {
   it('renders a folder name', () => {
     render(wrap(<FileGridItem file={folder} onPress={() => {}} />))
     expect(screen.getByText('Projets')).toBeOnTheScreen()
+  })
+
+  it('takes the shared grid tile box when selected', () => {
+    render(wrap(<FileGridItem file={file} onPress={() => {}} selected />))
+    let container = screen.getByTestId('file-grid-item').parent
+    while (container && typeof container.type !== 'string') container = container.parent
+    const box = Object.entries(StyleSheet.flatten(container?.props.style)).filter(([key]) =>
+      /^(flex|margin|padding|border\w*Width)/.test(key)
+    )
+    expect(Object.fromEntries(box)).toEqual(gridTileBox)
   })
 
   it('applies selected visual state when selected prop is true', () => {
