@@ -715,12 +715,13 @@ export default function ShareRoute() {
                     textContentType="emailAddress"
                     placeholderTextColor={theme.colors.onSurfaceVariant}
                     selectionColor={theme.colors.primary}
-                    cursorColor={theme.colors.primary}
+                    underlineColorAndroid="transparent"
                     style={[
                       styles.chipInput,
                       {
                         color: theme.colors.onSurface,
-                        fontFamily: theme.fonts.bodyLarge.fontFamily
+                        fontFamily: theme.fonts.bodyLarge.fontFamily,
+                        fontSize: theme.fonts.bodyLarge.fontSize
                       }
                     ]}
                   />
@@ -1009,7 +1010,7 @@ const styles = StyleSheet.create({
   chipClose: { margin: 0 },
   // A plain input: Paper's flat TextInput measures about 80 pt tall inside this
   // wrapping row, so its line sticks out of the box.
-  chipInput: { flexGrow: 1, flexBasis: 140, height: 40, paddingVertical: 0, fontSize: 16 },
+  chipInput: { flexGrow: 1, flexBasis: 140, minHeight: 40, paddingVertical: 0 },
   roleButtonContent: { flexDirection: 'row-reverse' },
   suggestionsHint: { opacity: 0.7 },
   suggestionsBox: {
