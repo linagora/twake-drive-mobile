@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { Image, StyleSheet, View } from 'react-native'
 import { useClient } from 'cozy-client'
 
+import { useIsOnline } from '@/network/useIsOnline'
 import { FileTypeIcon } from '@/ui/icons/FileTypeIcon'
 import { getFileIcon } from '@/utils/fileIcons'
 
@@ -45,12 +46,18 @@ export const FileThumbnail = ({ file, size = 40 }: Props) => {
   const client = useClient()
   const [errored, setErrored] = useState(false)
   const [resolvedLinks, setResolvedLinks] = useState(file.links)
+  const isOnline = useIsOnline()
 
   // Reset state if the file or its links change.
   useEffect(() => {
     setErrored(false)
     setResolvedLinks(file.links)
   }, [file._id, file.links])
+
+  // Retry a thumbnail that failed while the network was down.
+  useEffect(() => {
+    if (isOnline) setErrored(false)
+  }, [isOnline])
 
   const stackUri = client?.getStackClient()?.uri as string | undefined
   const fileType = file.type ?? 'file'
@@ -80,8 +87,12 @@ export const FileThumbnail = ({ file, size = 40 }: Props) => {
         if (cancelled) return
         if (links?.tiny || links?.small) setResolvedLinks(links)
         else setErrored(true)
-      } catch {
-        thumbnailLinkCache.set(file._id, { links: null, at: Date.now() })
+      } catch (e) {
+        // Cache only a 4xx: a network or server error says nothing about the thumbnail.
+        const status = (e as { status?: number }).status
+        if (status !== undefined && status < 500) {
+          thumbnailLinkCache.set(file._id, { links: null, at: Date.now() })
+        }
         if (!cancelled) setErrored(true)
       }
     })()
