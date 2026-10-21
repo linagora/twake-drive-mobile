@@ -8,9 +8,11 @@ export interface SharedItem {
   mimeType: string
   size?: number
 }
+/** The stack's copy of the new file, so its row shows size and type at once. */
 export interface UploadedFile {
   _id: string
   name: string
+  [attribute: string]: unknown
 }
 export type UploadProgress = (fraction: number) => void
 
@@ -56,7 +58,9 @@ const uploadPrefix = (driveId?: string): string =>
 
 interface UploadResponse {
   info: () => { status: number }
-  json: () => { data?: { id?: string; _id?: string; attributes?: { name?: string } } }
+  json: () => {
+    data?: { id?: string; _id?: string; attributes?: { name?: string } & Record<string, unknown> }
+  }
 }
 
 export const uploadSharedFile = async (
@@ -96,7 +100,7 @@ export const uploadSharedFile = async (
     const id = data.id ?? data._id
     if (!id) throw new Error('Upload returned no id')
     onProgress?.(1)
-    return { _id: id, name: data.attributes?.name ?? name }
+    return { ...data.attributes, _id: id, name: data.attributes?.name ?? name }
   }
   throw new Error('Could not find a free filename after multiple attempts')
 }

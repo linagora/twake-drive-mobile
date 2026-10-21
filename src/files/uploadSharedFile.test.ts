@@ -74,6 +74,19 @@ test('retries with a numeric suffix on 409 name conflict', async () => {
   )
 })
 
+test('keeps what the stack says of the file, so its row shows a size at once', async () => {
+  const attributes = {
+    name: 'pic.jpg',
+    size: '1529',
+    mime: 'image/jpeg',
+    class: 'image',
+    updated_at: '2026-10-21T10:00:00Z'
+  }
+  mockFetch.mockReturnValueOnce(mkResp(201, { data: { id: 'f1', attributes } }))
+  const res = await uploadSharedFile(client, item, 'dir42')
+  expect(res).toEqual({ _id: 'f1', ...attributes })
+})
+
 test('throws on a non-conflict HTTP error', async () => {
   mockFetch.mockReturnValueOnce(mkResp(507, {}))
   await expect(uploadSharedFile(client, item, 'dir42')).rejects.toThrow('HTTP 507')
