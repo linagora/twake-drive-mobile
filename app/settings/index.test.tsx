@@ -1,4 +1,5 @@
 import React from 'react'
+import { ScrollView, StyleSheet } from 'react-native'
 import { render, fireEvent, within } from '@testing-library/react-native'
 import { Provider as PaperProvider } from 'react-native-paper'
 // Side-effect import: `@/i18n` calls i18next.init() at module load. Production
@@ -9,11 +10,12 @@ import SettingsIndex from './index'
 
 jest.mock('expo-router', () => ({ useRouter: () => ({ push: jest.fn(), back: jest.fn() }) }))
 
-// ScreenContainer reads safe-area insets; mirrors the same fix already used in
-// app/settings/language.test.tsx (no <SafeAreaProvider> in this tree).
+// ScreenContainer and useSideInset read safe-area insets, and this tree has no
+// <SafeAreaProvider>; `mockInsets` lets a test put the navigation bar on a side.
+let mockInsets = { top: 0, bottom: 0, left: 0, right: 0 }
 jest.mock('react-native-safe-area-context', () => ({
   ...jest.requireActual('react-native-safe-area-context'),
-  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 })
+  useSafeAreaInsets: () => mockInsets
 }))
 
 // SettingsIndex now renders the account header via useCurrentUser (Task 4),
@@ -95,6 +97,15 @@ describe('SettingsIndex', () => {
     mockLogout.mockReset()
     mockOpenBrowser.mockReset()
     mockDeleteAccount.mockReset()
+    mockInsets = { top: 0, bottom: 0, left: 0, right: 0 }
+  })
+
+  it('keeps the rows clear of a navigation bar on the side', () => {
+    mockInsets = { top: 0, bottom: 0, left: 0, right: 48 }
+    const { UNSAFE_getByType } = renderScreen()
+    expect(StyleSheet.flatten(UNSAFE_getByType(ScrollView).props.style)).toMatchObject({
+      marginHorizontal: 48
+    })
   })
 
   it('offers three theme options and applies the choice', () => {

@@ -7,6 +7,7 @@ import i18n from '@/i18n'
 import { AppBar } from '@/ui/AppBar'
 import { ScreenContainer } from '@/ui/ScreenContainer'
 import { SettingsRow } from '@/ui/SettingsRow'
+import { useSideInset } from '@/ui/useSideInset'
 import { localeDisplayName } from '@/i18n/localeNames'
 import {
   LOCALE_SYSTEM,
@@ -20,6 +21,7 @@ import { getLocales } from 'expo-localization'
 export default function LanguageScreen(): React.ReactElement {
   const { t } = useTranslation()
   const router = useRouter()
+  const sideInset = useSideInset()
   const current = getLocalePreference()
   const available = Object.keys(i18n.options.resources ?? {})
 
@@ -45,7 +47,7 @@ export default function LanguageScreen(): React.ReactElement {
   return (
     <ScreenContainer bottomInset>
       <AppBar sheet title={t('settings.language')} onBack={() => router.back()} />
-      <ScrollView>
+      <ScrollView style={{ marginHorizontal: sideInset }}>
         <SettingsRow
           testID="settings-language-automatic"
           title={t('settings.automaticLanguage')}

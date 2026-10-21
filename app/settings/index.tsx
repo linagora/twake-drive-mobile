@@ -13,6 +13,7 @@ import { LogoutDialog } from '@/ui/LogoutDialog'
 import { ScreenContainer } from '@/ui/ScreenContainer'
 import { SettingsRow } from '@/ui/SettingsRow'
 import { SettingsSection } from '@/ui/SettingsSection'
+import { useSideInset } from '@/ui/useSideInset'
 import { useCurrentUser } from '@/account/useCurrentUser'
 import { useDeleteAccount } from '@/account/useDeleteAccount'
 import { useHasCommonSettings, useOpenCommonSettings } from '@/account/commonSettings'
@@ -30,6 +31,7 @@ export default function SettingsIndex(): React.ReactElement {
   const keepOfflineEnabled = isKeepOfflineEnabled()
   const { t } = useTranslation()
   const router = useRouter()
+  const sideInset = useSideInset()
   const { name, email, initials } = useCurrentUser()
   const { logout } = useAuth()
   const deleteAccount = useDeleteAccount()
@@ -52,7 +54,7 @@ export default function SettingsIndex(): React.ReactElement {
   return (
     <ScreenContainer bottomInset>
       <AppBar sheet title={t('settings.title')} onClose={() => router.back()} />
-      <ScrollView>
+      <ScrollView style={{ marginHorizontal: sideInset }}>
         <AccountHeader
           name={name}
           email={email}

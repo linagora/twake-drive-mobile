@@ -1,5 +1,6 @@
 import { Appbar } from 'react-native-paper'
-import { Platform, StatusBar } from 'react-native'
+import { Platform, StatusBar, StyleSheet } from 'react-native'
+import * as SafeArea from 'react-native-safe-area-context'
 import React from 'react'
 import { Provider as PaperProvider } from 'react-native-paper'
 import { fireEvent, render, screen } from '@testing-library/react-native'
@@ -139,6 +140,21 @@ describe('FolderPicker', () => {
     render(wrap(<FolderPicker {...defaultProps} onCancel={onCancel} />))
     fireEvent.press(screen.getByText('common.cancel'))
     expect(onCancel).toHaveBeenCalled()
+  })
+
+  it('keeps its rows and buttons clear of a navigation bar on the side', () => {
+    jest
+      .spyOn(SafeArea, 'useSafeAreaInsets')
+      .mockReturnValue({ top: 0, bottom: 0, left: 0, right: 48 })
+    setupQueries('Work', [subfolder('a', 'Q1')])
+    render(wrap(<FolderPicker {...defaultProps} currentFolderId="src" />))
+    expect(StyleSheet.flatten(screen.getByTestId('folder-picker-body').props.style)).toMatchObject({
+      marginHorizontal: 48
+    })
+    expect(
+      StyleSheet.flatten(screen.getByTestId('folder-picker-footer').props.style)
+    ).toMatchObject({ paddingHorizontal: 16 + 48 })
+    jest.restoreAllMocks()
   })
 
   it('lists the files of the folder, so the user can tell where they are', () => {

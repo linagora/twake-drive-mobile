@@ -59,6 +59,7 @@ import { useFileSharing, useRefreshSharings } from '@/sharing/SharingProvider'
 import { useIsOnline } from '@/network/useIsOnline'
 import { requireOnline } from '@/network/requireOnline'
 import { ScreenContainer } from '@/ui/ScreenContainer'
+import { useSideInset } from '@/ui/useSideInset'
 import { LoadingState } from '@/ui/LoadingState'
 import { ErrorState } from '@/ui/ErrorState'
 import { FileThumbnail } from '@/ui/FileThumbnail'
@@ -83,6 +84,7 @@ const truncateMiddle = (s: string, max = 56): string => {
 export default function ShareRoute() {
   const router = useRouter()
   const theme = useTheme()
+  const sideInset = useSideInset()
   const { t } = useTranslation()
   const client = useClient()
   const refreshSharings = useRefreshSharings()
@@ -531,7 +533,11 @@ export default function ShareRoute() {
 
   return (
     <ScreenContainer sheet>
-      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        style={{ marginHorizontal: sideInset }}
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+      >
         <View style={styles.header}>
           <FileThumbnail file={file} size={64} />
           <Text variant="titleMedium" style={styles.name} numberOfLines={2}>
