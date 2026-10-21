@@ -50,7 +50,7 @@ import {
   SharingRow,
   SharingsTab
 } from '@/files/sharingRows'
-import { openFileFromList } from '@/files/openFromList'
+import { openFileFromList } from '@/files/openDriveFile'
 import { useFileRowActions } from '@/files/useFileRowActions'
 import { surfaceOpenError } from '@/files/errors'
 import { cozyTokens } from '@/ui/theme'

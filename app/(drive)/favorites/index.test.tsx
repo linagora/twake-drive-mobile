@@ -70,7 +70,7 @@ jest.mock('@/network/useIsOnline', () => ({
   useIsOnline: () => true
 }))
 
-jest.mock('@/files/openFromList', () => ({
+jest.mock('@/files/openDriveFile', () => ({
   openFileFromList: jest.fn().mockResolvedValue(undefined)
 }))
 

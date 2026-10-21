@@ -23,7 +23,7 @@ jest.mock('@/search/useFileSearch', () => ({
 }))
 
 const mockOpen = jest.fn().mockResolvedValue(undefined)
-jest.mock('@/files/openFromList', () => ({
+jest.mock('@/files/openDriveFile', () => ({
   openFileFromList: (...args: unknown[]) => mockOpen(...args)
 }))
 
