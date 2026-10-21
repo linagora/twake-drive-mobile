@@ -13,6 +13,7 @@ import { SettingsRow } from '@/ui/SettingsRow'
 import { SettingsSection, SettingsSectionEmpty, SettingsSectionHeader } from '@/ui/SettingsSection'
 import { ConfirmDialog } from '@/ui/ConfirmDialog'
 import { InlineBanner } from '@/ui/InlineBanner'
+import { useSideInset } from '@/ui/useSideInset'
 import { OfflineFilesStore } from '@/offline/OfflineFilesStore'
 import { Downloader } from '@/offline/Downloader'
 import { OfflineSettingsAPI } from '@/offline/offlineSettings'
@@ -134,6 +135,7 @@ export default function OfflineStorageScreen() {
   const { t } = useTranslation()
   const router = useRouter()
   const client = useClient()
+  const sideInset = useSideInset()
   const [files, setFiles] = useState<OfflineFileEntry[]>([])
   const [folders, setFolders] = useState<OfflineFolderEntry[]>([])
   const [loading, setLoading] = useState(true)
@@ -357,6 +359,7 @@ export default function OfflineStorageScreen() {
         <LoadingState />
       ) : (
         <SectionList
+          style={{ marginHorizontal: sideInset }}
           sections={sections}
           testID="offline-storage-list"
           keyExtractor={item =>

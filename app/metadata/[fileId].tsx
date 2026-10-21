@@ -8,6 +8,7 @@ import { useTranslation } from 'react-i18next'
 import { useClient, useQuery } from 'cozy-client'
 
 import { ScreenContainer } from '@/ui/ScreenContainer'
+import { useSideInset } from '@/ui/useSideInset'
 import { LoadingState } from '@/ui/LoadingState'
 import { ErrorState } from '@/ui/ErrorState'
 import { FileThumbnail } from '@/ui/FileThumbnail'
@@ -48,6 +49,7 @@ export default function MetadataRoute() {
   const router = useRouter()
   const { t, i18n } = useTranslation()
   const theme = useTheme()
+  const sideInset = useSideInset()
   const client = useClient()
   const isOnline = useIsOnline()
   const currentUser = useCurrentUser()
@@ -166,7 +168,10 @@ export default function MetadataRoute() {
   return (
     <Portal.Host>
       <ScreenContainer sheet>
-        <ScrollView contentContainerStyle={styles.container}>
+        <ScrollView
+          style={{ marginHorizontal: sideInset }}
+          contentContainerStyle={styles.container}
+        >
           <View style={styles.header}>
             {isPinned && offlineEntry?.state === 'downloaded' && file.class === 'image' ? (
               <Image

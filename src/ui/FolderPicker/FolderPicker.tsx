@@ -25,7 +25,10 @@ import {
   folderSubfoldersQueryAs
 } from '@/client/queries'
 
+import { useSideInset } from '@/ui/useSideInset'
 import { FolderPickerRow, FolderPickerRowItem } from './FolderPickerRow'
+
+const FOOTER_PADDING = 16
 
 export interface FolderPickerSelection {
   _id: string
@@ -59,6 +62,7 @@ export const FolderPicker = ({
   const { t } = useTranslation()
   const theme = useTheme()
   const insets = useSafeAreaInsets()
+  const sideInset = useSideInset()
   const headerTopInset = useSheetTopInset()
   const client = useClient()
   const [creatingFolder, setCreatingFolder] = useState(false)
@@ -133,43 +137,47 @@ export const FolderPicker = ({
             onPress={() => setCreatingFolder(true)}
           />
         </Appbar.Header>
-        <Text variant="titleSmall" numberOfLines={1} style={styles.folderName}>
-          {folderName}
-        </Text>
-        {hasError ? (
-          <ErrorState
-            message={t('drive.preview.loadFailed')}
-            onRetry={() => {
-              void folderLookup.fetch()
-              void subfoldersQuery.fetch()
-              void filesQuery.fetch()
-            }}
-          />
-        ) : isLoading ? (
-          <LoadingState />
-        ) : items.length === 0 ? (
-          <EmptyState message={t('drive.emptyFolder')} />
-        ) : (
-          <FlatList
-            data={items}
-            keyExtractor={i => i._id}
-            renderItem={({ item }) => (
-              <FolderPickerRow
-                item={item}
-                disabled={item.type === 'file' || excludeIds.has(item._id)}
-                onPress={handleDrillIn}
-                testID={`folder-picker-row:${item.name}`}
-              />
-            )}
-          />
-        )}
+        <View testID="folder-picker-body" style={[styles.body, { marginHorizontal: sideInset }]}>
+          <Text variant="titleSmall" numberOfLines={1} style={styles.folderName}>
+            {folderName}
+          </Text>
+          {hasError ? (
+            <ErrorState
+              message={t('drive.preview.loadFailed')}
+              onRetry={() => {
+                void folderLookup.fetch()
+                void subfoldersQuery.fetch()
+                void filesQuery.fetch()
+              }}
+            />
+          ) : isLoading ? (
+            <LoadingState />
+          ) : items.length === 0 ? (
+            <EmptyState message={t('drive.emptyFolder')} />
+          ) : (
+            <FlatList
+              data={items}
+              keyExtractor={i => i._id}
+              renderItem={({ item }) => (
+                <FolderPickerRow
+                  item={item}
+                  disabled={item.type === 'file' || excludeIds.has(item._id)}
+                  onPress={handleDrillIn}
+                  testID={`folder-picker-row:${item.name}`}
+                />
+              )}
+            />
+          )}
+        </View>
         <View
+          testID="folder-picker-footer"
           style={[
             styles.footer,
             {
               backgroundColor: theme.colors.surfaceVariant,
               borderTopColor: theme.colors.outline,
-              paddingBottom: insets.bottom + 12
+              paddingBottom: insets.bottom + 12,
+              paddingHorizontal: FOOTER_PADDING + sideInset
             }
           ]}
         >
@@ -198,10 +206,10 @@ export const FolderPicker = ({
 }
 
 const styles = StyleSheet.create({
+  body: { flex: 1 },
   footer: {
     flexDirection: 'row',
     gap: 12,
-    paddingHorizontal: 16,
     paddingVertical: 12,
     borderTopWidth: StyleSheet.hairlineWidth
   },
