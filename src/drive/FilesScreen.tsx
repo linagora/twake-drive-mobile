@@ -38,6 +38,7 @@ import { triggerPouchReplication } from '@/pouchdb/triggerReplication'
 import { softDeleteEntry } from '@/files/deleteFile'
 import { optimisticFiles, optimisticTrashed } from '@/files/optimisticFiles'
 import { renameEntry } from '@/files/renameEntry'
+import { sortFileList } from '@/files/sortFileList'
 import { useIsOnline } from '@/network/useIsOnline'
 import { requireOnline } from '@/network/requireOnline'
 import { useOfflineActions } from '@/offline/useOfflineActions'
@@ -242,27 +243,20 @@ export const FilesScreen = ({ basePath }: FilesScreenProps): React.ReactElement 
     )
   }
 
-  // Folders first, then files — same display order as twake-drive-web.
+  // shared-drives-dir + trash-dir are already filtered server-side by
+  // buildDriveQuery (see src/client/queries.ts); a shared drive's own root is
+  // not, since a replicated drive keeps the dir_id it has on its owner's
+  // instance.
   const folderDocs = withoutSharedDriveRoots(
     (foldersQuery.data as FileQueryResult[] | null | undefined) ?? []
   )
   const fileDocs = withoutSharedDriveRoots(
     (filesQuery.data as FileQueryResult[] | null | undefined) ?? []
   )
-  // shared-drives-dir + trash-dir are already filtered server-side by
-  // buildDriveQuery (see src/client/queries.ts); a shared drive's own root is
-  // not, since a replicated drive keeps the dir_id it has on its owner's
-  // instance.
-  // Sort within each group (folders / files) separately to preserve grouping.
-  const data = useMemo(() => {
-    const direction = sort.dir === 'asc' ? 1 : -1
-    const compare = (a: FileQueryResult, b: FileQueryResult): number =>
-      sort.attr === 'updated_at'
-        ? direction * (a.updated_at ?? '').localeCompare(b.updated_at ?? '')
-        : direction * a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
-    const sorted = (arr: FileQueryResult[]): FileQueryResult[] => [...arr].sort(compare)
-    return [...sorted(folderDocs), ...sorted(fileDocs)]
-  }, [folderDocs, fileDocs, sort.attr, sort.dir])
+  const data = useMemo(
+    () => sortFileList([...folderDocs, ...fileDocs], sort),
+    [folderDocs, fileDocs, sort]
+  )
 
   return (
     <ScreenContainer surface>

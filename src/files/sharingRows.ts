@@ -1,3 +1,4 @@
+import { compareNames } from './sortFileList'
 import { SharedDriveEntry } from './sharedDrives'
 
 export type SharingsTab = 'with-me' | 'by-me' | 'drives'
@@ -112,8 +113,7 @@ export const buildSharingRows = <F extends SharingRowFile>({
     }))
 
   const rows = [...driveRows, ...fileRows]
-  const byName = (a: SharingRow<F>, b: SharingRow<F>): number =>
-    direction * a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
+  const byName = (a: SharingRow<F>, b: SharingRow<F>): number => direction * compareNames(a, b)
 
   // Sorting by date mixes folders and files, the way twake-drive web does in
   // this view (`groupDirectoriesFirstByUpdatedAt={false}`), and a row with no
