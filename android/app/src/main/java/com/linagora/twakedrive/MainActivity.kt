@@ -1,7 +1,10 @@
 package com.linagora.twakedrive
 
+import android.content.res.Configuration
+import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
+import androidx.core.view.WindowInsetsControllerCompat
 
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate
@@ -17,6 +20,21 @@ class MainActivity : ReactActivity() {
     // This is required for expo-splash-screen.
     setTheme(R.style.AppTheme);
     super.onCreate(null)
+  }
+
+  // React Native sets the navigation bar's appearance once, at creation. The
+  // activity handles uiMode itself, so an in-app theme change lands here instead.
+  override fun onConfigurationChanged(newConfig: Configuration) {
+    super.onConfigurationChanged(newConfig)
+    // Not newConfig: it carries the system's night mode, while super has applied
+    // the in-app one to the resources.
+    val isNight = (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
+    WindowInsetsControllerCompat(window, window.decorView).isAppearanceLightNavigationBars = !isNight
+    // Before Q the bar keeps the opaque scrim React Native picked at creation (same colors).
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+      @Suppress("DEPRECATION")
+      window.navigationBarColor = if (isNight) Color.argb(0x80, 0x1b, 0x1b, 0x1b) else Color.argb(0xe6, 0xff, 0xff, 0xff)
+    }
   }
 
   /**
