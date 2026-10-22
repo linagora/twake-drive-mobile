@@ -102,16 +102,26 @@ describe('MetadataRoute', () => {
   // The rename goes straight to the stack, which does not write to the local
   // replica: without this the list behind kept the old name until a sync.
   it('pushes the renamed doc to the store when renaming from the sheet', async () => {
-    ;(renameEntry as jest.Mock).mockResolvedValue({ _id: 'f1', name: 'bilan.pdf' })
-    render(wrap(<MetadataRoute />))
-    fireEvent.press(screen.getByText('drive.fileMeta.rename'))
-    fireEvent.changeText(screen.getByDisplayValue('rapport.pdf'), 'bilan.pdf')
-    await act(async () => {
-      fireEvent.press(screen.getByText('drive.rename.submit'))
-    })
-    expect(optimisticFiles).toHaveBeenCalledWith(expect.anything(), [
-      expect.objectContaining({ _id: 'f1', name: 'bilan.pdf' })
-    ])
+    jest.useFakeTimers()
+    try {
+      ;(renameEntry as jest.Mock).mockResolvedValue({ _id: 'f1', name: 'bilan.pdf' })
+      render(wrap(<MetadataRoute />))
+      fireEvent.press(screen.getByText('drive.fileMeta.rename'))
+      fireEvent.changeText(screen.getByDisplayValue('rapport.pdf'), 'bilan.pdf')
+      await act(async () => {
+        fireEvent.press(screen.getByText('drive.rename.submit'))
+      })
+      expect(optimisticFiles).toHaveBeenCalledWith(expect.anything(), [
+        expect.objectContaining({ _id: 'f1', name: 'bilan.pdf' })
+      ])
+      expect(mockBack).not.toHaveBeenCalled()
+      act(() => {
+        jest.runOnlyPendingTimers()
+      })
+      expect(mockBack).toHaveBeenCalled()
+    } finally {
+      jest.useRealTimers()
+    }
   })
 
   it('does not go back once the sheet is gone', async () => {
