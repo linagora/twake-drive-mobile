@@ -1,38 +1,59 @@
 appId: com.linagora.twakedrive
 tags:
   - ios-files
+# The flows after this one need the session back, whether it passed or not.
+onFlowComplete:
+  - runFlow: ../00-login-instance.yaml
+  - runScript:
+      file: ../../scripts/seed.js
+      env:
+        SEED: '[{"key":"settled","kind":"folder","prefix":"E2E-settled"}]'
+  - extendedWaitUntil:
+      visible:
+        id: 'folder-row:${output.settled.name}'
+      timeout: 180000
+  - runFlow: ../../subflows/cleanup.yaml
 ---
-# Twake Drive is listed in Files while a session exists and leaves it at
-# sign-out. Starts signed in and ends signed out: run it last.
+# Twake Drive is listed in Files while a session exists, and after sign-out
+# it still is, on its sign in page with no file.
 - launchApp
 - runFlow: ../../subflows/assertLoggedIn.yaml
 - runFlow: ../../subflows/dismissDevWarnings.yaml
 - launchApp:
     appId: com.apple.DocumentsApp
     stopApp: true
-- tapOn: 'Explorer'
-- tapOn: 'Explorer'
+- tapOn: 'Browse|Explorer'
+- tapOn: 'Browse|Explorer'
 - extendedWaitUntil:
     visible:
       text: 'Twake Drive'
-      below: 'Emplacements'
+      below: 'Locations|Emplacements'
     timeout: 20000
 - launchApp
 - runFlow: ../../subflows/dismissDevWarnings.yaml
 - tapOn:
     id: 'appbar-avatar'
-- tapOn: 'Se déconnecter'
+- tapOn:
+    id: 'appbar-logout'
+- tapOn:
+    id: 'logout-dialog-submit'
 - extendedWaitUntil:
-    notVisible:
-      id: 'drive-fab'
+    visible:
+      id: 'welcome-login'
     timeout: 30000
 - launchApp:
     appId: com.apple.DocumentsApp
     stopApp: true
-- tapOn: 'Explorer'
-- tapOn: 'Explorer'
+- tapOn: 'Browse|Explorer'
+- tapOn: 'Browse|Explorer'
 - extendedWaitUntil:
-    notVisible:
+    visible:
       text: 'Twake Drive'
-      below: 'Emplacements'
+      below: 'Locations|Emplacements'
     timeout: 30000
+- tapOn: 'Twake Drive'
+- extendedWaitUntil:
+    visible: 'Authentication Required|Authentification requise'
+    timeout: 30000
+- assertNotVisible: 'readme.*'
+- assertNotVisible: 'sample.*'
