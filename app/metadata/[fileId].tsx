@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { Image, ScrollView, StyleSheet, View } from 'react-native'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { Button, Divider, Portal, Snackbar, Text, useTheme } from 'react-native-paper'
@@ -87,8 +87,21 @@ export default function MetadataRoute() {
     if (router.canGoBack()) router.back()
   }, [router])
 
+  // Cancelled on unmount: once the sheet is gone, its back() would pop the screen behind it.
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const cancelClose = (): void => {
+    if (closeTimer.current) clearTimeout(closeTimer.current)
+  }
+  const closeAfterSnackbar = (): void => {
+    cancelClose()
+    closeTimer.current = setTimeout(close, SNACKBAR_DISMISS_DELAY_MS)
+  }
+  useEffect(() => cancelClose, [])
+
   const onOpen = async (): Promise<void> => {
     if (!file) return
+    // A web editor opens over the sheet: dismissing the sheet under it would drop it on iOS.
+    cancelClose()
     setOpening(true)
     setOpenError(null)
     try {
@@ -115,7 +128,7 @@ export default function MetadataRoute() {
       setSnackbar(
         t(file.type === 'directory' ? 'drive.rename.successFolder' : 'drive.rename.successFile')
       )
-      setTimeout(close, SNACKBAR_DISMISS_DELAY_MS)
+      closeAfterSnackbar()
     } catch (e) {
       revert()
       throw e
@@ -138,7 +151,7 @@ export default function MetadataRoute() {
       setSnackbar(
         t(file.type === 'directory' ? 'drive.delete.successFolder' : 'drive.delete.successFile')
       )
-      setTimeout(close, SNACKBAR_DISMISS_DELAY_MS)
+      closeAfterSnackbar()
     } catch (e) {
       setSnackbar(t('drive.delete.errorGeneric'))
     } finally {

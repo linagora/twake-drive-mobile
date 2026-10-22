@@ -67,6 +67,7 @@ jest.mock('@/offline/FileSystemRepo', () => ({
 
 import { renameEntry } from '@/files/renameEntry'
 import { optimisticFiles } from '@/files/optimisticFiles'
+import { softDeleteEntry } from '@/files/deleteFile'
 import MetadataRoute from './[fileId]'
 
 const wrap = (ui: React.ReactElement) => <PaperProvider>{ui}</PaperProvider>
@@ -111,6 +112,71 @@ describe('MetadataRoute', () => {
     expect(optimisticFiles).toHaveBeenCalledWith(expect.anything(), [
       expect.objectContaining({ _id: 'f1', name: 'bilan.pdf' })
     ])
+  })
+
+  it('does not go back once the sheet is gone', async () => {
+    jest.useFakeTimers()
+    try {
+      ;(renameEntry as jest.Mock).mockResolvedValue({ _id: 'f1', name: 'bilan.pdf' })
+      const { unmount } = render(wrap(<MetadataRoute />))
+      fireEvent.press(screen.getByText('drive.fileMeta.rename'))
+      fireEvent.changeText(screen.getByDisplayValue('rapport.pdf'), 'bilan.pdf')
+      await act(async () => {
+        fireEvent.press(screen.getByText('drive.rename.submit'))
+      })
+      unmount()
+      jest.runOnlyPendingTimers()
+      expect(mockBack).not.toHaveBeenCalled()
+    } finally {
+      jest.useRealTimers()
+    }
+  })
+
+  it('keeps the sheet under a web editor opened during the snackbar delay', async () => {
+    jest.useFakeTimers()
+    try {
+      mockUseQuery.mockReturnValue({
+        data: { ...defaultFileData, name: 'croquis.excalidraw', mime: 'application/json' },
+        fetchStatus: 'loaded',
+        fetch: jest.fn()
+      })
+      mockOpenEditor.mockReturnValue(new Promise<void>(() => undefined))
+      ;(renameEntry as jest.Mock).mockResolvedValue({ _id: 'f1', name: 'dessin.excalidraw' })
+      render(wrap(<MetadataRoute />))
+      fireEvent.press(screen.getByText('drive.fileMeta.rename'))
+      fireEvent.changeText(screen.getByDisplayValue('croquis.excalidraw'), 'dessin.excalidraw')
+      await act(async () => {
+        fireEvent.press(screen.getByText('drive.rename.submit'))
+      })
+      await act(async () => {
+        fireEvent.press(screen.getByText('drive.fileMeta.open'))
+      })
+      act(() => {
+        jest.runOnlyPendingTimers()
+      })
+      expect(mockBack).not.toHaveBeenCalled()
+    } finally {
+      jest.useRealTimers()
+    }
+  })
+
+  it('closes the sheet once the snackbar has had its time after a delete', async () => {
+    jest.useFakeTimers()
+    try {
+      ;(softDeleteEntry as jest.Mock).mockResolvedValue(undefined)
+      render(wrap(<MetadataRoute />))
+      fireEvent.press(screen.getByText('drive.fileMeta.delete'))
+      await act(async () => {
+        fireEvent.press(screen.getByTestId('confirm-delete-submit'))
+      })
+      expect(mockBack).not.toHaveBeenCalled()
+      act(() => {
+        jest.runOnlyPendingTimers()
+      })
+      expect(mockBack).toHaveBeenCalledTimes(1)
+    } finally {
+      jest.useRealTimers()
+    }
   })
 
   it('reverts the store update when the rename fails', async () => {
