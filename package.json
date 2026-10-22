@@ -138,6 +138,15 @@
     "typescript": "~5.9.2"
   },
   "private": true,
+  "expo": {
+    "autolinking": {
+      "android": {
+        "buildFromSource": [
+          "expo-audio"
+        ]
+      }
+    }
+  },
   "overrides": {
     "shell-quote": "^1.8.4",
     "undici": "^6.27.0",
