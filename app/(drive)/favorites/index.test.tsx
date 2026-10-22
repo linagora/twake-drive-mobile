@@ -158,6 +158,30 @@ describe('FavoritesScreen', () => {
     expect(screen.getByText('Important doc.pdf')).toBeOnTheScreen()
   })
 
+  // The index returns names in byte order, accented ones after Z.
+  it('lists the folders first, each by name as the drive does, accents included', () => {
+    const favorite = (name: string, type: 'file' | 'directory') => ({
+      _id: name,
+      name,
+      type,
+      cozyMetadata: { favorite: true }
+    })
+    mockUseQuery.mockReturnValue(
+      makeQueryResult([
+        favorite('Photos', 'directory'),
+        favorite('readme.txt', 'file'),
+        favorite('Été 2026 réunion', 'directory')
+      ])
+    )
+    render(wrap(<FavoritesScreen />))
+    const rows = screen.getAllByText(/^(Photos|readme\.txt|Été 2026 réunion)$/)
+    expect(rows.map(row => row.props.children)).toEqual([
+      'Été 2026 réunion',
+      'Photos',
+      'readme.txt'
+    ])
+  })
+
   it('renders a favorited folder name in the list', () => {
     mockUseQuery.mockReturnValue(
       makeQueryResult([

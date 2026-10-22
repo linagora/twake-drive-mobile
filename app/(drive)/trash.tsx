@@ -22,6 +22,7 @@ import {
   FileQueryResult
 } from '@/client/queries'
 import { restoreEntry, emptyTrash, destroyEntry } from '@/files/trashActions'
+import { sortFileList } from '@/files/sortFileList'
 import { useIsOnline } from '@/network/useIsOnline'
 import { requireOnline } from '@/network/requireOnline'
 import { isFirstLoad } from '@/client/queryLoading'
@@ -62,10 +63,7 @@ export default function TrashScreen() {
 
   const folderDocs = (foldersQuery.data as FileQueryResult[] | null | undefined) ?? []
   const fileDocs = (filesQuery.data as FileQueryResult[] | null | undefined) ?? []
-  // Folders first, then files — same display order as the regular folder
-  // listing and as twake-drive-web's trash view.
-  const items = [...folderDocs, ...fileDocs].filter(d => !removedIds.has(d._id))
-  const data = items
+  const data = sortFileList([...folderDocs, ...fileDocs].filter(d => !removedIds.has(d._id)))
 
   const handleRestore = async (item: FileQueryResult): Promise<void> => {
     if (!requireOnline(isOnline, setSnackbar, t)) return

@@ -106,4 +106,23 @@ describe('TrashScreen', () => {
     fireEvent.press(screen.getByText('note.txt'))
     expect(mockPush).toHaveBeenCalledWith('/preview/f1')
   })
+
+  // The index hands names back in byte order, which puts "Été" after "Zoo".
+  it('lists folders first, then names as a person reads them', () => {
+    mockUseQuery.mockImplementation((def: unknown, opts: { as: string }) =>
+      queryResult(
+        opts.as.endsWith('/files')
+          ? [
+              { _id: 'f1', name: 'Zoo.txt', type: 'file' },
+              { _id: 'f2', name: 'abc.txt', type: 'file' },
+              { _id: 'f3', name: 'Été.txt', type: 'file' }
+            ]
+          : [{ _id: 'd1', name: 'Photos', type: 'directory' }]
+      )
+    )
+    render(wrap(<TrashScreen />))
+    expect(
+      screen.getAllByText(/^(Photos|Zoo\.txt|abc\.txt|Été\.txt)$/).map(n => n.props.children)
+    ).toEqual(['Photos', 'abc.txt', 'Été.txt', 'Zoo.txt'])
+  })
 })

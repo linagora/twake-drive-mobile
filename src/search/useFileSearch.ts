@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useClient } from 'cozy-client'
 
 import { FileQueryResult } from '@/client/queries'
+import { compareNames } from '@/files/sortFileList'
 import { reportCaughtError } from '@/monitoring/crashReporting'
 
 import { ensureFileNameIndex, FileNameHit, searchFileNames } from './fileNameIndex'
@@ -93,7 +94,7 @@ export function useFileSearch(term: string, enabled: boolean): FileSearchState {
       if (id !== reqId.current) return
       const data = perDatabase
         .flat()
-        .sort((a, b) => a.rank - b.rank || a.doc.name.localeCompare(b.doc.name))
+        .sort((a, b) => a.rank - b.rank || compareNames(a.doc, b.doc))
         .slice(0, FILE_SEARCH_RESULT_LIMIT)
         .map(result => result.doc)
       setState({ status: 'success', data, error: null })

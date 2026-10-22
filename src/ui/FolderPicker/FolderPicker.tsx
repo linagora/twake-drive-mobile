@@ -26,6 +26,7 @@ import {
 } from '@/client/queries'
 
 import { useSideInset } from '@/ui/useSideInset'
+import { sortFileList } from '@/files/sortFileList'
 import { FolderPickerRow, FolderPickerRowItem } from './FolderPickerRow'
 
 const FOOTER_PADDING = 16
@@ -83,10 +84,10 @@ export const FolderPicker = ({
 
   const subfolders = (subfoldersQuery.data as FileQueryResult[] | null | undefined) ?? []
   const files = (filesQuery.data as FileQueryResult[] | null | undefined) ?? []
-  const items: FolderPickerRowItem[] = [
+  const items: FolderPickerRowItem[] = sortFileList([
     ...subfolders.map(d => ({ _id: d._id, name: d.name, type: 'directory' as const })),
     ...files.map(f => ({ _id: f._id, name: f.name, type: 'file' as const, mime: f.mime }))
-  ]
+  ])
 
   const isLoading = isFirstLoad(folderLookup, subfoldersQuery)
   const hasError = folderLookup.fetchStatus === 'failed' || subfoldersQuery.fetchStatus === 'failed'

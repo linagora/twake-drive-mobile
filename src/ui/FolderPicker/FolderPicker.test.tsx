@@ -157,6 +157,25 @@ describe('FolderPicker', () => {
     jest.restoreAllMocks()
   })
 
+  it('orders folders, then files, by name as the drive does, accents included', () => {
+    setupQueries('Work', [
+      subfolder('a', 'Photos'),
+      subfolder('b', 'Été 2026'),
+      subfolder('c', 'documents'),
+      file('f', 'zeta.txt'),
+      file('g', 'Écrit.txt')
+    ])
+    render(wrap(<FolderPicker {...defaultProps} currentFolderId="src" />))
+    const rows = screen.getAllByTestId(/^folder-picker-row:(?!.*-content$)/)
+    expect(rows.map(row => row.props.testID.replace('folder-picker-row:', ''))).toEqual([
+      'documents',
+      'Été 2026',
+      'Photos',
+      'Écrit.txt',
+      'zeta.txt'
+    ])
+  })
+
   it('lists the files of the folder, so the user can tell where they are', () => {
     setupQueries('Work', [subfolder('a', 'Q1'), file('f', 'budget.xlsx')])
     render(wrap(<FolderPicker {...defaultProps} currentFolderId="src" />))

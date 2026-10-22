@@ -18,6 +18,7 @@ import { FileRow } from '@/ui/FileRow'
 import { FolderRow } from '@/ui/FolderRow'
 import { useAuth } from '@/auth/useAuth'
 import { querySharedDriveFolder, sharedDriveRowId, SharedDriveEntry } from '@/files/sharedDrives'
+import { sortFileList } from '@/files/sortFileList'
 import {
   getCachedSharedDrives,
   registerSharedDrive,
@@ -141,7 +142,7 @@ export const SharedDriveScreen = ({ basePath }: Props): React.ReactElement => {
 
   const listed = useMemo(() => {
     const ids = new Set((children ?? []).map(child => child._id))
-    return [...(children ?? []), ...created.filter(entry => !ids.has(entry._id))]
+    return sortFileList([...(children ?? []), ...created.filter(entry => !ids.has(entry._id))])
   }, [children, created])
 
   useFocusEffect(

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Snackbar } from 'react-native-paper'
 import { useFocusEffect, useRouter } from 'expo-router'
 import { useQuery } from 'cozy-client'
@@ -20,6 +20,7 @@ import { isFavorite } from '@/files/favorites'
 import { useOpenFile } from '@/files/useOpenFile'
 import type { DriveFile } from '@/files/openDriveFile'
 import { surfaceOpenError } from '@/files/errors'
+import { sortFileList } from '@/files/sortFileList'
 import { fetchNextPage } from '@/drive/paging'
 import { isFirstLoad } from '@/client/queryLoading'
 
@@ -134,10 +135,16 @@ export default function FavoritesScreen() {
   // favoritesQuery's nested-favourite filter is unreliable in the offline pouch
   // replica and returns every file (favourites sort first); filter it down to
   // real favourites here (isFavorite is a strict `=== true`).
-  const data = ((query.data as FileQueryResult[] | null | undefined) ?? [])
-    .filter(isFavorite)
-    .filter(d => !isInTrash(d))
-    .filter(d => !removedIds.has(d._id))
+  const data = useMemo(
+    () =>
+      sortFileList(
+        ((query.data as FileQueryResult[] | null | undefined) ?? [])
+          .filter(isFavorite)
+          .filter(d => !isInTrash(d))
+          .filter(d => !removedIds.has(d._id))
+      ),
+    [query.data, removedIds]
+  )
 
   return (
     <ScreenContainer surface>
