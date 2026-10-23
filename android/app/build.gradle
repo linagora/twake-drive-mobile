@@ -264,7 +264,7 @@ dependencies {
     // and you need to use JDK 21 if running tests with SDK 36 target" — this project's build
     // already requires JDK 21, so 4.16.1 (latest stable patch on that line, verified on Maven
     // Central) is the correct fix rather than pinning tests to an older simulated SDK.
-    testImplementation("org.robolectric:robolectric:4.16.1")
+    testImplementation("org.robolectric:robolectric:4.17")
     // Robolectric's RobolectricTestRunner does not pull androidx.test:core transitively;
     // DocumentCacheTest needs androidx.test.core.app.ApplicationProvider to obtain a
     // Robolectric-backed Context. 1.6.1 is the latest stable (non-alpha/beta/rc) release,
