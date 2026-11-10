@@ -36,6 +36,9 @@
     "@types/react-native-vector-icons",
     "expo-font",
     "cozy-stack-client",
+    // Native module loaded by pouchdb-adapter-react-native-sqlite and cozy-pouch-link's
+    // SQLiteQuery; declared here so autolinking installs it with the fts5 option.
+    "@op-engineering/op-sqlite",
     // Come with expo-router and expo's config plugins, whose versions they have to match.
     "@react-navigation/native",
     "xcode",
