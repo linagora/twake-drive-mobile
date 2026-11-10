@@ -75,7 +75,7 @@
     "expo-web-browser": "~58.0.8",
     "i18next": "^26.0.8",
     "intl-pluralrules": "^2.0.1",
-    "markdown-it": "^14.3.2",
+    "markdown-it": "^14.3.3",
     "pouchdb-adapter-http": "^8.0.1",
     "pouchdb-adapter-react-native-sqlite": "4.4.2",
     "pouchdb-core": "^8.0.1",
