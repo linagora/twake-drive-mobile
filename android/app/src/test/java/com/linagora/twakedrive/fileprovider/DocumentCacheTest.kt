@@ -3,6 +3,7 @@ package com.linagora.twakedrive.fileprovider
 import androidx.test.core.app.ApplicationProvider
 import okhttp3.OkHttpClient
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
@@ -24,6 +25,15 @@ class DocumentCacheTest {
         val f = DocumentCache(ctx).cachedFile("abc")
         assertTrue(f.absolutePath.contains("/cache/"))
         assertTrue(f.absolutePath.endsWith("/fileprovider/abc"))
+    }
+
+    @Test fun `clear drops every cached file`() {
+        val cache = DocumentCache(ctx)
+        cache.cachedFile("a").apply { parentFile?.mkdirs(); writeText("x") }
+        cache.cachedFile("a.thumb").writeText("t")
+        cache.clear()
+        assertFalse(cache.cachedFile("a").exists())
+        assertFalse(cache.cachedFile("a.thumb").exists())
     }
 
     @Test fun `offlineBlob returns the pinned file when present`() {
