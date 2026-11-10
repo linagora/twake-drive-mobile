@@ -38,3 +38,51 @@ describe('useActiveColorScheme', () => {
     expect(result.current).toBe('light')
   })
 })
+
+describe('setThemePreference on Android', () => {
+  const platform = ReactNative.Platform.OS
+  beforeEach(() => {
+    ReactNative.Platform.OS = 'android'
+  })
+  afterEach(() => {
+    setThemePreference('system')
+    ReactNative.Platform.OS = platform
+    jest.restoreAllMocks()
+  })
+
+  it('hands the choice to the system bars, and gives them back to the OS on "system"', () => {
+    const setColorScheme = jest.spyOn(ReactNative.Appearance, 'setColorScheme')
+    setThemePreference('dark')
+    expect(setColorScheme).toHaveBeenLastCalledWith('dark')
+    setThemePreference('system')
+    expect(setColorScheme).toHaveBeenLastCalledWith(null)
+  })
+
+  it('hands the choice back when the app returns to the foreground', () => {
+    jest.isolateModules(() => {
+      const RN: typeof ReactNative = require('react-native')
+      RN.Platform.OS = 'android'
+      const addEventListener = jest.spyOn(RN.AppState, 'addEventListener')
+      const setColorScheme = jest.spyOn(RN.Appearance, 'setColorScheme')
+      const isolated: typeof import('./themePreference') = require('./themePreference')
+      isolated.setThemePreference('dark')
+      setColorScheme.mockClear()
+      addEventListener.mock.calls[0][1]('active')
+      expect(setColorScheme).toHaveBeenCalledWith('dark')
+      isolated.setThemePreference('system')
+    })
+  })
+
+  // On "system", expo-system-ui's own night mode stands (AUTO_BATTERY below Android 9).
+  it('leaves the night mode alone on "system", at start and back in the foreground', () => {
+    jest.isolateModules(() => {
+      const RN: typeof ReactNative = require('react-native')
+      RN.Platform.OS = 'android'
+      const addEventListener = jest.spyOn(RN.AppState, 'addEventListener')
+      const setColorScheme = jest.spyOn(RN.Appearance, 'setColorScheme')
+      require('./themePreference')
+      addEventListener.mock.calls[0][1]('active')
+      expect(setColorScheme).not.toHaveBeenCalled()
+    })
+  })
+})
