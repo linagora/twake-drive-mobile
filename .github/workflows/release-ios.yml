@@ -14,6 +14,11 @@ on:
         description: 'Release notes for TestFlight testers'
         required: false
         default: ''
+      upload_to_testflight:
+        description: 'Upload the signed IPA to TestFlight (off: build and sign only)'
+        required: false
+        type: boolean
+        default: true
       publish_to_app_store:
         description: 'Also push App Store metadata (fastlane deliver)'
         required: false
@@ -112,10 +117,11 @@ jobs:
           GITHUB_RUN_NUMBER: ${{ github.run_number }}
           MARKETING_VERSION: ${{ steps.version.outputs.marketing }}
           RELEASE_NOTES: ${{ github.event.inputs.release_notes }}
+          UPLOAD_TO_TESTFLIGHT: ${{ github.event_name != 'workflow_dispatch' || inputs.upload_to_testflight }}
         run: bundle exec fastlane ios distribute
 
       - name: Push App Store metadata (optional)
-        if: inputs.publish_to_app_store == true
+        if: inputs.publish_to_app_store == true && inputs.upload_to_testflight == true
         working-directory: ios
         env:
           APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
@@ -144,7 +150,7 @@ jobs:
       # too (alongside the APK). TestFlight remains the real iOS distribution; this
       # is for archival. Runs on tag pushes and tag-ref workflow_dispatch.
       - name: Attach signed IPA to a GitHub Release
-        if: startsWith(github.ref, 'refs/tags/') && hashFiles('ios/build/TwakeDrive.ipa') != ''
+        if: startsWith(github.ref, 'refs/tags/') && hashFiles('ios/build/TwakeDrive.ipa') != '' && (github.event_name != 'workflow_dispatch' || inputs.upload_to_testflight)
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_NOTES: ${{ github.event.inputs.release_notes }}
