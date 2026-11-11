@@ -22,6 +22,14 @@ jest.mock('expo-file-system/legacy', () => ({
   getInfoAsync: (...args: unknown[]) => mockGetInfo(...args)
 }))
 jest.mock('@/pouchdb/triggerReplication', () => ({ triggerPouchReplication: jest.fn() }))
+const mockMd5File = jest.fn()
+const mockReportCaughtError = jest.fn()
+jest.mock('@/monitoring/crashReporting', () => ({
+  reportCaughtError: (...args: unknown[]) => mockReportCaughtError(...args)
+}))
+jest.mock('@/native/twakeDriveCore', () => ({
+  md5File: (...args: unknown[]) => mockMd5File(...args)
+}))
 
 const client = {
   getStackClient: () => ({ uri: 'https://alice.example', getAccessToken: () => 'tok' })
@@ -33,6 +41,33 @@ beforeEach(() => {
   mockFetch.mockReset()
   mockGetInfo.mockReset()
   mockGetInfo.mockResolvedValue({ exists: true, size: 10 })
+  mockMd5File.mockReset()
+  mockMd5File.mockResolvedValue(null)
+  mockReportCaughtError.mockReset()
+})
+
+test('sends the MD5 of the file read by the Rust core, so the stack rejects a corrupt body', async () => {
+  mockMd5File.mockResolvedValue('nhB9nTcrtoJr2B01QqQZ1g==')
+  mockFetch.mockReturnValueOnce(mkResp(201, { data: { id: 'f1', attributes: {} } }))
+  await uploadSharedFile(client, item, 'dir42')
+  expect(mockMd5File).toHaveBeenCalledWith('/tmp/pic.jpg')
+  expect(mockFetch.mock.calls[0][2]['Content-MD5']).toBe('nhB9nTcrtoJr2B01QqQZ1g==')
+})
+
+test('still uploads, without MD5 and with a crash report, when the MD5 cannot be computed', async () => {
+  const failure = new Error('cannot read the file: Permission denied (os error 13)')
+  mockMd5File.mockRejectedValue(failure)
+  mockFetch.mockReturnValueOnce(mkResp(201, { data: { id: 'f1', attributes: {} } }))
+  const res = await uploadSharedFile(client, item, 'dir42')
+  expect(res._id).toBe('f1')
+  expect(mockFetch.mock.calls[0][2]).not.toHaveProperty('Content-MD5')
+  expect(mockReportCaughtError).toHaveBeenCalledWith(failure)
+})
+
+test('sends no MD5 where the Rust core is not built in', async () => {
+  mockFetch.mockReturnValueOnce(mkResp(201, { data: { id: 'f1', attributes: {} } }))
+  await uploadSharedFile(client, item, 'dir42')
+  expect(mockFetch.mock.calls[0][2]).not.toHaveProperty('Content-MD5')
 })
 
 test('POSTs the file to the folder upload route with a bearer token', async () => {
