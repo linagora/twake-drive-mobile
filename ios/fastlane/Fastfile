@@ -133,6 +133,9 @@ platform :ios do
       }
     )
 
+    # A dispatch can stop at the signed IPA, to check a build without shipping it.
+    next if ENV["UPLOAD_TO_TESTFLIGHT"] == "false"
+
     # First validations: plain internal TestFlight upload — instant, no external
     # "Beta Testers" group or Beta App Review needed. Restore distribute_external +
     # groups once Test Info is filled and the first build cleared Beta review.
