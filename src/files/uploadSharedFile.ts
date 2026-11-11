@@ -2,6 +2,9 @@ import * as FileSystem from 'expo-file-system/legacy'
 import ReactNativeBlobUtil from 'react-native-blob-util'
 import type CozyClient from 'cozy-client'
 
+import { reportCaughtError } from '@/monitoring/crashReporting'
+import { md5File } from '@/native/twakeDriveCore'
+
 export interface SharedItem {
   uri: string
   name: string
@@ -77,6 +80,17 @@ export const uploadSharedFile = async (
   await ensureReadable(fileUri, item.size)
   const path = toLocalPath(fileUri)
   const contentType = item.mimeType || 'application/octet-stream'
+  // The stack refuses a body whose MD5 differs (412) instead of storing a corrupt copy.
+  // An extra check: when it cannot be computed, the file still goes, without it.
+  const md5 = await md5File(path).catch((error: unknown) => {
+    reportCaughtError(error instanceof Error ? error : new Error(String(error)))
+    return null
+  })
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${token}`,
+    'Content-Type': contentType,
+    ...(md5 ? { 'Content-MD5': md5 } : {})
+  }
 
   for (let attempt = 0; attempt < MAX_DEDUPE; attempt++) {
     const name = dedupeName(item.name, attempt)
@@ -86,7 +100,7 @@ export const uploadSharedFile = async (
     const res = (await ReactNativeBlobUtil.fetch(
       'POST',
       url,
-      { Authorization: `Bearer ${token}`, 'Content-Type': contentType },
+      headers,
       ReactNativeBlobUtil.wrap(path)
     ).uploadProgress((written: number, total: number) => {
       if (total > 0) onProgress?.(written / total)
