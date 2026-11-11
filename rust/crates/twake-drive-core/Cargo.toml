@@ -10,5 +10,6 @@ crate-type = ["staticlib", "lib"]
 [dependencies]
 base64 = "0.22"
 md-5 = "0.10"
+rusqlite = { version = "0.42", features = ["bundled"] }
 thiserror = "2"
 uniffi.workspace = true
