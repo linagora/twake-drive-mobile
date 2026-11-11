@@ -5,13 +5,7 @@ use base64::Engine;
 use base64::engine::general_purpose::STANDARD;
 use md5::{Digest, Md5};
 
-/// No path in the messages: they may reach a crash report, and a path carries
-/// the name the user gave the file.
-#[derive(Debug, thiserror::Error, uniffi::Error)]
-pub enum CoreError {
-    #[error("cannot read the file: {reason}")]
-    Io { reason: String },
-}
+use crate::CoreError;
 
 /// MD5 of a file, base64-encoded: the form cozy-stack expects in `Content-MD5`
 /// and returns in `md5sum`. Streams the file, so a video of several gigabytes
