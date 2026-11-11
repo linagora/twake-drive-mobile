@@ -18,7 +18,8 @@ ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
 # shellcheck disable=SC2029 # the Mac's path is expanded here on purpose
 ssh "$IOS_HOST" "mkdir -p '$IOS_WORKDIR'"
 rsync -az --delete --exclude /.git --exclude /node_modules --exclude /ios/Pods --exclude /ios/build \
-  --exclude /android --exclude /.qa-deps "$ROOT/" "$IOS_HOST:$IOS_WORKDIR/"
+  --exclude /android --exclude /.qa-deps --exclude /rust/target \
+  --exclude /modules/twake-drive-core/ios/generated "$ROOT/" "$IOS_HOST:$IOS_WORKDIR/"
 
 # shellcheck disable=SC2087 # expanded here on purpose: the Mac gets the values
 ssh "$IOS_HOST" bash -s <<EOF
@@ -36,6 +37,7 @@ if [ ! -d node_modules ] || [ "\$(cat .qa-deps 2>/dev/null)" != "\$NPM" ]; then
   echo "\$NPM" > .qa-deps
   rm -f ios/Pods/Manifest.lock # a new native module needs its pod: install them again below
 fi
+PATH="\$HOME/.cargo/bin:\$PATH" rust/scripts/build-ios.sh
 # Xcode refuses Pods out of sync with Podfile.lock, which the copy above may have just replaced
 # (pod install rewrites a Podfile.lock its CocoaPods or the autolinked modules disagree with)
 if ! cmp -s ios/Podfile.lock ios/Pods/Manifest.lock; then
