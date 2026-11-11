@@ -63,6 +63,16 @@ jobs:
           restore-keys: |
             pods-
 
+      # rust/target and the crates, keyed on Cargo.lock and the toolchain.
+      - uses: Swatinem/rust-cache@2201cc584a476d1b508be977bbe4b7d1c7a52e9c # v2.9.3
+        with:
+          workspaces: rust
+          shared-key: rust-ios
+
+      # pod install fails without the XCFramework the TwakeDriveCore pod vendors.
+      - name: Build the Rust core
+        run: rust/scripts/build-ios.sh
+
       - name: Install CocoaPods
         working-directory: ios
         run: pod install

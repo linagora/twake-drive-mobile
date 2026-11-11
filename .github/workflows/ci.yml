@@ -67,6 +67,22 @@ jobs:
       - run: npm ci
       - run: npm test
 
+  # No toolchain setup step: rustup reads rust/rust-toolchain.toml.
+  rust:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: Swatinem/rust-cache@2201cc584a476d1b508be977bbe4b7d1c7a52e9c # v2.9.3
+        with:
+          workspaces: rust
+      - run: cargo fmt --check
+      - run: cargo clippy --locked --all-targets -- -D warnings
+      - run: cargo test --locked
+
   commitlint:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
