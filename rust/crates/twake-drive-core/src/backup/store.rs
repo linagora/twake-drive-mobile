@@ -4,6 +4,7 @@ use rusqlite::{Connection, ErrorCode, OptionalExtension, TransactionBehavior::Im
 
 use super::rules::{Decision, PassAction, UNAVAILABLE_DELAY_SECS, UploadOutcome, decide};
 use crate::CoreError;
+use crate::library::{library_id_of, paired_video_key};
 
 /// Each entry moves the schema one version up; `PRAGMA user_version` says how
 /// many already ran. Only ever append.
@@ -157,6 +158,9 @@ impl BackupStore {
                          paired_video = excluded.paired_video",
                 )
                 .map_err(storage)?;
+            let mut gone_video = tx
+                .prepare("DELETE FROM media WHERE local_id = ?1")
+                .map_err(storage)?;
             for m in media {
                 reset
                     .execute(params![m.local_id, m.modified_at, m.content_version])
@@ -170,6 +174,12 @@ impl BackupStore {
                         m.paired_video
                     ])
                     .map_err(storage)?;
+                // An edit may turn a Live Photo into a still: its video is gone.
+                if m.paired_video.is_none() && library_id_of(&m.local_id) == m.local_id {
+                    gone_video
+                        .execute(params![paired_video_key(m.local_id)])
+                        .map_err(storage)?;
+                }
             }
         }
         tx.commit().map_err(storage)
@@ -608,6 +618,20 @@ mod tests {
         s.record_library(vec![seen("a", 2, Some("original"))])
             .unwrap();
         assert!(s.next_batch(NOW, 10, 60).unwrap().is_empty());
+    }
+
+    #[test]
+    fn a_live_photo_turned_into_a_still_drops_its_video() {
+        let s = store();
+        let photo = LibraryMedia {
+            paired_video: Some("lp#video".into()),
+            ..seen("lp", 5, None)
+        };
+        s.record_library(vec![photo, seen("lp#video", 5, None)])
+            .unwrap();
+        s.record_library(vec![seen("lp", 6, None)]).unwrap();
+        assert_eq!(s.counts().unwrap().pending, 1);
+        assert_eq!(ids(&s.next_batch(NOW, 10, 60).unwrap()), ["lp"]);
     }
 
     #[test]
