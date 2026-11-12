@@ -742,7 +742,9 @@ version = "0.1.0"
 dependencies = [
  "base64",
  "md-5",
+ "percent-encoding",
  "rusqlite",
+ "serde_json",
  "thiserror",
  "uniffi",
 ]
