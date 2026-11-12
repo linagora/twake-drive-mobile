@@ -24,7 +24,11 @@
         "usesNonExemptEncryption": false
       },
       "infoPlist": {
-        "UIBackgroundModes": ["audio"]
+        "UIBackgroundModes": ["audio", "fetch", "processing"],
+        "BGTaskSchedulerPermittedIdentifiers": [
+          "com.linagora.twakedrive.backup.processing",
+          "com.linagora.twakedrive.backup.refresh"
+        ]
       },
       "associatedDomains": ["applinks:links.twake.app"]
     },

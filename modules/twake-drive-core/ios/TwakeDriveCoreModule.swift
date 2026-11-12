@@ -42,22 +42,31 @@ public class TwakeDriveCoreModule: Module {
 
     AsyncFunction("runBackupPass") { (folderId: String, deviceId: String) throws -> [String: Any] in
       passStop.withLock { $0 = false }
+      // A pass that fails, offline for one, still leaves the next ones planned.
+      defer { if !passStop.withLock({ $0 }) { BackupSchedule.schedule() } }
       return try runInBackgroundTime { expired in
         try BackupPass(
-          folderId: folderId, deviceId: deviceId,
+          config: BackupConfig(folderId: folderId, deviceId: deviceId), inBackground: false,
           isCancelled: { expired() || passStop.withLock { $0 } }
-        ).run().record
-      }
+        ).run()
+      }.record
     }.runOnQueue(passQueue)
 
-    /// The pass running ends after the media in progress.
+    /// The pass running ends after the media in progress, the uploads handed
+    /// to the system are cancelled, and the system starts no pass any more.
     Function("stopBackupPass") {
       passStop.withLock { $0 = true }
+      BackupSchedule.cancel()
+      BackgroundUploads.shared.cancelAll()
+      // After the pass running, before a pass of the backup turned on again.
+      passQueue.async { try? openBackup().store.clearBackupConfig() }
     }
   }
 }
 
-private let passStop = OSAllocatedUnfairLock(initialState: false)
+/// Set when the backup is turned off: the passes running stop, and the
+/// system starts none until it is turned on again.
+let passStop = OSAllocatedUnfairLock(initialState: false)
 
 /// Leaving the app mid-upload would waste that upload: iOS grants some time
 /// to finish the media in progress, then the pass stops.
@@ -89,4 +98,5 @@ extension BackupCounts {
 /// async functions of every module.
 private let stackQueue = DispatchQueue(label: "com.linagora.twakedrive.core.stack", qos: .userInitiated)
 /// A pass may last hours: on its own queue, the folder choice stays usable.
-private let passQueue = DispatchQueue(label: "com.linagora.twakedrive.core.pass", qos: .utility)
+/// The passes the system starts go there too, one at a time.
+let passQueue = DispatchQueue(label: "com.linagora.twakedrive.core.pass", qos: .utility)
