@@ -21,12 +21,27 @@ export interface BackupCounts {
 }
 
 /** What stopped the last pass for every media. */
-export type StopCause = 'QuotaExceeded' | 'Network' | 'Unauthorized' | 'Server' | 'Refused'
+export type StopCause =
+  | 'QuotaExceeded'
+  | 'Network'
+  | 'Unauthorized'
+  | 'Server'
+  | 'Refused'
+  /** Held back by the user's conditions. */
+  | 'WaitingForWifi'
+  | 'WaitingForPower'
 
 export interface BackupStatus extends BackupCounts {
   /** End of the last pass, in Unix seconds. */
   lastPassAt?: number
   stoppedBy?: StopCause
+}
+
+/** When the backup may go: Wi-Fi only unless mobile data is allowed. */
+export interface BackupConditions {
+  cellularPhotos: boolean
+  cellularVideos: boolean
+  onlyCharging: boolean
 }
 
 interface TwakeDriveCoreNative {
@@ -45,6 +60,12 @@ interface TwakeDriveCoreNative {
   backupStatus: () => Promise<BackupStatus>
   photoAccess: () => PhotoAccess
   retryFailed: () => Promise<void>
+  backupConditions: () => Promise<BackupConditions>
+  setBackupConditions: (
+    cellularPhotos: boolean,
+    cellularVideos: boolean,
+    onlyCharging: boolean
+  ) => Promise<void>
   addListener: (
     event: 'onBackupProgress',
     listener: (status: BackupStatus) => void

@@ -39,6 +39,10 @@ export const BackupStatusSection = (): React.ReactElement | null => {
       ) : null}
       {status.stoppedBy === 'QuotaExceeded' ? (
         <InlineBanner tone="error" message={t('backup.status.quota')} testID="backup-quota" />
+      ) : status.stoppedBy === 'WaitingForWifi' ? (
+        <InlineBanner message={t('backup.status.waitingWifi')} testID="backup-waiting-wifi" />
+      ) : status.stoppedBy === 'WaitingForPower' ? (
+        <InlineBanner message={t('backup.status.waitingPower')} testID="backup-waiting-power" />
       ) : status.stoppedBy ? (
         <InlineBanner message={t('backup.status.stopped')} testID="backup-stopped" />
       ) : null}

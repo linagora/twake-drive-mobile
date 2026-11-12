@@ -5,8 +5,8 @@ mod library;
 mod stack;
 
 pub use backup::{
-    BackupConfig, BackupCounts, BackupStatus, BackupStore, LibraryMedia, ParkedUpload, PassAction,
-    QueuedMedia, UploadOutcome,
+    BackupConditions, BackupConfig, BackupCounts, BackupStatus, BackupStore, LibraryMedia,
+    ParkedUpload, PassAction, QueuedMedia, UploadOutcome,
 };
 pub use checksum::md5_file;
 pub use error::CoreError;

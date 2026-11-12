@@ -62,6 +62,9 @@ const CHANGE_TOKEN: &str = "change_token";
 const FOLDER_ID: &str = "folder_id";
 const DEVICE_ID: &str = "device_id";
 const STOPPED_BY: &str = "stopped_by";
+const CELLULAR_PHOTOS: &str = "cellular_photos";
+const CELLULAR_VIDEOS: &str = "cellular_videos";
+const ONLY_CHARGING: &str = "only_charging";
 const LAST_PASS_AT: &str = "last_pass_at";
 
 fn set_setting(db: &Connection, key: &str, value: impl Into<Vec<u8>>) -> Result<(), CoreError> {
@@ -143,8 +146,18 @@ pub struct BackupStatus {
     pub counts: BackupCounts,
     /// When the last pass ended, in Unix seconds.
     pub last_pass_at: Option<i64>,
-    /// What stopped the last pass for every media, one of `stop_cause`.
+    /// What stopped the last pass for every media, one of `stop_cause`, or
+    /// what it waits for (`wait_for`).
     pub stopped_by: Option<String>,
+}
+
+/// The user's choices on when the backup may go. All off by default: Wi-Fi
+/// only, whatever the battery.
+#[derive(Debug, Clone, Default, PartialEq, uniffi::Record)]
+pub struct BackupConditions {
+    pub cellular_photos: bool,
+    pub cellular_videos: bool,
+    pub only_charging: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, uniffi::Record)]
@@ -511,6 +524,49 @@ impl BackupStore {
             }),
             _ => None,
         })
+    }
+
+    /// The pass held media back for the user's conditions: "WaitingForWifi"
+    /// or "WaitingForPower", shown as what stopped it.
+    pub fn wait_for(&self, cause: String) -> Result<(), CoreError> {
+        set_setting(&self.db(), STOPPED_BY, cause)
+    }
+
+    /// Media the pass took but held back: due again at once, for the next pass.
+    pub fn release_media(&self, local_ids: Vec<String>) -> Result<(), CoreError> {
+        let mut db = self.db();
+        let tx = db.transaction_with_behavior(Immediate).map_err(storage)?;
+        for local_id in local_ids {
+            tx.execute(
+                "UPDATE media SET not_before = 0 WHERE local_id = ?1 AND state = 'pending'",
+                params![local_id],
+            )
+            .map_err(storage)?;
+        }
+        tx.commit().map_err(storage)
+    }
+
+    pub fn conditions(&self) -> Result<BackupConditions, CoreError> {
+        let db = self.db();
+        let on = |key| Ok::<_, CoreError>(setting(&db, key)?.as_deref() == Some("1"));
+        Ok(BackupConditions {
+            cellular_photos: on(CELLULAR_PHOTOS)?,
+            cellular_videos: on(CELLULAR_VIDEOS)?,
+            only_charging: on(ONLY_CHARGING)?,
+        })
+    }
+
+    pub fn set_conditions(&self, conditions: BackupConditions) -> Result<(), CoreError> {
+        let mut db = self.db();
+        let tx = db.transaction_with_behavior(Immediate).map_err(storage)?;
+        for (key, on) in [
+            (CELLULAR_PHOTOS, conditions.cellular_photos),
+            (CELLULAR_VIDEOS, conditions.cellular_videos),
+            (ONLY_CHARGING, conditions.only_charging),
+        ] {
+            set_setting(&tx, key, if on { "1" } else { "0" })?;
+        }
+        tx.commit().map_err(storage)
     }
 
     pub fn clear_backup_config(&self) -> Result<(), CoreError> {
@@ -1315,6 +1371,36 @@ mod tests {
             .unwrap();
         remove_db(&path);
         assert_eq!(token, Some(vec![3]));
+    }
+
+    #[test]
+    fn a_media_held_back_for_wifi_is_due_again_at_once() {
+        let s = store();
+        s.record_media("video".into(), 1, 1).unwrap();
+        assert_eq!(s.next_batch(NOW, 10, 600).unwrap().len(), 1);
+        assert!(s.next_batch(NOW + 1, 10, 600).unwrap().is_empty());
+        s.release_media(vec!["video".into()]).unwrap();
+        s.wait_for("WaitingForWifi".into()).unwrap();
+        assert_eq!(ids(&s.next_batch(NOW + 1, 10, 600).unwrap()), ["video"]);
+        assert_eq!(
+            s.status().unwrap().stopped_by.as_deref(),
+            Some("WaitingForWifi")
+        );
+    }
+
+    #[test]
+    fn the_backup_waits_for_wifi_until_the_user_allows_mobile_data() {
+        let s = store();
+        assert_eq!(s.conditions().unwrap(), BackupConditions::default());
+        let chosen = BackupConditions {
+            cellular_photos: true,
+            cellular_videos: false,
+            only_charging: true,
+        };
+        s.set_conditions(chosen.clone()).unwrap();
+        assert_eq!(s.conditions().unwrap(), chosen);
+        s.set_conditions(BackupConditions::default()).unwrap();
+        assert_eq!(s.conditions().unwrap(), BackupConditions::default());
     }
 
     #[test]
