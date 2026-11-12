@@ -4,8 +4,8 @@ mod store;
 
 pub use rules::{PassAction, UploadOutcome};
 pub use store::{
-    BackupConditions, BackupConfig, BackupCounts, BackupStatus, BackupStore, LibraryMedia,
-    ParkedUpload, QueuedMedia,
+    AlbumChoice, BackupConditions, BackupConfig, BackupCounts, BackupStatus, BackupStore,
+    LibraryMedia, ParkedUpload, QueuedMedia,
 };
 
 pub(crate) use remote_index::RemoteFile;
