@@ -2605,6 +2605,7 @@ PODS:
     - Yoga
   - SocketRocket (0.7.1):
     - ReactNativeDependencies
+    - ExpoModulesCore
   - TwakeDriveCore (0.1.0):
     - ExpoModulesCore
   - Yoga (0.0.0):
@@ -3044,6 +3045,7 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native-worklets"
   SocketRocket:
     :path: build/rndeps-facades/SocketRocket
+    :path: "../modules/twake-drive-core/ios"
   TwakeDriveCore:
     :path: "../modules/twake-drive-core/ios"
   Yoga:
@@ -3192,7 +3194,7 @@ SPEC CHECKSUMS:
   RNSVG: c35beed3dcf6fd14b50ca1fc0d4214a17ec5334d
   RNWorklets: 488806637a21eb17812a48dadca7cb8c698c8cfd
   SocketRocket: 37aec555668fb852ec12e3c0de59a86ca58f0871
-  TwakeDriveCore: 5550b3d45dba443e956f2d2d5ed69115b817a300
+  TwakeDriveCore: 9c347f939c30d1e3694db2483eff7e3766e01539
   Yoga: d1c536142c5ff8ec8cd856ab2a7c227a1d875c8e
 
 PODFILE CHECKSUM: eee3d3a2234b3c870cd9075ebeb452a837e86c50
