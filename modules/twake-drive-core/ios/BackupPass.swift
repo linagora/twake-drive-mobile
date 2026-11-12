@@ -1,5 +1,7 @@
 import Foundation
+import Network
 import Photos
+import UIKit
 import UniformTypeIdentifiers
 
 /// One pass of the photo backup: the core decides what to send and reads the
@@ -14,6 +16,9 @@ final class BackupPass {
   private let inBackground: Bool
   private let isCancelled: () -> Bool
   private let onProgress: ((BackupStatus) -> Void)?
+  private let conditions: BackupConditions
+  /// Media of this pass held back for mobile data.
+  private var heldBack: [String] = []
 
   init(
     config: BackupConfig, inBackground: Bool, isCancelled: @escaping () -> Bool,
@@ -24,6 +29,7 @@ final class BackupPass {
     self.inBackground = inBackground
     self.isCancelled = isCancelled
     self.onProgress = onProgress
+    conditions = try store.conditions()
   }
 
   /// The config the system passes start from, nil once the backup is off.
@@ -37,6 +43,13 @@ final class BackupPass {
       throw CoreError.Io(reason: "no access to the photo library")
     }
     if !inBackground { try store.setBackupConfig(config: config) }
+    // The long background task waits for power itself (BackupSchedule); the
+    // app and the short refresh check here, before any work.
+    if conditions.onlyCharging && !isCharging() {
+      try store.waitFor(cause: "WaitingForPower")
+      report()
+      return try store.status()
+    }
     try cleanExportFolder()
     // First: a short call, which also refreshes a token a 401 left expired.
     try client.syncFolderIndex(folderId: config.folderId)
@@ -63,6 +76,11 @@ final class BackupPass {
         report()
         if action == .stop { break pass }
       }
+    }
+    if !heldBack.isEmpty {
+      // Due again for the next pass, on Wi-Fi, instead of after their lease.
+      try store.releaseMedia(localIds: heldBack)
+      try store.waitFor(cause: "WaitingForWifi")
     }
     // A pass cut short is not the last backup.
     if !cancelled { try store.endPass(now: now()) }
@@ -156,6 +174,14 @@ final class BackupPass {
       try store.forgetMedia(localId: queued.localId)
       return .continue
     }
+    // Read for each media: the user may take mobile data back during a pass.
+    let cellular = try store.conditions().allowsCellular(video: isVideo(queued.localId, asset: asset))
+    // Before the iCloud download too, which has no such setting: the media
+    // stays due and comes back on Wi-Fi.
+    if !cellular && NetworkPath.isCellular {
+      heldBack.append(queued.localId)
+      return .continue
+    }
     // An md5 from a pass cut short: its content may be in Drive already, no
     // need to fetch it from iCloud again.
     if let known = queued.md5,
@@ -187,13 +213,14 @@ final class BackupPass {
       guard case .send(let request) = plan else { return .continue }
       if inBackground {
         try BackgroundUploads.shared.hand(
-          request, media: media, nameAttempt: nameAttempt, file: export.file, account: account, store: store)
+          request, media: media, nameAttempt: nameAttempt, file: export.file, account: account, store: store,
+          allowsCellular: cellular)
         handedOver = true
         return .continue
       }
       let response: HttpResponse
       do {
-        response = try exchange(request, file: export.file)
+        response = try exchange(request, file: export.file, allowsCellular: cellular)
       } catch CoreError.Network {
         return try store.recordOutcome(localId: media.localId, md5: md5, outcome: .network, now: now())
       }
@@ -290,6 +317,40 @@ private func mediaOptions() -> PHFetchOptions {
 /// Cleaned at the start of each pass. Passes run one at a time.
 let exportFolder = FileManager.default.temporaryDirectory
   .appendingPathComponent("backup-export", isDirectory: true)
+
+/// Mobile data, as `allowsCellularAccess` sees it: a Wi-Fi shared by a phone
+/// counts as Wi-Fi.
+enum NetworkPath {
+  private static let monitor: NWPathMonitor = {
+    let monitor = NWPathMonitor()
+    monitor.start(queue: DispatchQueue(label: "com.linagora.twakedrive.core.path"))
+    return monitor
+  }()
+
+  /// Started at launch: the first path comes a moment after the start.
+  static func start() { _ = monitor }
+
+  static var isCellular: Bool {
+    let path = monitor.currentPath
+    return path.usesInterfaceType(.cellular) && !path.usesInterfaceType(.wifi)
+  }
+}
+
+extension BackupConditions {
+  func allowsCellular(video: Bool) -> Bool { video ? cellularVideos : cellularPhotos }
+}
+
+/// The video of a Live Photo counts as a video.
+func isVideo(_ localId: String, asset: PHAsset?) -> Bool {
+  libraryId(localId: localId) != localId || asset?.mediaType == .video
+}
+
+private func isCharging() -> Bool {
+  DispatchQueue.main.sync {
+    UIDevice.current.isBatteryMonitoringEnabled = true
+    return [.charging, .full].contains(UIDevice.current.batteryState)
+  }
+}
 
 func now() -> Int64 {
   Int64(Date().timeIntervalSince1970)
