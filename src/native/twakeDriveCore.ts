@@ -11,6 +11,15 @@ export interface DeviceFolder {
   createdAt: string
 }
 
+export interface BackupCounts {
+  done: number
+  pending: number
+  skipped: number
+  failed: number
+  /** Among `pending`, the media the phone could not read (iCloud out of reach). */
+  unavailable: number
+}
+
 interface TwakeDriveCoreNative {
   md5File: (path: string) => Promise<string>
   requestPhotoAccess: () => Promise<PhotoAccess>
@@ -22,6 +31,8 @@ interface TwakeDriveCoreNative {
     deviceName: string,
     rootName: string
   ) => Promise<DeviceFolder>
+  runBackupPass: (folderId: string, deviceId: string) => Promise<BackupCounts>
+  stopBackupPass: () => void
 }
 
 const native = requireOptionalNativeModule<TwakeDriveCoreNative>('TwakeDriveCore')

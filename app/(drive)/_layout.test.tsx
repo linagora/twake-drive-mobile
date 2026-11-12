@@ -81,6 +81,10 @@ jest.mock('@/pouchdb/useForegroundSync', () => ({
   useForegroundSync: () => undefined
 }))
 
+jest.mock('@/backup/backupPass', () => ({
+  useBackupPass: () => undefined
+}))
+
 jest.mock('@/offline/initOffline', () => ({
   initOfflineSubsystem: jest.fn()
 }))
