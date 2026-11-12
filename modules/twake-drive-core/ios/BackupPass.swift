@@ -41,22 +41,53 @@ final class BackupPass {
     return try store.counts()
   }
 
-  // shortcut: the whole library on each pass, and media deleted from it stay
-  // counted; a persistent change token replaces this scan.
+  /// Only what changed since the last pass, or the whole library the first
+  /// time and when iOS no longer has the changes since the saved token.
   private func scanLibrary() throws {
+    let library = PHPhotoLibrary.shared()
+    // Taken before reading: a change made during the scan comes again next time.
+    let current = library.currentChangeToken
     let options = PHFetchOptions()
     options.predicate = NSPredicate(
       format: "mediaType == %d OR mediaType == %d",
       PHAssetMediaType.image.rawValue, PHAssetMediaType.video.rawValue)
+    if let saved = try store.changeToken(),
+      let token = try? NSKeyedUnarchiver.unarchivedObject(ofClass: PHPersistentChangeToken.self, from: saved),
+      let changes = try? library.fetchPersistentChanges(since: token)
+    {
+      var changed = Set<String>()
+      var deleted = Set<String>()
+      for change in changes {
+        let details = try change.changeDetails(for: .asset)
+        changed.formUnion(details.insertedLocalIdentifiers)
+        changed.formUnion(details.updatedLocalIdentifiers)
+        deleted.formUnion(details.deletedLocalIdentifiers)
+      }
+      for id in deleted {
+        try store.forgetMedia(localId: id)
+        try store.forgetMedia(localId: pairedVideoKey(libraryId: id))
+      }
+      try record(PHAsset.fetchAssets(withLocalIdentifiers: Array(changed), options: options))
+    } else {
+      // shortcut: media deleted while no change token held stay counted;
+      // only this fallback misses them.
+      try record(PHAsset.fetchAssets(with: options))
+    }
+    try store.setChangeToken(
+      token: try NSKeyedArchiver.archivedData(withRootObject: current, requiringSecureCoding: true))
+  }
+
+  private func record(_ assets: PHFetchResult<PHAsset>) throws {
     var media: [LibraryMedia] = []
-    PHAsset.fetchAssets(with: options).enumerateObjects { asset, _, _ in
+    assets.enumerateObjects { asset, _, _ in
       let id = asset.localIdentifier
+      let version = contentVersion(asset)
       let video = asset.mediaSubtypes.contains(.photoLive) ? pairedVideoKey(libraryId: id) : nil
       let row = { (localId: String, pairedVideo: String?) in
         LibraryMedia(
           localId: localId, createdAt: seconds(asset.creationDate),
           modifiedAt: seconds(asset.modificationDate ?? asset.creationDate),
-          contentVersion: contentVersion(asset), pairedVideo: pairedVideo)
+          contentVersion: version, pairedVideo: pairedVideo)
       }
       if let video { media.append(row(video, nil)) }
       media.append(row(id, video))

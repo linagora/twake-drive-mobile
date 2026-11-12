@@ -34,7 +34,10 @@ const MIGRATIONS: &[&str] = &[
 ",
     "ALTER TABLE media ADD COLUMN content_version TEXT;",
     "ALTER TABLE media ADD COLUMN paired_video TEXT;",
+    "CREATE TABLE setting (key TEXT PRIMARY KEY, value BLOB NOT NULL);",
 ];
+
+const CHANGE_TOKEN: &str = "change_token";
 
 /// No lease nor delay lasts this long: a later `not_before` comes from a clock
 /// that went back, and the media is due at once.
@@ -327,6 +330,32 @@ impl BackupStore {
                     now + UNAVAILABLE_DELAY_SECS,
                     format!("{:?}", UploadOutcome::Unavailable)
                 ],
+            )
+            .map_err(storage)?;
+        Ok(())
+    }
+
+    /// Where the last scan of the library stopped, in the platform's own form
+    /// (on iOS an archived `PHPersistentChangeToken`). It lives with the state
+    /// it describes: a new account or a database rebuilt starts from a full scan.
+    pub fn change_token(&self) -> Result<Option<Vec<u8>>, CoreError> {
+        self.db()
+            .query_row(
+                "SELECT value FROM setting WHERE key = ?1",
+                params![CHANGE_TOKEN],
+                |row| row.get(0),
+            )
+            .optional()
+            .map_err(storage)
+    }
+
+    /// Saved once the changes it covers are recorded.
+    pub fn set_change_token(&self, token: Vec<u8>) -> Result<(), CoreError> {
+        self.db()
+            .execute(
+                "INSERT INTO setting (key, value) VALUES (?1, ?2)
+                 ON CONFLICT (key) DO UPDATE SET value = excluded.value",
+                params![CHANGE_TOKEN, token],
             )
             .map_err(storage)?;
         Ok(())
@@ -880,5 +909,20 @@ mod tests {
         let counts = BackupStore::open(path.clone()).unwrap().counts().unwrap();
         remove_db(&path);
         assert_eq!(counts.pending, 1);
+    }
+
+    #[test]
+    fn the_change_token_is_kept_across_a_reopen() {
+        let path = temp_db("token");
+        let s = BackupStore::open(path.clone()).unwrap();
+        assert_eq!(s.change_token().unwrap(), None);
+        s.set_change_token(vec![1, 2]).unwrap();
+        s.set_change_token(vec![3]).unwrap();
+        let token = BackupStore::open(path.clone())
+            .unwrap()
+            .change_token()
+            .unwrap();
+        remove_db(&path);
+        assert_eq!(token, Some(vec![3]));
     }
 }
