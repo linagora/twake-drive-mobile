@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex, MutexGuard};
 
 use rusqlite::{Connection, ErrorCode, OptionalExtension, TransactionBehavior::Immediate, params};
 
-use super::rules::{Decision, PassAction, UploadOutcome, decide};
+use super::rules::{Decision, PassAction, UNAVAILABLE_DELAY_SECS, UploadOutcome, decide};
 use crate::CoreError;
 
 /// Each entry moves the schema one version up; `PRAGMA user_version` says how
@@ -64,6 +64,9 @@ pub struct BackupCounts {
     pub pending: u32,
     pub skipped: u32,
     pub failed: u32,
+    /// Among `pending`: media the device could not read, an iCloud original
+    /// out of reach. They never fail, the user may want to know.
+    pub unavailable: u32,
 }
 
 /// The backup state of one device: which media exist, which are in Drive, and
@@ -100,8 +103,9 @@ impl BackupStore {
 
     /// A media seen in the library. New, it waits for its upload; changed since
     /// the last time, it is hashed and uploaded again as a new version.
-    /// `modified_at` is the date of the last change of the content (on iOS the
-    /// adjustment date, not `modificationDate`, which a favorite also moves).
+    /// `modified_at` is the date of the last change of the media. On iOS it is
+    /// `modificationDate`, which a favorite moves too: the media is hashed
+    /// again, then found already in Drive, not uploaded.
     pub fn record_media(
         &self,
         local_id: String,
@@ -256,6 +260,29 @@ impl BackupStore {
         Ok(action)
     }
 
+    /// The version `modified_at` could not be read on the device, so it has no
+    /// md5 yet: `record_outcome` cannot name it.
+    pub fn record_unavailable(
+        &self,
+        local_id: String,
+        modified_at: i64,
+        now: i64,
+    ) -> Result<(), CoreError> {
+        self.db()
+            .execute(
+                "UPDATE media SET not_before = ?3, last_error = ?4
+                 WHERE local_id = ?1 AND modified_at = ?2 AND state = 'pending'",
+                params![
+                    local_id,
+                    modified_at,
+                    now + UNAVAILABLE_DELAY_SECS,
+                    format!("{:?}", UploadOutcome::Unavailable)
+                ],
+            )
+            .map_err(storage)?;
+        Ok(())
+    }
+
     /// The user asks to try the failed media again.
     pub fn retry_failed(&self) -> Result<(), CoreError> {
         self.db()
@@ -289,6 +316,13 @@ impl BackupStore {
                 _ => {}
             }
         }
+        counts.unavailable = db
+            .query_row(
+                "SELECT COUNT(*) FROM media WHERE state = 'pending' AND last_error = ?1",
+                params![format!("{:?}", UploadOutcome::Unavailable)],
+                |row| row.get(0),
+            )
+            .map_err(storage)?;
         Ok(counts)
     }
 }
@@ -533,6 +567,26 @@ mod tests {
         assert_eq!(s.counts().unwrap().failed, 0);
         assert!(s.next_batch(NOW + 3599, 10, 60).unwrap().is_empty());
         assert_eq!(s.next_batch(NOW + 3600, 10, 60).unwrap().len(), 1);
+    }
+
+    #[test]
+    fn a_file_out_of_reach_before_its_hash_comes_back_in_an_hour() {
+        let s = store();
+        s.record_media("a".into(), 1, 1).unwrap();
+        s.next_batch(NOW, 10, 60).unwrap();
+        s.record_unavailable("a".into(), 1, NOW).unwrap();
+        assert_eq!(s.counts().unwrap().unavailable, 1);
+        assert!(s.next_batch(NOW + 3599, 10, 60).unwrap().is_empty());
+        assert_eq!(s.next_batch(NOW + 3600, 10, 60).unwrap().len(), 1);
+    }
+
+    #[test]
+    fn a_file_out_of_reach_edited_meanwhile_stays_due() {
+        let s = store();
+        s.record_media("a".into(), 1, 1).unwrap();
+        s.record_media("a".into(), 1, 2).unwrap();
+        s.record_unavailable("a".into(), 1, NOW).unwrap();
+        assert_eq!(s.next_batch(NOW, 10, 60).unwrap().len(), 1);
     }
 
     #[test]
