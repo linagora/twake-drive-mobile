@@ -8,7 +8,7 @@ pub use checksum::md5_file;
 pub use error::CoreError;
 pub use stack::{
     DeviceFolder, Header, HttpRequest, HttpResponse, MediaToSend, StackClient, StackTransport,
-    TokenSource,
+    TokenSource, UploadPlan, UploadReply,
 };
 
 uniffi::setup_scaffolding!();
