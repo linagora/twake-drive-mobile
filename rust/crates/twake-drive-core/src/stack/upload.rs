@@ -5,6 +5,7 @@ use super::folders::numbered;
 use super::http::{Header, HttpRequest, Stack, encode, query};
 use crate::CoreError;
 use crate::backup::UploadOutcome;
+use crate::library::library_id_of;
 
 /// A media ready to go: hashed, its file readable by the platform.
 #[derive(Debug, Clone, PartialEq, uniffi::Record)]
@@ -83,7 +84,7 @@ pub(crate) fn request(
 fn metadata(device_id: &str, media: &MediaToSend) -> Value {
     let mut metadata = json!({
         "backupDeviceIds": [device_id],
-        "idFromLibrary": media.local_id,
+        "idFromLibrary": library_id_of(&media.local_id),
         "creationDateFromLibrary": rfc3339(media.created_at),
     });
     if let Some(video) = &media.paired_video_id {
