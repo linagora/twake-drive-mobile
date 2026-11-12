@@ -15,7 +15,9 @@ Pod::Spec.new do |s|
 
   s.dependency 'ExpoModulesCore'
 
-  s.source_files = '*.swift', 'generated/*.swift'
+  # Session/ links to the File Provider extension's session code: one token
+  # refresh, under one lock, for the app and the extension.
+  s.source_files = '*.swift', 'generated/*.swift', 'Session/*.swift'
   s.vendored_frameworks = 'generated/TwakeDriveCoreFFI.xcframework'
   s.pod_target_xcconfig = { 'DEFINES_MODULE' => 'YES' }
 end
