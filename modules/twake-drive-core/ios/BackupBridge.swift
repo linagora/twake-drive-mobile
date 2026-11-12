@@ -87,8 +87,9 @@ extension URLRequest {
   }
 }
 
-func exchange(_ request: HttpRequest, file: URL? = nil) throws -> HttpResponse {
-  let urlRequest = try URLRequest(request)
+func exchange(_ request: HttpRequest, file: URL? = nil, allowsCellular: Bool = true) throws -> HttpResponse {
+  var urlRequest = try URLRequest(request)
+  urlRequest.allowsCellularAccess = allowsCellular
   let (data, response) = try waitFor {
     if let file { return try await URLSession.shared.upload(for: urlRequest, fromFile: file) }
     return try await URLSession.shared.data(for: urlRequest)

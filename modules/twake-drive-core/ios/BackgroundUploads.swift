@@ -2,6 +2,7 @@ import BackgroundTasks
 import ExpoModulesCore
 import Foundation
 import os
+import Photos
 
 /// Uploads handed to the system: they go on while the app is suspended, and
 /// their answers come to the delegate, in this run of the app or a later one.
@@ -19,7 +20,8 @@ final class BackgroundUploads: NSObject, URLSessionDataDelegate {
   lazy var session: URLSession = {
     let configuration = URLSessionConfiguration.background(withIdentifier: Self.identifier)
     configuration.sessionSendsLaunchEvents = true
-    configuration.allowsCellularAccess = false
+    // Each upload narrows it to the user's choice (`hand`); a request cannot widen it.
+    configuration.allowsCellularAccess = true
     // Under the core's hold of a handed media (UPLOAD_HOLD_SECS, a day): an
     // upload the system still runs is never sent again by another pass.
     configuration.timeoutIntervalForResource = 23 * 60 * 60
@@ -32,9 +34,10 @@ final class BackgroundUploads: NSObject, URLSessionDataDelegate {
   /// answer, for a new try under another name.
   func hand(
     _ request: HttpRequest, media: MediaToSend, nameAttempt: UInt32, file: URL, account: String,
-    store: BackupStore
+    store: BackupStore, allowsCellular: Bool
   ) throws {
-    let urlRequest = try URLRequest(request)
+    var urlRequest = try URLRequest(request)
+    urlRequest.allowsCellularAccess = allowsCellular
     if let earlier = try store.parkUpload(
       media: media, nameAttempt: nameAttempt, filePath: file.path, now: now())
     {
@@ -50,6 +53,14 @@ final class BackgroundUploads: NSObject, URLSessionDataDelegate {
     session.getAllTasks { $0.forEach { $0.cancel() } }
   }
 
+  /// Mobile data taken back: the uploads handed with it end and their media
+  /// wait for the network again, no try counted. They go again on Wi-Fi.
+  func cancelCellular() {
+    session.getAllTasks { tasks in
+      tasks.filter { $0.originalRequest?.allowsCellularAccess == true }.forEach { $0.cancel() }
+    }
+  }
+
   func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
     bodies[dataTask.taskIdentifier, default: Data()].append(data)
   }
@@ -60,7 +71,8 @@ final class BackgroundUploads: NSObject, URLSessionDataDelegate {
       return
     }
     let status = (task.response as? HTTPURLResponse).map { UInt16($0.statusCode) }
-    try? settle(account: String(parts[0]), localId: String(parts[1]), status: error == nil ? status : nil, body: body)
+    try? settle(
+      account: String(parts[0]), localId: String(parts[1]), status: error == nil ? status : nil, body: body)
   }
 
   func urlSessionDidFinishEvents(forBackgroundURLSession session: URLSession) {
@@ -100,9 +112,14 @@ final class BackgroundUploads: NSObject, URLSessionDataDelegate {
       folderId: config.folderId, deviceId: config.deviceId, media: parked.media, nameAttempt: nameAttempt,
       now: now())
     guard case .send(let request) = plan else { return }
+    // The choice of now: the user may have taken mobile data back since.
+    let asset = PHAsset.fetchAssets(
+      withLocalIdentifiers: [libraryId(localId: localId)], options: nil
+    ).firstObject
+    let allowsCellular = try store.conditions().allowsCellular(video: isVideo(localId, asset: asset))
     try hand(
       request, media: parked.media, nameAttempt: nameAttempt, file: URL(fileURLWithPath: parked.filePath),
-      account: account, store: store)
+      account: account, store: store, allowsCellular: allowsCellular)
     done = false
   }
 
@@ -134,6 +151,7 @@ enum BackupSchedule {
   static func schedule() {
     let pass = BGProcessingTaskRequest(identifier: processing)
     pass.requiresNetworkConnectivity = true
+    pass.requiresExternalPower = (try? openBackup().store.conditions().onlyCharging) ?? false
     pass.earliestBeginDate = Date(timeIntervalSinceNow: 15 * 60)
     try? BGTaskScheduler.shared.submit(pass)
     let check = BGAppRefreshTaskRequest(identifier: refresh)
@@ -176,6 +194,7 @@ public final class BackupAppDelegateSubscriber: ExpoAppDelegateSubscriber {
     _ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
     BackupSchedule.register()
+    NetworkPath.start()
     // The answers of uploads handed in an earlier run reach a session with
     // the same identifier.
     _ = BackgroundUploads.shared.session

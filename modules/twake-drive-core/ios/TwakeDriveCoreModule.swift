@@ -74,6 +74,31 @@ public class TwakeDriveCoreModule: Module {
       try openBackup().store.retryFailed()
     }.runOnQueue(stackQueue)
 
+    AsyncFunction("backupConditions") { () throws -> [String: Any] in
+      let conditions = try openBackup().store.conditions()
+      return [
+        "cellularPhotos": conditions.cellularPhotos, "cellularVideos": conditions.cellularVideos,
+        "onlyCharging": conditions.onlyCharging,
+      ]
+    }.runOnQueue(stackQueue)
+
+    AsyncFunction("setBackupConditions") {
+      (cellularPhotos: Bool, cellularVideos: Bool, onlyCharging: Bool) throws in
+      let store = try openBackup().store
+      let before = try store.conditions()
+      let powerChanged = before.onlyCharging != onlyCharging
+      if (before.cellularPhotos && !cellularPhotos) || (before.cellularVideos && !cellularVideos) {
+        BackgroundUploads.shared.cancelCellular()
+      }
+      try store.setConditions(
+        conditions: BackupConditions(
+          cellularPhotos: cellularPhotos, cellularVideos: cellularVideos, onlyCharging: onlyCharging))
+      // The next system pass waits for power, or no longer does.
+      if powerChanged, !passStop.withLock({ $0 }), try store.backupConfig() != nil {
+        BackupSchedule.schedule()
+      }
+    }.runOnQueue(stackQueue)
+
     /// The pass running ends after the media in progress, the uploads handed
     /// to the system are cancelled, and the system starts no pass any more.
     Function("stopBackupPass") {
