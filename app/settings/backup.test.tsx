@@ -24,6 +24,10 @@ jest.mock('@/backup/activation', () => ({
 jest.mock('@/backup/backupSettings', () => ({ readBackupSettings: () => mockSettings }))
 const mockPass = jest.fn()
 jest.mock('@/backup/backupPass', () => ({ runBackupPass: (client: unknown) => mockPass(client) }))
+jest.mock('@/backup/BackupStatusSection', () => {
+  const { Text } = jest.requireActual('react-native')
+  return { BackupStatusSection: () => <Text testID="backup-status">status</Text> }
+})
 const mockClient = {}
 jest.mock('cozy-client', () => ({ useClient: () => mockClient }))
 const mockAdopt = jest.fn()
@@ -134,6 +138,12 @@ it('takes on the token the core may have refreshed', async () => {
   const screen = render(<BackupScreen />)
   await turnOn(screen)
   expect(mockAdopt).toHaveBeenCalledWith(mockClient)
+})
+
+it('shows how far the backup is once it is on', () => {
+  expect(render(<BackupScreen />).queryByTestId('backup-status')).toBeNull()
+  mockSettings = { enabled: true, folder: { id: 'f1', path: '/Photos/B/iPhone' } }
+  render(<BackupScreen />).getByTestId('backup-status')
 })
 
 it('turns the backup off', async () => {
