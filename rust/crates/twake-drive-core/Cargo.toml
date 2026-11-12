@@ -12,3 +12,10 @@ base64 = "0.22"
 md-5 = "0.10"
 thiserror = "2"
 uniffi.workspace = true
+
+# iOS links the SQLite that op-sqlite already builds into the app: one copy.
+[target.'cfg(target_os = "ios")'.dependencies]
+rusqlite = "0.42"
+
+[target.'cfg(not(target_os = "ios"))'.dependencies]
+rusqlite = { version = "0.42", features = ["bundled"] }
