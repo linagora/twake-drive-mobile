@@ -7,7 +7,8 @@ use crate::CoreError;
 
 /// Each entry moves the schema one version up; `PRAGMA user_version` says how
 /// many already ran. Only ever append.
-const MIGRATIONS: &[&str] = &["
+const MIGRATIONS: &[&str] = &[
+    "
     CREATE TABLE media (
         local_id TEXT PRIMARY KEY,
         created_at INTEGER NOT NULL,
@@ -20,7 +21,18 @@ const MIGRATIONS: &[&str] = &["
         last_error TEXT
     );
     CREATE INDEX media_queue ON media (state, created_at);
-"];
+",
+    "
+    CREATE TABLE remote_file (
+        file_id TEXT PRIMARY KEY,
+        md5 TEXT NOT NULL,
+        id_from_library TEXT,
+        name TEXT NOT NULL
+    );
+    CREATE INDEX remote_file_md5 ON remote_file (md5);
+    CREATE INDEX remote_file_library ON remote_file (id_from_library);
+",
+];
 
 /// No lease nor delay lasts this long: a later `not_before` comes from a clock
 /// that went back, and the media is due at once.
@@ -282,7 +294,7 @@ impl BackupStore {
 }
 
 impl BackupStore {
-    fn db(&self) -> MutexGuard<'_, Connection> {
+    pub(super) fn db(&self) -> MutexGuard<'_, Connection> {
         // A panic while the lock was held leaves no half-written row: SQLite
         // rolled the transaction back, so the connection is still sound.
         self.db
@@ -320,7 +332,7 @@ fn migrate(db: &mut Connection) -> Result<(), CoreError> {
     tx.commit().map_err(storage)
 }
 
-fn storage(e: rusqlite::Error) -> CoreError {
+pub(super) fn storage(e: rusqlite::Error) -> CoreError {
     let reason = e.to_string();
     match e.sqlite_error_code() {
         Some(ErrorCode::DatabaseCorrupt | ErrorCode::NotADatabase) => {
