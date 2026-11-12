@@ -13,12 +13,17 @@ final class BackupPass {
   private let config: BackupConfig
   private let inBackground: Bool
   private let isCancelled: () -> Bool
+  private let onProgress: ((BackupStatus) -> Void)?
 
-  init(config: BackupConfig, inBackground: Bool, isCancelled: @escaping () -> Bool) throws {
+  init(
+    config: BackupConfig, inBackground: Bool, isCancelled: @escaping () -> Bool,
+    onProgress: ((BackupStatus) -> Void)? = nil
+  ) throws {
     (client, store, account) = try openBackup()
     self.config = config
     self.inBackground = inBackground
     self.isCancelled = isCancelled
+    self.onProgress = onProgress
   }
 
   /// The config the system passes start from, nil once the backup is off.
@@ -26,7 +31,7 @@ final class BackupPass {
     try openBackup().store.backupConfig()
   }
 
-  func run() throws -> BackupCounts {
+  func run() throws -> BackupStatus {
     // Without access every media looks gone from the library and would be forgotten.
     guard [.authorized, .limited].contains(PHPhotoLibrary.authorizationStatus(for: .readWrite)) else {
       throw CoreError.Io(reason: "no access to the photo library")
@@ -36,17 +41,39 @@ final class BackupPass {
     // First: a short call, which also refreshes a token a 401 left expired.
     try client.syncFolderIndex(folderId: config.folderId)
     try scanLibrary()
-    while !isCancelled() {
+    // Reached the stack: what stopped the last pass may be over.
+    try store.beginPass()
+    report()
+    var cancelled = false
+    pass: while true {
+      if isCancelled() {
+        cancelled = true
+        break
+      }
       // A small batch: the rest of it stays held until its lease ends if the
       // pass stops early. A media handed to the system is held longer.
       let batch = try store.nextBatch(now: now(), limit: 16, leaseSecs: 600)
       if batch.isEmpty { break }
       for queued in batch {
-        if isCancelled() { break }
-        if try send(queued) == .stop { return try store.counts() }
+        if isCancelled() {
+          cancelled = true
+          break pass
+        }
+        let action = try send(queued)
+        report()
+        if action == .stop { break pass }
       }
     }
-    return try store.counts()
+    // A pass cut short is not the last backup.
+    if !cancelled { try store.endPass(now: now()) }
+    report()
+    return try store.status()
+  }
+
+  /// For the screen only: a state it cannot read does not stop the pass.
+  private func report() {
+    guard let onProgress, let status = try? store.status() else { return }
+    onProgress(status)
   }
 
   /// A pass killed mid-upload leaves its copy behind, a video may weigh
