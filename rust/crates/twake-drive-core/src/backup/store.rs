@@ -26,6 +26,10 @@ const MIGRATIONS: &[&str] = &["
 /// that went back, and the media is due at once.
 const MAX_HOLD_SECS: i64 = 8 * 24 * 60 * 60;
 
+/// On iOS the core runs on the SQLite another library builds into the app.
+/// 3.24.0 brought the upsert `record_media` relies on.
+const MIN_SQLITE_VERSION: i32 = 3_024_000;
+
 const PENDING: &str = "pending";
 const DONE: &str = "done";
 const SKIPPED: &str = "skipped";
@@ -66,6 +70,7 @@ pub struct BackupStore {
 impl BackupStore {
     #[uniffi::constructor]
     pub fn open(path: String) -> Result<Arc<Self>, CoreError> {
+        check_sqlite_version(rusqlite::version_number())?;
         // rusqlite appends the path to a "cannot open" message; keep only SQLite's own.
         let mut db = Connection::open(path).map_err(|e| match e.sqlite_error() {
             Some(sqlite) => storage(rusqlite::Error::SqliteFailure(*sqlite, None)),
@@ -284,6 +289,15 @@ impl BackupStore {
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
     }
+}
+
+fn check_sqlite_version(version: i32) -> Result<(), CoreError> {
+    if version < MIN_SQLITE_VERSION {
+        return Err(CoreError::Storage {
+            reason: format!("SQLite {version} is older than {MIN_SQLITE_VERSION}"),
+        });
+    }
+    Ok(())
 }
 
 /// One transaction, so a failed migration leaves no half-built schema and two
@@ -599,6 +613,19 @@ mod tests {
         for suffix in ["", "-wal", "-shm"] {
             let _ = std::fs::remove_file(format!("{path}{suffix}"));
         }
+    }
+
+    #[test]
+    fn a_sqlite_too_old_is_refused() {
+        assert!(check_sqlite_version(3_023_999).is_err());
+        assert!(check_sqlite_version(rusqlite::version_number()).is_ok());
+    }
+
+    #[test]
+    fn double_quoted_strings_are_refused() {
+        let s = store();
+        let quoted = s.db().query_row(r#"SELECT "pending""#, [], |_| Ok(()));
+        assert!(quoted.is_err());
     }
 
     #[test]
