@@ -375,6 +375,19 @@
     "unavailable": "Tính năng sao lưu ảnh chưa có trên điện thoại này.",
     "error": "Không thể bắt đầu sao lưu. Hãy kiểm tra kết nối và thử lại.",
     "rootFolder": "Mobile backup",
-    "invalidName": "Tên thư mục không được là \".\" hoặc \"..\", và không được chứa \"/\" hay dấu xuống dòng."
+    "invalidName": "Tên thư mục không được là \".\" hoặc \"..\", và không được chứa \"/\" hay dấu xuống dòng.",
+    "status": {
+      "title": "Tiến độ",
+      "counts": "Đã lưu {{done}}, còn lại {{pending}}",
+      "lastPass": "Lần sao lưu gần nhất {{when}}",
+      "neverRun": "Chưa có lần sao lưu nào",
+      "noAccess": "Twake Drive không còn thấy ảnh của bạn nên việc sao lưu đã tạm dừng. Hãy cho phép trong Cài đặt của điện thoại.",
+      "quota": "Drive của bạn đã đầy nên việc sao lưu tạm dừng cho đến khi có chỗ trống.",
+      "stopped": "Lần sao lưu gần nhất đã dừng trước khi xong. Việc sao lưu sẽ tự chạy lại sau.",
+      "unavailable": "Đang chờ iCloud: {{count}}. Sẽ thử lại sau.",
+      "tooLarge": "Quá lớn để sao lưu: {{count}}",
+      "failed": "Chưa sao lưu được sau nhiều lần thử: {{count}}",
+      "retry": "Thử lại"
+    }
   }
 }

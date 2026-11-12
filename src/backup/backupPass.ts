@@ -4,12 +4,12 @@ import type CozyClient from 'cozy-client'
 import { useClient } from 'cozy-client'
 
 import { adoptStoredToken } from '@/auth/adoptStoredToken'
-import { backupCore, type BackupCounts } from '@/native/twakeDriveCore'
+import { backupCore, type BackupStatus } from '@/native/twakeDriveCore'
 
 import { readBackupSettings } from './backupSettings'
 import { backupDeviceId } from './deviceId'
 
-let running: Promise<BackupCounts | null> | null = null
+let running: Promise<BackupStatus | null> | null = null
 let again = false
 
 /**
@@ -17,7 +17,7 @@ let again = false
  * backup may have been turned off and on again, in another folder or the
  * same, and the running pass stopped.
  */
-export const runBackupPass = (client: CozyClient | null): Promise<BackupCounts | null> => {
+export const runBackupPass = (client: CozyClient | null): Promise<BackupStatus | null> => {
   const core = backupCore()
   const { enabled, folder } = readBackupSettings()
   if (!core || !enabled || !folder) return Promise.resolve(null)
@@ -43,8 +43,9 @@ export const useBackupPass = (): void => {
   const client = useClient()
   useEffect(() => {
     const pass = (): void => {
-      // shortcut: a failed pass is dropped, mostly offline; the next one tries
-      // again. Report it once the backup screen shows the state.
+      // shortcut: a pass that fails before it starts, mostly offline, is
+      // dropped and the next one tries again; the screen still shows the end
+      // of the last pass that ran. Report it if users miss why it is old.
       runBackupPass(client).catch(() => null)
     }
     pass()

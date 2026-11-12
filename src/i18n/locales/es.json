@@ -393,6 +393,19 @@
     "unavailable": "La copia de seguridad de fotos aún no está disponible en este teléfono.",
     "error": "La copia no pudo empezar. Comprueba tu conexión e inténtalo de nuevo.",
     "rootFolder": "Copiado desde mi móvil",
-    "invalidName": "El nombre de una carpeta no puede ser «.» ni «..», ni contener «/» o un salto de línea."
+    "invalidName": "El nombre de una carpeta no puede ser «.» ni «..», ni contener «/» o un salto de línea.",
+    "status": {
+      "title": "Progreso",
+      "counts": "{{done}} guardados, {{pending}} pendientes",
+      "lastPass": "Última copia {{when}}",
+      "neverRun": "Todavía no hay copia",
+      "noAccess": "Twake Drive ya no ve tus fotos, la copia está en pausa. Permítelo en los Ajustes de tu teléfono.",
+      "quota": "Tu Drive está lleno, la copia está en pausa hasta que vuelva a haber espacio.",
+      "stopped": "La última copia se detuvo antes de terminar. Volverá a empezar sola más tarde.",
+      "unavailable": "Esperando a iCloud: {{count}}. Se volverán a intentar más tarde.",
+      "tooLarge": "Demasiado grandes para guardarse: {{count}}",
+      "failed": "No guardados tras varios intentos: {{count}}",
+      "retry": "Reintentar"
+    }
   }
 }

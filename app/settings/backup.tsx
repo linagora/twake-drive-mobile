@@ -22,6 +22,7 @@ import {
 } from '@/backup/activation'
 import { readBackupSettings } from '@/backup/backupSettings'
 import { runBackupPass } from '@/backup/backupPass'
+import { BackupStatusSection } from '@/backup/BackupStatusSection'
 import { adoptStoredToken } from '@/auth/adoptStoredToken'
 
 type Choice = Extract<ActivationStep, { kind: 'choose' }>
@@ -101,6 +102,7 @@ export default function BackupScreen(): React.ReactElement {
           }
         />
         {notice ? <InlineBanner tone="error" message={notice} testID="backup-notice" /> : null}
+        {settings.enabled && !choice ? <BackupStatusSection /> : null}
         {choice ? (
           <SettingsSection title={t('backup.chooseTitle')}>
             {choice.folders.map(folder => (

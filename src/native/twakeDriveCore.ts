@@ -1,6 +1,6 @@
 import { requireOptionalNativeModule } from 'expo'
 
-export type PhotoAccess = 'authorized' | 'limited' | 'denied' | 'restricted'
+export type PhotoAccess = 'authorized' | 'limited' | 'denied' | 'restricted' | 'notDetermined'
 
 /** The Drive folder the backup of one phone goes to. */
 export interface DeviceFolder {
@@ -20,6 +20,15 @@ export interface BackupCounts {
   unavailable: number
 }
 
+/** What stopped the last pass for every media. */
+export type StopCause = 'QuotaExceeded' | 'Network' | 'Unauthorized' | 'Server' | 'Refused'
+
+export interface BackupStatus extends BackupCounts {
+  /** End of the last pass, in Unix seconds. */
+  lastPassAt?: number
+  stoppedBy?: StopCause
+}
+
 interface TwakeDriveCoreNative {
   md5File: (path: string) => Promise<string>
   requestPhotoAccess: () => Promise<PhotoAccess>
@@ -31,8 +40,15 @@ interface TwakeDriveCoreNative {
     deviceName: string,
     rootName: string
   ) => Promise<DeviceFolder>
-  runBackupPass: (folderId: string, deviceId: string) => Promise<BackupCounts>
+  runBackupPass: (folderId: string, deviceId: string) => Promise<BackupStatus>
   stopBackupPass: () => void
+  backupStatus: () => Promise<BackupStatus>
+  photoAccess: () => PhotoAccess
+  retryFailed: () => Promise<void>
+  addListener: (
+    event: 'onBackupProgress',
+    listener: (status: BackupStatus) => void
+  ) => { remove: () => void }
 }
 
 const native = requireOptionalNativeModule<TwakeDriveCoreNative>('TwakeDriveCore')

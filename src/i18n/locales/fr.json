@@ -393,6 +393,19 @@
     "unavailable": "La sauvegarde des photos n'est pas encore disponible sur ce téléphone.",
     "error": "La sauvegarde n'a pas pu démarrer. Vérifiez votre connexion et réessayez.",
     "rootFolder": "Sauvegardé depuis mon mobile",
-    "invalidName": "Un nom de dossier ne peut pas être « . » ni « .. », ni contenir « / » ou un saut de ligne."
+    "invalidName": "Un nom de dossier ne peut pas être « . » ni « .. », ni contenir « / » ou un saut de ligne.",
+    "status": {
+      "title": "Avancement",
+      "counts": "{{done}} sauvegardés, {{pending}} restants",
+      "lastPass": "Dernière sauvegarde {{when}}",
+      "neverRun": "Pas encore de sauvegarde",
+      "noAccess": "Twake Drive ne voit plus vos photos, la sauvegarde est en pause. Autorisez-le dans les Réglages de votre téléphone.",
+      "quota": "Votre Drive est plein, la sauvegarde est en pause jusqu'à ce qu'il y ait de la place.",
+      "stopped": "La dernière sauvegarde s'est arrêtée avant la fin. Elle reprendra d'elle-même plus tard.",
+      "unavailable": "En attente d'iCloud : {{count}}. Ils seront réessayés plus tard.",
+      "tooLarge": "Trop volumineux pour être sauvegardés : {{count}}",
+      "failed": "Non sauvegardés après plusieurs essais : {{count}}",
+      "retry": "Réessayer"
+    }
   }
 }
