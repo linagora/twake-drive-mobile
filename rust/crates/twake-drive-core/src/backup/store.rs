@@ -61,6 +61,40 @@ pub const UPLOAD_HOLD_SECS: i64 = 24 * 60 * 60;
 const CHANGE_TOKEN: &str = "change_token";
 const FOLDER_ID: &str = "folder_id";
 const DEVICE_ID: &str = "device_id";
+const STOPPED_BY: &str = "stopped_by";
+const LAST_PASS_AT: &str = "last_pass_at";
+
+fn set_setting(db: &Connection, key: &str, value: impl Into<Vec<u8>>) -> Result<(), CoreError> {
+    db.execute(
+        "INSERT INTO setting (key, value) VALUES (?1, ?2)
+         ON CONFLICT (key) DO UPDATE SET value = excluded.value",
+        params![key, value.into()],
+    )
+    .map_err(storage)?;
+    Ok(())
+}
+
+/// The cause the screen shows for an answer that stops the pass.
+fn stop_cause(outcome: &UploadOutcome) -> &'static str {
+    match outcome {
+        UploadOutcome::QuotaExceeded => "QuotaExceeded",
+        UploadOutcome::Network => "Network",
+        UploadOutcome::Unauthorized => "Unauthorized",
+        UploadOutcome::Server { .. } => "Server",
+        _ => "Refused",
+    }
+}
+
+fn setting(db: &Connection, key: &str) -> Result<Option<String>, CoreError> {
+    db.query_row(
+        "SELECT value FROM setting WHERE key = ?1",
+        params![key],
+        |row| row.get::<_, Vec<u8>>(0),
+    )
+    .optional()
+    .map_err(storage)
+    .map(|value| value.and_then(|bytes| String::from_utf8(bytes).ok()))
+}
 
 /// No lease nor delay lasts this long: a later `not_before` comes from a clock
 /// that went back, and the media is due at once.
@@ -101,6 +135,16 @@ pub struct LibraryMedia {
     /// For the photo of a Live Photo: the key of its video
     /// (`paired_video_key`), recorded in the same scan.
     pub paired_video: Option<String>,
+}
+
+/// What the backup screen shows.
+#[derive(Debug, Clone, PartialEq, uniffi::Record)]
+pub struct BackupStatus {
+    pub counts: BackupCounts,
+    /// When the last pass ended, in Unix seconds.
+    pub last_pass_at: Option<i64>,
+    /// What stopped the last pass for every media, one of `stop_cause`.
+    pub stopped_by: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, uniffi::Record)]
@@ -319,12 +363,17 @@ impl BackupStore {
             )
             .optional()
             .map_err(storage)?;
+        let error = format!("{outcome:?}");
+        // A stale answer stops the pass too: it holds for every media.
+        if decide(&outcome, attempts.unwrap_or(0), now).1 == PassAction::Stop {
+            set_setting(&tx, STOPPED_BY, stop_cause(&outcome))?;
+        }
         // Forgotten, edited or already settled by another transfer: stale.
         let Some(attempts) = attempts else {
+            tx.commit().map_err(storage)?;
             return Ok(decide(&outcome, 0, now).1);
         };
         let (decision, action) = decide(&outcome, attempts, now);
-        let error = format!("{outcome:?}");
         match decision {
             Decision::Done { file_id } => tx.execute(
                 "UPDATE media SET state = ?2, drive_file_id = ?3, attempts = 0, last_error = NULL
@@ -413,6 +462,30 @@ impl BackupStore {
         Ok(())
     }
 
+    /// A pass starts: what stopped the last one is no longer the state.
+    pub fn begin_pass(&self) -> Result<(), CoreError> {
+        self.db()
+            .execute("DELETE FROM setting WHERE key = ?1", params![STOPPED_BY])
+            .map_err(storage)?;
+        Ok(())
+    }
+
+    /// A pass went through the queue, or stopped on an answer that would hold
+    /// for every media (`stopped_by`).
+    pub fn end_pass(&self, now: i64) -> Result<(), CoreError> {
+        set_setting(&self.db(), LAST_PASS_AT, now.to_string())
+    }
+
+    pub fn status(&self) -> Result<BackupStatus, CoreError> {
+        let counts = self.counts()?;
+        let db = self.db();
+        Ok(BackupStatus {
+            counts,
+            last_pass_at: setting(&db, LAST_PASS_AT)?.and_then(|at| at.parse().ok()),
+            stopped_by: setting(&db, STOPPED_BY)?,
+        })
+    }
+
     /// Where the backup goes, for a pass the system starts without the app.
     pub fn set_backup_config(&self, config: BackupConfig) -> Result<(), CoreError> {
         let mut db = self.db();
@@ -431,17 +504,7 @@ impl BackupStore {
     /// None once the backup is turned off: a pass started by the system ends.
     pub fn backup_config(&self) -> Result<Option<BackupConfig>, CoreError> {
         let db = self.db();
-        let read = |key: &str| -> Result<Option<String>, CoreError> {
-            db.query_row(
-                "SELECT value FROM setting WHERE key = ?1",
-                params![key],
-                |row| row.get::<_, Vec<u8>>(0),
-            )
-            .optional()
-            .map_err(storage)
-            .map(|value| value.and_then(|bytes| String::from_utf8(bytes).ok()))
-        };
-        Ok(match (read(FOLDER_ID)?, read(DEVICE_ID)?) {
+        Ok(match (setting(&db, FOLDER_ID)?, setting(&db, DEVICE_ID)?) {
             (Some(folder_id), Some(device_id)) => Some(BackupConfig {
                 folder_id,
                 device_id,
@@ -996,6 +1059,44 @@ mod tests {
             .unwrap();
         assert_eq!(action, PassAction::Stop);
         assert_eq!(s.next_batch(NOW, 10, 60).unwrap().len(), 1);
+    }
+
+    #[test]
+    fn the_status_says_when_and_why_the_last_pass_stopped() {
+        let s = store();
+        assert_eq!(s.status().unwrap().last_pass_at, None);
+        s.begin_pass().unwrap();
+        s.record_media("a".into(), 1, 1).unwrap();
+        s.set_md5("a".into(), 1, MD5.into()).unwrap();
+        s.record_outcome(
+            "a".into(),
+            MD5.into(),
+            UploadOutcome::Server { status: 503 },
+            NOW,
+        )
+        .unwrap();
+        s.end_pass(NOW).unwrap();
+        let status = s.status().unwrap();
+        assert_eq!(status.last_pass_at, Some(NOW));
+        assert_eq!(status.stopped_by.as_deref(), Some("Server"));
+        assert_eq!(status.counts.pending, 1);
+        // The next pass goes through: nothing stops the backup any more.
+        s.begin_pass().unwrap();
+        s.end_pass(NOW + 60).unwrap();
+        let status = s.status().unwrap();
+        assert_eq!(status.stopped_by, None);
+        assert_eq!(status.last_pass_at, Some(NOW + 60));
+    }
+
+    #[test]
+    fn a_stale_answer_that_stops_the_pass_is_shown_too() {
+        let s = store();
+        s.record_outcome("gone".into(), MD5.into(), UploadOutcome::QuotaExceeded, NOW)
+            .unwrap();
+        assert_eq!(
+            s.status().unwrap().stopped_by.as_deref(),
+            Some("QuotaExceeded")
+        );
     }
 
     #[test]
