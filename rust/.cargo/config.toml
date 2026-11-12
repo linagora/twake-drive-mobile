@@ -1,0 +1,5 @@
+# The bundled SQLite (tests, Android) refuses double-quoted strings, stricter
+# than the copy op-sqlite builds into the iOS app: SQL that passes here also
+# passes there.
+[env]
+LIBSQLITE3_FLAGS = "-DSQLITE_DQS=0"
