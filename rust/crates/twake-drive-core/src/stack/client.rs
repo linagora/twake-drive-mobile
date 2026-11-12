@@ -612,4 +612,17 @@ mod tests {
             .unwrap();
         assert_eq!(folder.device_ids, ["flagship-id", "ipad-id", "twake-id"]);
     }
+
+    #[test]
+    fn a_folder_without_a_revision_is_not_written_blindly() {
+        let (fake, tokens) = (FakeStack::new(), FakeTokens::valid());
+        let folder = fake.add_device_dir("/Photos/B/iPhone", "flagship-id", "2025-01-01T00:00:00Z");
+        fake.drop_rev(&folder);
+        let (client, _) = client(&fake, &tokens);
+        assert!(
+            client
+                .adopt_device_folder(folder, "twake-id".into())
+                .is_err()
+        );
+    }
 }

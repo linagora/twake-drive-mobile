@@ -64,6 +64,11 @@ impl FakeStack {
         self.add(path, |id, name, dir_id| dir_doc(id, name, path, dir_id))
     }
 
+    pub fn drop_rev(&self, id: &str) {
+        let mut state = self.state.lock().unwrap();
+        state.docs.get_mut(id).unwrap()["meta"] = json!({});
+    }
+
     pub fn add_device_dir(&self, path: &str, device_id: &str, created_at: &str) -> String {
         let id = self.add_dir(path);
         let mut state = self.state.lock().unwrap();

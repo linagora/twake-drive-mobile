@@ -76,9 +76,14 @@ pub(crate) fn adopt(
         let folder = stack.json("GET", &path, None, &[200])?["data"].clone();
         let patch = json!({"data": {"type": "io.cozy.files", "id": folder_id,
             "attributes": {"metadata": with_device(&folder, device_id)}}});
+        // Without a revision the write would not be conditional.
+        let rev = folder["meta"]["rev"].as_str().filter(|rev| !rev.is_empty());
+        let rev = rev.ok_or_else(|| CoreError::Stack {
+            reason: "device folder without a revision".into(),
+        })?;
         let if_match = Header {
             name: "If-Match".into(),
-            value: folder["meta"]["rev"].as_str().unwrap_or_default().into(),
+            value: rev.into(),
         };
         let response = stack.call_with("PATCH", &path, Some(patch), &[if_match])?;
         match response.status {
