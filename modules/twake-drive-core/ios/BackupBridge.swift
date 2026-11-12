@@ -73,16 +73,22 @@ final class URLSessionTransport: StackTransport {
   }
 }
 
+extension URLRequest {
+  init(_ request: HttpRequest) throws {
+    guard let url = URL(string: request.url) else {
+      throw CoreError.Stack(reason: "invalid request URL")
+    }
+    self.init(url: url)
+    httpMethod = request.method
+    httpBody = request.body
+    for header in request.headers {
+      setValue(header.value, forHTTPHeaderField: header.name)
+    }
+  }
+}
+
 func exchange(_ request: HttpRequest, file: URL? = nil) throws -> HttpResponse {
-  guard let url = URL(string: request.url) else {
-    throw CoreError.Stack(reason: "invalid request URL")
-  }
-  var urlRequest = URLRequest(url: url)
-  urlRequest.httpMethod = request.method
-  urlRequest.httpBody = request.body
-  for header in request.headers {
-    urlRequest.setValue(header.value, forHTTPHeaderField: header.name)
-  }
+  let urlRequest = try URLRequest(request)
   let (data, response) = try waitFor {
     if let file { return try await URLSession.shared.upload(for: urlRequest, fromFile: file) }
     return try await URLSession.shared.data(for: urlRequest)
@@ -121,17 +127,17 @@ private func openBackupStore(account: String) throws -> BackupStore {
 
 /// The client of the signed-in account and its backup state, built on each
 /// use: the account may have changed since the last one.
-func openBackup() throws -> (client: StackClient, store: BackupStore) {
+func openBackup() throws -> (client: StackClient, store: BackupStore, account: String) {
   let sessions = AppSessionStore()
   guard let session = try sessions.load(), let host = URL(string: session.baseURL)?.host else {
     throw CoreError.Stack(reason: "not signed in")
   }
-  let account = host.lowercased().map { $0.isLetter || $0.isNumber || $0 == "." ? $0 : "_" }
-  let store = try Result { try openBackupStore(account: String(account)) }.mapError(coreError).get()
+  let account = String(host.lowercased().map { $0.isLetter || $0.isNumber || $0 == "." ? $0 : "_" })
+  let store = try Result { try openBackupStore(account: account) }.mapError(coreError).get()
   let client = StackClient(
     instanceUrl: session.baseURL, transport: URLSessionTransport(),
     tokens: AppTokenSource(store: sessions), store: store)
-  return (client, store)
+  return (client, store, account)
 }
 
 extension DeviceFolder {

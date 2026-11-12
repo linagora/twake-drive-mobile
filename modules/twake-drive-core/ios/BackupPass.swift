@@ -2,20 +2,28 @@ import Foundation
 import Photos
 import UniformTypeIdentifiers
 
-/// One pass of the photo backup in the foreground: the core decides what to
-/// send and reads the answers, this sends the files.
+/// One pass of the photo backup: the core decides what to send and reads the
+/// answers, this sends the files. In the foreground it waits for each answer;
+/// started by the system, it hands the uploads to a background session and
+/// the answers come later (`BackgroundUploads`).
 final class BackupPass {
   private let client: StackClient
   private let store: BackupStore
-  private let folderId: String
-  private let deviceId: String
+  private let account: String
+  private let config: BackupConfig
+  private let inBackground: Bool
   private let isCancelled: () -> Bool
 
-  init(folderId: String, deviceId: String, isCancelled: @escaping () -> Bool) throws {
-    (client, store) = try openBackup()
-    self.folderId = folderId
-    self.deviceId = deviceId
+  init(config: BackupConfig, inBackground: Bool, isCancelled: @escaping () -> Bool) throws {
+    (client, store, account) = try openBackup()
+    self.config = config
+    self.inBackground = inBackground
     self.isCancelled = isCancelled
+  }
+
+  /// The config the system passes start from, nil once the backup is off.
+  static func savedConfig() throws -> BackupConfig? {
+    try openBackup().store.backupConfig()
   }
 
   func run() throws -> BackupCounts {
@@ -23,14 +31,14 @@ final class BackupPass {
     guard [.authorized, .limited].contains(PHPhotoLibrary.authorizationStatus(for: .readWrite)) else {
       throw CoreError.Io(reason: "no access to the photo library")
     }
-    try? FileManager.default.removeItem(at: exportFolder)
-    try FileManager.default.createDirectory(at: exportFolder, withIntermediateDirectories: true)
+    if !inBackground { try store.setBackupConfig(config: config) }
+    try cleanExportFolder()
     // First: a short call, which also refreshes a token a 401 left expired.
-    try client.syncFolderIndex(folderId: folderId)
+    try client.syncFolderIndex(folderId: config.folderId)
     try scanLibrary()
     while !isCancelled() {
       // A small batch: the rest of it stays held until its lease ends if the
-      // pass stops early.
+      // pass stops early. A media handed to the system is held longer.
       let batch = try store.nextBatch(now: now(), limit: 16, leaseSecs: 600)
       if batch.isEmpty { break }
       for queued in batch {
@@ -39,6 +47,19 @@ final class BackupPass {
       }
     }
     return try store.counts()
+  }
+
+  /// A pass killed mid-upload leaves its copy behind, a video may weigh
+  /// gigabytes. The files of the uploads in flight stay until their answer,
+  /// or until a day without one.
+  private func cleanExportFolder() throws {
+    try FileManager.default.createDirectory(at: exportFolder, withIntermediateDirectories: true)
+    _ = try store.dropLostUploads(now: now())
+    let kept = Set(try store.parkedFiles())
+    for file in try FileManager.default.contentsOfDirectory(at: exportFolder, includingPropertiesForKeys: nil)
+    where !kept.contains(file.path) {
+      try? FileManager.default.removeItem(at: file)
+    }
   }
 
   /// Only what changed since the last pass, or the whole library the first
@@ -119,7 +140,8 @@ final class BackupPass {
       try store.recordUnavailable(localId: queued.localId, modifiedAt: queued.modifiedAt, now: now())
       return .continue
     }
-    defer { export.remove() }
+    var handedOver = false
+    defer { if !handedOver { export.remove() } }
     // Hashed on each export: a render may differ from the last one, and a
     // stale md5 would cost a whole upload refused by the stack.
     let md5 = try md5File(path: export.file.path)
@@ -133,8 +155,15 @@ final class BackupPass {
     var nameAttempt: UInt32 = 0
     while true {
       let plan = try client.prepareUpload(
-        folderId: folderId, deviceId: deviceId, media: media, nameAttempt: nameAttempt, now: now())
+        folderId: config.folderId, deviceId: config.deviceId, media: media, nameAttempt: nameAttempt,
+        now: now())
       guard case .send(let request) = plan else { return .continue }
+      if inBackground {
+        try BackgroundUploads.shared.hand(
+          request, media: media, nameAttempt: nameAttempt, file: export.file, account: account, store: store)
+        handedOver = true
+        return .continue
+      }
       let response: HttpResponse
       do {
         response = try exchange(request, file: export.file)
@@ -231,12 +260,11 @@ private func mediaOptions() -> PHFetchOptions {
   return options
 }
 
-/// Emptied at the start of each pass: a pass killed mid-upload leaves its
-/// copy, a video may weigh gigabytes. Passes run one at a time.
-private let exportFolder = FileManager.default.temporaryDirectory
+/// Cleaned at the start of each pass. Passes run one at a time.
+let exportFolder = FileManager.default.temporaryDirectory
   .appendingPathComponent("backup-export", isDirectory: true)
 
-private func now() -> Int64 {
+func now() -> Int64 {
   Int64(Date().timeIntervalSince1970)
 }
 
