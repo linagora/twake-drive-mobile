@@ -393,10 +393,18 @@
       "noAccess": "Twake Drive sieht Ihre Fotos nicht mehr, die Sicherung ist pausiert. Erlauben Sie es in den Einstellungen Ihres Telefons.",
       "quota": "Ihr Drive ist voll, die Sicherung ist pausiert, bis wieder Platz frei ist.",
       "stopped": "Die letzte Sicherung wurde vor dem Ende unterbrochen. Sie startet später von selbst neu.",
+      "waitingWifi": "Einige Medien warten wie gewählt auf WLAN.",
+      "waitingPower": "Die Sicherung wartet wie gewählt, bis das Telefon lädt.",
       "unavailable": "Warten auf iCloud: {{count}}. Sie werden später erneut versucht.",
       "tooLarge": "Zu groß für die Sicherung: {{count}}",
       "failed": "Nach mehreren Versuchen nicht gesichert: {{count}}",
       "retry": "Erneut versuchen"
+    },
+    "conditions": {
+      "title": "Wann sichern",
+      "cellularPhotos": "Fotos über mobile Daten",
+      "cellularVideos": "Videos über mobile Daten",
+      "onlyCharging": "Nur beim Laden"
     }
   }
 }

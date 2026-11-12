@@ -384,10 +384,18 @@
       "noAccess": "Twake Drive không còn thấy ảnh của bạn nên việc sao lưu đã tạm dừng. Hãy cho phép trong Cài đặt của điện thoại.",
       "quota": "Drive của bạn đã đầy nên việc sao lưu tạm dừng cho đến khi có chỗ trống.",
       "stopped": "Lần sao lưu gần nhất đã dừng trước khi xong. Việc sao lưu sẽ tự chạy lại sau.",
+      "waitingWifi": "Một số tệp đang chờ Wi-Fi, theo lựa chọn của bạn.",
+      "waitingPower": "Việc sao lưu đang chờ điện thoại được sạc, theo lựa chọn của bạn.",
       "unavailable": "Đang chờ iCloud: {{count}}. Sẽ thử lại sau.",
       "tooLarge": "Quá lớn để sao lưu: {{count}}",
       "failed": "Chưa sao lưu được sau nhiều lần thử: {{count}}",
       "retry": "Thử lại"
+    },
+    "conditions": {
+      "title": "Khi nào sao lưu",
+      "cellularPhotos": "Ảnh qua dữ liệu di động",
+      "cellularVideos": "Video qua dữ liệu di động",
+      "onlyCharging": "Chỉ khi đang sạc"
     }
   }
 }
