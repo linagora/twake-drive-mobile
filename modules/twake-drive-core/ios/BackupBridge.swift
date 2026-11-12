@@ -22,7 +22,7 @@ struct AppSessionStore: SessionStoring {
 
 /// No URL or path in the reason: the description of a URLError or of a file
 /// error names them, and the core would pass it on as is.
-private func coreError(_ error: Error) -> CoreError {
+func coreError(_ error: Error) -> CoreError {
   switch error {
   case let error as CoreError: return error
   case CozyError.offline: return .Network(reason: "offline")
@@ -36,7 +36,7 @@ private func coreError(_ error: Error) -> CoreError {
 
 /// Runs async code for a caller that must wait: the core calls the platform
 /// synchronously, never from the main thread.
-private func waitFor<T>(_ body: @escaping @Sendable () async throws -> T) throws -> T {
+func waitFor<T>(_ body: @escaping @Sendable () async throws -> T) throws -> T {
   dispatchPrecondition(condition: .notOnQueue(.main))
   let done = DispatchSemaphore(value: 0)
   nonisolated(unsafe) var result: Result<T, Error>!
@@ -69,21 +69,28 @@ final class AppTokenSource: TokenSource {
 
 final class URLSessionTransport: StackTransport {
   func send(request: HttpRequest) throws -> HttpResponse {
-    guard let url = URL(string: request.url) else {
-      throw CoreError.Stack(reason: "invalid request URL")
-    }
-    var urlRequest = URLRequest(url: url)
-    urlRequest.httpMethod = request.method
-    urlRequest.httpBody = request.body
-    for header in request.headers {
-      urlRequest.setValue(header.value, forHTTPHeaderField: header.name)
-    }
-    let (data, response) = try waitFor { try await URLSession.shared.data(for: urlRequest) }
-    guard let http = response as? HTTPURLResponse else {
-      throw CoreError.Stack(reason: "not an HTTP answer")
-    }
-    return HttpResponse(status: UInt16(http.statusCode), body: data)
+    try exchange(request)
   }
+}
+
+func exchange(_ request: HttpRequest, file: URL? = nil) throws -> HttpResponse {
+  guard let url = URL(string: request.url) else {
+    throw CoreError.Stack(reason: "invalid request URL")
+  }
+  var urlRequest = URLRequest(url: url)
+  urlRequest.httpMethod = request.method
+  urlRequest.httpBody = request.body
+  for header in request.headers {
+    urlRequest.setValue(header.value, forHTTPHeaderField: header.name)
+  }
+  let (data, response) = try waitFor {
+    if let file { return try await URLSession.shared.upload(for: urlRequest, fromFile: file) }
+    return try await URLSession.shared.data(for: urlRequest)
+  }
+  guard let http = response as? HTTPURLResponse else {
+    throw CoreError.Stack(reason: "not an HTTP answer")
+  }
+  return HttpResponse(status: UInt16(http.statusCode), body: data)
 }
 
 /// The state of the backup of one account, out of the device backups: one
@@ -112,18 +119,19 @@ private func openBackupStore(account: String) throws -> BackupStore {
   }
 }
 
-/// The client of the signed-in account, built on each use: the account may
-/// have changed since the last one.
-func makeStackClient() throws -> StackClient {
+/// The client of the signed-in account and its backup state, built on each
+/// use: the account may have changed since the last one.
+func openBackup() throws -> (client: StackClient, store: BackupStore) {
   let sessions = AppSessionStore()
   guard let session = try sessions.load(), let host = URL(string: session.baseURL)?.host else {
     throw CoreError.Stack(reason: "not signed in")
   }
   let account = host.lowercased().map { $0.isLetter || $0.isNumber || $0 == "." ? $0 : "_" }
   let store = try Result { try openBackupStore(account: String(account)) }.mapError(coreError).get()
-  return StackClient(
+  let client = StackClient(
     instanceUrl: session.baseURL, transport: URLSessionTransport(),
     tokens: AppTokenSource(store: sessions), store: store)
+  return (client, store)
 }
 
 extension DeviceFolder {
