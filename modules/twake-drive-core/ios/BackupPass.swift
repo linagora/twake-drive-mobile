@@ -54,7 +54,8 @@ final class BackupPass {
       media.append(
         LibraryMedia(
           localId: asset.localIdentifier, createdAt: seconds(asset.creationDate),
-          modifiedAt: seconds(asset.modificationDate ?? asset.creationDate)))
+          modifiedAt: seconds(asset.modificationDate ?? asset.creationDate),
+          contentVersion: contentVersion(asset)))
     }
     try store.recordLibrary(media: media)
   }
@@ -152,6 +153,27 @@ private struct Export {
   func remove() {
     try? FileManager.default.removeItem(at: file)
   }
+}
+
+/// iOS gives no date of the last edit, and modificationDate moves with a
+/// favorite too. The adjustment data changes with each edit only: its md5
+/// tells the content apart. Read for edited media only, a few kilobytes.
+/// Nil when it cannot be read: the core then goes by the date.
+private func contentVersion(_ asset: PHAsset) -> String? {
+  guard asset.hasAdjustments else { return "original" }
+  guard
+    let resource = PHAssetResource.assetResources(for: asset).first(where: { $0.type == .adjustmentData })
+  else { return nil }
+  let options = PHAssetResourceRequestOptions()
+  options.isNetworkAccessAllowed = true
+  let file = exportFolder.appendingPathComponent(UUID().uuidString)
+  defer { try? FileManager.default.removeItem(at: file) }
+  guard
+    (try? waitFor {
+      try await PHAssetResourceManager.default().writeData(for: resource, toFile: file, options: options)
+    }) != nil
+  else { return nil }
+  return (try? md5File(path: file.path)).map { "adjusted:\($0)" }
 }
 
 /// Emptied at the start of each pass: a pass killed mid-upload leaves its

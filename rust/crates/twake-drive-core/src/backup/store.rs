@@ -32,6 +32,7 @@ const MIGRATIONS: &[&str] = &[
     CREATE INDEX remote_file_md5 ON remote_file (md5);
     CREATE INDEX remote_file_library ON remote_file (id_from_library);
 ",
+    "ALTER TABLE media ADD COLUMN content_version TEXT;",
 ];
 
 /// No lease nor delay lasts this long: a later `not_before` comes from a clock
@@ -63,6 +64,9 @@ pub struct LibraryMedia {
     pub local_id: String,
     pub created_at: i64,
     pub modified_at: i64,
+    /// What the content is made of (on iOS the original, or the md5 of its
+    /// adjustment data). Unknown: any change of `modified_at` counts.
+    pub content_version: Option<String>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, uniffi::Record)]
@@ -110,26 +114,34 @@ impl BackupStore {
 
     /// The media seen in the library, in one transaction. A new one waits for
     /// its upload; one whose `modified_at` changed is hashed and uploaded again
-    /// as a new version. On iOS that is `modificationDate`, which a favorite
-    /// moves too: the media is hashed again, then found already in Drive.
+    /// as a new version, unless its `content_version` says the content stayed
+    /// the same (on iOS `modificationDate` moves with a favorite too).
     pub fn record_library(&self, media: Vec<LibraryMedia>) -> Result<(), CoreError> {
         let mut db = self.db();
         let tx = db.transaction_with_behavior(Immediate).map_err(storage)?;
         {
+            let mut same_content = tx
+                .prepare(
+                    "UPDATE media SET created_at = ?2, modified_at = ?3
+                     WHERE local_id = ?1 AND modified_at != ?3 AND content_version = ?4",
+                )
+                .map_err(storage)?;
             let mut upsert = tx
                 .prepare(
-                    "INSERT INTO media (local_id, created_at, modified_at) VALUES (?1, ?2, ?3)
+                    "INSERT INTO media (local_id, created_at, modified_at, content_version)
+                     VALUES (?1, ?2, ?3, ?4)
                      ON CONFLICT (local_id) DO UPDATE SET
                          created_at = excluded.created_at,
                          modified_at = excluded.modified_at,
+                         content_version = excluded.content_version,
                          md5 = NULL, state = 'pending', attempts = 0, not_before = 0, last_error = NULL
                      WHERE media.modified_at != excluded.modified_at",
                 )
                 .map_err(storage)?;
             for m in media {
-                upsert
-                    .execute(params![m.local_id, m.created_at, m.modified_at])
-                    .map_err(storage)?;
+                let row = params![m.local_id, m.created_at, m.modified_at, m.content_version];
+                same_content.execute(row).map_err(storage)?;
+                upsert.execute(row).map_err(storage)?;
             }
         }
         tx.commit().map_err(storage)
@@ -348,6 +360,7 @@ impl BackupStore {
             local_id,
             created_at,
             modified_at,
+            content_version: None,
         }])
     }
 
@@ -440,18 +453,61 @@ mod tests {
             s.record_outcome(id.into(), MD5.into(), uploaded(id), NOW)
                 .unwrap();
         }
-        let seen = |local_id: &str, modified_at| LibraryMedia {
-            local_id: local_id.into(),
-            created_at: modified_at,
-            modified_at,
-        };
-        s.record_library(vec![seen("saved", 1), seen("edited", 4), seen("new", 3)])
-            .unwrap();
+        s.record_library(vec![
+            seen("saved", 1, None),
+            seen("edited", 4, None),
+            seen("new", 3, None),
+        ])
+        .unwrap();
         assert_eq!(
             ids(&s.next_batch(NOW, 10, 60).unwrap()),
             ["edited", "new"].map(String::from)
         );
         assert_eq!(s.counts().unwrap().done, 1);
+    }
+
+    fn seen(local_id: &str, modified_at: i64, version: Option<&str>) -> LibraryMedia {
+        LibraryMedia {
+            local_id: local_id.into(),
+            created_at: modified_at,
+            modified_at,
+            content_version: version.map(String::from),
+        }
+    }
+
+    fn saved_with_version(s: &BackupStore, version: &str) {
+        s.record_library(vec![seen("a", 1, Some(version))]).unwrap();
+        s.set_md5("a".into(), 1, MD5.into()).unwrap();
+        s.record_outcome("a".into(), MD5.into(), uploaded("f1"), NOW)
+            .unwrap();
+    }
+
+    #[test]
+    fn a_favorite_leaves_a_saved_media_saved() {
+        let s = store();
+        saved_with_version(&s, "original");
+        s.record_library(vec![seen("a", 2, Some("original"))])
+            .unwrap();
+        assert!(s.next_batch(NOW, 10, 60).unwrap().is_empty());
+        assert_eq!(s.counts().unwrap().done, 1);
+    }
+
+    #[test]
+    fn an_edit_queues_a_saved_media_again() {
+        let s = store();
+        saved_with_version(&s, "original");
+        s.record_library(vec![seen("a", 2, Some("adj-1"))]).unwrap();
+        let batch = s.next_batch(NOW, 10, 60).unwrap();
+        assert_eq!(ids(&batch), ["a"]);
+        assert_eq!(batch[0].md5, None);
+    }
+
+    #[test]
+    fn an_unknown_version_falls_back_on_the_date() {
+        let s = store();
+        saved_with_version(&s, "original");
+        s.record_library(vec![seen("a", 2, None)]).unwrap();
+        assert_eq!(ids(&s.next_batch(NOW, 10, 60).unwrap()), ["a"]);
     }
 
     #[test]
