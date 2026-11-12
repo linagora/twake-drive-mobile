@@ -7,7 +7,8 @@ pub use backup::{BackupCounts, BackupStore, PassAction, QueuedMedia, UploadOutco
 pub use checksum::md5_file;
 pub use error::CoreError;
 pub use stack::{
-    DeviceFolder, Header, HttpRequest, HttpResponse, StackClient, StackTransport, TokenSource,
+    DeviceFolder, Header, HttpRequest, HttpResponse, MediaToSend, StackClient, StackTransport,
+    TokenSource,
 };
 
 uniffi::setup_scaffolding!();
