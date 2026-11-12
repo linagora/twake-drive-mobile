@@ -22,6 +22,8 @@ jest.mock('@/backup/activation', () => ({
   stopBackup: () => mockStop()
 }))
 jest.mock('@/backup/backupSettings', () => ({ readBackupSettings: () => mockSettings }))
+const mockPass = jest.fn()
+jest.mock('@/backup/backupPass', () => ({ runBackupPass: (client: unknown) => mockPass(client) }))
 const mockClient = {}
 jest.mock('cozy-client', () => ({ useClient: () => mockClient }))
 const mockAdopt = jest.fn()
@@ -39,8 +41,9 @@ const flagship = {
 
 beforeEach(() => {
   mockSettings = { enabled: false, folder: null }
-  ;[mockStart, mockFinish, mockStop, mockAdopt].forEach(fn => fn.mockReset())
+  ;[mockStart, mockFinish, mockStop, mockAdopt, mockPass].forEach(fn => fn.mockReset())
   mockAdopt.mockResolvedValue(false)
+  mockPass.mockResolvedValue(null)
 })
 
 const turnOn = async (screen: ReturnType<typeof render>): Promise<void> => {
@@ -75,6 +78,7 @@ it('adopts the folder the user picks', async () => {
   await act(async () => fireEvent.press(screen.getByTestId('backup-folder-f1')))
   expect(mockFinish).toHaveBeenCalledWith({ adopt: flagship })
   screen.getByText(i18n.t('backup.folder', { path: flagship.path }))
+  expect(mockPass).toHaveBeenCalledWith(mockClient)
 })
 
 it('creates a folder with the name typed, under the flagship root', async () => {
