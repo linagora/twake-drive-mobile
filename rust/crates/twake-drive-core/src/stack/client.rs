@@ -92,6 +92,30 @@ impl StackClient {
             .replace_remote_index(&index::list_files(&self.stack, &folder_id)?)
     }
 
+    /// The Drive file already holding `md5`, recorded as the media's upload.
+    /// With an md5 from an earlier pass, it spares the export of a media
+    /// whose content is in Drive.
+    pub fn already_there(
+        &self,
+        local_id: String,
+        md5: String,
+        now: i64,
+    ) -> Result<Option<String>, CoreError> {
+        let Some(file) = self.store.remote_file_with_md5(&md5)? else {
+            return Ok(None);
+        };
+        let own_file = self.store.drive_file_of(&local_id)?;
+        let outcome = UploadOutcome::AlreadyThere {
+            file_id: file.file_id.clone(),
+        };
+        self.store
+            .record_outcome(local_id.clone(), md5, outcome, now)?;
+        if file.id_from_library.as_deref() != Some(local_id.as_str()) {
+            self.store.set_drive_file(&local_id, own_file.as_deref())?;
+        }
+        Ok(Some(file.file_id))
+    }
+
     /// Two equal photos of the library share one Drive file: the second is
     /// recorded as saved, and an edit of the second creates its own file
     /// instead of a new version of the first's.
@@ -103,20 +127,8 @@ impl StackClient {
         name_attempt: u32,
         now: i64,
     ) -> Result<UploadPlan, CoreError> {
-        if let Some(file) = self.store.remote_file_with_md5(&media.md5)? {
-            let own_file = self.store.drive_file_of(&media.local_id)?;
-            let outcome = UploadOutcome::AlreadyThere {
-                file_id: file.file_id.clone(),
-            };
-            self.store
-                .record_outcome(media.local_id.clone(), media.md5, outcome, now)?;
-            if file.id_from_library.as_deref() != Some(media.local_id.as_str()) {
-                self.store
-                    .set_drive_file(&media.local_id, own_file.as_deref())?;
-            }
-            return Ok(UploadPlan::AlreadyThere {
-                file_id: file.file_id,
-            });
+        if let Some(file_id) = self.already_there(media.local_id.clone(), media.md5.clone(), now)? {
+            return Ok(UploadPlan::AlreadyThere { file_id });
         }
         let existing = self.existing_file(&media)?;
         let request = upload::request(
@@ -357,6 +369,35 @@ mod tests {
             UploadPlan::AlreadyThere {
                 file_id: "f1".into()
             }
+        );
+        assert_eq!(store.counts().unwrap().done, 1);
+    }
+
+    #[test]
+    fn a_known_md5_already_in_the_folder_needs_no_file() {
+        let (fake, tokens) = (FakeStack::new(), FakeTokens::valid());
+        let (client, store) = client(&fake, &tokens);
+        store.record_media("p1".into(), 1, 1).unwrap();
+        store.set_md5("p1".into(), 1, "same".into()).unwrap();
+        assert_eq!(
+            client
+                .already_there("p1".into(), "same".into(), NOW)
+                .unwrap(),
+            None
+        );
+        store
+            .replace_remote_index(&[RemoteFile {
+                file_id: "f1".into(),
+                md5: "same".into(),
+                id_from_library: Some("p1".into()),
+                name: "IMG_0001.HEIC".into(),
+            }])
+            .unwrap();
+        assert_eq!(
+            client
+                .already_there("p1".into(), "same".into(), NOW)
+                .unwrap(),
+            Some("f1".into())
         );
         assert_eq!(store.counts().unwrap().done, 1);
     }
