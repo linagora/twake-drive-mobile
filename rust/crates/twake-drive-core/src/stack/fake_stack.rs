@@ -23,6 +23,7 @@ struct State {
     page_size: usize,
     requests: u32,
     failing: Option<u16>,
+    adopting_meanwhile: Option<String>,
 }
 
 pub struct FakeStack {
@@ -43,6 +44,11 @@ impl FakeStack {
 
     pub fn requests(&self) -> u32 {
         self.state.lock().unwrap().requests
+    }
+
+    /// Another device adopts the folder between the next read and write.
+    pub fn adopt_meanwhile(&self, device_id: &str) {
+        self.state.lock().unwrap().adopting_meanwhile = Some(device_id.into());
     }
 
     /// Every request answers `status` from now on.
@@ -69,7 +75,7 @@ impl FakeStack {
 
     pub fn add_file(&self, path: &str, md5: &str, id_from_library: Option<&str>) -> String {
         self.add(path, |id, name, dir_id| {
-            json!({"type": "io.cozy.files", "id": id, "attributes": {
+            json!({"type": "io.cozy.files", "id": id, "meta": {"rev": "1"}, "attributes": {
                 "type": "file", "name": name, "path": path, "dir_id": dir_id,
                 "md5sum": md5, "metadata": {"idFromLibrary": id_from_library}}})
         })
@@ -116,6 +122,7 @@ impl FakeStack {
         path: &str,
         query: &BTreeMap<String, String>,
         body: Option<Value>,
+        if_match: Option<String>,
     ) -> (u16, Value) {
         let mut state = self.state.lock().unwrap();
         let parts: Vec<&str> = path.trim_start_matches('/').split('/').collect();
@@ -163,6 +170,23 @@ impl FakeStack {
                 if query.get("Type").map(String::as_str) == Some("directory") =>
             {
                 create_dir(&mut state, &decode(dir), query)
+            }
+            ("PATCH", ["files", id]) => {
+                let id = decode(id);
+                if let Some(other) = state.adopting_meanwhile.take() {
+                    let doc = state.docs.get_mut(&id).unwrap();
+                    let ids = &mut doc["attributes"]["metadata"]["backupDeviceIds"];
+                    ids.as_array_mut().unwrap().push(json!(other));
+                    bump(doc);
+                }
+                let doc = state.docs.get_mut(&id).unwrap();
+                if if_match.is_some_and(|rev| doc["meta"]["rev"] != rev.as_str()) {
+                    return (412, json!({}));
+                }
+                doc["attributes"]["metadata"] =
+                    body.unwrap()["data"]["attributes"]["metadata"].clone();
+                bump(doc);
+                (200, json!({"data": doc}))
             }
             ("GET", ["files", id]) => {
                 let id = decode(id);
@@ -217,7 +241,12 @@ impl StackTransport for FakeStack {
             })
             .collect();
         let body = request.body.map(|b| serde_json::from_slice(&b).unwrap());
-        let (status, body) = self.route(&request.method, path, &query, body);
+        let if_match = request
+            .headers
+            .iter()
+            .find(|h| h.name == "If-Match")
+            .map(|h| h.value.clone());
+        let (status, body) = self.route(&request.method, path, &query, body, if_match);
         Ok(HttpResponse {
             status,
             body: body.to_string().into_bytes(),
@@ -277,8 +306,13 @@ fn decode(value: &str) -> String {
     percent_decode_str(value).decode_utf8_lossy().into_owned()
 }
 
+fn bump(doc: &mut Value) {
+    let rev: u32 = doc["meta"]["rev"].as_str().unwrap().parse().unwrap();
+    doc["meta"]["rev"] = json!((rev + 1).to_string());
+}
+
 fn dir_doc(id: &str, name: &str, path: &str, dir_id: &str) -> Value {
-    json!({"type": "io.cozy.files", "id": id, "attributes": {
+    json!({"type": "io.cozy.files", "id": id, "meta": {"rev": "1"}, "attributes": {
         "type": "directory", "name": name, "path": path, "dir_id": dir_id,
         "created_at": "2026-11-11T00:00:00Z"}})
 }

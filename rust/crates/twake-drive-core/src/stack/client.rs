@@ -75,6 +75,17 @@ impl StackClient {
         folders::create(&self.stack, &device_id, &device_name, &root_name)
     }
 
+    /// Picks up the folder of another install or of the flagship app: the
+    /// device is added to its devices, so `find_device_folder` finds it next
+    /// time, and its files count for the dedup.
+    pub fn adopt_device_folder(
+        &self,
+        folder_id: String,
+        device_id: String,
+    ) -> Result<DeviceFolder, CoreError> {
+        folders::adopt(&self.stack, &folder_id, &device_id)
+    }
+
     /// Reads what the folder holds, for the dedup of the next uploads.
     pub fn sync_folder_index(&self, folder_id: String) -> Result<(), CoreError> {
         self.store
@@ -567,5 +578,38 @@ mod tests {
         let created = client.create_device_folder("dev-1".into(), "iPhone".into(), "B".into());
         assert!(created.is_err());
         assert_eq!(fake.requests(), 1);
+    }
+
+    #[test]
+    fn a_device_picks_up_the_folder_of_the_flagship_app() {
+        let (fake, tokens) = (FakeStack::new(), FakeTokens::valid());
+        let flagship =
+            fake.add_device_dir("/Photos/B/iPhone", "flagship-id", "2025-01-01T00:00:00Z");
+        fake.reference("io.cozy.apps/photos/mobile", &flagship);
+        let (client, _) = client(&fake, &tokens);
+        assert_eq!(client.find_device_folder("twake-id".into()).unwrap(), None);
+        let folder = client
+            .adopt_device_folder(flagship.clone(), "twake-id".into())
+            .unwrap();
+        assert_eq!(folder.device_ids, ["flagship-id", "twake-id"]);
+        let again = client
+            .adopt_device_folder(flagship.clone(), "twake-id".into())
+            .unwrap();
+        assert_eq!(again.device_ids, ["flagship-id", "twake-id"]);
+        let found = client.find_device_folder("twake-id".into()).unwrap();
+        assert_eq!(found.map(|f| f.id), Some(flagship));
+    }
+
+    #[test]
+    fn two_devices_adopting_at_once_both_stay() {
+        let (fake, tokens) = (FakeStack::new(), FakeTokens::valid());
+        let flagship =
+            fake.add_device_dir("/Photos/B/iPhone", "flagship-id", "2025-01-01T00:00:00Z");
+        let (client, _) = client(&fake, &tokens);
+        fake.adopt_meanwhile("ipad-id");
+        let folder = client
+            .adopt_device_folder(flagship, "twake-id".into())
+            .unwrap();
+        assert_eq!(folder.device_ids, ["flagship-id", "ipad-id", "twake-id"]);
     }
 }
