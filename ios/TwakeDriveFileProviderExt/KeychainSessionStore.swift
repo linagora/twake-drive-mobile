@@ -52,28 +52,16 @@ struct KeychainSessionStore: SessionStoring {
 /// Production keychain access. `read` = SecItemCopyMatching; `write` = add-or-update.
 struct RealKeychainAccess: KeychainAccess {
   func read(service: String, account: Data, accessGroup: String) -> Data? {
-    let query: [String: Any] = [
-      kSecClass as String: kSecClassGenericPassword,
-      kSecAttrService as String: service,
-      kSecAttrGeneric as String: account,
-      kSecAttrAccount as String: account,
-      kSecAttrAccessGroup as String: accessGroup,
-      kSecMatchLimit as String: kSecMatchLimitOne,
-      kSecReturnData as String: kCFBooleanTrue as Any,
-    ]
+    var query = Self.item(service: service, account: account, accessGroup: accessGroup)
+    query[kSecMatchLimit as String] = kSecMatchLimitOne
+    query[kSecReturnData as String] = kCFBooleanTrue as Any
     var out: CFTypeRef?
     guard SecItemCopyMatching(query as CFDictionary, &out) == errSecSuccess else { return nil }
     return out as? Data
   }
 
   func write(_ value: Data, service: String, account: Data, accessGroup: String, accessible: CFString) -> Bool {
-    let base: [String: Any] = [
-      kSecClass as String: kSecClassGenericPassword,
-      kSecAttrService as String: service,
-      kSecAttrGeneric as String: account,
-      kSecAttrAccount as String: account,
-      kSecAttrAccessGroup as String: accessGroup,
-    ]
+    let base = Self.item(service: service, account: account, accessGroup: accessGroup)
     let update: [String: Any] = [kSecValueData as String: value, kSecAttrAccessible as String: accessible]
     let status = SecItemUpdate(base as CFDictionary, update as CFDictionary)
     if status == errSecSuccess { return true }
@@ -84,5 +72,18 @@ struct RealKeychainAccess: KeychainAccess {
       return SecItemAdd(add as CFDictionary, nil) == errSecSuccess
     }
     return false
+  }
+
+  /// An empty `accessGroup` means the app's own keychain: where the session
+  /// lives on a Simulator build, which has no shared group.
+  private static func item(service: String, account: Data, accessGroup: String) -> [String: Any] {
+    var item: [String: Any] = [
+      kSecClass as String: kSecClassGenericPassword,
+      kSecAttrService as String: service,
+      kSecAttrGeneric as String: account,
+      kSecAttrAccount as String: account,
+    ]
+    if !accessGroup.isEmpty { item[kSecAttrAccessGroup as String] = accessGroup }
+    return item
   }
 }
