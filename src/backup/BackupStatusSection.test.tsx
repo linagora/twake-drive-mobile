@@ -48,6 +48,15 @@ it('tells the last pass stopped for another cause', () => {
   expect(screen.queryByTestId('backup-quota')).toBeNull()
 })
 
+it('tells the backup waits for Wi-Fi or power, as the user chose', () => {
+  mockState.status = { ...counts, stoppedBy: 'WaitingForWifi' }
+  render(<BackupStatusSection />).getByText(i18n.t('backup.status.waitingWifi'))
+  mockState.status = { ...counts, stoppedBy: 'WaitingForPower' }
+  const screen = render(<BackupStatusSection />)
+  screen.getByText(i18n.t('backup.status.waitingPower'))
+  expect(screen.queryByTestId('backup-stopped')).toBeNull()
+})
+
 it('tells the access to the photos was taken back', () => {
   mockState.access = 'denied'
   render(<BackupStatusSection />).getByText(i18n.t('backup.status.noAccess'))

@@ -24,6 +24,7 @@ jest.mock('@/backup/activation', () => ({
 jest.mock('@/backup/backupSettings', () => ({ readBackupSettings: () => mockSettings }))
 const mockPass = jest.fn()
 jest.mock('@/backup/backupPass', () => ({ runBackupPass: (client: unknown) => mockPass(client) }))
+jest.mock('@/backup/BackupConditionsSection', () => ({ BackupConditionsSection: () => null }))
 jest.mock('@/backup/BackupStatusSection', () => {
   const { Text } = jest.requireActual('react-native')
   return { BackupStatusSection: () => <Text testID="backup-status">status</Text> }

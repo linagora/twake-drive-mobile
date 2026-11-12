@@ -402,10 +402,18 @@
       "noAccess": "Twake Drive ne voit plus vos photos, la sauvegarde est en pause. Autorisez-le dans les Réglages de votre téléphone.",
       "quota": "Votre Drive est plein, la sauvegarde est en pause jusqu'à ce qu'il y ait de la place.",
       "stopped": "La dernière sauvegarde s'est arrêtée avant la fin. Elle reprendra d'elle-même plus tard.",
+      "waitingWifi": "Des médias attendent le Wi-Fi, comme vous l'avez choisi.",
+      "waitingPower": "La sauvegarde attend que le téléphone soit en charge, comme vous l'avez choisi.",
       "unavailable": "En attente d'iCloud : {{count}}. Ils seront réessayés plus tard.",
       "tooLarge": "Trop volumineux pour être sauvegardés : {{count}}",
       "failed": "Non sauvegardés après plusieurs essais : {{count}}",
       "retry": "Réessayer"
+    },
+    "conditions": {
+      "title": "Quand sauvegarder",
+      "cellularPhotos": "Photos en données mobiles",
+      "cellularVideos": "Vidéos en données mobiles",
+      "onlyCharging": "Seulement en charge"
     }
   }
 }
