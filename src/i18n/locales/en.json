@@ -371,5 +371,19 @@
     "kilobyte": "KB",
     "megabyte": "MB",
     "gigabyte": "GB"
+  },
+  "backup": {
+    "title": "Photo backup",
+    "enable": "Back up my photos",
+    "enableDescription": "Saves the photos and videos of this phone to your Drive.",
+    "folder": "In {{path}}",
+    "chooseTitle": "Where to back up this phone",
+    "newFolderName": "New folder for this phone",
+    "create": "Create this folder",
+    "denied": "Twake Drive cannot see your photos. Allow it in the Settings of your phone.",
+    "unavailable": "Photo backup is not available on this phone yet.",
+    "error": "The backup could not start. Check your connection and try again.",
+    "rootFolder": "Mobile backup",
+    "invalidName": "A folder name cannot be \".\" or \"..\", nor contain \"/\" or a line break."
   }
 }

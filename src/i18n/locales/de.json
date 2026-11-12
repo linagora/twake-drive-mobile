@@ -371,5 +371,19 @@
     "kilobyte": "KB",
     "megabyte": "MB",
     "gigabyte": "GB"
+  },
+  "backup": {
+    "title": "Fotosicherung",
+    "enable": "Meine Fotos sichern",
+    "enableDescription": "Speichert die Fotos und Videos dieses Telefons in Ihrem Drive.",
+    "folder": "In {{path}}",
+    "chooseTitle": "Wohin dieses Telefon sichern",
+    "newFolderName": "Neuer Ordner für dieses Telefon",
+    "create": "Diesen Ordner erstellen",
+    "denied": "Twake Drive kann Ihre Fotos nicht sehen. Erlauben Sie es in den Einstellungen Ihres Telefons.",
+    "unavailable": "Die Fotosicherung ist auf diesem Telefon noch nicht verfügbar.",
+    "error": "Die Sicherung konnte nicht starten. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut.",
+    "rootFolder": "Mobile Sicherung",
+    "invalidName": "Ein Ordnername darf weder „.“ noch „..“ sein und weder „/“ noch einen Zeilenumbruch enthalten."
   }
 }
