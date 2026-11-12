@@ -380,5 +380,19 @@
     "kilobyte": "KB",
     "megabyte": "MB",
     "gigabyte": "GB"
+  },
+  "backup": {
+    "title": "Backup delle foto",
+    "enable": "Esegui il backup delle mie foto",
+    "enableDescription": "Salva le foto e i video di questo telefono nel tuo Drive.",
+    "folder": "In {{path}}",
+    "chooseTitle": "Dove salvare questo telefono",
+    "newFolderName": "Nuova cartella per questo telefono",
+    "create": "Crea questa cartella",
+    "denied": "Twake Drive non vede le tue foto. Consentilo nelle Impostazioni del telefono.",
+    "unavailable": "Il backup delle foto non è ancora disponibile su questo telefono.",
+    "error": "Il backup non è partito. Controlla la connessione e riprova.",
+    "rootFolder": "Backup da dispositivo mobile",
+    "invalidName": "Il nome di una cartella non può essere «.» o «..», né contenere «/» o un a capo."
   }
 }

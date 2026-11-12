@@ -380,5 +380,19 @@
     "kilobyte": "KB",
     "megabyte": "MB",
     "gigabyte": "GB"
+  },
+  "backup": {
+    "title": "Copia de seguridad de fotos",
+    "enable": "Copiar mis fotos",
+    "enableDescription": "Guarda las fotos y vídeos de este teléfono en tu Drive.",
+    "folder": "En {{path}}",
+    "chooseTitle": "Dónde copiar este teléfono",
+    "newFolderName": "Nueva carpeta para este teléfono",
+    "create": "Crear esta carpeta",
+    "denied": "Twake Drive no puede ver tus fotos. Permítelo en los Ajustes de tu teléfono.",
+    "unavailable": "La copia de seguridad de fotos aún no está disponible en este teléfono.",
+    "error": "La copia no pudo empezar. Comprueba tu conexión e inténtalo de nuevo.",
+    "rootFolder": "Copiado desde mi móvil",
+    "invalidName": "El nombre de una carpeta no puede ser «.» ni «..», ni contener «/» o un salto de línea."
   }
 }

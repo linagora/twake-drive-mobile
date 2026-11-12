@@ -24,6 +24,7 @@ import { localeDisplayName } from '@/i18n/localeNames'
 import { useThemePreference, ThemePref } from '@/preferences/themePreference'
 import { useAuth } from '@/auth/useAuth'
 import { isKeepOfflineEnabled } from '@/offline/keepOfflineFlag'
+import { backupCore } from '@/native/twakeDriveCore'
 
 const PRIVACY_POLICY_URL = 'https://twake.app/en/privacy-policy/'
 
@@ -89,6 +90,15 @@ export default function SettingsIndex(): React.ReactElement {
               icon="download"
               trailing="chevron"
               onPress={() => router.push('/settings/offline-storage')}
+            />
+          ) : null}
+          {backupCore() ? (
+            <SettingsRow
+              testID="settings-backup"
+              title={t('backup.title')}
+              icon="upload"
+              trailing="chevron"
+              onPress={() => router.push('/settings/backup')}
             />
           ) : null}
         </SettingsSection>
