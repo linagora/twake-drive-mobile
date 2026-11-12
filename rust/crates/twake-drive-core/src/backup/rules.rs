@@ -55,7 +55,7 @@ pub(crate) enum Decision {
 
 pub(crate) const MAX_ATTEMPTS: u32 = 8;
 const FIRST_DELAY_SECS: i64 = 60;
-const UNAVAILABLE_DELAY_SECS: i64 = 60 * 60;
+pub(crate) const UNAVAILABLE_DELAY_SECS: i64 = 60 * 60;
 
 /// `attempts` counts the tries already made before this one.
 pub(crate) fn decide(outcome: &UploadOutcome, attempts: u32, now: i64) -> (Decision, PassAction) {
