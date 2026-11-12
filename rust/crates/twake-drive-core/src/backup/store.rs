@@ -5,6 +5,7 @@ use rusqlite::{Connection, ErrorCode, OptionalExtension, TransactionBehavior::Im
 use super::rules::{Decision, PassAction, UNAVAILABLE_DELAY_SECS, UploadOutcome, decide};
 use crate::CoreError;
 use crate::library::{library_id_of, paired_video_key};
+use crate::stack::MediaToSend;
 
 /// Each entry moves the schema one version up; `PRAGMA user_version` says how
 /// many already ran. Only ever append.
@@ -36,9 +37,30 @@ const MIGRATIONS: &[&str] = &[
     "ALTER TABLE media ADD COLUMN content_version TEXT;",
     "ALTER TABLE media ADD COLUMN paired_video TEXT;",
     "CREATE TABLE setting (key TEXT PRIMARY KEY, value BLOB NOT NULL);",
+    "
+    CREATE TABLE in_flight (
+        local_id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        mime TEXT NOT NULL,
+        size INTEGER NOT NULL,
+        md5 TEXT NOT NULL,
+        created_at INTEGER NOT NULL,
+        modified_at INTEGER NOT NULL,
+        paired_video_id TEXT,
+        name_attempt INTEGER NOT NULL,
+        file_path TEXT NOT NULL,
+        parked_at INTEGER NOT NULL
+    );
+",
 ];
 
+/// How long an upload handed to the system holds its media. The platform
+/// gives up on the upload before (on iOS, `timeoutIntervalForResource`).
+pub const UPLOAD_HOLD_SECS: i64 = 24 * 60 * 60;
+
 const CHANGE_TOKEN: &str = "change_token";
+const FOLDER_ID: &str = "folder_id";
+const DEVICE_ID: &str = "device_id";
 
 /// No lease nor delay lasts this long: a later `not_before` comes from a clock
 /// that went back, and the media is due at once.
@@ -79,6 +101,20 @@ pub struct LibraryMedia {
     /// For the photo of a Live Photo: the key of its video
     /// (`paired_video_key`), recorded in the same scan.
     pub paired_video: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, uniffi::Record)]
+pub struct BackupConfig {
+    pub folder_id: String,
+    pub device_id: String,
+}
+
+/// An upload handed to the system, as it was prepared.
+#[derive(Debug, Clone, PartialEq, uniffi::Record)]
+pub struct ParkedUpload {
+    pub media: MediaToSend,
+    pub name_attempt: u32,
+    pub file_path: String,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, uniffi::Record)]
@@ -375,6 +411,179 @@ impl BackupStore {
             )
             .map_err(storage)?;
         Ok(())
+    }
+
+    /// Where the backup goes, for a pass the system starts without the app.
+    pub fn set_backup_config(&self, config: BackupConfig) -> Result<(), CoreError> {
+        let mut db = self.db();
+        let tx = db.transaction_with_behavior(Immediate).map_err(storage)?;
+        for (key, value) in [(FOLDER_ID, config.folder_id), (DEVICE_ID, config.device_id)] {
+            tx.execute(
+                "INSERT INTO setting (key, value) VALUES (?1, ?2)
+                 ON CONFLICT (key) DO UPDATE SET value = excluded.value",
+                params![key, value.into_bytes()],
+            )
+            .map_err(storage)?;
+        }
+        tx.commit().map_err(storage)
+    }
+
+    /// None once the backup is turned off: a pass started by the system ends.
+    pub fn backup_config(&self) -> Result<Option<BackupConfig>, CoreError> {
+        let db = self.db();
+        let read = |key: &str| -> Result<Option<String>, CoreError> {
+            db.query_row(
+                "SELECT value FROM setting WHERE key = ?1",
+                params![key],
+                |row| row.get::<_, Vec<u8>>(0),
+            )
+            .optional()
+            .map_err(storage)
+            .map(|value| value.and_then(|bytes| String::from_utf8(bytes).ok()))
+        };
+        Ok(match (read(FOLDER_ID)?, read(DEVICE_ID)?) {
+            (Some(folder_id), Some(device_id)) => Some(BackupConfig {
+                folder_id,
+                device_id,
+            }),
+            _ => None,
+        })
+    }
+
+    pub fn clear_backup_config(&self) -> Result<(), CoreError> {
+        self.db()
+            .execute(
+                "DELETE FROM setting WHERE key IN (?1, ?2)",
+                params![FOLDER_ID, DEVICE_ID],
+            )
+            .map_err(storage)?;
+        Ok(())
+    }
+
+    /// An upload handed to the system, whose answer may come in a later run of
+    /// the app. Holds the media `UPLOAD_HOLD_SECS`. Returns the file of an
+    /// earlier upload of the media, which the platform deletes: its answer
+    /// never came within the hold.
+    pub fn park_upload(
+        &self,
+        media: MediaToSend,
+        name_attempt: u32,
+        file_path: String,
+        now: i64,
+    ) -> Result<Option<String>, CoreError> {
+        let mut db = self.db();
+        let tx = db.transaction_with_behavior(Immediate).map_err(storage)?;
+        let earlier: Option<String> = tx
+            .query_row(
+                "SELECT file_path FROM in_flight WHERE local_id = ?1",
+                params![media.local_id],
+                |row| row.get(0),
+            )
+            .optional()
+            .map_err(storage)?;
+        tx.execute(
+            "INSERT OR REPLACE INTO in_flight (local_id, name, mime, size, md5, created_at,
+                 modified_at, paired_video_id, name_attempt, file_path, parked_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
+            params![
+                media.local_id,
+                media.name,
+                media.mime,
+                media.size as i64,
+                media.md5,
+                media.created_at,
+                media.modified_at,
+                media.paired_video_id,
+                name_attempt,
+                file_path,
+                now
+            ],
+        )
+        .map_err(storage)?;
+        tx.execute(
+            "UPDATE media SET not_before = ?2 WHERE local_id = ?1",
+            params![media.local_id, now + UPLOAD_HOLD_SECS],
+        )
+        .map_err(storage)?;
+        tx.commit().map_err(storage)?;
+        Ok(earlier.filter(|earlier| *earlier != file_path))
+    }
+
+    pub fn parked_upload(&self, local_id: String) -> Result<Option<ParkedUpload>, CoreError> {
+        self.db()
+            .query_row(
+                "SELECT local_id, name, mime, size, md5, created_at, modified_at, paired_video_id,
+                        name_attempt, file_path
+                 FROM in_flight WHERE local_id = ?1",
+                params![local_id],
+                |row| {
+                    Ok(ParkedUpload {
+                        media: MediaToSend {
+                            local_id: row.get(0)?,
+                            name: row.get(1)?,
+                            mime: row.get(2)?,
+                            size: row.get::<_, i64>(3)? as u64,
+                            md5: row.get(4)?,
+                            created_at: row.get(5)?,
+                            modified_at: row.get(6)?,
+                            paired_video_id: row.get(7)?,
+                        },
+                        name_attempt: row.get(8)?,
+                        file_path: row.get(9)?,
+                    })
+                },
+            )
+            .optional()
+            .map_err(storage)
+    }
+
+    /// The answer came: the platform deletes the file.
+    pub fn settle_upload(&self, local_id: String) -> Result<(), CoreError> {
+        self.db()
+            .execute(
+                "DELETE FROM in_flight WHERE local_id = ?1",
+                params![local_id],
+            )
+            .map_err(storage)?;
+        Ok(())
+    }
+
+    /// Forgets the uploads whose answer never came within the hold: the
+    /// platform deletes the files returned, and the media are due again.
+    pub fn drop_lost_uploads(&self, now: i64) -> Result<Vec<String>, CoreError> {
+        let mut db = self.db();
+        let tx = db.transaction_with_behavior(Immediate).map_err(storage)?;
+        let before = now - UPLOAD_HOLD_SECS;
+        let files = {
+            let mut query = tx
+                .prepare("SELECT file_path FROM in_flight WHERE parked_at <= ?1")
+                .map_err(storage)?;
+            query
+                .query_map(params![before], |row| row.get(0))
+                .map_err(storage)?
+                .collect::<Result<Vec<_>, _>>()
+                .map_err(storage)?
+        };
+        tx.execute(
+            "DELETE FROM in_flight WHERE parked_at <= ?1",
+            params![before],
+        )
+        .map_err(storage)?;
+        tx.commit().map_err(storage)?;
+        Ok(files)
+    }
+
+    /// The files of the uploads in flight, to keep when the platform cleans up.
+    pub fn parked_files(&self) -> Result<Vec<String>, CoreError> {
+        let db = self.db();
+        let mut query = db
+            .prepare("SELECT file_path FROM in_flight")
+            .map_err(storage)?;
+        query
+            .query_map([], |row| row.get(0))
+            .map_err(storage)?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(storage)
     }
 
     /// The user asks to try the failed media again.
@@ -1005,5 +1214,109 @@ mod tests {
             .unwrap();
         remove_db(&path);
         assert_eq!(token, Some(vec![3]));
+    }
+
+    #[test]
+    fn the_config_of_the_backup_goes_with_the_backup() {
+        let s = store();
+        assert_eq!(s.backup_config().unwrap(), None);
+        let config = BackupConfig {
+            folder_id: "dir".into(),
+            device_id: "dev-1".into(),
+        };
+        s.set_backup_config(config.clone()).unwrap();
+        assert_eq!(s.backup_config().unwrap(), Some(config));
+        s.clear_backup_config().unwrap();
+        assert_eq!(s.backup_config().unwrap(), None);
+    }
+
+    fn to_send(local_id: &str) -> MediaToSend {
+        MediaToSend {
+            local_id: local_id.into(),
+            name: "IMG_0001.HEIC".into(),
+            mime: "image/heic".into(),
+            size: 5_000_000_000,
+            md5: MD5.into(),
+            created_at: 1,
+            modified_at: 2,
+            paired_video_id: Some("mov".into()),
+        }
+    }
+
+    #[test]
+    fn an_upload_in_flight_comes_back_as_it_was_prepared() {
+        let s = store();
+        assert_eq!(
+            s.park_upload(to_send("a"), 2, "/tmp/a1".into(), NOW)
+                .unwrap(),
+            None
+        );
+        assert_eq!(
+            s.parked_upload("a".into()).unwrap(),
+            Some(ParkedUpload {
+                media: to_send("a"),
+                name_attempt: 2,
+                file_path: "/tmp/a1".into()
+            })
+        );
+        assert_eq!(s.parked_files().unwrap(), ["/tmp/a1"]);
+        s.settle_upload("a".into()).unwrap();
+        assert_eq!(s.parked_upload("a".into()).unwrap(), None);
+        assert!(s.parked_files().unwrap().is_empty());
+    }
+
+    #[test]
+    fn an_upload_whose_answer_never_came_gives_its_file_back() {
+        let s = store();
+        s.park_upload(to_send("a"), 0, "/tmp/a1".into(), NOW)
+            .unwrap();
+        // The hold ended, the media went again with a new export.
+        assert_eq!(
+            s.park_upload(to_send("a"), 0, "/tmp/a2".into(), NOW)
+                .unwrap(),
+            Some("/tmp/a1".into())
+        );
+        assert_eq!(s.parked_files().unwrap(), ["/tmp/a2"]);
+    }
+
+    #[test]
+    fn only_the_media_handed_over_is_held_a_day() {
+        let s = store();
+        s.record_media("a".into(), 1, 2).unwrap();
+        s.record_media("b".into(), 1, 2).unwrap();
+        assert_eq!(s.next_batch(NOW, 10, 600).unwrap().len(), 2);
+        s.park_upload(to_send("a"), 0, "/tmp/a".into(), NOW)
+            .unwrap();
+        // The pass ended before b: it comes back with the lease, a with the hold.
+        assert_eq!(ids(&s.next_batch(NOW + 600, 10, 600).unwrap()), ["b"]);
+        s.forget_media("b".into()).unwrap();
+        assert!(
+            s.next_batch(NOW + UPLOAD_HOLD_SECS - 1, 10, 600)
+                .unwrap()
+                .is_empty()
+        );
+        assert_eq!(
+            ids(&s.next_batch(NOW + UPLOAD_HOLD_SECS, 10, 600).unwrap()),
+            ["a"]
+        );
+    }
+
+    #[test]
+    fn an_upload_lost_for_a_day_gives_its_file_back() {
+        let s = store();
+        s.park_upload(to_send("a"), 0, "/tmp/a".into(), NOW)
+            .unwrap();
+        s.park_upload(to_send("b"), 0, "/tmp/b".into(), NOW + 10)
+            .unwrap();
+        assert!(
+            s.drop_lost_uploads(NOW + UPLOAD_HOLD_SECS - 1)
+                .unwrap()
+                .is_empty()
+        );
+        assert_eq!(
+            s.drop_lost_uploads(NOW + UPLOAD_HOLD_SECS).unwrap(),
+            ["/tmp/a"]
+        );
+        assert_eq!(s.parked_files().unwrap(), ["/tmp/b"]);
     }
 }
