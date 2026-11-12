@@ -39,7 +39,7 @@ const MIGRATIONS: &[&str] = &[
 const MAX_HOLD_SECS: i64 = 8 * 24 * 60 * 60;
 
 /// On iOS the core runs on the SQLite another library builds into the app.
-/// 3.24.0 brought the upsert `record_media` relies on.
+/// 3.24.0 brought the upsert `record_library` relies on.
 const MIN_SQLITE_VERSION: i32 = 3_024_000;
 
 const PENDING: &str = "pending";
@@ -56,6 +56,13 @@ pub struct QueuedMedia {
     pub modified_at: i64,
     pub md5: Option<String>,
     pub drive_file_id: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, uniffi::Record)]
+pub struct LibraryMedia {
+    pub local_id: String,
+    pub created_at: i64,
+    pub modified_at: i64,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, uniffi::Record)]
@@ -101,29 +108,31 @@ impl BackupStore {
         Ok(Arc::new(Self { db: Mutex::new(db) }))
     }
 
-    /// A media seen in the library. New, it waits for its upload; changed since
-    /// the last time, it is hashed and uploaded again as a new version.
-    /// `modified_at` is the date of the last change of the media. On iOS it is
-    /// `modificationDate`, which a favorite moves too: the media is hashed
-    /// again, then found already in Drive, not uploaded.
-    pub fn record_media(
-        &self,
-        local_id: String,
-        created_at: i64,
-        modified_at: i64,
-    ) -> Result<(), CoreError> {
-        self.db()
-            .execute(
-                "INSERT INTO media (local_id, created_at, modified_at) VALUES (?1, ?2, ?3)
-             ON CONFLICT (local_id) DO UPDATE SET
-                 created_at = excluded.created_at,
-                 modified_at = excluded.modified_at,
-                 md5 = NULL, state = 'pending', attempts = 0, not_before = 0, last_error = NULL
-             WHERE media.modified_at != excluded.modified_at",
-                params![local_id, created_at, modified_at],
-            )
-            .map_err(storage)?;
-        Ok(())
+    /// The media seen in the library, in one transaction. A new one waits for
+    /// its upload; one whose `modified_at` changed is hashed and uploaded again
+    /// as a new version. On iOS that is `modificationDate`, which a favorite
+    /// moves too: the media is hashed again, then found already in Drive.
+    pub fn record_library(&self, media: Vec<LibraryMedia>) -> Result<(), CoreError> {
+        let mut db = self.db();
+        let tx = db.transaction_with_behavior(Immediate).map_err(storage)?;
+        {
+            let mut upsert = tx
+                .prepare(
+                    "INSERT INTO media (local_id, created_at, modified_at) VALUES (?1, ?2, ?3)
+                     ON CONFLICT (local_id) DO UPDATE SET
+                         created_at = excluded.created_at,
+                         modified_at = excluded.modified_at,
+                         md5 = NULL, state = 'pending', attempts = 0, not_before = 0, last_error = NULL
+                     WHERE media.modified_at != excluded.modified_at",
+                )
+                .map_err(storage)?;
+            for m in media {
+                upsert
+                    .execute(params![m.local_id, m.created_at, m.modified_at])
+                    .map_err(storage)?;
+            }
+        }
+        tx.commit().map_err(storage)
     }
 
     /// A media gone from the library. What is in Drive stays there.
@@ -328,6 +337,20 @@ impl BackupStore {
 }
 
 impl BackupStore {
+    #[cfg(test)]
+    pub(crate) fn record_media(
+        &self,
+        local_id: String,
+        created_at: i64,
+        modified_at: i64,
+    ) -> Result<(), CoreError> {
+        self.record_library(vec![LibraryMedia {
+            local_id,
+            created_at,
+            modified_at,
+        }])
+    }
+
     pub(super) fn db(&self) -> MutexGuard<'_, Connection> {
         // A panic while the lock was held leaves no half-written row: SQLite
         // rolled the transaction back, so the connection is still sound.
@@ -404,6 +427,31 @@ mod tests {
         s.record_media("new".into(), 20, 20).unwrap();
         assert_eq!(ids(&s.next_batch(NOW, 10, 60).unwrap()), ["new", "old"]);
         assert_eq!(s.counts().unwrap().pending, 2);
+    }
+
+    #[test]
+    fn a_scan_queues_the_new_and_edited_media_only() {
+        let s = store();
+        s.record_media("saved".into(), 1, 1).unwrap();
+        s.record_media("edited".into(), 2, 2).unwrap();
+        for id in ["saved", "edited"] {
+            s.set_md5(id.into(), if id == "saved" { 1 } else { 2 }, MD5.into())
+                .unwrap();
+            s.record_outcome(id.into(), MD5.into(), uploaded(id), NOW)
+                .unwrap();
+        }
+        let seen = |local_id: &str, modified_at| LibraryMedia {
+            local_id: local_id.into(),
+            created_at: modified_at,
+            modified_at,
+        };
+        s.record_library(vec![seen("saved", 1), seen("edited", 4), seen("new", 3)])
+            .unwrap();
+        assert_eq!(
+            ids(&s.next_batch(NOW, 10, 60).unwrap()),
+            ["edited", "new"].map(String::from)
+        );
+        assert_eq!(s.counts().unwrap().done, 1);
     }
 
     #[test]
