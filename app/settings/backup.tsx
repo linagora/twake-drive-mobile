@@ -21,6 +21,7 @@ import {
   type FolderChoice
 } from '@/backup/activation'
 import { readBackupSettings } from '@/backup/backupSettings'
+import { runBackupPass } from '@/backup/backupPass'
 import { adoptStoredToken } from '@/auth/adoptStoredToken'
 
 type Choice = Extract<ActivationStep, { kind: 'choose' }>
@@ -41,6 +42,7 @@ export default function BackupScreen(): React.ReactElement {
     if (step.kind === 'choose') setName(step.suggestedName)
     if (step.kind === 'denied') setNotice(t('backup.denied'))
     if (step.kind === 'unavailable') setNotice(t('backup.unavailable'))
+    if (step.kind === 'ready') runBackupPass(client).catch(() => null)
     setSettings(readBackupSettings())
   }
 

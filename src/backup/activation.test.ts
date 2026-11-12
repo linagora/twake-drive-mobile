@@ -5,7 +5,8 @@ const mockCore = {
   deviceName: jest.fn(),
   listDeviceFolders: jest.fn(),
   adoptDeviceFolder: jest.fn(),
-  createDeviceFolder: jest.fn()
+  createDeviceFolder: jest.fn(),
+  stopBackupPass: jest.fn()
 }
 let mockAvailable = true
 jest.mock('@/native/twakeDriveCore', () => ({
@@ -88,7 +89,8 @@ test('a new folder takes the name the user typed', async () => {
   )
 })
 
-test('turning the backup off keeps its folder', () => {
+test('turning the backup off keeps its folder and stops the pass', () => {
   stopBackup()
   expect(mockWrite).toHaveBeenCalledWith({ enabled: false })
+  expect(mockCore.stopBackupPass).toHaveBeenCalled()
 })

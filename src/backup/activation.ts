@@ -49,4 +49,5 @@ export const finishActivation = async (choice: FolderChoice): Promise<Activation
 
 export const stopBackup = (): void => {
   writeBackupSettings({ enabled: false })
+  backupCore()?.stopBackupPass()
 }
