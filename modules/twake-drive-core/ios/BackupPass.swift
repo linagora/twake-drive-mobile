@@ -47,41 +47,48 @@ final class BackupPass {
     let library = PHPhotoLibrary.shared()
     // Taken before reading: a change made during the scan comes again next time.
     let current = library.currentChangeToken
-    let options = PHFetchOptions()
-    options.predicate = NSPredicate(
-      format: "mediaType == %d OR mediaType == %d",
-      PHAssetMediaType.image.rawValue, PHAssetMediaType.video.rawValue)
-    if let saved = try store.changeToken(),
-      let token = try? NSKeyedUnarchiver.unarchivedObject(ofClass: PHPersistentChangeToken.self, from: saved),
-      let changes = try? library.fetchPersistentChanges(since: token)
-    {
-      var changed = Set<String>()
-      var deleted = Set<String>()
-      for change in changes {
-        let details = try change.changeDetails(for: .asset)
-        changed.formUnion(details.insertedLocalIdentifiers)
-        changed.formUnion(details.updatedLocalIdentifiers)
-        deleted.formUnion(details.deletedLocalIdentifiers)
-      }
-      for id in deleted {
-        try store.forgetMedia(localId: id)
-        try store.forgetMedia(localId: pairedVideoKey(libraryId: id))
-      }
-      try record(PHAsset.fetchAssets(withLocalIdentifiers: Array(changed), options: options))
-    } else {
+    // With limited access, media the user adds to the selection may not show
+    // up as changes: the selection is small, it is read whole each time.
+    let full = PHPhotoLibrary.authorizationStatus(for: .readWrite) == .authorized
+    if !full || (try? scanChanges(library)) != true {
       // shortcut: media deleted while no change token held stay counted;
       // only this fallback misses them.
-      try record(PHAsset.fetchAssets(with: options))
+      try record(PHAsset.fetchAssets(with: mediaOptions()), readEdits: false)
     }
-    try store.setChangeToken(
-      token: try NSKeyedArchiver.archivedData(withRootObject: current, requiringSecureCoding: true))
+    if full {
+      try store.setChangeToken(
+        token: try NSKeyedArchiver.archivedData(withRootObject: current, requiringSecureCoding: true))
+    }
   }
 
-  private func record(_ assets: PHFetchResult<PHAsset>) throws {
+  /// False without a saved token. Throws when iOS no longer has the changes since it.
+  private func scanChanges(_ library: PHPhotoLibrary) throws -> Bool {
+    guard let saved = try store.changeToken(),
+      let token = try NSKeyedUnarchiver.unarchivedObject(ofClass: PHPersistentChangeToken.self, from: saved)
+    else { return false }
+    var changed = Set<String>()
+    var deleted = Set<String>()
+    for change in try library.fetchPersistentChanges(since: token) {
+      let details = try change.changeDetails(for: .asset)
+      changed.formUnion(details.insertedLocalIdentifiers)
+      changed.formUnion(details.updatedLocalIdentifiers)
+      deleted.formUnion(details.deletedLocalIdentifiers)
+    }
+    for id in deleted {
+      try store.forgetMedia(localId: id)
+      try store.forgetMedia(localId: pairedVideoKey(libraryId: id))
+    }
+    try record(PHAsset.fetchAssets(withLocalIdentifiers: Array(changed), options: mediaOptions()), readEdits: true)
+    return true
+  }
+
+  /// `readEdits`: read the adjustment data of edited media, one at a time and
+  /// perhaps from iCloud. A full scan does not: their known version stays.
+  private func record(_ assets: PHFetchResult<PHAsset>, readEdits: Bool) throws {
     var media: [LibraryMedia] = []
     assets.enumerateObjects { asset, _, _ in
       let id = asset.localIdentifier
-      let version = contentVersion(asset)
+      let version = !asset.hasAdjustments ? "original" : readEdits ? adjustmentVersion(asset) : nil
       let video = asset.mediaSubtypes.contains(.photoLive) ? pairedVideoKey(libraryId: id) : nil
       let row = { (localId: String, pairedVideo: String?) in
         LibraryMedia(
@@ -197,11 +204,10 @@ private struct Export {
 }
 
 /// iOS gives no date of the last edit, and modificationDate moves with a
-/// favorite too. The adjustment data changes with each edit only: its md5
-/// tells the content apart. Read for edited media only, a few kilobytes.
-/// Nil when it cannot be read: the core then goes by the date.
-private func contentVersion(_ asset: PHAsset) -> String? {
-  guard asset.hasAdjustments else { return "original" }
+/// favorite too. The adjustment data of an edited media changes with each
+/// edit only: its md5 tells the content apart. A few kilobytes. Nil when it
+/// cannot be read: the core then goes by the date.
+private func adjustmentVersion(_ asset: PHAsset) -> String? {
   guard
     let resource = PHAssetResource.assetResources(for: asset).first(where: { $0.type == .adjustmentData })
   else { return nil }
@@ -215,6 +221,14 @@ private func contentVersion(_ asset: PHAsset) -> String? {
     }) != nil
   else { return nil }
   return (try? md5File(path: file.path)).map { "adjusted:\($0)" }
+}
+
+private func mediaOptions() -> PHFetchOptions {
+  let options = PHFetchOptions()
+  options.predicate = NSPredicate(
+    format: "mediaType == %d OR mediaType == %d",
+    PHAssetMediaType.image.rawValue, PHAssetMediaType.video.rawValue)
+  return options
 }
 
 /// Emptied at the start of each pass: a pass killed mid-upload leaves its
