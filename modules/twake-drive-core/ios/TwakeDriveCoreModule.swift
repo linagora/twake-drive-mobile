@@ -40,6 +40,8 @@ public class TwakeDriveCoreModule: Module {
         .createDeviceFolder(deviceId: deviceId, deviceName: deviceName, rootName: rootName).record
     }.runOnQueue(stackQueue)
 
+    Events("onBackupProgress")
+
     AsyncFunction("runBackupPass") { (folderId: String, deviceId: String) throws -> [String: Any] in
       passStop.withLock { $0 = false }
       // A pass that fails, offline for one, still leaves the next ones planned.
@@ -47,10 +49,30 @@ public class TwakeDriveCoreModule: Module {
       return try runInBackgroundTime { expired in
         try BackupPass(
           config: BackupConfig(folderId: folderId, deviceId: deviceId), inBackground: false,
-          isCancelled: { expired() || passStop.withLock { $0 } }
+          isCancelled: { expired() || passStop.withLock { $0 } },
+          onProgress: { [weak self] in self?.sendEvent("onBackupProgress", $0.record) }
         ).run()
       }.record
     }.runOnQueue(passQueue)
+
+    AsyncFunction("backupStatus") { () throws -> [String: Any] in
+      try openBackup().store.status().record
+    }.runOnQueue(stackQueue)
+
+    /// Without asking: the screen tells when the access was taken back.
+    Function("photoAccess") { () -> String in
+      switch PHPhotoLibrary.authorizationStatus(for: .readWrite) {
+      case .authorized: return "authorized"
+      case .limited: return "limited"
+      case .restricted: return "restricted"
+      case .notDetermined: return "notDetermined"
+      default: return "denied"
+      }
+    }
+
+    AsyncFunction("retryFailed") { () throws in
+      try openBackup().store.retryFailed()
+    }.runOnQueue(stackQueue)
 
     /// The pass running ends after the media in progress, the uploads handed
     /// to the system are cancelled, and the system starts no pass any more.
@@ -91,6 +113,15 @@ private func runInBackgroundTime<T>(_ body: (_ isCancelled: @escaping () -> Bool
 extension BackupCounts {
   var record: [String: Any] {
     ["done": done, "pending": pending, "skipped": skipped, "failed": failed, "unavailable": unavailable]
+  }
+}
+
+extension BackupStatus {
+  var record: [String: Any] {
+    var record = counts.record
+    if let lastPassAt { record["lastPassAt"] = lastPassAt }
+    if let stoppedBy { record["stoppedBy"] = stoppedBy }
+    return record
   }
 }
 
