@@ -86,13 +86,23 @@ impl Stack {
         path: &str,
         body: Option<Value>,
     ) -> Result<HttpResponse, CoreError> {
+        self.call_with(method, path, body, &[])
+    }
+
+    pub(crate) fn call_with(
+        &self,
+        method: &str,
+        path: &str,
+        body: Option<Value>,
+        extra: &[Header],
+    ) -> Result<HttpResponse, CoreError> {
         let token = self.tokens.access_token()?;
-        let response = self.send(method, path, body.clone(), &token)?;
+        let response = self.send(method, path, body.clone(), &token, extra)?;
         if response.status != 401 {
             return Ok(response);
         }
         let token = self.tokens.refresh(token)?;
-        self.send(method, path, body, &token)
+        self.send(method, path, body, &token, extra)
     }
 
     fn send(
@@ -101,6 +111,7 @@ impl Stack {
         path: &str,
         body: Option<Value>,
         token: &str,
+        extra: &[Header],
     ) -> Result<HttpResponse, CoreError> {
         let mut headers = vec![
             authorization(token),
@@ -115,6 +126,7 @@ impl Stack {
                 value: "application/vnd.api+json".into(),
             });
         }
+        headers.extend_from_slice(extra);
         self.transport.send(HttpRequest {
             method: method.into(),
             url: format!("{}{path}", self.base_url),

@@ -1,7 +1,7 @@
 use serde_json::{Value, json};
 
 use super::dates::seconds_of;
-use super::http::{Stack, encode, query, route, unexpected};
+use super::http::{Header, Stack, encode, query, route, unexpected};
 use crate::CoreError;
 
 /// The flagship app's references: Photos web finds the backups through them.
@@ -9,6 +9,7 @@ const PHOTOS_REF: &str = "io.cozy.apps/photos";
 const BACKUP_REF: &str = "io.cozy.apps/photos/mobile";
 const ROOT_DIR: &str = "io.cozy.files.root-dir";
 pub(crate) const MAX_NAME_ATTEMPTS: u32 = 50;
+const MAX_ADOPT_ATTEMPTS: u32 = 5;
 
 /// A folder the backup of one phone goes to:
 /// `/Photos/<backup root>/<device name>`.
@@ -59,6 +60,52 @@ pub(crate) fn create(
     let folder = create_dir_numbered(stack, &id_of(&root)?, device_name, &metadata_id)?;
     add_reference(stack, BACKUP_REF, &id_of(&folder)?)?;
     Ok(to_folder(&folder))
+}
+
+/// Adds `device_id` to the devices of a folder, keeping the rest of its
+/// metadata: the stack replaces the metadata of a directory as a whole, so
+/// the write is conditional on the revision read, and read again if another
+/// device wrote in between.
+pub(crate) fn adopt(
+    stack: &Stack,
+    folder_id: &str,
+    device_id: &str,
+) -> Result<DeviceFolder, CoreError> {
+    let path = format!("/files/{}", encode(folder_id));
+    for _ in 0..MAX_ADOPT_ATTEMPTS {
+        let folder = stack.json("GET", &path, None, &[200])?["data"].clone();
+        let patch = json!({"data": {"type": "io.cozy.files", "id": folder_id,
+            "attributes": {"metadata": with_device(&folder, device_id)}}});
+        let if_match = Header {
+            name: "If-Match".into(),
+            value: folder["meta"]["rev"].as_str().unwrap_or_default().into(),
+        };
+        let response = stack.call_with("PATCH", &path, Some(patch), &[if_match])?;
+        match response.status {
+            200 => return Ok(to_folder(&data_of(&response.body, &path)?)),
+            412 => continue,
+            status => return Err(unexpected("PATCH", &path, status)),
+        }
+    }
+    Err(CoreError::Stack {
+        reason: "the device folder kept changing".into(),
+    })
+}
+
+fn with_device(folder: &Value, device_id: &str) -> Value {
+    let mut metadata = folder["attributes"]["metadata"].clone();
+    if !metadata.is_object() {
+        metadata = json!({});
+    }
+    let ids = &mut metadata["backupDeviceIds"];
+    if !ids.is_array() {
+        *ids = json!([]);
+    }
+    let ids = ids.as_array_mut().expect("an array");
+    if !ids.iter().any(|id| id == device_id) {
+        ids.push(json!(device_id));
+    }
+    metadata
 }
 
 fn photos_folder(stack: &Stack) -> Result<Value, CoreError> {
