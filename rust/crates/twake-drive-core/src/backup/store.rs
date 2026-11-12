@@ -51,6 +51,8 @@ const PENDING: &str = "pending";
 const DONE: &str = "done";
 const SKIPPED: &str = "skipped";
 const FAILED: &str = "failed";
+/// The `last_error` of a media the device could not read.
+const UNAVAILABLE: &str = "Unavailable";
 
 /// A media to upload. `drive_file_id` is set when an older version is already
 /// in Drive: the upload is then a new version of that file. `modified_at` goes
@@ -216,17 +218,19 @@ impl BackupStore {
                 .prepare(
                     // The photo of a Live Photo waits for its video: it
                     // carries the Drive id of the video, as with the flagship.
+                    // A video out of reach does not hold the photo back.
                     "SELECT media.local_id, media.modified_at, media.md5, media.drive_file_id,
                             video.drive_file_id
                      FROM media LEFT JOIN media AS video ON video.local_id = media.paired_video
                      WHERE media.state = 'pending'
                        AND (media.not_before <= ?1 OR media.not_before > ?1 + ?3)
-                       AND (video.state IS NULL OR video.state != 'pending')
+                       AND (video.state IS NULL OR video.state != 'pending'
+                            OR video.last_error IS ?4)
                      ORDER BY media.created_at DESC LIMIT ?2",
                 )
                 .map_err(storage)?;
             query
-                .query_map(params![now, limit, MAX_HOLD_SECS], |row| {
+                .query_map(params![now, limit, MAX_HOLD_SECS, UNAVAILABLE], |row| {
                     Ok(QueuedMedia {
                         local_id: row.get(0)?,
                         modified_at: row.get(1)?,
@@ -330,7 +334,7 @@ impl BackupStore {
                     local_id,
                     modified_at,
                     now + UNAVAILABLE_DELAY_SECS,
-                    format!("{:?}", UploadOutcome::Unavailable)
+                    UNAVAILABLE
                 ],
             )
             .map_err(storage)?;
@@ -399,7 +403,7 @@ impl BackupStore {
         counts.unavailable = db
             .query_row(
                 "SELECT COUNT(*) FROM media WHERE state = 'pending' AND last_error = ?1",
-                params![format!("{:?}", UploadOutcome::Unavailable)],
+                params![UNAVAILABLE],
                 |row| row.get(0),
             )
             .map_err(storage)?;
@@ -553,6 +557,20 @@ mod tests {
         let then = s.next_batch(NOW, 10, 60).unwrap();
         assert_eq!(ids(&then), ["lp"]);
         assert_eq!(then[0].paired_video_id.as_deref(), Some("mov"));
+    }
+
+    #[test]
+    fn a_video_out_of_reach_does_not_hold_its_photo_back() {
+        let s = store();
+        let photo = LibraryMedia {
+            paired_video: Some("lp#video".into()),
+            ..seen("lp", 5, None)
+        };
+        s.record_library(vec![photo, seen("lp#video", 5, None)])
+            .unwrap();
+        s.record_unavailable("lp#video".into(), 5, NOW).unwrap();
+        assert_eq!(ids(&s.next_batch(NOW, 10, 60).unwrap()), ["lp"]);
+        assert_eq!(UNAVAILABLE, format!("{:?}", UploadOutcome::Unavailable));
     }
 
     #[test]
