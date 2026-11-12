@@ -33,6 +33,7 @@ const MIGRATIONS: &[&str] = &[
     CREATE INDEX remote_file_library ON remote_file (id_from_library);
 ",
     "ALTER TABLE media ADD COLUMN content_version TEXT;",
+    "ALTER TABLE media ADD COLUMN paired_video TEXT;",
 ];
 
 /// No lease nor delay lasts this long: a later `not_before` comes from a clock
@@ -57,6 +58,8 @@ pub struct QueuedMedia {
     pub modified_at: i64,
     pub md5: Option<String>,
     pub drive_file_id: Option<String>,
+    /// For the photo of a Live Photo: the Drive file of its video.
+    pub paired_video_id: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, uniffi::Record)]
@@ -67,6 +70,9 @@ pub struct LibraryMedia {
     /// What the content is made of (on iOS the original, or the md5 of its
     /// adjustment data). Unknown: any change of `modified_at` counts.
     pub content_version: Option<String>,
+    /// For the photo of a Live Photo: the key of its video
+    /// (`paired_video_key`), recorded in the same scan.
+    pub paired_video: Option<String>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, uniffi::Record)]
@@ -128,20 +134,35 @@ impl BackupStore {
                 .map_err(storage)?;
             let mut upsert = tx
                 .prepare(
-                    "INSERT INTO media (local_id, created_at, modified_at, content_version)
-                     VALUES (?1, ?2, ?3, ?4)
+                    "INSERT INTO media (local_id, created_at, modified_at, content_version, paired_video)
+                     VALUES (?1, ?2, ?3, ?4, ?5)
                      ON CONFLICT (local_id) DO UPDATE SET
                          created_at = excluded.created_at,
                          modified_at = excluded.modified_at,
                          content_version = excluded.content_version,
+                         paired_video = excluded.paired_video,
                          md5 = NULL, state = 'pending', attempts = 0, not_before = 0, last_error = NULL
                      WHERE media.modified_at != excluded.modified_at",
                 )
                 .map_err(storage)?;
             for m in media {
-                let row = params![m.local_id, m.created_at, m.modified_at, m.content_version];
-                same_content.execute(row).map_err(storage)?;
-                upsert.execute(row).map_err(storage)?;
+                same_content
+                    .execute(params![
+                        m.local_id,
+                        m.created_at,
+                        m.modified_at,
+                        m.content_version
+                    ])
+                    .map_err(storage)?;
+                upsert
+                    .execute(params![
+                        m.local_id,
+                        m.created_at,
+                        m.modified_at,
+                        m.content_version,
+                        m.paired_video
+                    ])
+                    .map_err(storage)?;
             }
         }
         tx.commit().map_err(storage)
@@ -188,9 +209,15 @@ impl BackupStore {
         let batch = {
             let mut query = tx
                 .prepare(
-                    "SELECT local_id, modified_at, md5, drive_file_id FROM media
-                     WHERE state = 'pending' AND (not_before <= ?1 OR not_before > ?1 + ?3)
-                     ORDER BY created_at DESC LIMIT ?2",
+                    // The photo of a Live Photo waits for its video: it
+                    // carries the Drive id of the video, as with the flagship.
+                    "SELECT media.local_id, media.modified_at, media.md5, media.drive_file_id,
+                            video.drive_file_id
+                     FROM media LEFT JOIN media AS video ON video.local_id = media.paired_video
+                     WHERE media.state = 'pending'
+                       AND (media.not_before <= ?1 OR media.not_before > ?1 + ?3)
+                       AND (video.state IS NULL OR video.state != 'pending')
+                     ORDER BY media.created_at DESC LIMIT ?2",
                 )
                 .map_err(storage)?;
             query
@@ -200,6 +227,7 @@ impl BackupStore {
                         modified_at: row.get(1)?,
                         md5: row.get(2)?,
                         drive_file_id: row.get(3)?,
+                        paired_video_id: row.get(4)?,
                     })
                 })
                 .map_err(storage)?
@@ -361,6 +389,7 @@ impl BackupStore {
             created_at,
             modified_at,
             content_version: None,
+            paired_video: None,
         }])
     }
 
@@ -472,7 +501,49 @@ mod tests {
             created_at: modified_at,
             modified_at,
             content_version: version.map(String::from),
+            paired_video: None,
         }
+    }
+
+    #[test]
+    fn the_photo_of_a_live_photo_goes_after_its_video_with_its_id() {
+        let s = store();
+        let photo = LibraryMedia {
+            paired_video: Some("lp#video".into()),
+            ..seen("lp", 5, None)
+        };
+        s.record_library(vec![photo, seen("lp#video", 5, None)])
+            .unwrap();
+        let first = s.next_batch(NOW, 10, 60).unwrap();
+        assert_eq!(ids(&first), ["lp#video"]);
+        s.set_md5("lp#video".into(), 5, MD5.into()).unwrap();
+        s.record_outcome("lp#video".into(), MD5.into(), uploaded("mov"), NOW)
+            .unwrap();
+        let then = s.next_batch(NOW, 10, 60).unwrap();
+        assert_eq!(ids(&then), ["lp"]);
+        assert_eq!(then[0].paired_video_id.as_deref(), Some("mov"));
+    }
+
+    #[test]
+    fn a_photo_whose_video_will_not_go_goes_alone() {
+        let s = store();
+        let photo = LibraryMedia {
+            paired_video: Some("lp#video".into()),
+            ..seen("lp", 5, None)
+        };
+        s.record_library(vec![photo, seen("lp#video", 5, None)])
+            .unwrap();
+        s.set_md5("lp#video".into(), 5, MD5.into()).unwrap();
+        s.record_outcome(
+            "lp#video".into(),
+            MD5.into(),
+            UploadOutcome::FileTooLarge,
+            NOW,
+        )
+        .unwrap();
+        let batch = s.next_batch(NOW, 10, 60).unwrap();
+        assert_eq!(ids(&batch), ["lp"]);
+        assert_eq!(batch[0].paired_video_id, None);
     }
 
     fn saved_with_version(s: &BackupStore, version: &str) {
@@ -558,6 +629,7 @@ mod tests {
                 modified_at: 2,
                 md5: None,
                 drive_file_id: Some("f1".into()),
+                paired_video_id: None,
             }]
         );
     }

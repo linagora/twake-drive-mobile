@@ -50,20 +50,23 @@ final class BackupPass {
       PHAssetMediaType.image.rawValue, PHAssetMediaType.video.rawValue)
     var media: [LibraryMedia] = []
     PHAsset.fetchAssets(with: options).enumerateObjects { asset, _, _ in
-      if asset.mediaSubtypes.contains(.photoLive) { return }
-      media.append(
+      let id = asset.localIdentifier
+      let video = asset.mediaSubtypes.contains(.photoLive) ? pairedVideoKey(libraryId: id) : nil
+      let row = { (localId: String, pairedVideo: String?) in
         LibraryMedia(
-          localId: asset.localIdentifier, createdAt: seconds(asset.creationDate),
+          localId: localId, createdAt: seconds(asset.creationDate),
           modifiedAt: seconds(asset.modificationDate ?? asset.creationDate),
-          contentVersion: contentVersion(asset)))
+          contentVersion: contentVersion(asset), pairedVideo: pairedVideo)
+      }
+      if let video { media.append(row(video, nil)) }
+      media.append(row(id, video))
     }
     try store.recordLibrary(media: media)
   }
 
   private func send(_ queued: QueuedMedia) throws -> PassAction {
-    guard
-      let asset = PHAsset.fetchAssets(withLocalIdentifiers: [queued.localId], options: nil).firstObject
-    else {
+    let id = libraryId(localId: queued.localId)
+    guard let asset = PHAsset.fetchAssets(withLocalIdentifiers: [id], options: nil).firstObject else {
       try store.forgetMedia(localId: queued.localId)
       return .continue
     }
@@ -74,7 +77,7 @@ final class BackupPass {
     {
       return .continue
     }
-    guard let export = try? Export(asset) else {
+    guard let export = try? Export(asset, pairedVideo: id != queued.localId) else {
       try store.recordUnavailable(localId: queued.localId, modifiedAt: queued.modifiedAt, now: now())
       return .continue
     }
@@ -87,7 +90,8 @@ final class BackupPass {
     }
     let media = MediaToSend(
       localId: queued.localId, name: export.name, mime: export.mime, size: export.size, md5: md5,
-      createdAt: seconds(asset.creationDate), modifiedAt: queued.modifiedAt, pairedVideoId: nil)
+      createdAt: seconds(asset.creationDate), modifiedAt: queued.modifiedAt,
+      pairedVideoId: queued.pairedVideoId)
     var nameAttempt: UInt32 = 0
     while true {
       let plan = try client.prepareUpload(
@@ -118,22 +122,28 @@ private struct Export {
   let mime: String
   let size: UInt64
 
-  init(_ asset: PHAsset) throws {
+  init(_ asset: PHAsset, pairedVideo: Bool) throws {
     let resources = PHAssetResource.assetResources(for: asset)
     let edited = resources.contains { $0.type == .adjustmentData }
     let types: [PHAssetResourceType] =
-      asset.mediaType == .video
-      ? (edited ? [.fullSizeVideo, .video] : [.video])
-      : (edited ? [.fullSizePhoto, .photo] : [.photo])
+      pairedVideo
+      ? (edited ? [.fullSizePairedVideo, .pairedVideo] : [.pairedVideo])
+      : asset.mediaType == .video
+        ? (edited ? [.fullSizeVideo, .video] : [.video])
+        : (edited ? [.fullSizePhoto, .photo] : [.photo])
     let original = resources.first { $0.type == .photo || $0.type == .video }
     guard
       let resource = types.lazy.compactMap({ type in resources.first { $0.type == type } }).first,
       let original
     else { throw CoreError.Io(reason: "no resource to export") }
     let type = UTType(resource.uniformTypeIdentifier)
-    // An edited photo exports as FullSizeRender.jpg: keep the original's name.
+    // An edited photo exports as FullSizeRender.jpg, the video of a Live Photo
+    // under some other name: both take the photo's name. The flagship always
+    // names that video .MOV.
     let base = (original.originalFilename as NSString).deletingPathExtension
-    let ext = type?.preferredFilenameExtension ?? (original.originalFilename as NSString).pathExtension
+    let ext =
+      pairedVideo
+      ? "MOV" : type?.preferredFilenameExtension ?? (original.originalFilename as NSString).pathExtension
     name = resource === original ? original.originalFilename : "\(base).\(ext)"
     mime = type?.preferredMIMEType ?? "application/octet-stream"
     file = exportFolder.appendingPathComponent("\(UUID().uuidString).\(ext)")
