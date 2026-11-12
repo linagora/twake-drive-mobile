@@ -6,6 +6,7 @@ use super::index;
 use super::upload::{self, MediaToSend};
 use crate::CoreError;
 use crate::backup::{BackupStore, PassAction, RemoteFile, UploadOutcome};
+use crate::library::library_id_of;
 
 #[derive(Debug, Clone, PartialEq, uniffi::Enum)]
 pub enum UploadPlan {
@@ -110,7 +111,7 @@ impl StackClient {
         };
         self.store
             .record_outcome(local_id.clone(), md5, outcome, now)?;
-        if file.id_from_library.as_deref() != Some(local_id.as_str()) {
+        if file.id_from_library.as_deref() != Some(library_id_of(&local_id)) {
             self.store.set_drive_file(&local_id, own_file.as_deref())?;
         }
         Ok(Some(file.file_id))
@@ -167,7 +168,7 @@ impl StackClient {
             self.store.add_remote_file(&RemoteFile {
                 file_id: file_id.clone(),
                 md5: media.md5.clone(),
-                id_from_library: Some(media.local_id.clone()),
+                id_from_library: Some(library_id_of(&media.local_id).into()),
                 name: media.name.clone(),
             })?;
         }
@@ -186,7 +187,7 @@ impl StackClient {
             Some(id) => Ok(Some(id)),
             None => self
                 .store
-                .remote_file_of_media(&media.local_id, &media.name),
+                .remote_file_of_media(library_id_of(&media.local_id), &media.name),
         }
     }
 }
@@ -223,6 +224,37 @@ mod tests {
             modified_at: 1_794_355_201,
             paired_video_id: None,
         }
+    }
+
+    #[test]
+    fn the_video_of_a_live_photo_goes_under_the_id_of_its_media() {
+        let (fake, tokens) = (FakeStack::new(), FakeTokens::valid());
+        let (client, store) = client(&fake, &tokens);
+        let folder = fake.add_dir("/Photos/B/iPhone");
+        let key = crate::paired_video_key("p1".into());
+        let video = MediaToSend {
+            name: "IMG_0001.MOV".into(),
+            mime: "video/quicktime".into(),
+            ..media(&key, "video")
+        };
+        store.record_media(key.clone(), 1, 1).unwrap();
+        store.set_md5(key.clone(), 1, "video".into()).unwrap();
+        let UploadPlan::Send { request } = client
+            .prepare_upload(folder.clone(), "dev-1".into(), video.clone(), 0, NOW)
+            .unwrap()
+        else {
+            panic!("a new video is sent")
+        };
+        assert!(
+            request.url.contains("%22idFromLibrary%22%3A%22p1%22"),
+            "{}",
+            request.url
+        );
+        let reply = client
+            .read_upload_response(video, 0, 201, br#"{"data":{"id":"mov"}}"#.to_vec(), NOW)
+            .unwrap();
+        assert!(matches!(reply, UploadReply::Recorded { .. }));
+        assert_eq!(store.drive_file_of(&key).unwrap().as_deref(), Some("mov"));
     }
 
     #[test]

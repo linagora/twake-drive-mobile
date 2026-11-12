@@ -4,6 +4,7 @@ use rusqlite::{Connection, ErrorCode, OptionalExtension, TransactionBehavior::Im
 
 use super::rules::{Decision, PassAction, UNAVAILABLE_DELAY_SECS, UploadOutcome, decide};
 use crate::CoreError;
+use crate::library::{library_id_of, paired_video_key};
 
 /// Each entry moves the schema one version up; `PRAGMA user_version` says how
 /// many already ran. Only ever append.
@@ -32,7 +33,12 @@ const MIGRATIONS: &[&str] = &[
     CREATE INDEX remote_file_md5 ON remote_file (md5);
     CREATE INDEX remote_file_library ON remote_file (id_from_library);
 ",
+    "ALTER TABLE media ADD COLUMN content_version TEXT;",
+    "ALTER TABLE media ADD COLUMN paired_video TEXT;",
+    "CREATE TABLE setting (key TEXT PRIMARY KEY, value BLOB NOT NULL);",
 ];
+
+const CHANGE_TOKEN: &str = "change_token";
 
 /// No lease nor delay lasts this long: a later `not_before` comes from a clock
 /// that went back, and the media is due at once.
@@ -46,6 +52,8 @@ const PENDING: &str = "pending";
 const DONE: &str = "done";
 const SKIPPED: &str = "skipped";
 const FAILED: &str = "failed";
+/// The `last_error` of a media the device could not read.
+const UNAVAILABLE: &str = "Unavailable";
 
 /// A media to upload. `drive_file_id` is set when an older version is already
 /// in Drive: the upload is then a new version of that file. `modified_at` goes
@@ -56,6 +64,8 @@ pub struct QueuedMedia {
     pub modified_at: i64,
     pub md5: Option<String>,
     pub drive_file_id: Option<String>,
+    /// For the photo of a Live Photo: the Drive file of its video.
+    pub paired_video_id: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, uniffi::Record)]
@@ -63,6 +73,12 @@ pub struct LibraryMedia {
     pub local_id: String,
     pub created_at: i64,
     pub modified_at: i64,
+    /// What the content is made of (on iOS the original, or the md5 of its
+    /// adjustment data). Unknown: any change of `modified_at` counts.
+    pub content_version: Option<String>,
+    /// For the photo of a Live Photo: the key of its video
+    /// (`paired_video_key`), recorded in the same scan.
+    pub paired_video: Option<String>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, uniffi::Record)]
@@ -110,26 +126,60 @@ impl BackupStore {
 
     /// The media seen in the library, in one transaction. A new one waits for
     /// its upload; one whose `modified_at` changed is hashed and uploaded again
-    /// as a new version. On iOS that is `modificationDate`, which a favorite
-    /// moves too: the media is hashed again, then found already in Drive.
+    /// as a new version, unless it is saved and its `content_version` says the
+    /// content stayed the same (on iOS `modificationDate` moves with a favorite
+    /// too). A failed or skipped media gets another try on any change.
     pub fn record_library(&self, media: Vec<LibraryMedia>) -> Result<(), CoreError> {
         let mut db = self.db();
         let tx = db.transaction_with_behavior(Immediate).map_err(storage)?;
         {
+            // Before the upsert, which moves modified_at.
+            let mut reset = tx
+                .prepare(
+                    "UPDATE media SET md5 = NULL, state = 'pending', attempts = 0, not_before = 0,
+                         last_error = NULL
+                     WHERE local_id = ?1 AND modified_at != ?2
+                       AND NOT (state = 'done' AND ?3 IS NOT NULL AND content_version IS ?3)",
+                )
+                .map_err(storage)?;
             let mut upsert = tx
                 .prepare(
-                    "INSERT INTO media (local_id, created_at, modified_at) VALUES (?1, ?2, ?3)
+                    "INSERT INTO media (local_id, created_at, modified_at, content_version, paired_video)
+                     VALUES (?1, ?2, ?3, ?4, ?5)
                      ON CONFLICT (local_id) DO UPDATE SET
                          created_at = excluded.created_at,
                          modified_at = excluded.modified_at,
-                         md5 = NULL, state = 'pending', attempts = 0, not_before = 0, last_error = NULL
-                     WHERE media.modified_at != excluded.modified_at",
+                         -- An unknown version of unchanged content keeps the known one.
+                         content_version = CASE
+                             WHEN excluded.content_version IS NULL
+                                  AND media.modified_at = excluded.modified_at
+                             THEN media.content_version
+                             ELSE excluded.content_version END,
+                         paired_video = excluded.paired_video",
                 )
                 .map_err(storage)?;
+            let mut gone_video = tx
+                .prepare("DELETE FROM media WHERE local_id = ?1")
+                .map_err(storage)?;
             for m in media {
-                upsert
-                    .execute(params![m.local_id, m.created_at, m.modified_at])
+                reset
+                    .execute(params![m.local_id, m.modified_at, m.content_version])
                     .map_err(storage)?;
+                upsert
+                    .execute(params![
+                        m.local_id,
+                        m.created_at,
+                        m.modified_at,
+                        m.content_version,
+                        m.paired_video
+                    ])
+                    .map_err(storage)?;
+                // An edit may turn a Live Photo into a still: its video is gone.
+                if m.paired_video.is_none() && library_id_of(&m.local_id) == m.local_id {
+                    gone_video
+                        .execute(params![paired_video_key(m.local_id)])
+                        .map_err(storage)?;
+                }
             }
         }
         tx.commit().map_err(storage)
@@ -176,18 +226,27 @@ impl BackupStore {
         let batch = {
             let mut query = tx
                 .prepare(
-                    "SELECT local_id, modified_at, md5, drive_file_id FROM media
-                     WHERE state = 'pending' AND (not_before <= ?1 OR not_before > ?1 + ?3)
-                     ORDER BY created_at DESC LIMIT ?2",
+                    // The photo of a Live Photo waits for its video: it
+                    // carries the Drive id of the video, as with the flagship.
+                    // A video out of reach does not hold the photo back.
+                    "SELECT media.local_id, media.modified_at, media.md5, media.drive_file_id,
+                            video.drive_file_id
+                     FROM media LEFT JOIN media AS video ON video.local_id = media.paired_video
+                     WHERE media.state = 'pending'
+                       AND (media.not_before <= ?1 OR media.not_before > ?1 + ?3)
+                       AND (video.state IS NULL OR video.state != 'pending'
+                            OR video.last_error IS ?4)
+                     ORDER BY media.created_at DESC LIMIT ?2",
                 )
                 .map_err(storage)?;
             query
-                .query_map(params![now, limit, MAX_HOLD_SECS], |row| {
+                .query_map(params![now, limit, MAX_HOLD_SECS, UNAVAILABLE], |row| {
                     Ok(QueuedMedia {
                         local_id: row.get(0)?,
                         modified_at: row.get(1)?,
                         md5: row.get(2)?,
                         drive_file_id: row.get(3)?,
+                        paired_video_id: row.get(4)?,
                     })
                 })
                 .map_err(storage)?
@@ -285,8 +344,34 @@ impl BackupStore {
                     local_id,
                     modified_at,
                     now + UNAVAILABLE_DELAY_SECS,
-                    format!("{:?}", UploadOutcome::Unavailable)
+                    UNAVAILABLE
                 ],
+            )
+            .map_err(storage)?;
+        Ok(())
+    }
+
+    /// Where the last scan of the library stopped, in the platform's own form
+    /// (on iOS an archived `PHPersistentChangeToken`). It lives with the state
+    /// it describes: a new account or a database rebuilt starts from a full scan.
+    pub fn change_token(&self) -> Result<Option<Vec<u8>>, CoreError> {
+        self.db()
+            .query_row(
+                "SELECT value FROM setting WHERE key = ?1",
+                params![CHANGE_TOKEN],
+                |row| row.get(0),
+            )
+            .optional()
+            .map_err(storage)
+    }
+
+    /// Saved once the changes it covers are recorded.
+    pub fn set_change_token(&self, token: Vec<u8>) -> Result<(), CoreError> {
+        self.db()
+            .execute(
+                "INSERT INTO setting (key, value) VALUES (?1, ?2)
+                 ON CONFLICT (key) DO UPDATE SET value = excluded.value",
+                params![CHANGE_TOKEN, token],
             )
             .map_err(storage)?;
         Ok(())
@@ -328,7 +413,7 @@ impl BackupStore {
         counts.unavailable = db
             .query_row(
                 "SELECT COUNT(*) FROM media WHERE state = 'pending' AND last_error = ?1",
-                params![format!("{:?}", UploadOutcome::Unavailable)],
+                params![UNAVAILABLE],
                 |row| row.get(0),
             )
             .map_err(storage)?;
@@ -348,6 +433,8 @@ impl BackupStore {
             local_id,
             created_at,
             modified_at,
+            content_version: None,
+            paired_video: None,
         }])
     }
 
@@ -440,18 +527,168 @@ mod tests {
             s.record_outcome(id.into(), MD5.into(), uploaded(id), NOW)
                 .unwrap();
         }
-        let seen = |local_id: &str, modified_at| LibraryMedia {
-            local_id: local_id.into(),
-            created_at: modified_at,
-            modified_at,
-        };
-        s.record_library(vec![seen("saved", 1), seen("edited", 4), seen("new", 3)])
-            .unwrap();
+        s.record_library(vec![
+            seen("saved", 1, None),
+            seen("edited", 4, None),
+            seen("new", 3, None),
+        ])
+        .unwrap();
         assert_eq!(
             ids(&s.next_batch(NOW, 10, 60).unwrap()),
             ["edited", "new"].map(String::from)
         );
         assert_eq!(s.counts().unwrap().done, 1);
+    }
+
+    fn seen(local_id: &str, modified_at: i64, version: Option<&str>) -> LibraryMedia {
+        LibraryMedia {
+            local_id: local_id.into(),
+            created_at: modified_at,
+            modified_at,
+            content_version: version.map(String::from),
+            paired_video: None,
+        }
+    }
+
+    #[test]
+    fn the_photo_of_a_live_photo_goes_after_its_video_with_its_id() {
+        let s = store();
+        let photo = LibraryMedia {
+            paired_video: Some("lp#video".into()),
+            ..seen("lp", 5, None)
+        };
+        s.record_library(vec![photo, seen("lp#video", 5, None)])
+            .unwrap();
+        let first = s.next_batch(NOW, 10, 60).unwrap();
+        assert_eq!(ids(&first), ["lp#video"]);
+        s.set_md5("lp#video".into(), 5, MD5.into()).unwrap();
+        s.record_outcome("lp#video".into(), MD5.into(), uploaded("mov"), NOW)
+            .unwrap();
+        let then = s.next_batch(NOW, 10, 60).unwrap();
+        assert_eq!(ids(&then), ["lp"]);
+        assert_eq!(then[0].paired_video_id.as_deref(), Some("mov"));
+    }
+
+    #[test]
+    fn a_video_out_of_reach_does_not_hold_its_photo_back() {
+        let s = store();
+        let photo = LibraryMedia {
+            paired_video: Some("lp#video".into()),
+            ..seen("lp", 5, None)
+        };
+        s.record_library(vec![photo, seen("lp#video", 5, None)])
+            .unwrap();
+        s.record_unavailable("lp#video".into(), 5, NOW).unwrap();
+        assert_eq!(ids(&s.next_batch(NOW, 10, 60).unwrap()), ["lp"]);
+        assert_eq!(UNAVAILABLE, format!("{:?}", UploadOutcome::Unavailable));
+    }
+
+    #[test]
+    fn a_failed_media_gets_another_try_when_it_changes() {
+        let s = store();
+        s.record_library(vec![seen("a", 1, Some("original"))])
+            .unwrap();
+        s.set_md5("a".into(), 1, MD5.into()).unwrap();
+        for _ in 0..super::super::rules::MAX_ATTEMPTS {
+            s.record_outcome(
+                "a".into(),
+                MD5.into(),
+                UploadOutcome::Refused { status: 422 },
+                NOW,
+            )
+            .unwrap();
+        }
+        assert_eq!(s.counts().unwrap().failed, 1);
+        s.record_library(vec![seen("a", 2, Some("original"))])
+            .unwrap();
+        assert_eq!(ids(&s.next_batch(NOW, 10, 60).unwrap()), ["a"]);
+    }
+
+    #[test]
+    fn a_version_learnt_later_spares_the_next_favorite() {
+        let s = store();
+        s.record_library(vec![seen("a", 1, None)]).unwrap();
+        s.set_md5("a".into(), 1, MD5.into()).unwrap();
+        s.record_outcome("a".into(), MD5.into(), uploaded("f1"), NOW)
+            .unwrap();
+        // A scan that knows the version, then one that could not read it.
+        s.record_library(vec![seen("a", 1, Some("original"))])
+            .unwrap();
+        s.record_library(vec![seen("a", 1, None)]).unwrap();
+        s.record_library(vec![seen("a", 2, Some("original"))])
+            .unwrap();
+        assert!(s.next_batch(NOW, 10, 60).unwrap().is_empty());
+    }
+
+    #[test]
+    fn a_live_photo_turned_into_a_still_drops_its_video() {
+        let s = store();
+        let photo = LibraryMedia {
+            paired_video: Some("lp#video".into()),
+            ..seen("lp", 5, None)
+        };
+        s.record_library(vec![photo, seen("lp#video", 5, None)])
+            .unwrap();
+        s.record_library(vec![seen("lp", 6, None)]).unwrap();
+        assert_eq!(s.counts().unwrap().pending, 1);
+        assert_eq!(ids(&s.next_batch(NOW, 10, 60).unwrap()), ["lp"]);
+    }
+
+    #[test]
+    fn a_photo_whose_video_will_not_go_goes_alone() {
+        let s = store();
+        let photo = LibraryMedia {
+            paired_video: Some("lp#video".into()),
+            ..seen("lp", 5, None)
+        };
+        s.record_library(vec![photo, seen("lp#video", 5, None)])
+            .unwrap();
+        s.set_md5("lp#video".into(), 5, MD5.into()).unwrap();
+        s.record_outcome(
+            "lp#video".into(),
+            MD5.into(),
+            UploadOutcome::FileTooLarge,
+            NOW,
+        )
+        .unwrap();
+        let batch = s.next_batch(NOW, 10, 60).unwrap();
+        assert_eq!(ids(&batch), ["lp"]);
+        assert_eq!(batch[0].paired_video_id, None);
+    }
+
+    fn saved_with_version(s: &BackupStore, version: &str) {
+        s.record_library(vec![seen("a", 1, Some(version))]).unwrap();
+        s.set_md5("a".into(), 1, MD5.into()).unwrap();
+        s.record_outcome("a".into(), MD5.into(), uploaded("f1"), NOW)
+            .unwrap();
+    }
+
+    #[test]
+    fn a_favorite_leaves_a_saved_media_saved() {
+        let s = store();
+        saved_with_version(&s, "original");
+        s.record_library(vec![seen("a", 2, Some("original"))])
+            .unwrap();
+        assert!(s.next_batch(NOW, 10, 60).unwrap().is_empty());
+        assert_eq!(s.counts().unwrap().done, 1);
+    }
+
+    #[test]
+    fn an_edit_queues_a_saved_media_again() {
+        let s = store();
+        saved_with_version(&s, "original");
+        s.record_library(vec![seen("a", 2, Some("adj-1"))]).unwrap();
+        let batch = s.next_batch(NOW, 10, 60).unwrap();
+        assert_eq!(ids(&batch), ["a"]);
+        assert_eq!(batch[0].md5, None);
+    }
+
+    #[test]
+    fn an_unknown_version_falls_back_on_the_date() {
+        let s = store();
+        saved_with_version(&s, "original");
+        s.record_library(vec![seen("a", 2, None)]).unwrap();
+        assert_eq!(ids(&s.next_batch(NOW, 10, 60).unwrap()), ["a"]);
     }
 
     #[test]
@@ -502,6 +739,7 @@ mod tests {
                 modified_at: 2,
                 md5: None,
                 drive_file_id: Some("f1".into()),
+                paired_video_id: None,
             }]
         );
     }
@@ -752,5 +990,20 @@ mod tests {
         let counts = BackupStore::open(path.clone()).unwrap().counts().unwrap();
         remove_db(&path);
         assert_eq!(counts.pending, 1);
+    }
+
+    #[test]
+    fn the_change_token_is_kept_across_a_reopen() {
+        let path = temp_db("token");
+        let s = BackupStore::open(path.clone()).unwrap();
+        assert_eq!(s.change_token().unwrap(), None);
+        s.set_change_token(vec![1, 2]).unwrap();
+        s.set_change_token(vec![3]).unwrap();
+        let token = BackupStore::open(path.clone())
+            .unwrap()
+            .change_token()
+            .unwrap();
+        remove_db(&path);
+        assert_eq!(token, Some(vec![3]));
     }
 }
