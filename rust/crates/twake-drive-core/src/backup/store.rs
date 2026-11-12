@@ -123,16 +123,20 @@ impl BackupStore {
 
     /// The media seen in the library, in one transaction. A new one waits for
     /// its upload; one whose `modified_at` changed is hashed and uploaded again
-    /// as a new version, unless its `content_version` says the content stayed
-    /// the same (on iOS `modificationDate` moves with a favorite too).
+    /// as a new version, unless it is saved and its `content_version` says the
+    /// content stayed the same (on iOS `modificationDate` moves with a favorite
+    /// too). A failed or skipped media gets another try on any change.
     pub fn record_library(&self, media: Vec<LibraryMedia>) -> Result<(), CoreError> {
         let mut db = self.db();
         let tx = db.transaction_with_behavior(Immediate).map_err(storage)?;
         {
-            let mut same_content = tx
+            // Before the upsert, which moves modified_at.
+            let mut reset = tx
                 .prepare(
-                    "UPDATE media SET created_at = ?2, modified_at = ?3
-                     WHERE local_id = ?1 AND modified_at != ?3 AND content_version = ?4",
+                    "UPDATE media SET md5 = NULL, state = 'pending', attempts = 0, not_before = 0,
+                         last_error = NULL
+                     WHERE local_id = ?1 AND modified_at != ?2
+                       AND NOT (state = 'done' AND ?3 IS NOT NULL AND content_version IS ?3)",
                 )
                 .map_err(storage)?;
             let mut upsert = tx
@@ -142,20 +146,18 @@ impl BackupStore {
                      ON CONFLICT (local_id) DO UPDATE SET
                          created_at = excluded.created_at,
                          modified_at = excluded.modified_at,
-                         content_version = excluded.content_version,
-                         paired_video = excluded.paired_video,
-                         md5 = NULL, state = 'pending', attempts = 0, not_before = 0, last_error = NULL
-                     WHERE media.modified_at != excluded.modified_at",
+                         -- An unknown version of unchanged content keeps the known one.
+                         content_version = CASE
+                             WHEN excluded.content_version IS NULL
+                                  AND media.modified_at = excluded.modified_at
+                             THEN media.content_version
+                             ELSE excluded.content_version END,
+                         paired_video = excluded.paired_video",
                 )
                 .map_err(storage)?;
             for m in media {
-                same_content
-                    .execute(params![
-                        m.local_id,
-                        m.created_at,
-                        m.modified_at,
-                        m.content_version
-                    ])
+                reset
+                    .execute(params![m.local_id, m.modified_at, m.content_version])
                     .map_err(storage)?;
                 upsert
                     .execute(params![
@@ -551,6 +553,43 @@ mod tests {
         let then = s.next_batch(NOW, 10, 60).unwrap();
         assert_eq!(ids(&then), ["lp"]);
         assert_eq!(then[0].paired_video_id.as_deref(), Some("mov"));
+    }
+
+    #[test]
+    fn a_failed_media_gets_another_try_when_it_changes() {
+        let s = store();
+        s.record_library(vec![seen("a", 1, Some("original"))])
+            .unwrap();
+        s.set_md5("a".into(), 1, MD5.into()).unwrap();
+        for _ in 0..super::super::rules::MAX_ATTEMPTS {
+            s.record_outcome(
+                "a".into(),
+                MD5.into(),
+                UploadOutcome::Refused { status: 422 },
+                NOW,
+            )
+            .unwrap();
+        }
+        assert_eq!(s.counts().unwrap().failed, 1);
+        s.record_library(vec![seen("a", 2, Some("original"))])
+            .unwrap();
+        assert_eq!(ids(&s.next_batch(NOW, 10, 60).unwrap()), ["a"]);
+    }
+
+    #[test]
+    fn a_version_learnt_later_spares_the_next_favorite() {
+        let s = store();
+        s.record_library(vec![seen("a", 1, None)]).unwrap();
+        s.set_md5("a".into(), 1, MD5.into()).unwrap();
+        s.record_outcome("a".into(), MD5.into(), uploaded("f1"), NOW)
+            .unwrap();
+        // A scan that knows the version, then one that could not read it.
+        s.record_library(vec![seen("a", 1, Some("original"))])
+            .unwrap();
+        s.record_library(vec![seen("a", 1, None)]).unwrap();
+        s.record_library(vec![seen("a", 2, Some("original"))])
+            .unwrap();
+        assert!(s.next_batch(NOW, 10, 60).unwrap().is_empty());
     }
 
     #[test]
