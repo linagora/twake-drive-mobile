@@ -81,6 +81,9 @@ jest.mock('@/account/commonSettings', () => ({
   useOpenCommonSettings: () => mockOpenCommonSettings
 }))
 
+let mockBackupCore: object | null = null
+jest.mock('@/native/twakeDriveCore', () => ({ backupCore: () => mockBackupCore }))
+
 // Production wraps every screen in PaperProvider (app/_layout.tsx); the
 // deletion dialog renders through a Paper <Portal>, which needs that host.
 const renderScreen = () =>
@@ -114,6 +117,13 @@ describe('SettingsIndex', () => {
     getByText('Clair')
     fireEvent.press(getByText('Sombre'))
     expect(mockSetPref).toHaveBeenCalledWith('dark')
+  })
+
+  it('offers the photo backup only where the Rust core is built in', () => {
+    mockBackupCore = null
+    expect(renderScreen().queryByTestId('settings-backup')).toBeNull()
+    mockBackupCore = {}
+    renderScreen().getByTestId('settings-backup')
   })
 
   it('names the crash reports switch after its row', () => {

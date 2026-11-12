@@ -380,5 +380,19 @@
     "kilobyte": "Ko",
     "megabyte": "Mo",
     "gigabyte": "Go"
+  },
+  "backup": {
+    "title": "Sauvegarde des photos",
+    "enable": "Sauvegarder mes photos",
+    "enableDescription": "Enregistre les photos et vidéos de ce téléphone dans votre Drive.",
+    "folder": "Dans {{path}}",
+    "chooseTitle": "Où sauvegarder ce téléphone",
+    "newFolderName": "Nouveau dossier pour ce téléphone",
+    "create": "Créer ce dossier",
+    "denied": "Twake Drive ne voit pas vos photos. Autorisez-le dans les Réglages de votre téléphone.",
+    "unavailable": "La sauvegarde des photos n'est pas encore disponible sur ce téléphone.",
+    "error": "La sauvegarde n'a pas pu démarrer. Vérifiez votre connexion et réessayez.",
+    "rootFolder": "Sauvegardé depuis mon mobile",
+    "invalidName": "Un nom de dossier ne peut pas être « . » ni « .. », ni contenir « / » ou un saut de ligne."
   }
 }

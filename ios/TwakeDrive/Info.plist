@@ -53,6 +53,8 @@
     </array>
     <key>NSLocalNetworkUsageDescription</key>
     <string>Allow $(PRODUCT_NAME) to connect to the development server on your local network.</string>
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>$(PRODUCT_NAME) saves your photos and videos to your Drive.</string>
     <key>NSUserActivityTypes</key>
     <array>
       <string>$(PRODUCT_BUNDLE_IDENTIFIER).expo.index_route</string>
