@@ -393,6 +393,19 @@
     "unavailable": "Il backup delle foto non è ancora disponibile su questo telefono.",
     "error": "Il backup non è partito. Controlla la connessione e riprova.",
     "rootFolder": "Backup da dispositivo mobile",
-    "invalidName": "Il nome di una cartella non può essere «.» o «..», né contenere «/» o un a capo."
+    "invalidName": "Il nome di una cartella non può essere «.» o «..», né contenere «/» o un a capo.",
+    "status": {
+      "title": "Avanzamento",
+      "counts": "{{done}} salvati, {{pending}} rimanenti",
+      "lastPass": "Ultimo backup {{when}}",
+      "neverRun": "Ancora nessun backup",
+      "noAccess": "Twake Drive non vede più le tue foto, il backup è in pausa. Consentilo nelle Impostazioni del telefono.",
+      "quota": "Il tuo Drive è pieno, il backup è in pausa finché non torna spazio.",
+      "stopped": "L'ultimo backup si è fermato prima della fine. Ripartirà da solo più tardi.",
+      "unavailable": "In attesa di iCloud: {{count}}. Verranno riprovati più tardi.",
+      "tooLarge": "Troppo grandi per il backup: {{count}}",
+      "failed": "Non salvati dopo diversi tentativi: {{count}}",
+      "retry": "Riprova"
+    }
   }
 }

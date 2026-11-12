@@ -384,6 +384,19 @@
     "unavailable": "Photo backup is not available on this phone yet.",
     "error": "The backup could not start. Check your connection and try again.",
     "rootFolder": "Mobile backup",
-    "invalidName": "A folder name cannot be \".\" or \"..\", nor contain \"/\" or a line break."
+    "invalidName": "A folder name cannot be \".\" or \"..\", nor contain \"/\" or a line break.",
+    "status": {
+      "title": "Progress",
+      "counts": "{{done}} saved, {{pending}} to go",
+      "lastPass": "Last backup {{when}}",
+      "neverRun": "No backup yet",
+      "noAccess": "Twake Drive can no longer see your photos, so the backup is paused. Allow it in the Settings of your phone.",
+      "quota": "Your Drive is full, so the backup is paused until there is room again.",
+      "stopped": "The last backup stopped before the end. It starts again by itself later.",
+      "unavailable": "Waiting for iCloud: {{count}}. They are tried again later.",
+      "tooLarge": "Too large to back up: {{count}}",
+      "failed": "Not backed up after several tries: {{count}}",
+      "retry": "Try again"
+    }
   }
 }
