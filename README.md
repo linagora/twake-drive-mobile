@@ -32,8 +32,9 @@ languages.
 - **Node.js 20+** — the Expo runtime fails on Node 16 (`FormData is not defined`)
 - **npm** — `package-lock.json` is the canonical lockfile (this project does not use yarn)
 - **Xcode** — for the iOS simulator and device builds
-- **Rust** (through [rustup](https://rustup.rs)) — for the iOS build; `rust/rust-toolchain.toml`
-  picks the version
+- **Rust** (through [rustup](https://rustup.rs)) — for the iOS and Android builds;
+  `rust/rust-toolchain.toml` picks the version. On Android, Gradle runs
+  `rust/scripts/build-android.sh`, which installs cargo-ndk and the NDK and accepts the SDK licenses
 - **JDK 17** — for Android; Gradle 8.14 / the Android Gradle Plugin fail on newer
   JDKs (e.g. JDK 24)
 
