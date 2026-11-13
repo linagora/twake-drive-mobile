@@ -5,7 +5,8 @@ edition.workspace = true
 publish.workspace = true
 
 [lib]
-crate-type = ["staticlib", "lib"]
+# staticlib for iOS, cdylib for the .so Android loads.
+crate-type = ["staticlib", "cdylib", "lib"]
 
 [dependencies]
 base64 = "0.22"

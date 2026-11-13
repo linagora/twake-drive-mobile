@@ -67,8 +67,11 @@ gcp-service-account*.json
 /e2e/maestro/screenshots/diff/
 /e2e/maestro/screenshots/.maestro-run/
 
-# Rust core: build output, and what rust/scripts/build-ios.sh generates for the pod
+# Rust core: build output, and what rust/scripts/build-ios.sh and build-android.sh
+# generate for the module
 /rust/target/
 /modules/twake-drive-core/ios/generated/
+/modules/twake-drive-core/android/src/main/jniLibs/
+/modules/twake-drive-core/android/src/main/java/com/linagora/twakedrive/core/
 # Gradle output of the local modules
 /modules/*/android/build/
