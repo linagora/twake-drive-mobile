@@ -400,6 +400,8 @@
       "lastPass": "Dernière sauvegarde {{when}}",
       "neverRun": "Pas encore de sauvegarde",
       "noAccess": "Twake Drive ne voit plus vos photos, la sauvegarde est en pause. Autorisez-le dans les Réglages de votre téléphone.",
+      "limitedAccess": "Twake Drive ne voit que les photos que vous avez choisies : les autres ne sont pas sauvegardées. Autorisez l'accès à toutes les photos dans les Réglages de votre téléphone.",
+      "openSettings": "Ouvrir les Réglages",
       "quota": "Votre Drive est plein, la sauvegarde est en pause jusqu'à ce qu'il y ait de la place.",
       "stopped": "La dernière sauvegarde s'est arrêtée avant la fin. Elle reprendra d'elle-même plus tard.",
       "waitingWifi": "Des médias attendent le Wi-Fi, comme vous l'avez choisi.",

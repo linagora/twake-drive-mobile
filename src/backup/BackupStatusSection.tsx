@@ -1,5 +1,5 @@
 import React from 'react'
-import { StyleSheet, View } from 'react-native'
+import { Linking, StyleSheet, View } from 'react-native'
 import { Button } from 'react-native-paper'
 import { useTranslation } from 'react-i18next'
 import { formatDistanceToNow } from 'date-fns'
@@ -28,13 +28,26 @@ export const BackupStatusSection = (): React.ReactElement | null => {
         })
       })
     : t('backup.status.neverRun')
+  const openSettings = {
+    label: t('backup.status.openSettings'),
+    onPress: () => void Linking.openSettings().catch(() => null),
+    testID: 'backup-open-settings'
+  }
   return (
     <SettingsSection title={t('backup.status.title')}>
       {access === 'denied' || access === 'restricted' ? (
         <InlineBanner
           tone="error"
           message={t('backup.status.noAccess')}
+          // A restricted access (parental controls, a managed phone) is not the user's to change.
+          action={access === 'denied' ? openSettings : undefined}
           testID="backup-no-access"
+        />
+      ) : access === 'limited' ? (
+        <InlineBanner
+          message={t('backup.status.limitedAccess')}
+          action={openSettings}
+          testID="backup-limited-access"
         />
       ) : null}
       {status.stoppedBy === 'QuotaExceeded' ? (

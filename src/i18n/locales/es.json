@@ -400,6 +400,8 @@
       "lastPass": "Última copia {{when}}",
       "neverRun": "Todavía no hay copia",
       "noAccess": "Twake Drive ya no ve tus fotos, la copia está en pausa. Permítelo en los Ajustes de tu teléfono.",
+      "limitedAccess": "Twake Drive solo ve las fotos que elegiste, así que las demás no se copian. Permite el acceso a todas las fotos en los Ajustes de tu teléfono.",
+      "openSettings": "Abrir Ajustes",
       "quota": "Tu Drive está lleno, la copia está en pausa hasta que vuelva a haber espacio.",
       "stopped": "La última copia se detuvo antes de terminar. Volverá a empezar sola más tarde.",
       "waitingWifi": "Algunos archivos esperan al Wi-Fi, como elegiste.",
