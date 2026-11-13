@@ -163,21 +163,21 @@ impl StackClient {
         Ok(moved)
     }
 
-    /// Puts the saved media of the albums the user picked in Drive albums of
+    /// Puts the saved media of the albums of the phone in Drive albums of
     /// the same names, as the flagship app does for Drive Photos. Called at
     /// the end of a pass: the media saved by the system or found in Drive
     /// count too.
     pub fn sync_albums(
         &self,
         device_id: String,
-        picked: Vec<AlbumMedia>,
+        albums: Vec<AlbumMedia>,
         now: i64,
     ) -> Result<(), CoreError> {
         let mut known = None;
         let mut first_error = None;
         // One album failing leaves the others to go; an album without a name
         // would merge with every other one.
-        for album in picked.iter().filter(|album| !album.name.is_empty()) {
+        for album in albums.iter().filter(|album| !album.name.is_empty()) {
             if let Err(e) = self.sync_album(&device_id, album, now, &mut known) {
                 first_error.get_or_insert(e);
             }

@@ -37,14 +37,23 @@ class LibraryTest {
     assertEquals(listOf(camera, screenshots, loose), inAlbums(listOf(camera, screenshots, loose), choices))
   }
 
+  private val whatsapp = media("5", "whatsapp")
+
   @Test
   fun `the albums picked go to Drive Photos with their media`() {
     val choices = listOf(AlbumChoice("camera", true), AlbumChoice("screenshots", false))
-    val albums = pickedAlbums(listOf(camera, screenshots, loose, media("4", "camera")), choices)
+    val albums = albumsForDrive(listOf(camera, screenshots, loose, media("4", "camera"), whatsapp), choices, "camera")
     assertEquals(
       listOf(AlbumMedia("camera", "camera", listOf(camera.localId, "content://media/external/images/media/4"))),
       albums,
     )
+  }
+
+  @Test
+  fun `without albums picked every album but the camera and those left out goes to Drive Photos`() {
+    val choices = listOf(AlbumChoice("screenshots", false))
+    val albums = albumsForDrive(listOf(camera, screenshots, loose, whatsapp), choices, "camera")
+    assertEquals(listOf(AlbumMedia("whatsapp", "whatsapp", listOf(whatsapp.localId))), albums)
   }
 
   @Test
