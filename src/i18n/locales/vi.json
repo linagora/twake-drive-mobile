@@ -386,7 +386,7 @@
       "stopped": "Lần sao lưu gần nhất đã dừng trước khi xong. Việc sao lưu sẽ tự chạy lại sau.",
       "waitingWifi": "Một số tệp đang chờ Wi-Fi, theo lựa chọn của bạn.",
       "waitingPower": "Việc sao lưu đang chờ điện thoại được sạc, theo lựa chọn của bạn.",
-      "unavailable": "Đang chờ iCloud: {{count}}. Sẽ thử lại sau.",
+      "unavailable": "Tạm thời chưa đọc được trên điện thoại: {{count}}. Sẽ thử lại sau.",
       "tooLarge": "Quá lớn để sao lưu: {{count}}",
       "failed": "Chưa sao lưu được sau nhiều lần thử: {{count}}",
       "retry": "Thử lại"

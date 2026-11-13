@@ -404,7 +404,7 @@
       "stopped": "La última copia se detuvo antes de terminar. Volverá a empezar sola más tarde.",
       "waitingWifi": "Algunos archivos esperan al Wi-Fi, como elegiste.",
       "waitingPower": "La copia espera a que el teléfono se cargue, como elegiste.",
-      "unavailable": "Esperando a iCloud: {{count}}. Se volverán a intentar más tarde.",
+      "unavailable": "No legibles en el teléfono por ahora: {{count}}. Se volverán a intentar más tarde.",
       "tooLarge": "Demasiado grandes para guardarse: {{count}}",
       "failed": "No guardados tras varios intentos: {{count}}",
       "retry": "Reintentar"

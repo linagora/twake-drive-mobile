@@ -11,9 +11,16 @@ const load = (native: object | null): typeof import('./twakeDriveCore') => {
   return core
 }
 
-it('offers the backup where the core has its engine', () => {
-  const native = { md5File: jest.fn(), runBackupPass: jest.fn() }
+const engine = Object.fromEntries(Object.keys(load(null).BACKUP_API).map(name => [name, jest.fn()]))
+
+it('offers the backup where the core has its whole engine', () => {
+  const native = { md5File: jest.fn(), ...engine }
   expect(load(native).backupCore()).toBe(native)
+})
+
+it('offers no backup from a module missing part of the engine', () => {
+  const { listAlbums: _missing, ...partial } = engine
+  expect(load({ md5File: jest.fn(), ...partial }).backupCore()).toBeNull()
 })
 
 it('offers the md5 only where the core has no backup engine yet', async () => {

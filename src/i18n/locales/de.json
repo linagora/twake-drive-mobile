@@ -395,7 +395,7 @@
       "stopped": "Die letzte Sicherung wurde vor dem Ende unterbrochen. Sie startet später von selbst neu.",
       "waitingWifi": "Einige Medien warten wie gewählt auf WLAN.",
       "waitingPower": "Die Sicherung wartet wie gewählt, bis das Telefon lädt.",
-      "unavailable": "Warten auf iCloud: {{count}}. Sie werden später erneut versucht.",
+      "unavailable": "Auf dem Telefon vorerst nicht lesbar: {{count}}. Sie werden später erneut versucht.",
       "tooLarge": "Zu groß für die Sicherung: {{count}}",
       "failed": "Nach mehreren Versuchen nicht gesichert: {{count}}",
       "retry": "Erneut versuchen"
