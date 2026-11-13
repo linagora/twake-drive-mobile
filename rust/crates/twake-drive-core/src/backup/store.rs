@@ -61,6 +61,7 @@ const MIGRATIONS: &[&str] = &[
         PRIMARY KEY (album_id, file_id)
     );
 ",
+    "ALTER TABLE album_remote ADD COLUMN dropped INTEGER NOT NULL DEFAULT 0;",
 ];
 
 /// How long an upload handed to the system holds its media. The platform
@@ -345,6 +346,14 @@ impl BackupStore {
             ),
         }
         .map_err(storage)?;
+        if included == Some(true) {
+            // Picked again after its deletion in Drive: the next pass makes it again.
+            tx.execute(
+                "DELETE FROM album_remote WHERE album_id = ?1 AND dropped = 1",
+                params![album_id],
+            )
+            .map_err(storage)?;
+        }
         tx.execute("DELETE FROM setting WHERE key = ?1", params![CHANGE_TOKEN])
             .map_err(storage)?;
         tx.commit().map_err(storage)
