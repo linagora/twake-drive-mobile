@@ -13,8 +13,13 @@ import com.facebook.react.common.ReleaseLevel
 import com.facebook.react.defaults.DefaultNewArchitectureEntryPoint
 import com.facebook.react.defaults.DefaultReactNativeHost
 
+import com.linagora.twakedrive.coremodule.BackupHost
+import com.linagora.twakedrive.coremodule.BackupSession
+import com.linagora.twakedrive.fileprovider.EncryptedCredentialStore
+import com.linagora.twakedrive.fileprovider.SessionStore
 import expo.modules.ApplicationLifecycleDispatcher
 import expo.modules.ReactNativeHostWrapper
+import okhttp3.OkHttpClient
 
 class MainApplication : Application(), ReactApplication {
 
@@ -46,6 +51,16 @@ class MainApplication : Application(), ReactApplication {
     }
     loadReactNative(this)
     ApplicationLifecycleDispatcher.onApplicationCreate(this)
+    registerBackupSession()
+  }
+
+  private fun registerBackupSession() {
+    val session = SessionStore(EncryptedCredentialStore(this), OkHttpClient())
+    BackupHost.session = object : BackupSession {
+      override fun baseUrl() = session.baseUri()
+      override fun accessToken() = session.accessToken()
+      override fun refresh(previous: String?) = session.refreshAccessToken(previous)
+    }
   }
 
   override fun onConfigurationChanged(newConfig: Configuration) {

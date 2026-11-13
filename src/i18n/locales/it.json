@@ -404,7 +404,7 @@
       "stopped": "L'ultimo backup si è fermato prima della fine. Ripartirà da solo più tardi.",
       "waitingWifi": "Alcuni file aspettano il Wi-Fi, come hai scelto.",
       "waitingPower": "Il backup aspetta che il telefono sia in carica, come hai scelto.",
-      "unavailable": "In attesa di iCloud: {{count}}. Verranno riprovati più tardi.",
+      "unavailable": "Per ora non leggibili sul telefono: {{count}}. Verranno riprovati più tardi.",
       "tooLarge": "Troppo grandi per il backup: {{count}}",
       "failed": "Non salvati dopo diversi tentativi: {{count}}",
       "retry": "Riprova"
