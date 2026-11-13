@@ -1,12 +1,23 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { AppState } from 'react-native'
 
-import { backupCore, type BackupStatus, type PhotoAccess } from '@/native/twakeDriveCore'
+import {
+  backupCore,
+  type BackupCounts,
+  type BackupStatus,
+  type PhotoAccess
+} from '@/native/twakeDriveCore'
 
 export interface BackupState {
   status: BackupStatus | null
   access: PhotoAccess | null
   retryFailed: () => Promise<void>
+}
+
+/** The share of the library the backup is done with, from 0 to 1. */
+export const savedShare = ({ done, pending, skipped, failed }: BackupCounts): number => {
+  const total = done + pending + skipped + failed
+  return total === 0 ? 1 : (total - pending) / total
 }
 
 /**

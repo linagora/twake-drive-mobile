@@ -1,7 +1,8 @@
 import React from 'react'
 import { StyleSheet, View } from 'react-native'
-import { Button, Text, useTheme } from 'react-native-paper'
+import { Button, Text, TouchableRipple, useTheme } from 'react-native-paper'
 
+import { ProgressLine } from '@/ui/ProgressLine'
 import { cozyTokens } from '@/ui/theme'
 
 type Tone = 'error' | 'info'
@@ -14,16 +15,29 @@ interface Action {
 
 interface Props {
   message: string
+  /** A second, smaller line under the message. */
+  detail?: string
+  /** From 0 to 1, drawn as a bar under the text. */
+  progress?: number
+  progressTestID?: string
   tone?: Tone
   actions?: Action[]
+  /** The whole block opens something; say what in `accessibilityHint`. */
+  onPress?: () => void
+  accessibilityHint?: string
   testID?: string
 }
 
 /** Inline notice block inside a scrolling screen (disk full, quota, …). */
 export const InlineBanner = ({
   message,
+  detail,
+  progress,
+  progressTestID,
   tone = 'info',
   actions = [],
+  onPress,
+  accessibilityHint,
   testID
 }: Props): React.ReactElement => {
   const theme = useTheme()
@@ -31,11 +45,38 @@ export const InlineBanner = ({
     tone === 'error' ? theme.colors.errorContainer : theme.colors.secondaryContainer
   const foreground =
     tone === 'error' ? theme.colors.onErrorContainer : theme.colors.onSecondaryContainer
-  return (
-    <View testID={testID} style={[styles.banner, { backgroundColor: background }]}>
+  const content = (
+    <>
       <Text variant="bodyMedium" style={{ color: foreground }}>
         {message}
       </Text>
+      {detail ? (
+        <Text variant="bodySmall" style={{ color: foreground }}>
+          {detail}
+        </Text>
+      ) : null}
+      {progress !== undefined ? (
+        <ProgressLine progress={progress} testID={progressTestID} style={styles.progress} />
+      ) : null}
+    </>
+  )
+  const style = [styles.banner, { backgroundColor: background }]
+  if (onPress) {
+    return (
+      <TouchableRipple
+        testID={testID}
+        accessibilityRole="button"
+        accessibilityHint={accessibilityHint}
+        onPress={onPress}
+        style={style}
+      >
+        <View>{content}</View>
+      </TouchableRipple>
+    )
+  }
+  return (
+    <View testID={testID} style={style}>
+      {content}
       {actions.length > 0 ? (
         <View style={styles.actions}>
           {actions.map((action, index) => (
@@ -63,6 +104,7 @@ const styles = StyleSheet.create({
     marginVertical: cozyTokens.spacing.sm,
     borderRadius: cozyTokens.radius.sm
   },
+  progress: { marginTop: cozyTokens.spacing.sm },
   actions: {
     flexDirection: 'row',
     flexWrap: 'wrap',
