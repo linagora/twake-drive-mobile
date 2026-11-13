@@ -87,6 +87,10 @@ final class BackupPass {
       try store.releaseMedia(localIds: heldBack)
       try store.waitFor(cause: "WaitingForWifi")
     }
+    // Drive Photos shows the albums picked; the backup goes on without them when this fails.
+    if !cancelled {
+      try? client.syncAlbums(deviceId: config.deviceId, picked: pickedAlbums(store.albumChoices()), now: now())
+    }
     // A pass cut short is not the last backup.
     if !cancelled { try store.endPass(now: now()) }
     report()
@@ -350,6 +354,23 @@ private func mediaOfAlbums(_ choices: [AlbumChoice]) -> Set<String> {
     media = ids(of: picked)
   }
   return media.subtracting(ids(of: choices.filter { !$0.included }.map(\.albumId)))
+}
+
+/// The albums the user picked that still exist, with their media, for Drive Photos.
+private func pickedAlbums(_ choices: [AlbumChoice]) -> [AlbumMedia] {
+  let picked = choices.filter(\.included).map(\.albumId)
+  guard !picked.isEmpty else { return [] }
+  var albums: [AlbumMedia] = []
+  PHAssetCollection.fetchAssetCollections(withLocalIdentifiers: picked, options: nil)
+    .enumerateObjects { album, _, _ in
+      var ids: [String] = []
+      PHAsset.fetchAssets(in: album, options: mediaOptions()).enumerateObjects { asset, _, _ in
+        ids.append(asset.localIdentifier)
+      }
+      albums.append(
+        AlbumMedia(albumId: album.localIdentifier, name: album.localizedTitle ?? "", localIds: ids))
+    }
+  return albums
 }
 
 func mediaOptions() -> PHFetchOptions {
