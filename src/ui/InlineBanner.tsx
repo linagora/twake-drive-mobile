@@ -15,7 +15,7 @@ interface Action {
 interface Props {
   message: string
   tone?: Tone
-  action?: Action
+  actions?: Action[]
   testID?: string
 }
 
@@ -23,7 +23,7 @@ interface Props {
 export const InlineBanner = ({
   message,
   tone = 'info',
-  action,
+  actions = [],
   testID
 }: Props): React.ReactElement => {
   const theme = useTheme()
@@ -36,16 +36,21 @@ export const InlineBanner = ({
       <Text variant="bodyMedium" style={{ color: foreground }}>
         {message}
       </Text>
-      {action ? (
-        <Button
-          testID={action.testID}
-          mode="text"
-          textColor={foreground}
-          style={styles.action}
-          onPress={action.onPress}
-        >
-          {action.label}
-        </Button>
+      {actions.length > 0 ? (
+        <View style={styles.actions}>
+          {actions.map((action, index) => (
+            <Button
+              key={action.testID ?? index}
+              testID={action.testID}
+              mode="text"
+              textColor={foreground}
+              // Not the press event: an action may be a native function that takes no argument.
+              onPress={() => action.onPress()}
+            >
+              {action.label}
+            </Button>
+          ))}
+        </View>
       ) : null}
     </View>
   )
@@ -58,5 +63,10 @@ const styles = StyleSheet.create({
     marginVertical: cozyTokens.spacing.sm,
     borderRadius: cozyTokens.radius.sm
   },
-  action: { alignSelf: 'flex-end', marginTop: cozyTokens.spacing.xs }
+  actions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'flex-end',
+    marginTop: cozyTokens.spacing.xs
+  }
 })

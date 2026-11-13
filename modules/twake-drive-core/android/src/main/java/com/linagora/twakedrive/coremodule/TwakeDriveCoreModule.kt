@@ -69,14 +69,14 @@ class TwakeDriveCoreModule : Module() {
       onStack(promise) { openBackup(context).client.createDeviceFolder(deviceId, deviceName, rootName).record }
     }
 
-    AsyncFunction("runBackupPass") { folderId: String, deviceId: String, folderPath: String?, promise: Promise ->
+    AsyncFunction("runBackupPass") { folderId: String, deviceId: String, promise: Promise ->
       passStop.set(false)
       val app = context.applicationContext
       // A pass may last long: on its own thread, the folder choice stays usable.
       passQueue.execute {
         settle(promise) {
           try {
-            BackupPass(app, BackupConfig(folderId, deviceId), { passStop.get() }, folderPath) {
+            BackupPass(app, BackupConfig(folderId, deviceId), { passStop.get() }) {
               sendEvent("onBackupProgress", it.record)
             }.run().record
           } finally {
@@ -95,6 +95,15 @@ class TwakeDriveCoreModule : Module() {
     }
 
     AsyncFunction("backupStatus") { promise: Promise -> onStack(promise) { openBackup(context).store.status().record } }
+
+    /** The user's answer to a folder gone: made again where it was. */
+    AsyncFunction("recreateDeviceFolder") { folderPath: String?, promise: Promise ->
+      val app = context.applicationContext
+      // With the passes and the stop, never between their steps.
+      passQueue.execute {
+        settle(promise) { openBackup(app).client.recreateDeviceFolder(folderPath); Unit }
+      }
+    }
 
     AsyncFunction("retryFailed") { promise: Promise -> onStack(promise) { openBackup(context).store.retryFailed() } }
 
