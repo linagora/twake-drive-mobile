@@ -405,6 +405,17 @@
       "cellularPhotos": "Photos over mobile data",
       "cellularVideos": "Videos over mobile data",
       "onlyCharging": "Only while charging"
+    },
+    "albums": {
+      "title": "Albums",
+      "open": "Choose the albums",
+      "listTitle": "Albums of this phone",
+      "nonePicked": "All the photos are backed up, except those of the albums left out. Tap an album to pick it, tap again to leave it out.",
+      "somePicked": "Only the photos of the albums picked are backed up, except those of the albums left out.",
+      "neutral": "Items: {{count}}",
+      "picked": "Picked, items: {{count}}",
+      "leftOut": "Left out, items: {{count}}",
+      "error": "The albums could not be read."
     }
   }
 }

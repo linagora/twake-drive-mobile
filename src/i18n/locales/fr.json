@@ -414,6 +414,17 @@
       "cellularPhotos": "Photos en données mobiles",
       "cellularVideos": "Vidéos en données mobiles",
       "onlyCharging": "Seulement en charge"
+    },
+    "albums": {
+      "title": "Albums",
+      "open": "Choisir les albums",
+      "listTitle": "Albums de ce téléphone",
+      "nonePicked": "Toutes les photos sont sauvegardées, sauf celles des albums exclus. Touchez un album pour le choisir, touchez encore pour l'exclure.",
+      "somePicked": "Seules les photos des albums choisis sont sauvegardées, sauf celles des albums exclus.",
+      "neutral": "Éléments : {{count}}",
+      "picked": "Choisi, éléments : {{count}}",
+      "leftOut": "Exclu, éléments : {{count}}",
+      "error": "Les albums n'ont pas pu être lus."
     }
   }
 }

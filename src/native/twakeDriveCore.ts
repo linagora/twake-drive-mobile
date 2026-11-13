@@ -44,6 +44,16 @@ export interface BackupConditions {
   onlyCharging: boolean
 }
 
+/** Picked: its media go. Left out: its media never go. None: neutral. */
+export type AlbumChoice = 'picked' | 'leftOut'
+
+export interface PhoneAlbum {
+  id: string
+  title: string
+  count: number
+  choice?: AlbumChoice
+}
+
 interface TwakeDriveCoreNative {
   md5File: (path: string) => Promise<string>
   requestPhotoAccess: () => Promise<PhotoAccess>
@@ -60,6 +70,8 @@ interface TwakeDriveCoreNative {
   backupStatus: () => Promise<BackupStatus>
   photoAccess: () => PhotoAccess
   retryFailed: () => Promise<void>
+  listAlbums: () => Promise<PhoneAlbum[]>
+  setAlbumChoice: (albumId: string, choice: AlbumChoice | null) => Promise<void>
   backupConditions: () => Promise<BackupConditions>
   setBackupConditions: (
     cellularPhotos: boolean,
