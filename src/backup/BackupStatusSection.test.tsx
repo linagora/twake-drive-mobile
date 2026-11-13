@@ -1,4 +1,5 @@
 import React from 'react'
+import { Linking } from 'react-native'
 import { fireEvent, render, waitFor } from '@testing-library/react-native'
 
 import i18n from '@/i18n'
@@ -57,9 +58,37 @@ it('tells the backup waits for Wi-Fi or power, as the user chose', () => {
   expect(screen.queryByTestId('backup-stopped')).toBeNull()
 })
 
-it('tells the access to the photos was taken back', () => {
-  mockState.access = 'denied'
-  render(<BackupStatusSection />).getByText(i18n.t('backup.status.noAccess'))
+describe('access to the photos', () => {
+  let openSettings: jest.SpyInstance
+  beforeEach(() => {
+    openSettings = jest.spyOn(Linking, 'openSettings').mockResolvedValue(undefined)
+  })
+  afterEach(() => openSettings.mockRestore())
+
+  it('tells the access was taken back, with a way to the settings', () => {
+    mockState.access = 'denied'
+    const screen = render(<BackupStatusSection />)
+    screen.getByText(i18n.t('backup.status.noAccess'))
+    fireEvent.press(screen.getByTestId('backup-open-settings'))
+    expect(openSettings).toHaveBeenCalled()
+  })
+
+  it('offers no settings to a restricted access, not the user to change', () => {
+    mockState.access = 'restricted'
+    const screen = render(<BackupStatusSection />)
+    screen.getByTestId('backup-no-access')
+    expect(screen.queryByTestId('backup-open-settings')).toBeNull()
+  })
+
+  it('tells only the photos picked are backed up, with a way to the settings', () => {
+    mockState.access = 'limited'
+    const screen = render(<BackupStatusSection />)
+    screen.getByTestId('backup-limited-access')
+    screen.getByText(i18n.t('backup.status.limitedAccess'))
+    expect(screen.queryByTestId('backup-no-access')).toBeNull()
+    fireEvent.press(screen.getByTestId('backup-open-settings'))
+    expect(openSettings).toHaveBeenCalled()
+  })
 })
 
 it('counts the media out of reach and too large', () => {
