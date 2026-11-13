@@ -1,9 +1,8 @@
 /**
- * OAuth scopes requested by Twake Drive Mobile.
- *
- * We deliberately do NOT ask for `*` (full access). Each entry below maps to
- * a feature the mobile app actually consumes — when a new feature touches a
- * new doctype, extend this list.
+ * OAuth scopes the client of Twake Drive Mobile registers with. The token
+ * itself is asked for with `FLAGSHIP_SCOPES` (registerSession,
+ * registerDirectSession), so the app reaches every doctype, the photo
+ * albums included.
  *
  * Format reference (cozy-stack permissions):
  *   "<doctype>"                                   ALL verbs on the doctype
@@ -12,12 +11,12 @@
  *                                                 PUT, PATCH, DELETE) or ALL
  *   "<doctype>:<verbs>:<selector>:<values>"       restrict by attribute
  *
- * Compared with twake-drive-web's manifest.webapp, the mobile subset omits
- * permissions tied to features not yet on mobile: io.cozy.photos.albums,
- * io.cozy.konnectors, io.cozy.accounts, io.cozy.jobs, io.cozy.triggers,
- * io.cozy.ai.chat.*, cc.cozycloud.dacc_v2, eu.mycozy.dacc_v2,
- * cc.cozycloud.errors. Add them when the corresponding mobile feature
- * lands.
+ * Compared with twake-drive-web's manifest.webapp, this list omits
+ * io.cozy.photos.albums, io.cozy.konnectors, io.cozy.accounts, io.cozy.jobs,
+ * io.cozy.triggers, io.cozy.ai.chat.*, cc.cozycloud.dacc_v2,
+ * eu.mycozy.dacc_v2 and cc.cozycloud.errors. A session signed in with this
+ * list only, before the flagship scope, reaches the photo albums once
+ * certifyFlagship ran.
  */
 export const APP_SCOPES: readonly string[] = [
   // Core file system: list, read, move, rename, delete, upload — all verbs.
@@ -53,8 +52,7 @@ export const APP_SCOPE_STRING: string = APP_SCOPES.join(' ')
 
 /**
  * Scope of a flagship-certified client: full access, which is what the stack
- * requires before it hands out a session code. Asked for on demand, when the
- * user opens an editor — never at login, where it would force the email-code
- * certification on the first sign-in.
+ * requires before it hands out a session code. Asked for at login, and by
+ * certifyFlagship when an editor opens in a session signed in without it.
  */
 export const FLAGSHIP_SCOPES: readonly string[] = ['*'] as const

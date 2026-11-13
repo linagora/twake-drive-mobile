@@ -1,6 +1,7 @@
 package com.linagora.twakedrive.coremodule
 
 import com.linagora.twakedrive.core.AlbumChoice
+import com.linagora.twakedrive.core.AlbumMedia
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -34,6 +35,16 @@ class LibraryTest {
   fun `an album picked then gone picks nothing any more`() {
     val choices = listOf(AlbumChoice("whatsapp", true))
     assertEquals(listOf(camera, screenshots, loose), inAlbums(listOf(camera, screenshots, loose), choices))
+  }
+
+  @Test
+  fun `the albums picked go to Drive Photos with their media`() {
+    val choices = listOf(AlbumChoice("camera", true), AlbumChoice("screenshots", false))
+    val albums = pickedAlbums(listOf(camera, screenshots, loose, media("4", "camera")), choices)
+    assertEquals(
+      listOf(AlbumMedia("camera", "camera", listOf(camera.localId, "content://media/external/images/media/4"))),
+      albums,
+    )
   }
 
   @Test
