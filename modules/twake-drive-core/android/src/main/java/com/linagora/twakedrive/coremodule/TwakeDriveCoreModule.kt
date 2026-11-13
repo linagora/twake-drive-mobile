@@ -1,6 +1,9 @@
 package com.linagora.twakedrive.coremodule
 
+import android.Manifest
 import android.content.Context
+import android.os.Build
+import androidx.work.ExistingWorkPolicy
 import com.linagora.twakedrive.core.BackupConditions
 import com.linagora.twakedrive.core.BackupConfig
 import com.linagora.twakedrive.core.BackupStatus
@@ -12,7 +15,6 @@ import expo.modules.kotlin.exception.CodedException
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 import java.util.concurrent.Executors
-import java.util.concurrent.atomic.AtomicBoolean
 
 class TwakeDriveCoreModule : Module() {
   private val context: Context
@@ -27,8 +29,13 @@ class TwakeDriveCoreModule : Module() {
 
     AsyncFunction("requestPhotoAccess") { promise: Promise ->
       val permissions = appContext.permissions ?: return@AsyncFunction promise.resolve(photoAccess(context))
+      // The progress of the passes in the background shows in a notification.
+      val notifications =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) listOf(Manifest.permission.POST_NOTIFICATIONS) else emptyList()
       permissions.askForPermissions(
-        PermissionsResponseListener { promise.resolve(photoAccess(context)) }, *photoPermissions().toTypedArray())
+        PermissionsResponseListener { promise.resolve(photoAccess(context)) },
+        *(photoPermissions() + notifications).toTypedArray(),
+      )
     }
 
     Function("photoAccess") { photoAccess(context) }
@@ -49,19 +56,26 @@ class TwakeDriveCoreModule : Module() {
 
     AsyncFunction("runBackupPass") { folderId: String, deviceId: String, promise: Promise ->
       passStop.set(false)
+      val app = context.applicationContext
       // A pass may last long: on its own thread, the folder choice stays usable.
       passQueue.execute {
         settle(promise) {
-          BackupPass(context, BackupConfig(folderId, deviceId), { passStop.get() }) {
-            sendEvent("onBackupProgress", it.record)
-          }.run().record
+          try {
+            BackupPass(app, BackupConfig(folderId, deviceId), { passStop.get() }) {
+              sendEvent("onBackupProgress", it.record)
+            }.run().record
+          } finally {
+            // A pass that fails, offline for one, still leaves the next ones planned.
+            if (!passStop.get()) runCatching { BackupSchedule.schedule(app) }
+          }
         }
       }
     }
 
-    /** The pass running ends after the media in progress. */
+    /** The pass running ends after the media in progress, and WorkManager starts no pass any more. */
     Function("stopBackupPass") {
       passStop.set(true)
+      BackupSchedule.cancel(context)
       passQueue.execute { runCatching { openBackup(context).store.clearBackupConfig() } }
     }
 
@@ -79,7 +93,13 @@ class TwakeDriveCoreModule : Module() {
 
     AsyncFunction("setBackupConditions") { cellularPhotos: Boolean, cellularVideos: Boolean, onlyCharging: Boolean, promise: Promise ->
       onStack(promise) {
-        openBackup(context).store.setConditions(BackupConditions(cellularPhotos, cellularVideos, onlyCharging))
+        val store = openBackup(context).store
+        val before = constraints(store.conditions()).build()
+        val conditions = BackupConditions(cellularPhotos, cellularVideos, onlyCharging)
+        store.setConditions(conditions)
+        if (constraints(conditions).build() != before && !passStop.get() && store.backupConfig() != null) {
+          BackupSchedule.schedule(context, ExistingWorkPolicy.REPLACE)
+        }
       }
     }
 
@@ -122,9 +142,7 @@ class TwakeDriveCoreModule : Module() {
   }
 }
 
-private val passStop = AtomicBoolean(false)
 private val stackQueue = Executors.newSingleThreadExecutor()
-private val passQueue = Executors.newSingleThreadExecutor()
 
 val DeviceFolder.record: Map<String, Any>
   get() = mapOf("id" to id, "name" to name, "path" to path, "deviceIds" to deviceIds, "createdAt" to createdAt)
