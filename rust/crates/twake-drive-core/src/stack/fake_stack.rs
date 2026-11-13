@@ -24,6 +24,8 @@ struct State {
     requests: u32,
     failing: Option<u16>,
     adopting_meanwhile: Option<String>,
+    albums: BTreeMap<String, Value>,
+    albums_db: bool,
 }
 
 pub struct FakeStack {
@@ -100,6 +102,20 @@ impl FakeStack {
         state.references.get(doc_id).cloned().unwrap_or_default()
     }
 
+    pub fn add_album(&self, name: &str, device_id: &str) -> String {
+        let mut state = self.state.lock().unwrap();
+        state.next_id += 1;
+        let id = format!("album{}", state.next_id);
+        let doc = json!({"_id": id, "name": name, "backupDeviceIds": [device_id]});
+        state.albums.insert(id.clone(), doc);
+        state.albums_db = true;
+        id
+    }
+
+    pub fn albums(&self) -> BTreeMap<String, Value> {
+        self.state.lock().unwrap().albums.clone()
+    }
+
     /// What `DELETE /files/:id` does: the document moves to the trash.
     pub fn trash(&self, id: &str) {
         let mut state = self.state.lock().unwrap();
@@ -145,6 +161,27 @@ impl FakeStack {
         let mut state = self.state.lock().unwrap();
         let parts: Vec<&str> = path.trim_start_matches('/').split('/').collect();
         match (method, parts.as_slice()) {
+            ("GET", ["data", "io.cozy.photos.albums", "_all_docs"]) => {
+                // The database of the doctype comes with the first album.
+                if !state.albums_db {
+                    return (404, json!({}));
+                }
+                let rows: Vec<Value> = state
+                    .albums
+                    .iter()
+                    .map(|(id, doc)| json!({"id": id, "doc": doc}))
+                    .collect();
+                (200, json!({ "rows": rows }))
+            }
+            ("POST", ["data", "io.cozy.photos.albums", ""]) => {
+                state.next_id += 1;
+                let id = format!("album{}", state.next_id);
+                let mut doc = body.unwrap();
+                doc["_id"] = json!(id);
+                state.albums.insert(id.clone(), doc.clone());
+                state.albums_db = true;
+                (201, json!({"id": id, "data": doc}))
+            }
             ("GET", ["data", "io.cozy.apps", doc, "relationships", "references"]) => {
                 let ids = state
                     .references

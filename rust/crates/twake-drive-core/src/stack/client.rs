@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use super::albums::{self, AlbumMedia};
 use super::folders::{self, DeviceFolder, MAX_NAME_ATTEMPTS};
 use super::http::{HttpRequest, Stack, StackTransport, TokenSource};
 use super::index;
@@ -130,6 +131,26 @@ impl StackClient {
         Ok(moved)
     }
 
+    /// Gives each album the user picked a Drive album of the same name, as the
+    /// flagship app does for Drive Photos.
+    pub fn sync_albums(
+        &self,
+        device_id: String,
+        picked: Vec<AlbumMedia>,
+        now: i64,
+    ) -> Result<(), CoreError> {
+        let mut known = None;
+        let mut first_error = None;
+        // One album failing leaves the others to go; an album without a name
+        // would merge with every other one.
+        for album in picked.iter().filter(|album| !album.name.is_empty()) {
+            if let Err(e) = self.sync_album(&device_id, album, now, &mut known) {
+                first_error.get_or_insert(e);
+            }
+        }
+        first_error.map_or(Ok(()), Err)
+    }
+
     /// Reads what the folder holds, for the dedup of the next uploads.
     pub fn sync_folder_index(&self, folder_id: String) -> Result<(), CoreError> {
         self.store
@@ -232,6 +253,32 @@ impl StackClient {
                 .store
                 .remote_file_of_media(library_id_of(&media.local_id), &media.name),
         }
+    }
+
+    /// `known` holds the backup albums of Drive once read, for the next albums.
+    fn sync_album(
+        &self,
+        device_id: &str,
+        album: &AlbumMedia,
+        now: i64,
+        known: &mut Option<Vec<(String, String)>>,
+    ) -> Result<(), CoreError> {
+        if self.store.remote_album(&album.album_id)?.is_some() {
+            return Ok(());
+        }
+        let known = match known {
+            Some(known) => known,
+            None => known.insert(albums::list(&self.stack)?),
+        };
+        let id = match known.iter().find(|(_, name)| *name == album.name) {
+            Some((id, _)) => id.clone(),
+            None => {
+                let id = albums::create(&self.stack, &album.name, device_id, now)?;
+                known.push((id.clone(), album.name.clone()));
+                id
+            }
+        };
+        self.store.set_remote_album(&album.album_id, &id)
     }
 }
 
@@ -361,6 +408,47 @@ mod tests {
             .unwrap();
         fake.add_file(&format!("{}/IMG.HEIC", folder.path), "m1", Some("p1"));
         folder
+    }
+
+    fn picked(local_ids: &[&str]) -> Vec<AlbumMedia> {
+        vec![AlbumMedia {
+            album_id: "local-vacances".into(),
+            name: "Vacances".into(),
+            local_ids: local_ids.iter().map(|id| id.to_string()).collect(),
+        }]
+    }
+
+    #[test]
+    fn a_picked_album_becomes_a_drive_album() {
+        let (fake, tokens) = (FakeStack::new(), FakeTokens::valid());
+        let (client, _) = client(&fake, &tokens);
+        client
+            .sync_albums("dev-1".into(), picked(&["p1"]), NOW)
+            .unwrap();
+        let albums = fake.albums();
+        let album = albums.values().next().unwrap();
+        assert_eq!(album["name"], "Vacances");
+        assert_eq!(album["backupDeviceIds"], serde_json::json!(["dev-1"]));
+        let before = fake.requests();
+        client
+            .sync_albums("dev-1".into(), picked(&["p1"]), NOW)
+            .unwrap();
+        assert_eq!(fake.requests(), before, "known, no call");
+    }
+
+    #[test]
+    fn an_album_of_the_same_name_from_another_backup_is_taken_up() {
+        let (fake, tokens) = (FakeStack::new(), FakeTokens::valid());
+        let (client, store) = client(&fake, &tokens);
+        let flagship = fake.add_album("Vacances", "flagship-device");
+        client
+            .sync_albums("dev-1".into(), picked(&["p1"]), NOW)
+            .unwrap();
+        assert_eq!(fake.albums().len(), 1);
+        assert_eq!(
+            store.remote_album("local-vacances").unwrap(),
+            Some(flagship)
+        );
     }
 
     #[test]
