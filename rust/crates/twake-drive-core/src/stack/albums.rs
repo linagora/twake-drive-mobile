@@ -127,7 +127,7 @@ pub(crate) fn add_files(
     Ok(done)
 }
 
-/// An album of the phone the user picked, with the media it holds.
+/// An album of the phone, with the media it holds.
 #[derive(Debug, Clone, PartialEq, uniffi::Record)]
 pub struct AlbumMedia {
     pub album_id: String,

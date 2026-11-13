@@ -10,7 +10,6 @@ import android.net.Uri
 import android.os.BatteryManager
 import android.os.Build
 import android.provider.MediaStore
-import com.linagora.twakedrive.core.AlbumMedia
 import com.linagora.twakedrive.core.BackupConfig
 import com.linagora.twakedrive.core.BackupStatus
 import com.linagora.twakedrive.core.CoreException
@@ -37,7 +36,6 @@ class BackupPass(
   private val exportFolder = File(context.cacheDir, "backup-export")
   /** Media of this pass held back for mobile data. */
   private val heldBack = mutableListOf<String>()
-  private var albums = emptyList<AlbumMedia>()
 
   fun run(): BackupStatus {
     // Without access MediaStore answers no rows: every media would look gone and be forgotten.
@@ -85,8 +83,12 @@ class BackupPass(
       store.releaseMedia(heldBack)
       store.waitFor("WaitingForWifi")
     }
-    // Drive Photos shows the albums picked; the backup goes on without them when this fails.
-    if (!cancelled && albums.isNotEmpty()) runCatching { client.syncAlbums(config.deviceId, albums, now()) }
+    // The backup goes on without the albums of Drive Photos when this fails.
+    // shortcut: the whole library is read each pass for its albums; skip it
+    // when no media was saved since the last one if large libraries slow passes.
+    if (!cancelled) {
+      runCatching { client.syncAlbums(config.deviceId, albumsForDrive(queryMedia(context), store.albumChoices()), now()) }
+    }
     if (!cancelled) store.endPass(now())
     report()
     return store.status()
@@ -104,9 +106,7 @@ class BackupPass(
   private fun scanLibrary(full: Boolean) {
     val choices = store.albumChoices()
     if (choices.isNotEmpty()) {
-      val library = queryMedia(context)
-      albums = pickedAlbums(library, choices)
-      val media = inAlbums(library, choices)
+      val media = inAlbums(queryMedia(context), choices)
       store.recordLibrary(media.map { it.toLibrary() })
       store.keepOnly(media.map { it.localId })
       return

@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
+import android.os.Environment
 import android.provider.MediaStore
 import android.provider.MediaStore.Files.FileColumns
 import com.linagora.twakedrive.core.AlbumChoice
@@ -78,13 +79,26 @@ fun inAlbums(media: List<PhoneMedia>, choices: List<AlbumChoice>): List<PhoneMed
   return media.filter { (picked.isEmpty() || it.bucketId in picked) && it.bucketId !in leftOut }
 }
 
-/** The albums the user picked, with their media, for Drive Photos. */
-fun pickedAlbums(media: List<PhoneMedia>, choices: List<AlbumChoice>): List<AlbumMedia> {
-  val picked = choices.filter { it.included }.map { it.albumId }.toSet()
-  return media.filter { it.bucketId in picked }.groupBy { it.bucketId!! }.map { (id, inAlbum) ->
-    AlbumMedia(id, inAlbum.first().bucketName ?: "", inAlbum.map { it.localId })
-  }
+/**
+ * The albums Drive Photos gets, with their media: those of [inAlbums], less the
+ * camera's when none is picked, which would hold the whole library.
+ */
+fun albumsForDrive(
+  media: List<PhoneMedia>,
+  choices: List<AlbumChoice>,
+  cameraBucket: String = cameraBucket(),
+): List<AlbumMedia> {
+  val anyPicked = choices.any { choice -> choice.included && media.any { it.bucketId == choice.albumId } }
+  return inAlbums(media, choices)
+    .filter { it.bucketId != null && (anyPicked || it.bucketId != cameraBucket) }
+    .groupBy { it.bucketId!! }
+    .map { (id, inAlbum) -> AlbumMedia(id, inAlbum.first().bucketName ?: "", inAlbum.map { it.localId }) }
 }
+
+// shortcut: MediaStore numbers a bucket with the hash of its folder path, not a
+// public contract; read RELATIVE_PATH if a phone shows its camera as an album.
+private fun cameraBucket(): String =
+  "${Environment.getExternalStorageDirectory()}/DCIM/Camera".lowercase().hashCode().toString()
 
 /** Where a scan stopped: MediaStore generations hold within one version of the volume. */
 data class ScanToken(val version: String, val generation: Long) {
