@@ -74,6 +74,44 @@ public class TwakeDriveCoreModule: Module {
       try openBackup().store.retryFailed()
     }.runOnQueue(stackQueue)
 
+    /// The albums of the phone with the user's choice: "picked", "leftOut",
+    /// or none. Shared iCloud albums are left aside, as with the flagship.
+    AsyncFunction("listAlbums") { () throws -> [[String: Any]] in
+      let store = try openBackup().store
+      var choices = Dictionary(uniqueKeysWithValues: try store.albumChoices().map { ($0.albumId, $0.included) })
+      var albums: [[String: Any]] = []
+      let lists = [
+        PHAssetCollection.fetchAssetCollections(with: .smartAlbum, subtype: .any, options: nil),
+        PHAssetCollection.fetchAssetCollections(with: .album, subtype: .albumRegular, options: nil),
+      ]
+      for list in lists {
+        list.enumerateObjects { album, _, _ in
+          let id = album.localIdentifier
+          let included = choices.removeValue(forKey: id)
+          // Counted as the backup reads them: photos and videos.
+          let count = PHAsset.fetchAssets(in: album, options: mediaOptions()).count
+          // An empty album with a choice stays, for the user to see and undo it.
+          guard count > 0 || included != nil, album.assetCollectionSubtype != .smartAlbumAllHidden else { return }
+          var record: [String: Any] = ["id": id, "title": album.localizedTitle ?? "", "count": count]
+          if let included { record["choice"] = included ? "picked" : "leftOut" }
+          albums.append(record)
+        }
+      }
+      // The choices left are of albums deleted since: they would hold the
+      // backup to albums no one can see. With limited access PhotoKit may hide
+      // albums: forgetting their choice would send a left-out album to Drive
+      // once the full access is back.
+      if PHPhotoLibrary.authorizationStatus(for: .readWrite) == .authorized {
+        for id in choices.keys { try store.setAlbumChoice(albumId: id, included: nil) }
+      }
+      return albums
+    }.runOnQueue(stackQueue)
+
+    AsyncFunction("setAlbumChoice") { (albumId: String, choice: String?) throws in
+      try openBackup().store.setAlbumChoice(
+        albumId: albumId, included: choice.map { $0 == "picked" })
+    }.runOnQueue(stackQueue)
+
     AsyncFunction("backupConditions") { () throws -> [String: Any] in
       let conditions = try openBackup().store.conditions()
       return [

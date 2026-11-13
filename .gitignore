@@ -70,3 +70,5 @@ gcp-service-account*.json
 # Rust core: build output, and what rust/scripts/build-ios.sh generates for the pod
 /rust/target/
 /modules/twake-drive-core/ios/generated/
+# Gradle output of the local modules
+/modules/*/android/build/
