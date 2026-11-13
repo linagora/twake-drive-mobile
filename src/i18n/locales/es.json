@@ -422,7 +422,11 @@
       "title": "Cuándo hacer la copia",
       "cellularPhotos": "Fotos con datos móviles",
       "cellularVideos": "Vídeos con datos móviles",
-      "onlyCharging": "Solo mientras carga"
+      "onlyCharging": "Solo mientras carga",
+      "instant": "Envío al hacer la foto",
+      "instantOn": "Según los ajustes de arriba, suelen enviarse en menos de un minuto, más tarde en ahorro de energía.",
+      "instantHeldBack": "Android las retiene para ahorrar batería, a veces durante horas. En los ajustes de batería, deja de optimizar Twake Drive para que se envíen en un minuto.",
+      "allowBackground": "Permitir"
     },
     "albums": {
       "title": "Álbumes",

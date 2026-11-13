@@ -413,7 +413,11 @@
       "title": "Wann sichern",
       "cellularPhotos": "Fotos über mobile Daten",
       "cellularVideos": "Videos über mobile Daten",
-      "onlyCharging": "Nur beim Laden"
+      "onlyCharging": "Nur beim Laden",
+      "instant": "Senden bei der Aufnahme",
+      "instantOn": "Unter den Bedingungen oben gehen sie meist innerhalb einer Minute, im Energiesparmodus später.",
+      "instantHeldBack": "Android hält sie zurück, um Akku zu sparen, manchmal stundenlang. Schalten Sie in den Akku-Einstellungen die Optimierung für Twake Drive aus, damit sie innerhalb einer Minute gehen.",
+      "allowBackground": "Erlauben"
     },
     "albums": {
       "title": "Alben",

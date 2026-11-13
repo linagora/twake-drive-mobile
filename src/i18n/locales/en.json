@@ -413,7 +413,11 @@
       "title": "When to back up",
       "cellularPhotos": "Photos over mobile data",
       "cellularVideos": "Videos over mobile data",
-      "onlyCharging": "Only while charging"
+      "onlyCharging": "Only while charging",
+      "instant": "Photos go as you take them",
+      "instantOn": "Under the conditions above, they usually go within a minute, later in power saving mode.",
+      "instantHeldBack": "Android holds them back to save battery, sometimes for hours. In the battery settings, stop optimizing Twake Drive so they go within a minute.",
+      "allowBackground": "Allow"
     },
     "albums": {
       "title": "Albums",

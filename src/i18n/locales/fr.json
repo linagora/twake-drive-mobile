@@ -422,7 +422,11 @@
       "title": "Quand sauvegarder",
       "cellularPhotos": "Photos en données mobiles",
       "cellularVideos": "Vidéos en données mobiles",
-      "onlyCharging": "Seulement en charge"
+      "onlyCharging": "Seulement en charge",
+      "instant": "Envoi dès la prise de vue",
+      "instantOn": "Selon les réglages ci-dessus, elles partent en général dans la minute, plus tard en économie d'énergie.",
+      "instantHeldBack": "Android les retient pour économiser la batterie, parfois des heures. Dans les réglages de la batterie, n'optimisez plus Twake Drive pour qu'elles partent dans la minute.",
+      "allowBackground": "Autoriser"
     },
     "albums": {
       "title": "Albums",

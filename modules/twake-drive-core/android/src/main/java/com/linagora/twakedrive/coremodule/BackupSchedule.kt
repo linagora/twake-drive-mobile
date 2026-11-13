@@ -1,13 +1,16 @@
 package com.linagora.twakedrive.coremodule
 
+import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.pm.ServiceInfo
 import android.os.Build
+import android.os.PowerManager
 import android.provider.MediaStore
 import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
 import androidx.work.Constraints
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.ExistingWorkPolicy
@@ -37,6 +40,10 @@ fun constraints(conditions: BackupConditions): Constraints.Builder = Constraints
   .setRequiresCharging(conditions.onlyCharging)
   .setRequiresBatteryNotLow(true)
 
+/** An app that ignores the battery optimization escapes Doze and the standby buckets. */
+fun isBatteryExempt(context: Context): Boolean =
+  context.getSystemService(PowerManager::class.java)?.isIgnoringBatteryOptimizations(context.packageName) == true
+
 /** The passes WorkManager starts: soon after a new media, and every hour. */
 object BackupSchedule {
   internal const val MEDIA = "backup-media"
@@ -59,8 +66,9 @@ object BackupSchedule {
     val trigger = constraints(conditions)
       .addContentUriTrigger(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, true)
       .addContentUriTrigger(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, true)
-      .setTriggerContentUpdateDelay(30, TimeUnit.SECONDS)
-      .setTriggerContentMaxDelay(5, TimeUnit.MINUTES)
+      // A burst of photos goes in one wake-up of the radio.
+      .setTriggerContentUpdateDelay(5, TimeUnit.SECONDS)
+      .setTriggerContentMaxDelay(1, TimeUnit.MINUTES)
       .build()
     WorkManager.getInstance(context).enqueueUniqueWork(
       MEDIA, policy,
@@ -90,17 +98,27 @@ class BackupWorker(context: Context, params: WorkerParameters) : Worker(context,
       return@submit Result.success()
     }
     if (stopped()) return@submit Result.success()
-    // Android refuses a foreground service to an app in the background unless
-    // it is exempt: the pass then has the ten minutes of a worker.
-    val foreground = runCatching { setForegroundAsync(foregroundInfo(null)).get() }.isSuccess
+    // Google Play keeps the data sync service for what the user starts, and Android
+    // refuses it to an app in the background unless it ignores the battery
+    // optimization: only then the pass runs as one. Otherwise it has the ten
+    // minutes of a worker, its progress in a plain notification.
+    val foreground = isBatteryExempt(context) && runCatching { setForegroundAsync(foregroundInfo(null)).get() }.isSuccess
+    val notifications = NotificationManagerCompat.from(context)
+    fun progress(status: BackupStatus) {
+      if (foreground) {
+        setForegroundAsync(foregroundInfo(status))
+      } else if (status.counts.pending > 0u) {
+        // Not ongoing: a pass the system kills must not leave it up.
+        runCatching { notifications.notify(NOTIFICATION_ID, notification(status, ongoing = false)) }
+      }
+    }
     // Media added during a pass changed the library after its scan: one more pass reads them.
     var passes = 0
     do {
       val scanned = ScanToken.current(context)
-      runCatching {
-        BackupPass(context, config, ::stopped) { if (foreground) setForegroundAsync(foregroundInfo(it)) }.run()
-      }
+      runCatching { BackupPass(context, config, ::stopped, onProgress = ::progress).run() }
     } while (!stopped() && ++passes < 3 && scanned != null && ScanToken.current(context) != scanned)
+    if (!foreground) notifications.cancel(NOTIFICATION_ID)
     // WorkManager starts a stopped worker again: only a pass that ends sets the next media trigger,
     // appended so that it waits for this one; the hourly pass sets it again if it is gone.
     if (!stopped()) {
@@ -114,7 +132,7 @@ class BackupWorker(context: Context, params: WorkerParameters) : Worker(context,
     Result.success()
   }.get()
 
-  private val notification by lazy {
+  private val builder by lazy {
     val context = applicationContext
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
       context.getSystemService(NotificationManager::class.java).createNotificationChannel(
@@ -130,15 +148,19 @@ class BackupWorker(context: Context, params: WorkerParameters) : Worker(context,
       .setSmallIcon(android.R.drawable.stat_sys_upload)
       .setContentTitle(context.getString(R.string.backup_notification_title))
       .setContentIntent(open)
-      .setOngoing(true)
       .setOnlyAlertOnce(true)
   }
 
-  private fun foregroundInfo(status: BackupStatus?): ForegroundInfo {
+  private fun notification(status: BackupStatus?, ongoing: Boolean): Notification {
     val left = status?.counts?.pending?.toInt()
-    val notification = notification
+    return builder
+      .setOngoing(ongoing)
       .setContentText(left?.let { applicationContext.resources.getQuantityString(R.plurals.backup_notification_left, it, it) })
       .build()
+  }
+
+  private fun foregroundInfo(status: BackupStatus?): ForegroundInfo {
+    val notification = notification(status, ongoing = true)
     return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
       ForegroundInfo(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
     } else {
