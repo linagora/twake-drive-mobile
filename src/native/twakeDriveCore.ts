@@ -16,7 +16,7 @@ export interface BackupCounts {
   pending: number
   skipped: number
   failed: number
-  /** Among `pending`, the media the phone could not read (iCloud out of reach). */
+  /** Among `pending`, the media the phone could not read (an iCloud original out of reach on iOS). */
   unavailable: number
 }
 
@@ -90,9 +90,27 @@ const native = requireOptionalNativeModule<TwakeDriveCoreNative>('TwakeDriveCore
 export const md5File = async (path: string): Promise<string | null> =>
   native ? native.md5File(path) : null
 
-/**
- * The photo backup of the Rust core, null where the core or its backup engine
- * (Android, for now) is missing.
- */
-export const backupCore = (): Omit<TwakeDriveCoreNative, 'md5File'> | null =>
-  native && 'runBackupPass' in native ? native : null
+type BackupCore = Omit<TwakeDriveCoreNative, 'md5File'>
+
+/** Everything the backup screens call: a module missing one offers no backup. */
+export const BACKUP_API: Record<keyof BackupCore, true> = {
+  requestPhotoAccess: true,
+  deviceName: true,
+  listDeviceFolders: true,
+  adoptDeviceFolder: true,
+  createDeviceFolder: true,
+  runBackupPass: true,
+  stopBackupPass: true,
+  backupStatus: true,
+  photoAccess: true,
+  retryFailed: true,
+  listAlbums: true,
+  setAlbumChoice: true,
+  backupConditions: true,
+  setBackupConditions: true,
+  addListener: true
+}
+
+/** The photo backup of the Rust core, null where the core or its whole backup engine is missing. */
+export const backupCore = (): BackupCore | null =>
+  native && Object.keys(BACKUP_API).every(name => name in native) ? native : null

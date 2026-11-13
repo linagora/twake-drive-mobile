@@ -395,7 +395,7 @@
       "stopped": "The last backup stopped before the end. It starts again by itself later.",
       "waitingWifi": "Some media wait for Wi-Fi, as you chose.",
       "waitingPower": "The backup waits for the phone to charge, as you chose.",
-      "unavailable": "Waiting for iCloud: {{count}}. They are tried again later.",
+      "unavailable": "Not readable on the phone for now: {{count}}. They are tried again later.",
       "tooLarge": "Too large to back up: {{count}}",
       "failed": "Not backed up after several tries: {{count}}",
       "retry": "Try again"
