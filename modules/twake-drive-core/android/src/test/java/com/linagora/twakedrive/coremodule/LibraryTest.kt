@@ -45,6 +45,12 @@ class LibraryTest {
   }
 
   @Test
+  fun `the state of an account is named after its host only`() {
+    assertEquals("alice.10-0-2-2.nip.io".replace('-', '_'), accountName("http://alice.10-0-2-2.nip.io/"))
+    assertEquals("drive.example.com", accountName("https://Drive.Example.com:8443/path"))
+  }
+
+  @Test
   fun `a video is told apart by its type`() {
     assertEquals(true, media("4", null).copy(mime = "video/mp4").isVideo)
     assertEquals(false, camera.isVideo)
