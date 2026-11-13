@@ -24,7 +24,9 @@ jest.mock('@/backup/activation', () => ({
 }))
 jest.mock('@/backup/backupSettings', () => ({ readBackupSettings: () => mockSettings }))
 const mockPass = jest.fn()
-jest.mock('@/backup/backupPass', () => ({ runBackupPass: (client: unknown) => mockPass(client) }))
+jest.mock('@/backup/backupPass', () => ({
+  runBackupPass: (client: unknown, title: unknown) => mockPass(client, title)
+}))
 jest.mock('@/backup/BackupConditionsSection', () => ({ BackupConditionsSection: () => null }))
 jest.mock('@/backup/BackupStatusSection', () => {
   const { Text } = jest.requireActual('react-native')
@@ -84,7 +86,7 @@ it('adopts the folder the user picks', async () => {
   await act(async () => fireEvent.press(screen.getByTestId('backup-folder-f1')))
   expect(mockFinish).toHaveBeenCalledWith({ adopt: flagship })
   screen.getByText(i18n.t('backup.folder', { path: flagship.path }))
-  expect(mockPass).toHaveBeenCalledWith(mockClient)
+  expect(mockPass).toHaveBeenCalledWith(mockClient, i18n.t('backup.title'))
 })
 
 it('creates a folder with the name typed, under the flagship root', async () => {

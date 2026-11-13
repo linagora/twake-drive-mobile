@@ -27,7 +27,8 @@
         "UIBackgroundModes": ["audio", "fetch", "processing"],
         "BGTaskSchedulerPermittedIdentifiers": [
           "com.linagora.twakedrive.backup.processing",
-          "com.linagora.twakedrive.backup.refresh"
+          "com.linagora.twakedrive.backup.refresh",
+          "com.linagora.twakedrive.backup.continued.*"
         ]
       },
       "associatedDomains": ["applinks:links.twake.app"]

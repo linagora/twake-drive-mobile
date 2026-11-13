@@ -92,6 +92,7 @@
     <array>
       <string>com.linagora.twakedrive.backup.processing</string>
       <string>com.linagora.twakedrive.backup.refresh</string>
+      <string>com.linagora.twakedrive.backup.continued.*</string>
     </array>
     <key>ITSAppUsesNonExemptEncryption</key>
     <false/>
