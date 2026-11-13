@@ -382,6 +382,8 @@
       "lastPass": "Lần sao lưu gần nhất {{when}}",
       "neverRun": "Chưa có lần sao lưu nào",
       "noAccess": "Twake Drive không còn thấy ảnh của bạn nên việc sao lưu đã tạm dừng. Hãy cho phép trong Cài đặt của điện thoại.",
+      "limitedAccess": "Twake Drive chỉ thấy những ảnh bạn đã chọn nên các ảnh khác không được sao lưu. Hãy cho phép truy cập tất cả ảnh trong Cài đặt của điện thoại.",
+      "openSettings": "Mở Cài đặt",
       "quota": "Drive của bạn đã đầy nên việc sao lưu tạm dừng cho đến khi có chỗ trống.",
       "stopped": "Lần sao lưu gần nhất đã dừng trước khi xong. Việc sao lưu sẽ tự chạy lại sau.",
       "waitingWifi": "Một số tệp đang chờ Wi-Fi, theo lựa chọn của bạn.",
