@@ -84,6 +84,8 @@ interface TwakeDriveCoreNative {
     event: 'onBackupProgress',
     listener: (status: BackupStatus) => void
   ) => { remove: () => void }
+  batteryOptimized?: () => boolean
+  openBatteryOptimizationSettings?: () => void
 }
 
 const native = requireOptionalNativeModule<TwakeDriveCoreNative>('TwakeDriveCore')
@@ -92,7 +94,35 @@ const native = requireOptionalNativeModule<TwakeDriveCoreNative>('TwakeDriveCore
 export const md5File = async (path: string): Promise<string | null> =>
   native ? native.md5File(path) : null
 
-type BackupCore = Omit<TwakeDriveCoreNative, 'md5File'>
+/**
+ * Android only: the battery optimization, which holds the passes of a new
+ * photo back until a maintenance window, and the system settings where the
+ * user lifts it. Null where the platform has none.
+ */
+export const batteryOptimization = (): {
+  isOn: () => boolean
+  openSettings: () => void
+} | null => {
+  const isOn = native?.batteryOptimized
+  const openSettings = native?.openBatteryOptimizationSettings
+  if (!isOn || !openSettings) return null
+  return {
+    // Thrown while the app context is torn down: nothing to tell then.
+    isOn: () => {
+      try {
+        return isOn()
+      } catch {
+        return false
+      }
+    },
+    openSettings
+  }
+}
+
+type BackupCore = Omit<
+  TwakeDriveCoreNative,
+  'md5File' | 'batteryOptimized' | 'openBatteryOptimizationSettings'
+>
 
 /** Everything the backup screens call: a module missing one offers no backup. */
 export const BACKUP_API: Record<keyof BackupCore, true> = {

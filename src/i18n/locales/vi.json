@@ -404,7 +404,11 @@
       "title": "Khi nào sao lưu",
       "cellularPhotos": "Ảnh qua dữ liệu di động",
       "cellularVideos": "Video qua dữ liệu di động",
-      "onlyCharging": "Chỉ khi đang sạc"
+      "onlyCharging": "Chỉ khi đang sạc",
+      "instant": "Gửi ngay khi chụp",
+      "instantOn": "Theo các cài đặt ở trên, ảnh thường được gửi trong vòng một phút, muộn hơn ở chế độ tiết kiệm pin.",
+      "instantHeldBack": "Android giữ ảnh lại để tiết kiệm pin, đôi khi hàng giờ. Trong cài đặt pin, hãy tắt tối ưu hóa cho Twake Drive để ảnh được gửi trong vòng một phút.",
+      "allowBackground": "Cho phép"
     },
     "albums": {
       "title": "Album",
