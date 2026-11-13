@@ -14,11 +14,16 @@ android {
   defaultConfig {
     consumerProguardFiles 'proguard-rules.pro'
   }
+  // The pure logic is tested on the JVM: the Android classes it loads answer defaults.
+  testOptions {
+    unitTests.returnDefaultValues = true
+  }
 }
 
 dependencies {
   // The UniFFI bindings reach the Rust core through JNA.
   implementation 'net.java.dev.jna:jna:5.17.0@aar'
+  testImplementation 'junit:junit:4.13.2'
 }
 
 // The .so of each ABI and the Kotlin bindings, built again when rust/ changes.
