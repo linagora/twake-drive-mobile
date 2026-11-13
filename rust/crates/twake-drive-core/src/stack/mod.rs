@@ -1,3 +1,4 @@
+mod albums;
 mod client;
 mod dates;
 #[cfg(test)]
@@ -7,6 +8,7 @@ mod http;
 mod index;
 mod upload;
 
+pub use albums::AlbumMedia;
 pub use client::{StackClient, UploadPlan, UploadReply};
 pub use folders::DeviceFolder;
 pub use http::{Header, HttpRequest, HttpResponse, StackTransport, TokenSource};

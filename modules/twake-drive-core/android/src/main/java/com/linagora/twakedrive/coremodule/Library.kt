@@ -9,6 +9,7 @@ import android.os.Build
 import android.provider.MediaStore
 import android.provider.MediaStore.Files.FileColumns
 import com.linagora.twakedrive.core.AlbumChoice
+import com.linagora.twakedrive.core.AlbumMedia
 import com.linagora.twakedrive.core.LibraryMedia
 
 data class PhoneMedia(
@@ -75,6 +76,14 @@ fun inAlbums(media: List<PhoneMedia>, choices: List<AlbumChoice>): List<PhoneMed
   val picked = choices.filter { it.included }.map { it.albumId }.toSet() intersect media.map { it.bucketId }.toSet()
   val leftOut = choices.filter { !it.included }.map { it.albumId }.toSet()
   return media.filter { (picked.isEmpty() || it.bucketId in picked) && it.bucketId !in leftOut }
+}
+
+/** The albums the user picked, with their media, for Drive Photos. */
+fun pickedAlbums(media: List<PhoneMedia>, choices: List<AlbumChoice>): List<AlbumMedia> {
+  val picked = choices.filter { it.included }.map { it.albumId }.toSet()
+  return media.filter { it.bucketId in picked }.groupBy { it.bucketId!! }.map { (id, inAlbum) ->
+    AlbumMedia(id, inAlbum.first().bucketName ?: "", inAlbum.map { it.localId })
+  }
 }
 
 /** Where a scan stopped: MediaStore generations hold within one version of the volume. */
