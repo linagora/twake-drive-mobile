@@ -5,7 +5,7 @@ use super::http::{HttpRequest, Stack, StackTransport, TokenSource};
 use super::index;
 use super::upload::{self, MediaToSend};
 use crate::CoreError;
-use crate::backup::{BackupStore, PassAction, RemoteFile, UploadOutcome};
+use crate::backup::{BackupConfig, BackupStore, PassAction, RemoteFile, UploadOutcome};
 use crate::library::library_id_of;
 
 #[derive(Debug, Clone, PartialEq, uniffi::Enum)]
@@ -73,7 +73,10 @@ impl StackClient {
         device_name: String,
         root_name: String,
     ) -> Result<DeviceFolder, CoreError> {
-        folders::create(&self.stack, &device_id, &device_name, &root_name)
+        let folder = folders::create(&self.stack, &device_id, &device_name, &root_name)?;
+        // Known before the first pass: the folder may go before it.
+        self.store.set_folder_path(&folder.path)?;
+        Ok(folder)
     }
 
     /// Picks up the folder of another install or of the flagship app: the
@@ -84,7 +87,47 @@ impl StackClient {
         folder_id: String,
         device_id: String,
     ) -> Result<DeviceFolder, CoreError> {
-        folders::adopt(&self.stack, &folder_id, &device_id)
+        let folder = folders::adopt(&self.stack, &folder_id, &device_id)?;
+        self.store.set_folder_path(&folder.path)?;
+        Ok(folder)
+    }
+
+    /// Where the pass goes, called first. The stored folder wins over
+    /// `requested`: a pass the system started may have made it again since the
+    /// app read its setting. A deleted or trashed folder is replaced by another
+    /// folder of the device or a new one at the same path; every media goes again.
+    /// `requested_path`, where the app last saw its folder, stands in for a
+    /// store that never read the path, one older than this.
+    pub fn ensure_device_folder(
+        &self,
+        requested: BackupConfig,
+        requested_path: Option<String>,
+    ) -> Result<BackupConfig, CoreError> {
+        let config = self
+            .store
+            .backup_config()?
+            .filter(|stored| stored.device_id == requested.device_id)
+            .unwrap_or(requested);
+        if let Some(folder) = folders::current(&self.stack, &config.folder_id)? {
+            self.store.keep_folder(&config, &folder.path)?;
+            return Ok(config);
+        }
+        let folder = match self.find_device_folder(config.device_id.clone())? {
+            Some(folder) => folder,
+            None => {
+                let known = self.store.folder_path()?.or(requested_path);
+                let path = known.ok_or_else(|| CoreError::Stack {
+                    reason: "the device folder is gone and its path unknown".into(),
+                })?;
+                folders::create_at(&self.stack, &config.device_id, &path)?
+            }
+        };
+        let moved = BackupConfig {
+            folder_id: folder.id,
+            device_id: config.device_id,
+        };
+        self.store.move_to_folder(&moved, &folder.path)?;
+        Ok(moved)
     }
 
     /// Reads what the folder holds, for the dedup of the next uploads.
@@ -283,6 +326,162 @@ mod tests {
             Some(folder)
         );
         assert_eq!(client.find_device_folder("dev-2".into()).unwrap(), None);
+    }
+
+    fn config(folder_id: &str) -> BackupConfig {
+        BackupConfig {
+            folder_id: folder_id.into(),
+            device_id: "dev-1".into(),
+        }
+    }
+
+    /// A folder made the way the app does, with one media saved in it.
+    fn saved_backup(
+        fake: &Arc<FakeStack>,
+        client: &StackClient,
+        store: &BackupStore,
+    ) -> DeviceFolder {
+        let folder = client
+            .create_device_folder("dev-1".into(), "iPhone".into(), "B".into())
+            .unwrap();
+        client
+            .ensure_device_folder(config(&folder.id), None)
+            .unwrap();
+        store.record_media("p1".into(), 1, 1).unwrap();
+        store.set_md5("p1".into(), 1, "m1".into()).unwrap();
+        store
+            .record_outcome(
+                "p1".into(),
+                "m1".into(),
+                UploadOutcome::Uploaded {
+                    file_id: "f1".into(),
+                },
+                NOW,
+            )
+            .unwrap();
+        fake.add_file(&format!("{}/IMG.HEIC", folder.path), "m1", Some("p1"));
+        folder
+    }
+
+    #[test]
+    fn a_device_folder_in_the_trash_is_made_again_and_its_media_go_again() {
+        let (fake, tokens) = (FakeStack::new(), FakeTokens::valid());
+        let (client, store) = client(&fake, &tokens);
+        let old = saved_backup(&fake, &client, &store);
+        fake.trash(&old.id);
+        let moved = client.ensure_device_folder(config(&old.id), None).unwrap();
+        assert_ne!(moved.folder_id, old.id);
+        let status = store.status().unwrap();
+        assert_eq!(status.folder_id.as_deref(), Some(moved.folder_id.as_str()));
+        assert_eq!(status.folder_path.as_deref(), Some("/Photos/B/iPhone"));
+        assert_eq!((status.counts.done, status.counts.pending), (0, 1));
+        assert_eq!(store.drive_file_of("p1").unwrap(), None);
+        // The md5 stays: no export to find a copy the new folder holds.
+        let batch = store.next_batch(NOW, 16, 600).unwrap();
+        assert_eq!(batch[0].md5.as_deref(), Some("m1"));
+        assert_eq!(
+            client
+                .find_device_folder("dev-1".into())
+                .unwrap()
+                .unwrap()
+                .id,
+            moved.folder_id
+        );
+    }
+
+    #[test]
+    fn the_app_asking_for_the_deleted_folder_keeps_the_one_made_again() {
+        let (fake, tokens) = (FakeStack::new(), FakeTokens::valid());
+        let (client, store) = client(&fake, &tokens);
+        let old = saved_backup(&fake, &client, &store);
+        fake.destroy(&old.id);
+        let moved = client.ensure_device_folder(config(&old.id), None).unwrap();
+        store
+            .record_outcome(
+                "p1".into(),
+                "m1".into(),
+                UploadOutcome::Uploaded {
+                    file_id: "f2".into(),
+                },
+                NOW,
+            )
+            .unwrap();
+        // The app's setting still names the old folder.
+        assert_eq!(
+            client.ensure_device_folder(config(&old.id), None).unwrap(),
+            moved
+        );
+        assert_eq!(store.status().unwrap().counts.done, 1);
+        assert_eq!(client.list_device_folders().unwrap().len(), 1);
+    }
+
+    #[test]
+    fn a_store_older_than_the_path_makes_the_folder_again_where_the_app_saw_it() {
+        let (fake, tokens) = (FakeStack::new(), FakeTokens::valid());
+        let (client, store) = client(&fake, &tokens);
+        // Set by an app that did not keep the path yet, the folder gone since.
+        store.set_backup_config(config("gone")).unwrap();
+        let path = "/Photos/B/iPhone".to_string();
+        let err = client.ensure_device_folder(config("gone"), None);
+        assert!(err.is_err(), "no path, nowhere to go");
+        let moved = client
+            .ensure_device_folder(config("gone"), Some(path.clone()))
+            .unwrap();
+        assert_eq!(moved.folder_id, fake.id_at(&path));
+        assert_eq!(store.status().unwrap().folder_path, Some(path));
+    }
+
+    #[test]
+    fn a_folder_moved_out_of_photos_is_made_again_where_it_was() {
+        let (fake, tokens) = (FakeStack::new(), FakeTokens::valid());
+        let (client, store) = client(&fake, &tokens);
+        let old = fake.add_device_dir("/Archives/iPhone", "dev-1", "2026-01-01T00:00:00Z");
+        fake.reference("io.cozy.apps/photos/mobile", &old);
+        client
+            .adopt_device_folder(old.clone(), "dev-1".into())
+            .unwrap();
+        fake.destroy(&old);
+        let moved = client.ensure_device_folder(config(&old), None).unwrap();
+        assert_eq!(moved.folder_id, fake.id_at("/Archives/iPhone"));
+        assert_eq!(
+            store.status().unwrap().folder_path.as_deref(),
+            Some("/Archives/iPhone")
+        );
+    }
+
+    #[test]
+    fn the_uploads_handed_to_the_system_for_the_old_folder_are_dropped() {
+        let (fake, tokens) = (FakeStack::new(), FakeTokens::valid());
+        let (client, store) = client(&fake, &tokens);
+        let old = saved_backup(&fake, &client, &store);
+        store.record_media("p2".into(), 1, 1).unwrap();
+        store
+            .park_upload(media("p2", "m2"), 0, "/tmp/p2".into(), NOW)
+            .unwrap();
+        fake.trash(&old.id);
+        client.ensure_device_folder(config(&old.id), None).unwrap();
+        assert_eq!(store.parked_upload("p2".into()).unwrap(), None);
+    }
+
+    #[test]
+    fn another_folder_of_the_device_takes_over_from_a_deleted_one() {
+        let (fake, tokens) = (FakeStack::new(), FakeTokens::valid());
+        let (client, store) = client(&fake, &tokens);
+        let old = saved_backup(&fake, &client, &store);
+        let other = fake.add_device_dir("/Photos/B/iPhone 2", "dev-1", "2026-01-01T00:00:00Z");
+        fake.reference("io.cozy.apps/photos/mobile", &other);
+        fake.trash(&old.id);
+        assert_eq!(
+            client
+                .ensure_device_folder(config(&old.id), None)
+                .unwrap()
+                .folder_id,
+            other
+        );
+        assert_eq!(
+            store.status().unwrap().folder_path.as_deref(),
+            Some("/Photos/B/iPhone 2")
+        );
     }
 
     #[test]

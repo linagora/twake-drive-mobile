@@ -61,6 +61,7 @@ pub const UPLOAD_HOLD_SECS: i64 = 24 * 60 * 60;
 
 const CHANGE_TOKEN: &str = "change_token";
 const FOLDER_ID: &str = "folder_id";
+const FOLDER_PATH: &str = "folder_path";
 const DEVICE_ID: &str = "device_id";
 const STOPPED_BY: &str = "stopped_by";
 const CELLULAR_PHOTOS: &str = "cellular_photos";
@@ -150,6 +151,9 @@ pub struct BackupStatus {
     /// What stopped the last pass for every media, one of `stop_cause`, or
     /// what it waits for (`wait_for`).
     pub stopped_by: Option<String>,
+    /// The folder the backup goes to, which a pass may have made again.
+    pub folder_id: Option<String>,
+    pub folder_path: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, uniffi::Record)]
@@ -574,6 +578,8 @@ impl BackupStore {
             counts,
             last_pass_at: setting(&db, LAST_PASS_AT)?.and_then(|at| at.parse().ok()),
             stopped_by: setting(&db, STOPPED_BY)?,
+            folder_id: setting(&db, FOLDER_ID)?,
+            folder_path: setting(&db, FOLDER_PATH)?,
         })
     }
 
@@ -650,8 +656,8 @@ impl BackupStore {
     pub fn clear_backup_config(&self) -> Result<(), CoreError> {
         self.db()
             .execute(
-                "DELETE FROM setting WHERE key IN (?1, ?2)",
-                params![FOLDER_ID, DEVICE_ID],
+                "DELETE FROM setting WHERE key IN (?1, ?2, ?3)",
+                params![FOLDER_ID, DEVICE_ID, FOLDER_PATH],
             )
             .map_err(storage)?;
         Ok(())
@@ -842,6 +848,56 @@ impl BackupStore {
             content_version: None,
             paired_video: None,
         }])
+    }
+
+    pub(crate) fn folder_path(&self) -> Result<Option<String>, CoreError> {
+        setting(&self.db(), FOLDER_PATH)
+    }
+
+    pub(crate) fn set_folder_path(&self, path: &str) -> Result<(), CoreError> {
+        set_setting(&self.db(), FOLDER_PATH, path)
+    }
+
+    /// The folder and where it is now, written only when one of them changed.
+    pub(crate) fn keep_folder(&self, config: &BackupConfig, path: &str) -> Result<(), CoreError> {
+        let mut db = self.db();
+        let tx = db.transaction_with_behavior(Immediate).map_err(storage)?;
+        for (key, value) in [
+            (FOLDER_ID, config.folder_id.as_str()),
+            (DEVICE_ID, config.device_id.as_str()),
+            (FOLDER_PATH, path),
+        ] {
+            if setting(&tx, key)?.as_deref() != Some(value) {
+                set_setting(&tx, key, value)?;
+            }
+        }
+        tx.commit().map_err(storage)
+    }
+
+    /// The backup goes on in another folder: the media saved in the old one go
+    /// again. Their md5 stays, so those the new folder already holds are found
+    /// without an export.
+    pub(crate) fn move_to_folder(
+        &self,
+        config: &BackupConfig,
+        path: &str,
+    ) -> Result<(), CoreError> {
+        let mut db = self.db();
+        let tx = db.transaction_with_behavior(Immediate).map_err(storage)?;
+        tx.execute(
+            "UPDATE media SET state = 'pending', drive_file_id = NULL, attempts = 0, not_before = 0,
+             last_error = NULL WHERE state != 'skipped'",
+            [],
+        )
+        .map_err(storage)?;
+        tx.execute("DELETE FROM remote_file", []).map_err(storage)?;
+        // The uploads handed to the system go to the old folder: their answers
+        // are dropped, their copies cleaned with the other leftovers.
+        tx.execute("DELETE FROM in_flight", []).map_err(storage)?;
+        set_setting(&tx, FOLDER_ID, config.folder_id.clone())?;
+        set_setting(&tx, DEVICE_ID, config.device_id.clone())?;
+        set_setting(&tx, FOLDER_PATH, path)?;
+        tx.commit().map_err(storage)
     }
 
     pub(super) fn db(&self) -> MutexGuard<'_, Connection> {
