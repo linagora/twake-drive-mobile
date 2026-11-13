@@ -131,8 +131,10 @@ impl StackClient {
         Ok(moved)
     }
 
-    /// Gives each album the user picked a Drive album of the same name, as the
-    /// flagship app does for Drive Photos.
+    /// Puts the saved media of the albums the user picked in Drive albums of
+    /// the same names, as the flagship app does for Drive Photos. Called at
+    /// the end of a pass: the media saved by the system or found in Drive
+    /// count too.
     pub fn sync_albums(
         &self,
         device_id: String,
@@ -263,22 +265,55 @@ impl StackClient {
         now: i64,
         known: &mut Option<Vec<(String, String)>>,
     ) -> Result<(), CoreError> {
-        if self.store.remote_album(&album.album_id)?.is_some() {
+        let mut files = self
+            .store
+            .files_to_reference(&album.album_id, &album.local_ids)?;
+        if files.is_empty() {
             return Ok(());
         }
-        let known = match known {
-            Some(known) => known,
-            None => known.insert(albums::list(&self.stack)?),
-        };
-        let id = match known.iter().find(|(_, name)| *name == album.name) {
-            Some((id, _)) => id.clone(),
-            None => {
-                let id = albums::create(&self.stack, &album.name, device_id, now)?;
-                known.push((id.clone(), album.name.clone()));
+        let remote_id = match self.store.remote_album(&album.album_id)? {
+            Some(id) if albums::exists(&self.stack, &id)? => id,
+            stale => {
+                if stale.is_some() {
+                    // Deleted in Drive: made again, or taken up by its name,
+                    // with every file of the album again.
+                    self.store.forget_remote_album(&album.album_id)?;
+                    files = self
+                        .store
+                        .files_to_reference(&album.album_id, &album.local_ids)?;
+                }
+                let known = match known {
+                    Some(known) => known,
+                    None => known.insert(albums::list(&self.stack)?),
+                };
+                let found = known
+                    .iter()
+                    .find(|(id, name)| *name == album.name && Some(id) != stale.as_ref());
+                let id = match found {
+                    Some((id, _)) => {
+                        let id = id.clone();
+                        let referenced = albums::referenced_files(&self.stack, &id)?;
+                        self.store.mark_referenced(&album.album_id, &referenced)?;
+                        files = self
+                            .store
+                            .files_to_reference(&album.album_id, &album.local_ids)?;
+                        id
+                    }
+                    None => {
+                        let id = albums::create(&self.stack, &album.name, device_id, now)?;
+                        known.push((id.clone(), album.name.clone()));
+                        id
+                    }
+                };
+                self.store.set_remote_album(&album.album_id, &id)?;
                 id
             }
         };
-        self.store.set_remote_album(&album.album_id, &id)
+        for chunk in files.chunks(albums::REFERENCES_PER_CALL) {
+            let done = albums::add_files(&self.stack, &remote_id, chunk)?;
+            self.store.mark_referenced(&album.album_id, &done)?;
+        }
+        Ok(())
     }
 }
 
@@ -419,36 +454,115 @@ mod tests {
     }
 
     #[test]
-    fn a_picked_album_becomes_a_drive_album() {
+    fn a_picked_album_becomes_a_drive_album_of_its_saved_media() {
         let (fake, tokens) = (FakeStack::new(), FakeTokens::valid());
-        let (client, _) = client(&fake, &tokens);
+        let (client, store) = client(&fake, &tokens);
+        saved_backup(&fake, &client, &store);
+        // p2 is not saved yet: it joins the album at a later pass.
         client
-            .sync_albums("dev-1".into(), picked(&["p1"]), NOW)
+            .sync_albums("dev-1".into(), picked(&["p1", "p2"]), NOW)
             .unwrap();
         let albums = fake.albums();
-        let album = albums.values().next().unwrap();
+        let (id, album) = albums.iter().next().unwrap();
         assert_eq!(album["name"], "Vacances");
         assert_eq!(album["backupDeviceIds"], serde_json::json!(["dev-1"]));
+        assert_eq!(fake.referenced(id), ["f1"]);
         let before = fake.requests();
         client
-            .sync_albums("dev-1".into(), picked(&["p1"]), NOW)
+            .sync_albums("dev-1".into(), picked(&["p1", "p2"]), NOW)
             .unwrap();
-        assert_eq!(fake.requests(), before, "known, no call");
+        assert_eq!(fake.requests(), before, "nothing new, no call");
     }
 
     #[test]
     fn an_album_of_the_same_name_from_another_backup_is_taken_up() {
         let (fake, tokens) = (FakeStack::new(), FakeTokens::valid());
         let (client, store) = client(&fake, &tokens);
+        saved_backup(&fake, &client, &store);
+        save(&store, "p2", "f2");
         let flagship = fake.add_album("Vacances", "flagship-device");
+        // The flagship app put the first photo in its album already.
+        fake.reference(&flagship, "f1");
+        client
+            .sync_albums("dev-1".into(), picked(&["p1", "p2"]), NOW)
+            .unwrap();
+        assert_eq!(fake.albums().len(), 1);
+        assert_eq!(fake.referenced(&flagship), ["f1", "f2"]);
+    }
+
+    #[test]
+    fn a_file_deleted_from_drive_leaves_the_rest_of_the_album_going() {
+        let (fake, tokens) = (FakeStack::new(), FakeTokens::valid());
+        let (client, store) = client(&fake, &tokens);
+        saved_backup(&fake, &client, &store);
+        save(&store, "p2", "f2");
+        fake.delete_file("f2");
+        client
+            .sync_albums("dev-1".into(), picked(&["p1", "p2"]), NOW)
+            .unwrap();
+        let albums = fake.albums();
+        let album = albums.keys().next().unwrap();
+        assert_eq!(fake.referenced(album), ["f1"]);
+        let before = fake.requests();
+        client
+            .sync_albums("dev-1".into(), picked(&["p1", "p2"]), NOW)
+            .unwrap();
+        assert_eq!(
+            fake.requests(),
+            before,
+            "the deleted file is not tried again"
+        );
+    }
+
+    fn save(store: &BackupStore, local_id: &str, file_id: &str) {
+        store.record_media(local_id.into(), 1, 1).unwrap();
+        store
+            .set_md5(local_id.into(), 1, format!("md5-{local_id}"))
+            .unwrap();
+        store
+            .record_outcome(
+                local_id.into(),
+                format!("md5-{local_id}"),
+                UploadOutcome::Uploaded {
+                    file_id: file_id.into(),
+                },
+                NOW,
+            )
+            .unwrap();
+    }
+
+    #[test]
+    fn an_album_deleted_in_drive_is_made_again() {
+        let (fake, tokens) = (FakeStack::new(), FakeTokens::valid());
+        let (client, store) = client(&fake, &tokens);
+        saved_backup(&fake, &client, &store);
         client
             .sync_albums("dev-1".into(), picked(&["p1"]), NOW)
             .unwrap();
-        assert_eq!(fake.albums().len(), 1);
-        assert_eq!(
-            store.remote_album("local-vacances").unwrap(),
-            Some(flagship)
-        );
+        let first = fake.albums().keys().next().unwrap().clone();
+        fake.delete_album(&first);
+        store.record_media("p2".into(), 1, 1).unwrap();
+        store.set_md5("p2".into(), 1, "m2".into()).unwrap();
+        store
+            .record_outcome(
+                "p2".into(),
+                "m2".into(),
+                UploadOutcome::Uploaded {
+                    file_id: "f2".into(),
+                },
+                NOW,
+            )
+            .unwrap();
+        client
+            .sync_albums("dev-1".into(), picked(&["p1", "p2"]), NOW)
+            .unwrap();
+        client
+            .sync_albums("dev-1".into(), picked(&["p1", "p2"]), NOW)
+            .unwrap();
+        let albums = fake.albums();
+        let (again, _) = albums.iter().next().unwrap();
+        assert_ne!(*again, first);
+        assert_eq!(fake.referenced(again), ["f1", "f2"]);
     }
 
     #[test]
