@@ -385,6 +385,13 @@
     "error": "The backup could not start. Check your connection and try again.",
     "rootFolder": "Mobile backup",
     "invalidName": "A folder name cannot be \".\" or \"..\", nor contain \"/\" or a line break.",
+    "paywall": {
+      "premiumTitle": "Upgrade your plan",
+      "premiumContent": "Your disk storage is full.\n\nPlease remove files, empty your trash or upgrade your plan before uploading files.",
+      "defaultTitle": "Information",
+      "defaultContent": "Your disk storage is full.\n\nPlease remove files, empty your trash before uploading files.",
+      "understood": "I understand"
+    },
     "status": {
       "title": "Progress",
       "counts": "{{done}} saved, {{pending}} to go",

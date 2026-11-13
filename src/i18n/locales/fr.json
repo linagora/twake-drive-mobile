@@ -394,6 +394,13 @@
     "error": "La sauvegarde n'a pas pu démarrer. Vérifiez votre connexion et réessayez.",
     "rootFolder": "Sauvegardé depuis mon mobile",
     "invalidName": "Un nom de dossier ne peut pas être « . » ni « .. », ni contenir « / » ou un saut de ligne.",
+    "paywall": {
+      "premiumTitle": "Augmentez votre offre",
+      "premiumContent": "Votre espace de stockage est plein.\n\nVeuillez supprimer des fichiers, vider votre corbeille ou changer d'offre avant d'importer de nouveaux fichiers.",
+      "defaultTitle": "Information",
+      "defaultContent": "Votre espace de stockage est plein.\n\nVeuillez supprimer des fichiers, et vider votre corbeille avant d'importer de nouveaux fichiers.",
+      "understood": "J'ai compris"
+    },
     "status": {
       "title": "Avancement",
       "counts": "{{done}} sauvegardés, {{pending}} restants",

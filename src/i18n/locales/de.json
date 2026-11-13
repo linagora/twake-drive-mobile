@@ -385,6 +385,13 @@
     "error": "Die Sicherung konnte nicht starten. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut.",
     "rootFolder": "Mobile Sicherung",
     "invalidName": "Ein Ordnername darf weder „.“ noch „..“ sein und weder „/“ noch einen Zeilenumbruch enthalten.",
+    "paywall": {
+      "premiumTitle": "Tarif upgraden",
+      "premiumContent": "Ihr Speicherplatz ist voll.\n\nBitte löschen Sie Dateien, leeren Sie Ihren Papierkorb oder upgraden Sie Ihren Tarif, bevor Sie Dateien hochladen.",
+      "defaultTitle": "Information",
+      "defaultContent": "Ihr Speicherplatz ist voll.\n\nBitte löschen Sie Dateien oder leeren Sie Ihren Papierkorb, bevor Sie Dateien hochladen.",
+      "understood": "Verstanden"
+    },
     "status": {
       "title": "Fortschritt",
       "counts": "{{done}} gesichert, {{pending}} ausstehend",

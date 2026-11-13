@@ -394,6 +394,13 @@
     "error": "Il backup non è partito. Controlla la connessione e riprova.",
     "rootFolder": "Backup da dispositivo mobile",
     "invalidName": "Il nome di una cartella non può essere «.» o «..», né contenere «/» o un a capo.",
+    "paywall": {
+      "premiumTitle": "Passa a un piano superiore",
+      "premiumContent": "Il tuo spazio di archiviazione è pieno.\n\nElimina dei file, svuota il cestino o passa a un piano superiore prima di caricare altri file.",
+      "defaultTitle": "Informazioni",
+      "defaultContent": "Il tuo spazio di archiviazione è pieno.\n\nElimina dei file o svuota il cestino prima di caricare altri file.",
+      "understood": "Ho capito"
+    },
     "status": {
       "title": "Avanzamento",
       "counts": "{{done}} salvati, {{pending}} rimanenti",
