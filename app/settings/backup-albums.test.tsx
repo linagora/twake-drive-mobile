@@ -4,7 +4,15 @@ import { act, fireEvent, render, waitFor } from '@testing-library/react-native'
 import i18n from '@/i18n'
 import BackupAlbumsScreen from './backup-albums'
 
-jest.mock('expo-router', () => ({ useRouter: () => ({ back: jest.fn() }) }))
+jest.mock('expo-router', () => {
+  const { Text } = jest.requireActual('react-native')
+  return {
+    useRouter: () => ({ back: jest.fn() }),
+    Redirect: ({ href }: { href: string }) => <Text testID="redirect">{href}</Text>
+  }
+})
+let mockFlagOn = true
+jest.mock('@/backup/backupFlag', () => ({ useIsPhotoBackupEnabled: () => mockFlagOn }))
 jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 })
 }))
@@ -20,8 +28,16 @@ const mockCore = { listAlbums: jest.fn(), setAlbumChoice: jest.fn() }
 jest.mock('@/native/twakeDriveCore', () => ({ backupCore: () => mockCore }))
 
 beforeEach(() => {
+  mockFlagOn = true
   mockCore.listAlbums.mockReset().mockResolvedValue(albums)
   mockCore.setAlbumChoice.mockReset().mockResolvedValue(undefined)
+})
+
+it('leads back to the settings, reading no album, while the instance keeps the backup off', () => {
+  mockFlagOn = false
+  const screen = render(<BackupAlbumsScreen />)
+  expect(screen.getByTestId('redirect').props.children).toBe('/settings')
+  expect(mockCore.listAlbums).not.toHaveBeenCalled()
 })
 
 it('lists the albums with their choice and the rule in use', async () => {

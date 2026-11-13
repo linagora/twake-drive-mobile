@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import type { StopCause } from '@/native/twakeDriveCore'
 import { InlineBanner } from '@/ui/InlineBanner'
 
+import { useIsPhotoBackupEnabled } from './backupFlag'
 import { readBackupSettings } from './backupSettings'
 import { savedShare, useBackupStatus } from './useBackupStatus'
 
@@ -23,9 +24,10 @@ export const BackupProgressBanner = (): React.ReactElement | null => {
   // Read again on coming back from the settings, where the backup may be turned off.
   const [enabled, setEnabled] = useState(false)
   useFocusEffect(useCallback(() => setEnabled(readBackupSettings().enabled), []))
+  const allowed = useIsPhotoBackupEnabled()
   // Media the phone cannot read wait for no one: they are not left to do.
   const left = status ? status.pending - status.unavailable : 0
-  if (!status || left <= 0 || !enabled) return null
+  if (!status || left <= 0 || !enabled || !allowed) return null
   const cause =
     access === 'denied' || access === 'restricted'
       ? 'backup.banner.noAccess'

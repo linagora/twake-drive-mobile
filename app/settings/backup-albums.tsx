@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { ScrollView } from 'react-native'
-import { useRouter } from 'expo-router'
+import { Redirect, useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 
+import { useIsPhotoBackupEnabled } from '@/backup/backupFlag'
 import { AppBar } from '@/ui/AppBar'
 import { InlineBanner } from '@/ui/InlineBanner'
 import { ScreenContainer } from '@/ui/ScreenContainer'
@@ -18,7 +19,12 @@ const NEXT: Record<'none' | AlbumChoice, AlbumChoice | null> = {
   leftOut: null
 }
 
-export default function BackupAlbumsScreen(): React.ReactElement {
+/** A link to the screen leads back to the settings while the instance keeps the backup off. */
+export default function BackupAlbumsRoute(): React.ReactElement {
+  return useIsPhotoBackupEnabled() ? <BackupAlbumsScreen /> : <Redirect href="/settings" />
+}
+
+function BackupAlbumsScreen(): React.ReactElement {
   const { t } = useTranslation()
   const router = useRouter()
   const sideInset = useSideInset()

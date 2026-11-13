@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { ScrollView, StyleSheet, View } from 'react-native'
 import { Button, HelperText, TextInput } from 'react-native-paper'
-import { useRouter } from 'expo-router'
+import { Redirect, useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import { useClient } from 'cozy-client'
 
@@ -20,6 +20,7 @@ import {
   type ActivationStep,
   type FolderChoice
 } from '@/backup/activation'
+import { useIsPhotoBackupEnabled } from '@/backup/backupFlag'
 import { readBackupSettings } from '@/backup/backupSettings'
 import { runBackupPass } from '@/backup/backupPass'
 import { BackupStatusSection } from '@/backup/BackupStatusSection'
@@ -28,7 +29,12 @@ import { adoptStoredToken } from '@/auth/adoptStoredToken'
 
 type Choice = Extract<ActivationStep, { kind: 'choose' }>
 
-export default function BackupScreen(): React.ReactElement {
+/** A link to the screen leads back to the settings while the instance keeps the backup off. */
+export default function BackupRoute(): React.ReactElement {
+  return useIsPhotoBackupEnabled() ? <BackupScreen /> : <Redirect href="/settings" />
+}
+
+function BackupScreen(): React.ReactElement {
   const { t } = useTranslation()
   const router = useRouter()
   const client = useClient()

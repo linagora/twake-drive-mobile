@@ -60,7 +60,8 @@ run features flags --domain "$DOMAIN" '{
   "cozy.search.enabled": true,
   "dataproxy.force-trusted-device.enabled": true,
   "drive.move-to-picker.enabled": true,
-  "drive.default-updated-at-sort.enabled": true
+  "drive.default-updated-at-sort.enabled": true,
+  "drive.mobile.photo-backup.enabled": true
 }'
 
 echo "Seeding a folder and a file"
