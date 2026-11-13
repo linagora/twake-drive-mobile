@@ -69,7 +69,11 @@ interface TwakeDriveCoreNative {
     deviceName: string,
     rootName: string
   ) => Promise<DeviceFolder>
-  runBackupPass: (folderId: string, deviceId: string) => Promise<BackupStatus>
+  runBackupPass: (
+    folderId: string,
+    deviceId: string,
+    liveTitle: string | null
+  ) => Promise<BackupStatus>
   stopBackupPass: () => void
   backupStatus: () => Promise<BackupStatus>
   recreateDeviceFolder: (folderPath: string | null) => Promise<void>

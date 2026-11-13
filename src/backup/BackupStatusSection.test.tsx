@@ -29,7 +29,9 @@ jest.mock('./backupSettings', () => ({
   writeBackupSettings: (patch: object) => (mockSettings = { ...mockSettings, ...patch })
 }))
 const mockPass = jest.fn()
-jest.mock('./backupPass', () => ({ runBackupPass: (client: unknown) => mockPass(client) }))
+jest.mock('./backupPass', () => ({
+  runBackupPass: (client: unknown, title: unknown) => mockPass(client, title)
+}))
 const mockRecreate = jest.fn()
 jest.mock('@/native/twakeDriveCore', () => ({
   backupCore: () => ({ recreateDeviceFolder: (path: string | null) => mockRecreate(path) })
@@ -55,7 +57,7 @@ describe('a backup folder gone from Drive', () => {
     const screen = render(<BackupStatusSection onTurnOff={mockTurnOff} />)
     screen.getByText(i18n.t('backup.status.folderGone'))
     fireEvent.press(screen.getByTestId('backup-recreate-folder'))
-    await waitFor(() => expect(mockPass).toHaveBeenCalledWith(mockClient))
+    await waitFor(() => expect(mockPass).toHaveBeenCalledWith(mockClient, i18n.t('backup.title')))
     expect(mockRecreate).toHaveBeenCalledWith('/Photos/B/iPhone')
     expect(mockTurnOff).not.toHaveBeenCalled()
   })
@@ -175,7 +177,7 @@ it('tries the failed media again at once', async () => {
   screen.getByText(i18n.t('backup.status.failed', { count: 4 }))
   fireEvent.press(screen.getByTestId('backup-retry'))
   expect(mockRetry).toHaveBeenCalled()
-  await waitFor(() => expect(mockPass).toHaveBeenCalledWith(mockClient))
+  await waitFor(() => expect(mockPass).toHaveBeenCalledWith(mockClient, i18n.t('backup.title')))
 })
 
 it('shows nothing before the state is read', () => {

@@ -44,7 +44,7 @@ export default function BackupScreen(): React.ReactElement {
     if (step.kind === 'choose') setName(step.suggestedName)
     if (step.kind === 'denied') setNotice(t('backup.denied'))
     if (step.kind === 'unavailable') setNotice(t('backup.unavailable'))
-    if (step.kind === 'ready') runBackupPass(client).catch(() => null)
+    if (step.kind === 'ready') runBackupPass(client, t('backup.title')).catch(() => null)
     setSettings(readBackupSettings())
   }
 
