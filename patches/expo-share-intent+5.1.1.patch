@@ -1,5 +1,5 @@
 diff --git a/node_modules/expo-share-intent/android/src/main/java/expo/modules/shareintent/ExpoShareIntentModule.kt b/node_modules/expo-share-intent/android/src/main/java/expo/modules/shareintent/ExpoShareIntentModule.kt
-index 0153c89..1794bc3 100644
+index 0153c89..6d98fe5 100644
 --- a/node_modules/expo-share-intent/android/src/main/java/expo/modules/shareintent/ExpoShareIntentModule.kt
 +++ b/node_modules/expo-share-intent/android/src/main/java/expo/modules/shareintent/ExpoShareIntentModule.kt
 @@ -56,7 +56,7 @@ class ExpoShareIntentModule : Module() {
@@ -81,7 +81,25 @@ index 0153c89..1794bc3 100644
              }
  
              return mapOf(
-@@ -141,15 +156,16 @@ class ExpoShareIntentModule : Module() {
+@@ -112,6 +127,9 @@ class ExpoShareIntentModule : Module() {
+         }
+ 
+         fun handleShareIntent(intent: Intent) {
++            // A deep link has no type and is not a share: relaunching it finished
++            // the activity, and the JS restarted in the middle of a logout.
++            if (intent.type == null) return
+             val activity = instance?.currentActivity
+             if (activity != null && !activity.isTaskRoot) {
+                 val newIntent = Intent(intent).apply {
+@@ -121,7 +139,6 @@ class ExpoShareIntentModule : Module() {
+                 activity.finish()
+                 return
+             }
+-            if (intent.type == null) return
+             if (intent.type!!.startsWith("text/plain")) {
+                 // text / urls
+                 if (intent.action == Intent.ACTION_SEND) {
+@@ -141,15 +158,16 @@ class ExpoShareIntentModule : Module() {
                  // files / medias
                  if (intent.action == Intent.ACTION_SEND) {
                      val uri = intent.parcelable<Uri>(Intent.EXTRA_STREAM);
@@ -101,7 +119,7 @@ index 0153c89..1794bc3 100644
                      } else {
                          notifyError("empty uris array for file sharing: " + intent.action)
                      }
-@@ -223,15 +239,9 @@ class ExpoShareIntentModule : Module() {
+@@ -223,15 +241,9 @@ class ExpoShareIntentModule : Module() {
              if (DocumentsContract.isDocumentUri(context, uri)) {
                  // ExternalStorageProvider
                  if (isExternalStorageDocument(uri)) {
@@ -120,7 +138,7 @@ index 0153c89..1794bc3 100644
                  } else if (isDownloadsDocument(uri)) {
                      return try {
                          val id = DocumentsContract.getDocumentId(uri)
-@@ -301,7 +311,16 @@ class ExpoShareIntentModule : Module() {
+@@ -301,7 +313,16 @@ class ExpoShareIntentModule : Module() {
                      val columnIndex = cursor.getColumnIndexOrThrow(column)
                      val fileName = cursor.getString(columnIndex)
                      Log.i("FileDirectory", "File name: $fileName")
