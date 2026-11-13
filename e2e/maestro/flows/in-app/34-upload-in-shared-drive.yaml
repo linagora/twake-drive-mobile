@@ -65,14 +65,18 @@ onFlowComplete:
 - waitForAnimationToEnd
 - tapOn:
     id: 'create-upload(-container-outer-layer)?'
+# From Downloads, where the runner pushed it: a search covers Recent only, which
+# does not always list the image.
 - extendedWaitUntil:
-    visible:
-      id: 'com.android.documentsui:id/option_menu_search'
+    visible: 'Show roots|Afficher les racines'
     timeout: 20000
+- tapOn: 'Show roots|Afficher les racines'
+- waitForAnimationToEnd
+# The entry of the drawer: the picker may reopen in Downloads, whose path
+# behind the drawer bears the same name.
 - tapOn:
-    id: 'com.android.documentsui:id/option_menu_search'
-- inputText: 'e2e-share'
-- pressKey: Enter
+    id: 'android:id/title'
+    text: 'Downloads|Téléchargements'
 - waitForAnimationToEnd
 - tapOn:
     text: 'List view|Affichage en liste'
