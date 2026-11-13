@@ -53,6 +53,7 @@ const MIGRATIONS: &[&str] = &[
     );
 ",
     "CREATE TABLE album_choice (album_id TEXT PRIMARY KEY, included INTEGER NOT NULL);",
+    "CREATE TABLE album_remote (album_id TEXT PRIMARY KEY, remote_id TEXT NOT NULL);",
 ];
 
 /// How long an upload handed to the system holds its media. The platform

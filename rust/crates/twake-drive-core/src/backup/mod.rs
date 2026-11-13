@@ -1,3 +1,4 @@
+mod drive_albums;
 mod remote_index;
 mod rules;
 mod store;
