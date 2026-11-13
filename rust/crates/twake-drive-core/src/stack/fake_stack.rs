@@ -134,6 +134,14 @@ impl FakeStack {
         attributes["path"] = json!(format!("/.cozy_trash/{name}"));
     }
 
+    /// A move, a rename or a restore from the trash: the id stays.
+    pub fn move_dir(&self, id: &str, path: &str) {
+        let mut state = self.state.lock().unwrap();
+        let attributes = &mut state.docs.get_mut(id).unwrap()["attributes"];
+        attributes["path"] = json!(path);
+        attributes["name"] = json!(path.rsplit('/').next().unwrap());
+    }
+
     /// Deleted for good, out of the trash too.
     pub fn destroy(&self, id: &str) {
         self.state.lock().unwrap().docs.remove(id);

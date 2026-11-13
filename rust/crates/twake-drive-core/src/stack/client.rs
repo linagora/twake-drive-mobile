@@ -9,6 +9,8 @@ use crate::CoreError;
 use crate::backup::{BackupConfig, BackupStore, PassAction, RemoteFile, UploadOutcome};
 use crate::library::library_id_of;
 
+const FOLDER_GONE: &str = "FolderGone";
+
 #[derive(Debug, Clone, PartialEq, uniffi::Enum)]
 pub enum UploadPlan {
     /// The folder of the device already holds this content: recorded as saved.
@@ -93,17 +95,16 @@ impl StackClient {
         Ok(folder)
     }
 
-    /// Where the pass goes, called first. The stored folder wins over
-    /// `requested`: a pass the system started may have made it again since the
-    /// app read its setting. A deleted or trashed folder is replaced by another
-    /// folder of the device or a new one at the same path; every media goes again.
-    /// `requested_path`, where the app last saw its folder, stands in for a
-    /// store that never read the path, one older than this.
+    /// Where the pass goes, called first. Found by its id, which a move or a
+    /// rename keeps; the stored folder wins over `requested`, as a system pass
+    /// may have moved to another folder of the device. A folder deleted or in
+    /// the trash gives way to another folder of the device, every media going
+    /// again; without one, None: the backup stops with "FolderGone" until the
+    /// user answers (`recreate_device_folder`).
     pub fn ensure_device_folder(
         &self,
         requested: BackupConfig,
-        requested_path: Option<String>,
-    ) -> Result<BackupConfig, CoreError> {
+    ) -> Result<Option<BackupConfig>, CoreError> {
         let config = self
             .store
             .backup_config()?
@@ -111,23 +112,54 @@ impl StackClient {
             .unwrap_or(requested);
         if let Some(folder) = folders::current(&self.stack, &config.folder_id)? {
             self.store.keep_folder(&config, &folder.path)?;
-            return Ok(config);
+            return Ok(Some(config));
         }
-        let folder = match self.find_device_folder(config.device_id.clone())? {
-            Some(folder) => folder,
-            None => {
-                let known = self.store.folder_path()?.or(requested_path);
-                let path = known.ok_or_else(|| CoreError::Stack {
-                    reason: "the device folder is gone and its path unknown".into(),
-                })?;
-                folders::create_at(&self.stack, &config.device_id, &path)?
-            }
+        let Some(folder) = self.find_device_folder(config.device_id.clone())? else {
+            self.store.wait_for(FOLDER_GONE.into())?;
+            return Ok(None);
         };
         let moved = BackupConfig {
             folder_id: folder.id,
             device_id: config.device_id,
         };
         self.store.move_to_folder(&moved, &folder.path)?;
+        Ok(Some(moved))
+    }
+
+    /// The user's answer to "FolderGone": the folder made again where it last
+    /// was, or at `requested_path`, the app's, for a store that never read it,
+    /// and every media goes again. A folder found again meanwhile, restored
+    /// from the trash, is kept as it is.
+    pub fn recreate_device_folder(
+        &self,
+        requested_path: Option<String>,
+    ) -> Result<BackupConfig, CoreError> {
+        let config = self
+            .store
+            .backup_config()?
+            .ok_or_else(|| CoreError::Stack {
+                reason: "no backup to make the folder of".into(),
+            })?;
+        // `begin_pass` below clears "FolderGone"; a failure before it leaves the question up.
+        if let Some(folder) = folders::current(&self.stack, &config.folder_id)? {
+            self.store.keep_folder(&config, &folder.path)?;
+            self.store.begin_pass()?;
+            return Ok(config);
+        }
+        let path = self
+            .store
+            .folder_path()?
+            .or(requested_path)
+            .ok_or_else(|| CoreError::Stack {
+                reason: "the device folder is gone and its path unknown".into(),
+            })?;
+        let folder = folders::create_at(&self.stack, &config.device_id, &path)?;
+        let moved = BackupConfig {
+            folder_id: folder.id,
+            device_id: config.device_id,
+        };
+        self.store.move_to_folder(&moved, &folder.path)?;
+        self.store.begin_pass()?;
         Ok(moved)
     }
 
@@ -426,9 +458,7 @@ mod tests {
         let folder = client
             .create_device_folder("dev-1".into(), "iPhone".into(), "B".into())
             .unwrap();
-        client
-            .ensure_device_folder(config(&folder.id), None)
-            .unwrap();
+        client.ensure_device_folder(config(&folder.id)).unwrap();
         store.record_media("p1".into(), 1, 1).unwrap();
         store.set_md5("p1".into(), 1, "m1".into()).unwrap();
         store
@@ -566,17 +596,75 @@ mod tests {
     }
 
     #[test]
-    fn a_device_folder_in_the_trash_is_made_again_and_its_media_go_again() {
+    fn a_folder_moved_and_renamed_stays_the_backup_folder() {
+        let (fake, tokens) = (FakeStack::new(), FakeTokens::valid());
+        let (client, store) = client(&fake, &tokens);
+        let folder = saved_backup(&fake, &client, &store);
+        fake.move_dir(&folder.id, "/Archives/Mon iPhone");
+        let before = fake.requests();
+        let kept = client.ensure_device_folder(config(&folder.id)).unwrap();
+        assert_eq!(kept, Some(config(&folder.id)));
+        assert_eq!(
+            fake.requests(),
+            before + 1,
+            "the folder read by its id, nothing else"
+        );
+        let status = store.status().unwrap();
+        assert_eq!(status.folder_path.as_deref(), Some("/Archives/Mon iPhone"));
+        assert_eq!((status.counts.done, status.counts.pending), (1, 0));
+    }
+
+    #[test]
+    fn a_folder_in_the_trash_stops_the_backup_until_the_user_answers() {
+        let (fake, tokens) = (FakeStack::new(), FakeTokens::valid());
+        let (client, store) = client(&fake, &tokens);
+        let folder = saved_backup(&fake, &client, &store);
+        fake.trash(&folder.id);
+        assert_eq!(
+            client.ensure_device_folder(config(&folder.id)).unwrap(),
+            None
+        );
+        let status = store.status().unwrap();
+        assert_eq!(status.stopped_by.as_deref(), Some("FolderGone"));
+        assert_eq!(status.counts.done, 1, "nothing goes again without the user");
+        assert!(
+            client.list_device_folders().unwrap().is_empty(),
+            "no folder made"
+        );
+        // Restored from the trash: the backup goes on in it, nothing reset.
+        fake.move_dir(&folder.id, &folder.path);
+        assert_eq!(
+            client.ensure_device_folder(config(&folder.id)).unwrap(),
+            Some(config(&folder.id))
+        );
+        assert_eq!(store.status().unwrap().counts.done, 1);
+    }
+
+    #[test]
+    fn turned_off_from_the_question_nothing_of_it_is_left() {
+        let (fake, tokens) = (FakeStack::new(), FakeTokens::valid());
+        let (client, store) = client(&fake, &tokens);
+        let folder = saved_backup(&fake, &client, &store);
+        fake.trash(&folder.id);
+        client.ensure_device_folder(config(&folder.id)).unwrap();
+        store.clear_backup_config().unwrap();
+        assert_eq!(store.status().unwrap().stopped_by, None);
+    }
+
+    #[test]
+    fn the_user_makes_the_folder_again_and_its_media_go_again() {
         let (fake, tokens) = (FakeStack::new(), FakeTokens::valid());
         let (client, store) = client(&fake, &tokens);
         let old = saved_backup(&fake, &client, &store);
         fake.trash(&old.id);
-        let moved = client.ensure_device_folder(config(&old.id), None).unwrap();
+        assert_eq!(client.ensure_device_folder(config(&old.id)).unwrap(), None);
+        let moved = client.recreate_device_folder(None).unwrap();
         assert_ne!(moved.folder_id, old.id);
         let status = store.status().unwrap();
         assert_eq!(status.folder_id.as_deref(), Some(moved.folder_id.as_str()));
         assert_eq!(status.folder_path.as_deref(), Some("/Photos/B/iPhone"));
         assert_eq!((status.counts.done, status.counts.pending), (0, 1));
+        assert_eq!(status.stopped_by, None, "answered: the banner goes");
         assert_eq!(store.drive_file_of("p1").unwrap(), None);
         // The md5 stays: no export to find a copy the new folder holds.
         let batch = store.next_batch(NOW, 16, 600).unwrap();
@@ -597,7 +685,8 @@ mod tests {
         let (client, store) = client(&fake, &tokens);
         let old = saved_backup(&fake, &client, &store);
         fake.destroy(&old.id);
-        let moved = client.ensure_device_folder(config(&old.id), None).unwrap();
+        assert_eq!(client.ensure_device_folder(config(&old.id)).unwrap(), None);
+        let moved = client.recreate_device_folder(None).unwrap();
         store
             .record_outcome(
                 "p1".into(),
@@ -610,8 +699,8 @@ mod tests {
             .unwrap();
         // The app's setting still names the old folder.
         assert_eq!(
-            client.ensure_device_folder(config(&old.id), None).unwrap(),
-            moved
+            client.ensure_device_folder(config(&old.id)).unwrap(),
+            Some(moved)
         );
         assert_eq!(store.status().unwrap().counts.done, 1);
         assert_eq!(client.list_device_folders().unwrap().len(), 1);
@@ -624,11 +713,12 @@ mod tests {
         // Set by an app that did not keep the path yet, the folder gone since.
         store.set_backup_config(config("gone")).unwrap();
         let path = "/Photos/B/iPhone".to_string();
-        let err = client.ensure_device_folder(config("gone"), None);
-        assert!(err.is_err(), "no path, nowhere to go");
-        let moved = client
-            .ensure_device_folder(config("gone"), Some(path.clone()))
-            .unwrap();
+        assert_eq!(client.ensure_device_folder(config("gone")).unwrap(), None);
+        assert!(
+            client.recreate_device_folder(None).is_err(),
+            "no path, nowhere to go"
+        );
+        let moved = client.recreate_device_folder(Some(path.clone())).unwrap();
         assert_eq!(moved.folder_id, fake.id_at(&path));
         assert_eq!(store.status().unwrap().folder_path, Some(path));
     }
@@ -642,8 +732,11 @@ mod tests {
         client
             .adopt_device_folder(old.clone(), "dev-1".into())
             .unwrap();
+        // The pass stores the app's choice before it asks for the folder.
+        store.set_backup_config(config(&old)).unwrap();
         fake.destroy(&old);
-        let moved = client.ensure_device_folder(config(&old), None).unwrap();
+        client.ensure_device_folder(config(&old)).unwrap();
+        let moved = client.recreate_device_folder(None).unwrap();
         assert_eq!(moved.folder_id, fake.id_at("/Archives/iPhone"));
         assert_eq!(
             store.status().unwrap().folder_path.as_deref(),
@@ -661,7 +754,8 @@ mod tests {
             .park_upload(media("p2", "m2"), 0, "/tmp/p2".into(), NOW)
             .unwrap();
         fake.trash(&old.id);
-        client.ensure_device_folder(config(&old.id), None).unwrap();
+        client.ensure_device_folder(config(&old.id)).unwrap();
+        client.recreate_device_folder(None).unwrap();
         assert_eq!(store.parked_upload("p2".into()).unwrap(), None);
     }
 
@@ -675,7 +769,8 @@ mod tests {
         fake.trash(&old.id);
         assert_eq!(
             client
-                .ensure_device_folder(config(&old.id), None)
+                .ensure_device_folder(config(&old.id))
+                .unwrap()
                 .unwrap()
                 .folder_id,
             other
