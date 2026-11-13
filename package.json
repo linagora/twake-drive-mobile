@@ -1,6 +1,6 @@
 {
   "name": "twake-drive-mobile",
-  "version": "0.12.1",
+  "version": "0.13.0",
   "main": "expo-router/entry",
   "scripts": {
     "start": "expo start",
