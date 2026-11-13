@@ -51,7 +51,7 @@ export const BackupStatusSection = ({ onTurnOff }: Props): React.ReactElement | 
       setRecreateFailed(true)
       return
     }
-    await runBackupPass(client).catch(() => null)
+    await runBackupPass(client, t('backup.title')).catch(() => null)
   }
   const openSettings = {
     label: t('backup.status.openSettings'),
@@ -147,7 +147,11 @@ export const BackupStatusSection = ({ onTurnOff }: Props): React.ReactElement | 
           <Button
             testID="backup-retry"
             mode="outlined"
-            onPress={() => void retryFailed().then(() => runBackupPass(client).catch(() => null))}
+            onPress={() =>
+              void retryFailed().then(() =>
+                runBackupPass(client, t('backup.title')).catch(() => null)
+              )
+            }
           >
             {t('backup.status.retry')}
           </Button>

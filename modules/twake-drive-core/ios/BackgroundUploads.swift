@@ -164,18 +164,7 @@ enum BackupSchedule {
   }
 
   private static func run(_ task: BGTask) {
-    // Completed once, at expiry at the latest: iOS kills an app whose task
-    // outlives it, while the pass may still be in an export or behind
-    // another pass. The pass then stops at the next media.
-    let open = OSAllocatedUnfairLock(initialState: true)
-    let complete = { (success: Bool) in
-      let first = open.withLock { (isOpen: inout Bool) -> Bool in
-        defer { isOpen = false }
-        return isOpen
-      }
-      if first { task.setTaskCompleted(success: success) }
-    }
-    task.expirationHandler = { complete(false) }
+    let (complete, isOpen) = completingOnce(task)
     passQueue.async {
       guard let config = try? BackupPass.savedConfig(), !passStop.withLock({ $0 }) else {
         return complete(true)
@@ -183,10 +172,26 @@ enum BackupSchedule {
       schedule()
       let pass = try? BackupPass(
         config: config, inBackground: true,
-        isCancelled: { !open.withLock { $0 } || passStop.withLock { $0 } })
+        isCancelled: { !isOpen() || passStop.withLock { $0 } })
       complete((try? pass?.run()) != nil)
     }
   }
+}
+
+/// Completes `task` once, at expiry at the latest: iOS kills an app whose
+/// task outlives it, while the pass may still be in an export or behind
+/// another pass. The pass then stops at the next media, once `isOpen` is false.
+func completingOnce(_ task: BGTask) -> (complete: (Bool) -> Void, isOpen: () -> Bool) {
+  let open = OSAllocatedUnfairLock(initialState: true)
+  let complete = { (success: Bool) in
+    let first = open.withLock { (isOpen: inout Bool) -> Bool in
+      defer { isOpen = false }
+      return isOpen
+    }
+    if first { task.setTaskCompleted(success: success) }
+  }
+  task.expirationHandler = { complete(false) }
+  return (complete, { open.withLock { $0 } })
 }
 
 public final class BackupAppDelegateSubscriber: ExpoAppDelegateSubscriber {

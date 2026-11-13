@@ -69,7 +69,8 @@ class TwakeDriveCoreModule : Module() {
       onStack(promise) { openBackup(context).client.createDeviceFolder(deviceId, deviceName, rootName).record }
     }
 
-    AsyncFunction("runBackupPass") { folderId: String, deviceId: String, promise: Promise ->
+    // The title only serves iOS 26.
+    AsyncFunction("runBackupPass") { folderId: String, deviceId: String, _: String?, promise: Promise ->
       passStop.set(false)
       val app = context.applicationContext
       // A pass may last long: on its own thread, the folder choice stays usable.
