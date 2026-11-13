@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <string name="backup_notification_title">Backup delle foto</string>
+  <plurals name="backup_notification_left">
+    <item quantity="one">%d rimanente</item>
+    <item quantity="many">%d rimanenti</item>
+    <item quantity="other">%d rimanenti</item>
+  </plurals>
+</resources>

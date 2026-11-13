@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <string name="backup_notification_title">Sao lưu ảnh</string>
+  <plurals name="backup_notification_left">
+    <item quantity="other">Còn lại %d</item>
+  </plurals>
+</resources>

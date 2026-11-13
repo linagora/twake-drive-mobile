@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <string name="backup_notification_title">Fotosicherung</string>
+  <plurals name="backup_notification_left">
+    <item quantity="one">%d ausstehend</item>
+    <item quantity="other">%d ausstehend</item>
+  </plurals>
+</resources>
