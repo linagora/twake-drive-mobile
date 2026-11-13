@@ -42,13 +42,15 @@ public class TwakeDriveCoreModule: Module {
 
     Events("onBackupProgress")
 
-    AsyncFunction("runBackupPass") { (folderId: String, deviceId: String) throws -> [String: Any] in
+    AsyncFunction("runBackupPass") {
+      (folderId: String, deviceId: String, folderPath: String?) throws -> [String: Any] in
       passStop.withLock { $0 = false }
       // A pass that fails, offline for one, still leaves the next ones planned.
       defer { if !passStop.withLock({ $0 }) { BackupSchedule.schedule() } }
       return try runInBackgroundTime { expired in
         try BackupPass(
-          config: BackupConfig(folderId: folderId, deviceId: deviceId), inBackground: false,
+          config: BackupConfig(folderId: folderId, deviceId: deviceId), folderPath: folderPath,
+          inBackground: false,
           isCancelled: { expired() || passStop.withLock { $0 } },
           onProgress: { [weak self] in self?.sendEvent("onBackupProgress", $0.record) }
         ).run()
@@ -184,6 +186,7 @@ extension BackupStatus {
     var record = counts.record
     if let lastPassAt { record["lastPassAt"] = lastPassAt }
     if let stoppedBy { record["stoppedBy"] = stoppedBy }
+    if let folderId, let folderPath { record["folder"] = ["id": folderId, "path": folderPath] }
     return record
   }
 }
