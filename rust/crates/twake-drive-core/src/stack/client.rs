@@ -163,21 +163,21 @@ impl StackClient {
         Ok(moved)
     }
 
-    /// Puts the saved media of the albums the user picked in Drive albums of
+    /// Puts the saved media of the albums of the phone in Drive albums of
     /// the same names, as the flagship app does for Drive Photos. Called at
     /// the end of a pass: the media saved by the system or found in Drive
     /// count too.
     pub fn sync_albums(
         &self,
         device_id: String,
-        picked: Vec<AlbumMedia>,
+        albums: Vec<AlbumMedia>,
         now: i64,
     ) -> Result<(), CoreError> {
         let mut known = None;
         let mut first_error = None;
         // One album failing leaves the others to go; an album without a name
         // would merge with every other one.
-        for album in picked.iter().filter(|album| !album.name.is_empty()) {
+        for album in albums.iter().filter(|album| !album.name.is_empty()) {
             if let Err(e) = self.sync_album(&device_id, album, now, &mut known) {
                 first_error.get_or_insert(e);
             }
@@ -305,22 +305,15 @@ impl StackClient {
         }
         let remote_id = match self.store.remote_album(&album.album_id)? {
             Some(id) if albums::exists(&self.stack, &id)? => id,
-            stale => {
-                if stale.is_some() {
-                    // Deleted in Drive: made again, or taken up by its name,
-                    // with every file of the album again.
-                    self.store.forget_remote_album(&album.album_id)?;
-                    files = self
-                        .store
-                        .files_to_reference(&album.album_id, &album.local_ids)?;
-                }
+            // Deleted in Drive by the user, who keeps the last word, as with
+            // the flagship app.
+            Some(_) => return self.store.drop_remote_album(&album.album_id),
+            None => {
                 let known = match known {
                     Some(known) => known,
                     None => known.insert(albums::list(&self.stack)?),
                 };
-                let found = known
-                    .iter()
-                    .find(|(id, name)| *name == album.name && Some(id) != stale.as_ref());
+                let found = known.iter().find(|(_, name)| *name == album.name);
                 let id = match found {
                     Some((id, _)) => {
                         let id = id.clone();
@@ -562,7 +555,7 @@ mod tests {
     }
 
     #[test]
-    fn an_album_deleted_in_drive_is_made_again() {
+    fn an_album_deleted_in_drive_stays_deleted() {
         let (fake, tokens) = (FakeStack::new(), FakeTokens::valid());
         let (client, store) = client(&fake, &tokens);
         saved_backup(&fake, &client, &store);
@@ -571,28 +564,28 @@ mod tests {
             .unwrap();
         let first = fake.albums().keys().next().unwrap().clone();
         fake.delete_album(&first);
-        store.record_media("p2".into(), 1, 1).unwrap();
-        store.set_md5("p2".into(), 1, "m2".into()).unwrap();
+        save(&store, "p2", "f2");
+        client
+            .sync_albums("dev-1".into(), picked(&["p1", "p2"]), NOW)
+            .unwrap();
+        assert!(fake.albums().is_empty(), "the user deleted it");
+        save(&store, "p3", "f3");
+        let before = fake.requests();
+        client
+            .sync_albums("dev-1".into(), picked(&["p1", "p2", "p3"]), NOW)
+            .unwrap();
+        assert_eq!(fake.requests(), before, "not even read again");
+        // Picked again in the app: the user wants it back, with all its media.
         store
-            .record_outcome(
-                "p2".into(),
-                "m2".into(),
-                UploadOutcome::Uploaded {
-                    file_id: "f2".into(),
-                },
-                NOW,
-            )
+            .set_album_choice("local-vacances".into(), Some(true))
             .unwrap();
         client
-            .sync_albums("dev-1".into(), picked(&["p1", "p2"]), NOW)
-            .unwrap();
-        client
-            .sync_albums("dev-1".into(), picked(&["p1", "p2"]), NOW)
+            .sync_albums("dev-1".into(), picked(&["p1", "p2", "p3"]), NOW)
             .unwrap();
         let albums = fake.albums();
         let (again, _) = albums.iter().next().unwrap();
         assert_ne!(*again, first);
-        assert_eq!(fake.referenced(again), ["f1", "f2"]);
+        assert_eq!(fake.referenced(again), ["f1", "f2", "f3"]);
     }
 
     #[test]

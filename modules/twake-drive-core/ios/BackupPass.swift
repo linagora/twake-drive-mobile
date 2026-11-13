@@ -89,9 +89,11 @@ final class BackupPass {
       try store.releaseMedia(localIds: heldBack)
       try store.waitFor(cause: "WaitingForWifi")
     }
-    // Drive Photos shows the albums picked; the backup goes on without them when this fails.
+    // The backup goes on without the albums of Drive Photos when this fails.
+    // shortcut: every album is read each pass; skip it when no media was saved
+    // since the last one if large libraries slow passes.
     if !cancelled {
-      try? client.syncAlbums(deviceId: config.deviceId, picked: pickedAlbums(store.albumChoices()), now: now())
+      try? client.syncAlbums(deviceId: config.deviceId, albums: albumsForDrive(store.albumChoices()), now: now())
     }
     // A pass cut short is not the last backup.
     if !cancelled { try store.endPass(now: now()) }
@@ -358,13 +360,20 @@ private func mediaOfAlbums(_ choices: [AlbumChoice]) -> Set<String> {
   return media.subtracting(ids(of: choices.filter { !$0.included }.map(\.albumId)))
 }
 
-/// The albums the user picked that still exist, with their media, for Drive Photos.
-private func pickedAlbums(_ choices: [AlbumChoice]) -> [AlbumMedia] {
-  let picked = choices.filter(\.included).map(\.albumId)
-  guard !picked.isEmpty else { return [] }
+/// The albums Drive Photos gets, with their media: those picked, or every
+/// album the user made when none is (not the smart ones: Recents would hold
+/// the whole library), less those left out.
+private func albumsForDrive(_ choices: [AlbumChoice]) -> [AlbumMedia] {
+  let leftOut = Set(choices.filter { !$0.included }.map(\.albumId))
+  let picked = PHAssetCollection.fetchAssetCollections(
+    withLocalIdentifiers: choices.filter(\.included).map(\.albumId), options: nil)
+  let albumsOfPhone =
+    picked.count > 0
+    ? picked : PHAssetCollection.fetchAssetCollections(with: .album, subtype: .albumRegular, options: nil)
   var albums: [AlbumMedia] = []
-  PHAssetCollection.fetchAssetCollections(withLocalIdentifiers: picked, options: nil)
+  albumsOfPhone
     .enumerateObjects { album, _, _ in
+      guard !leftOut.contains(album.localIdentifier) else { return }
       var ids: [String] = []
       PHAsset.fetchAssets(in: album, options: mediaOptions()).enumerateObjects { asset, _, _ in
         ids.append(asset.localIdentifier)
