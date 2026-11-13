@@ -32,6 +32,8 @@ languages.
 - **Node.js 20+** — the Expo runtime fails on Node 16 (`FormData is not defined`)
 - **npm** — `package-lock.json` is the canonical lockfile (this project does not use yarn)
 - **Xcode** — for the iOS simulator and device builds
+- **Rust** (through [rustup](https://rustup.rs)) — for the iOS build; `rust/rust-toolchain.toml`
+  picks the version
 - **JDK 17** — for Android; Gradle 8.14 / the Android Gradle Plugin fail on newer
   JDKs (e.g. JDK 24)
 
@@ -40,6 +42,7 @@ languages.
 ```bash
 npm install --legacy-peer-deps
 
+rust/scripts/build-ios.sh   # the Rust core for iOS; again after changing rust/
 npm run ios       # iOS simulator (requires Xcode)
 npm run android   # Android emulator or connected device
 ```
@@ -71,6 +74,7 @@ npm test          # Jest unit tests
 npm run typecheck # TypeScript (tsc)
 npm run lint      # ESLint
 npm run knip      # dead code: unused files, exports, dependencies
+(cd rust && cargo test)   # the Rust core
 ```
 
 End-to-end tests use [Maestro](https://maestro.mobile.dev/) against a real device
@@ -95,6 +99,8 @@ app/            expo-router screens (drive, search, settings, share, editors)
 src/            cozy queries, files logic, UI components, auth, offline, i18n
 android/        committed native Android project (+ DocumentsProvider)
 ios/            committed native iOS project (+ Share & File Provider extensions)
+rust/           the core shared by iOS and Android, in Rust (UniFFI bindings)
+modules/        local Expo modules (twake-drive-core: the Rust core for the app)
 e2e/maestro/    Maestro end-to-end flows and shared subflows
 docs/           the public end-to-end testing guide
 scripts/        release + native signing helpers

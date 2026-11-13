@@ -66,3 +66,7 @@ gcp-service-account*.json
 /e2e/maestro/screenshots/current/
 /e2e/maestro/screenshots/diff/
 /e2e/maestro/screenshots/.maestro-run/
+
+# Rust core: build output, and what rust/scripts/build-ios.sh generates for the pod
+/rust/target/
+/modules/twake-drive-core/ios/generated/
