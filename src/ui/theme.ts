@@ -39,6 +39,8 @@ export const cozyTokens = {
   appBarSideSlot: 56,
   /** Horizontal padding Paper's Appbar already applies on each side. */
   appBarPadding: 4,
+  /** Thickness of a determinate progress bar inside a block of content. */
+  progressBarHeight: 4,
   /** Room a list has to leave below its last row for the floating button
    *  that hovers over it: the FAB plus its margins. */
   fabClearance: 88,
