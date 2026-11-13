@@ -113,6 +113,18 @@ final class BackupPass {
     let library = PHPhotoLibrary.shared()
     // Taken before reading: a change made during the scan comes again next time.
     let current = library.currentChangeToken
+    // A change token says nothing of album membership: with albums chosen,
+    // their media are read whole each time.
+    // shortcut: a full read per pass, without the adjustment data (a favorite
+    // on an edited photo hashes it again); watch album changes if a large
+    // library makes passes slow.
+    let choices = try store.albumChoices()
+    if !choices.isEmpty {
+      let ids = mediaOfAlbums(choices)
+      try record(PHAsset.fetchAssets(withLocalIdentifiers: Array(ids), options: mediaOptions()), readEdits: false)
+      try store.keepOnly(libraryIds: Array(ids))
+      return
+    }
     // With limited access, media the user adds to the selection may not show
     // up as changes: the selection is small, it is read whole each time.
     let full = PHPhotoLibrary.authorizationStatus(for: .readWrite) == .authorized
@@ -306,7 +318,36 @@ private func adjustmentVersion(_ asset: PHAsset) -> String? {
   return (try? md5File(path: file.path)).map { "adjusted:\($0)" }
 }
 
-private func mediaOptions() -> PHFetchOptions {
+/// The media of the albums picked, or of the whole library when none is,
+/// less those of the albums left out (as Immich does).
+private func mediaOfAlbums(_ choices: [AlbumChoice]) -> Set<String> {
+  func ids(of albums: [String]) -> Set<String> {
+    var ids = Set<String>()
+    PHAssetCollection.fetchAssetCollections(withLocalIdentifiers: albums, options: nil)
+      .enumerateObjects { album, _, _ in
+        PHAsset.fetchAssets(in: album, options: mediaOptions()).enumerateObjects { asset, _, _ in
+          ids.insert(asset.localIdentifier)
+        }
+      }
+    return ids
+  }
+  // An album picked then deleted picks nothing any more.
+  let existing = PHAssetCollection.fetchAssetCollections(
+    withLocalIdentifiers: choices.filter(\.included).map(\.albumId), options: nil)
+  var picked: [String] = []
+  existing.enumerateObjects { album, _, _ in picked.append(album.localIdentifier) }
+  var media = Set<String>()
+  if picked.isEmpty {
+    PHAsset.fetchAssets(with: mediaOptions()).enumerateObjects { asset, _, _ in
+      media.insert(asset.localIdentifier)
+    }
+  } else {
+    media = ids(of: picked)
+  }
+  return media.subtracting(ids(of: choices.filter { !$0.included }.map(\.albumId)))
+}
+
+func mediaOptions() -> PHFetchOptions {
   let options = PHFetchOptions()
   options.predicate = NSPredicate(
     format: "mediaType == %d OR mediaType == %d",

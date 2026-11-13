@@ -107,6 +107,14 @@ export default function BackupScreen(): React.ReactElement {
           <>
             <BackupStatusSection />
             <BackupConditionsSection />
+            <SettingsSection title={t('backup.albums.title')}>
+              <SettingsRow
+                testID="backup-albums"
+                title={t('backup.albums.open')}
+                trailing="chevron"
+                onPress={() => router.push('/settings/backup-albums')}
+              />
+            </SettingsSection>
           </>
         ) : null}
         {choice ? (

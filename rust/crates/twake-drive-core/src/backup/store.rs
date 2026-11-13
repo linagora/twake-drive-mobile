@@ -52,6 +52,7 @@ const MIGRATIONS: &[&str] = &[
         parked_at INTEGER NOT NULL
     );
 ",
+    "CREATE TABLE album_choice (album_id TEXT PRIMARY KEY, included INTEGER NOT NULL);",
 ];
 
 /// How long an upload handed to the system holds its media. The platform
@@ -149,6 +150,12 @@ pub struct BackupStatus {
     /// What stopped the last pass for every media, one of `stop_cause`, or
     /// what it waits for (`wait_for`).
     pub stopped_by: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, uniffi::Record)]
+pub struct AlbumChoice {
+    pub album_id: String,
+    pub included: bool,
 }
 
 /// The user's choices on when the backup may go. All off by default: Wi-Fi
@@ -284,6 +291,77 @@ impl BackupStore {
             .execute("DELETE FROM media WHERE local_id = ?1", params![local_id])
             .map_err(storage)?;
         Ok(())
+    }
+
+    /// The albums the user picked (`true`) or left out (`false`); the others
+    /// are neutral. None picked means the whole library.
+    pub fn album_choices(&self) -> Result<Vec<AlbumChoice>, CoreError> {
+        let db = self.db();
+        let mut query = db
+            .prepare("SELECT album_id, included FROM album_choice ORDER BY album_id")
+            .map_err(storage)?;
+        query
+            .query_map([], |row| {
+                Ok(AlbumChoice {
+                    album_id: row.get(0)?,
+                    included: row.get(1)?,
+                })
+            })
+            .map_err(storage)?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(storage)
+    }
+
+    /// `None` makes the album neutral again. The next scan reads the whole
+    /// library: a change token says nothing of album membership.
+    pub fn set_album_choice(
+        &self,
+        album_id: String,
+        included: Option<bool>,
+    ) -> Result<(), CoreError> {
+        let mut db = self.db();
+        let tx = db.transaction_with_behavior(Immediate).map_err(storage)?;
+        match included {
+            Some(included) => tx.execute(
+                "INSERT INTO album_choice (album_id, included) VALUES (?1, ?2)
+                 ON CONFLICT (album_id) DO UPDATE SET included = excluded.included",
+                params![album_id, included],
+            ),
+            None => tx.execute(
+                "DELETE FROM album_choice WHERE album_id = ?1",
+                params![album_id],
+            ),
+        }
+        .map_err(storage)?;
+        tx.execute("DELETE FROM setting WHERE key = ?1", params![CHANGE_TOKEN])
+            .map_err(storage)?;
+        tx.commit().map_err(storage)
+    }
+
+    /// The media the albums leave out no longer wait for their upload, the
+    /// video of a Live Photo with its photo. A media already saved stays so:
+    /// it is in Drive, and an album picked again does not send it again.
+    pub fn keep_only(&self, library_ids: Vec<String>) -> Result<(), CoreError> {
+        let keep: std::collections::HashSet<String> = library_ids.into_iter().collect();
+        let mut db = self.db();
+        let tx = db.transaction_with_behavior(Immediate).map_err(storage)?;
+        let known: Vec<String> = {
+            let mut query = tx
+                .prepare("SELECT local_id FROM media WHERE state != 'done'")
+                .map_err(storage)?;
+            query
+                .query_map([], |row| row.get(0))
+                .map_err(storage)?
+                .collect::<Result<Vec<_>, _>>()
+                .map_err(storage)?
+        };
+        for local_id in known {
+            if !keep.contains(library_id_of(&local_id)) {
+                tx.execute("DELETE FROM media WHERE local_id = ?1", params![local_id])
+                    .map_err(storage)?;
+            }
+        }
+        tx.commit().map_err(storage)
     }
 
     /// The md5 of the version hashed. Dropped when the media changed since:
@@ -1371,6 +1449,49 @@ mod tests {
             .unwrap();
         remove_db(&path);
         assert_eq!(token, Some(vec![3]));
+    }
+
+    #[test]
+    fn album_choices_are_kept_and_send_the_next_scan_through_the_whole_library() {
+        let s = store();
+        s.set_change_token(vec![1]).unwrap();
+        s.set_album_choice("camera".into(), Some(true)).unwrap();
+        s.set_album_choice("screenshots".into(), Some(false))
+            .unwrap();
+        s.set_album_choice("camera".into(), None).unwrap();
+        assert_eq!(
+            s.album_choices().unwrap(),
+            [AlbumChoice {
+                album_id: "screenshots".into(),
+                included: false
+            }]
+        );
+        assert_eq!(s.change_token().unwrap(), None);
+    }
+
+    #[test]
+    fn media_out_of_the_albums_leave_the_queue_with_their_video() {
+        let s = store();
+        for id in ["kept", "out", "out#video"] {
+            s.record_media(id.into(), 1, 1).unwrap();
+        }
+        s.keep_only(vec!["kept".into()]).unwrap();
+        assert_eq!(ids(&s.next_batch(NOW, 10, 60).unwrap()), ["kept"]);
+        assert_eq!(s.counts().unwrap().pending, 1);
+    }
+
+    #[test]
+    fn a_saved_media_out_of_the_albums_stays_saved() {
+        let s = store();
+        s.record_media("saved".into(), 1, 1).unwrap();
+        s.set_md5("saved".into(), 1, MD5.into()).unwrap();
+        s.record_outcome("saved".into(), MD5.into(), uploaded("f1"), NOW)
+            .unwrap();
+        s.keep_only(vec![]).unwrap();
+        // Picked again, it is not sent again.
+        s.record_media("saved".into(), 1, 1).unwrap();
+        assert!(s.next_batch(NOW, 10, 60).unwrap().is_empty());
+        assert_eq!(s.counts().unwrap().done, 1);
     }
 
     #[test]
