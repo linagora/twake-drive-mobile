@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { Linking, StyleSheet, View } from 'react-native'
 import { Button } from 'react-native-paper'
 import { useTranslation } from 'react-i18next'
@@ -7,11 +7,13 @@ import { useClient } from 'cozy-client'
 
 import { dateLocaleForLanguage } from '@/i18n/dateLocale'
 import { InlineBanner } from '@/ui/InlineBanner'
+import { QuotaPaywall } from '@/ui/QuotaPaywall'
 import { SettingsRow } from '@/ui/SettingsRow'
 import { SettingsSection } from '@/ui/SettingsSection'
 import { cozyTokens } from '@/ui/theme'
 
 import { runBackupPass } from './backupPass'
+import { readBackupSettings, writeBackupSettings } from './backupSettings'
 import { useBackupStatus } from './useBackupStatus'
 
 /** How far the backup is, and what holds it back. */
@@ -19,7 +21,12 @@ export const BackupStatusSection = (): React.ReactElement | null => {
   const { t, i18n } = useTranslation()
   const client = useClient()
   const { status, access, retryFailed } = useBackupStatus()
+  // The paywall comes back with each pass a full Drive stops, as on the web after each upload.
+  const [paywallClosedFor, setPaywallClosedFor] = useState(
+    () => readBackupSettings().paywallClosedFor
+  )
   if (!status) return null
+  const passEnd = status.lastPassAt ?? 0
   const lastPass = status.lastPassAt
     ? t('backup.status.lastPass', {
         when: formatDistanceToNow(new Date(status.lastPassAt * 1000), {
@@ -51,7 +58,17 @@ export const BackupStatusSection = (): React.ReactElement | null => {
         />
       ) : null}
       {status.stoppedBy === 'QuotaExceeded' ? (
-        <InlineBanner tone="error" message={t('backup.status.quota')} testID="backup-quota" />
+        <>
+          <InlineBanner tone="error" message={t('backup.status.quota')} testID="backup-quota" />
+          {paywallClosedFor !== passEnd ? (
+            <QuotaPaywall
+              onClose={() => {
+                writeBackupSettings({ paywallClosedFor: passEnd })
+                setPaywallClosedFor(passEnd)
+              }}
+            />
+          ) : null}
+        </>
       ) : status.stoppedBy === 'WaitingForWifi' ? (
         <InlineBanner message={t('backup.status.waitingWifi')} testID="backup-waiting-wifi" />
       ) : status.stoppedBy === 'WaitingForPower' ? (

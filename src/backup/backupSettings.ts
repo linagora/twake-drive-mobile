@@ -3,6 +3,8 @@ import { accountStorage } from '@/storage/accountScope'
 export interface BackupSettings {
   enabled: boolean
   folder: { id: string; path: string } | null
+  /** End of the pass whose full Drive paywall the user closed. */
+  paywallClosedFor?: number
 }
 
 const DEFAULT: BackupSettings = { enabled: false, folder: null }

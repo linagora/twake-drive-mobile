@@ -12,12 +12,26 @@ let mockState: BackupState
 jest.mock('./useBackupStatus', () => ({ useBackupStatus: () => mockState }))
 const mockClient = {}
 jest.mock('cozy-client', () => ({ useClient: () => mockClient }))
+jest.mock('@/ui/QuotaPaywall', () => {
+  const { Pressable } = jest.requireActual('react-native')
+  return {
+    QuotaPaywall: ({ onClose }: { onClose: () => void }) => (
+      <Pressable testID="paywall" onPress={onClose} />
+    )
+  }
+})
+let mockSettings: { paywallClosedFor?: number } = {}
+jest.mock('./backupSettings', () => ({
+  readBackupSettings: () => mockSettings,
+  writeBackupSettings: (patch: object) => (mockSettings = { ...mockSettings, ...patch })
+}))
 const mockPass = jest.fn()
 jest.mock('./backupPass', () => ({ runBackupPass: (client: unknown) => mockPass(client) }))
 
 beforeEach(() => {
   mockRetry.mockReset().mockResolvedValue(undefined)
   mockPass.mockReset().mockResolvedValue(null)
+  mockSettings = {}
   mockState = { status: { ...counts }, access: 'authorized', retryFailed: mockRetry }
 })
 
@@ -37,9 +51,17 @@ it('says when the last pass ended', () => {
   expect(screen.getByTestId('backup-counts')).toBeTruthy()
 })
 
-it('tells a full Drive pauses the backup', () => {
-  mockState.status = { ...counts, stoppedBy: 'QuotaExceeded' }
-  render(<BackupStatusSection />).getByText(i18n.t('backup.status.quota'))
+it('tells a full Drive pauses the backup, with the paywall again after each pass', () => {
+  mockState.status = { ...counts, stoppedBy: 'QuotaExceeded', lastPassAt: 100 }
+  const screen = render(<BackupStatusSection />)
+  screen.getByText(i18n.t('backup.status.quota'))
+  fireEvent.press(screen.getByTestId('paywall'))
+  expect(screen.queryByTestId('paywall')).toBeNull()
+  // Closed for this pass, it stays closed when the screen opens again.
+  screen.unmount()
+  expect(render(<BackupStatusSection />).queryByTestId('paywall')).toBeNull()
+  mockState.status = { ...counts, stoppedBy: 'QuotaExceeded', lastPassAt: 200 }
+  render(<BackupStatusSection />).getByTestId('paywall')
 })
 
 it('tells the last pass stopped for another cause', () => {
