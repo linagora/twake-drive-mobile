@@ -1,0 +1,37 @@
+apply plugin: 'com.android.library'
+
+group = 'com.linagora.twakedrive'
+version = '0.1.0'
+
+def expoModulesCorePlugin = new File(project(":expo-modules-core").projectDir.absolutePath, "ExpoModulesCorePlugin.gradle")
+apply from: expoModulesCorePlugin
+applyKotlinExpoModulesCorePlugin()
+useCoreDependencies()
+useDefaultAndroidSdkVersions()
+
+android {
+  namespace 'com.linagora.twakedrive.core'
+  defaultConfig {
+    consumerProguardFiles 'proguard-rules.pro'
+  }
+}
+
+dependencies {
+  // The UniFFI bindings reach the Rust core through JNA.
+  implementation 'net.java.dev.jna:jna:5.17.0@aar'
+}
+
+// The .so of each ABI and the Kotlin bindings, built again when rust/ changes.
+def rust = file('../../../rust')
+def buildRustCore = tasks.register('buildRustCore', Exec) {
+  commandLine "${rust}/scripts/build-android.sh"
+  inputs.dir("${rust}/crates")
+  inputs.dir("${rust}/uniffi-bindgen")
+  inputs.file("${rust}/Cargo.toml")
+  inputs.file("${rust}/Cargo.lock")
+  inputs.file("${rust}/rust-toolchain.toml")
+  inputs.file("${rust}/scripts/build-android.sh")
+  outputs.dir('src/main/jniLibs')
+  outputs.dir('src/main/java/com/linagora/twakedrive/core')
+}
+preBuild.dependsOn buildRustCore
