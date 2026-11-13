@@ -5,7 +5,15 @@ import i18n from '@/i18n'
 import BackupScreen from './backup'
 
 const mockPush = jest.fn()
-jest.mock('expo-router', () => ({ useRouter: () => ({ back: jest.fn(), push: mockPush }) }))
+jest.mock('expo-router', () => {
+  const { Text } = jest.requireActual('react-native')
+  return {
+    useRouter: () => ({ back: jest.fn(), push: mockPush }),
+    Redirect: ({ href }: { href: string }) => <Text testID="redirect">{href}</Text>
+  }
+})
+let mockFlagOn = true
+jest.mock('@/backup/backupFlag', () => ({ useIsPhotoBackupEnabled: () => mockFlagOn }))
 jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 })
 }))
@@ -49,6 +57,7 @@ const flagship = {
 
 beforeEach(() => {
   mockSettings = { enabled: false, folder: null }
+  mockFlagOn = true
   ;[mockStart, mockFinish, mockStop, mockAdopt, mockPass].forEach(fn => fn.mockReset())
   mockAdopt.mockResolvedValue(false)
   mockPass.mockResolvedValue(null)
@@ -59,6 +68,13 @@ const turnOn = async (screen: ReturnType<typeof render>): Promise<void> => {
     fireEvent(screen.getByTestId('backup-enable-switch'), 'valueChange', true)
   })
 }
+
+it('leads back to the settings while the instance keeps the backup off', () => {
+  mockFlagOn = false
+  const screen = render(<BackupScreen />)
+  expect(screen.getByTestId('redirect').props.children).toBe('/settings')
+  expect(screen.queryByTestId('backup-enable-switch')).toBeNull()
+})
 
 it('shows the folder of an active backup', () => {
   mockSettings = { enabled: true, folder: { id: 'f1', path: '/Photos/B/iPhone' } }

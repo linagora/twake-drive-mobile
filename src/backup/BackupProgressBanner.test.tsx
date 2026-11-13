@@ -13,6 +13,8 @@ jest.mock('./useBackupStatus', () => ({
 }))
 let mockEnabled = true
 jest.mock('./backupSettings', () => ({ readBackupSettings: () => ({ enabled: mockEnabled }) }))
+let mockFlag: unknown = true
+jest.mock('@/client/useFlag', () => ({ useFlag: () => mockFlag }))
 const mockPush = jest.fn()
 jest.mock('expo-router', () => {
   const { useEffect } = jest.requireActual('react')
@@ -24,6 +26,7 @@ jest.mock('expo-router', () => {
 
 beforeEach(() => {
   mockEnabled = true
+  mockFlag = true
   mockPush.mockReset()
   mockState = { status: { ...counts }, access: 'authorized', retryFailed: jest.fn() }
 })
@@ -61,5 +64,10 @@ it('stays away when nothing is left, or the backup is off', () => {
   expect(render(<BackupProgressBanner />).toJSON()).toBeNull()
   mockState.status = { ...counts }
   mockEnabled = false
+  expect(render(<BackupProgressBanner />).toJSON()).toBeNull()
+})
+
+it('stays away while the instance keeps the backup off', () => {
+  mockFlag = undefined
   expect(render(<BackupProgressBanner />).toJSON()).toBeNull()
 })
