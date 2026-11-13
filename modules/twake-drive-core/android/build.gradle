@@ -23,6 +23,7 @@ android {
 dependencies {
   // The UniFFI bindings reach the Rust core through JNA.
   implementation 'net.java.dev.jna:jna:5.17.0@aar'
+  implementation 'androidx.work:work-runtime:2.12.0'
   testImplementation 'junit:junit:4.13.2'
 }
 

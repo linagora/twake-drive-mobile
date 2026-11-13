@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <string name="backup_notification_title">Резервное копирование фото</string>
+  <plurals name="backup_notification_left">
+    <item quantity="one">Осталось: %d</item>
+    <item quantity="few">Осталось: %d</item>
+    <item quantity="many">Осталось: %d</item>
+    <item quantity="other">Осталось: %d</item>
+  </plurals>
+</resources>
