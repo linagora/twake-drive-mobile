@@ -86,9 +86,13 @@ interface TwakeDriveCoreNative {
 
 const native = requireOptionalNativeModule<TwakeDriveCoreNative>('TwakeDriveCore')
 
-/** Null where the Rust core is not built in (Android, for now). */
+/** Null where the Rust core is not built in (tests, a build without it). */
 export const md5File = async (path: string): Promise<string | null> =>
   native ? native.md5File(path) : null
 
-/** The photo backup of the Rust core, null where it is not built in. */
-export const backupCore = (): Omit<TwakeDriveCoreNative, 'md5File'> | null => native
+/**
+ * The photo backup of the Rust core, null where the core or its backup engine
+ * (Android, for now) is missing.
+ */
+export const backupCore = (): Omit<TwakeDriveCoreNative, 'md5File'> | null =>
+  native && 'runBackupPass' in native ? native : null
