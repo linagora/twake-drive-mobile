@@ -422,7 +422,11 @@
       "title": "Quando fare il backup",
       "cellularPhotos": "Foto con dati mobili",
       "cellularVideos": "Video con dati mobili",
-      "onlyCharging": "Solo in carica"
+      "onlyCharging": "Solo in carica",
+      "instant": "Invio allo scatto",
+      "instantOn": "Secondo le impostazioni sopra, di solito partono entro un minuto, più tardi in risparmio energetico.",
+      "instantHeldBack": "Android le trattiene per risparmiare batteria, a volte per ore. Nelle impostazioni della batteria, togli l'ottimizzazione a Twake Drive perché partano entro un minuto.",
+      "allowBackground": "Consenti"
     },
     "albums": {
       "title": "Album",

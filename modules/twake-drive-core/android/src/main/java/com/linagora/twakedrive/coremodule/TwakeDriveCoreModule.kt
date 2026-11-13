@@ -2,7 +2,10 @@ package com.linagora.twakedrive.coremodule
 
 import android.Manifest
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import android.os.Build
+import android.provider.Settings
 import androidx.work.ExistingWorkPolicy
 import com.linagora.twakedrive.core.BackupConditions
 import com.linagora.twakedrive.core.BackupConfig
@@ -39,6 +42,18 @@ class TwakeDriveCoreModule : Module() {
     }
 
     Function("photoAccess") { photoAccess(context) }
+
+    Function("batteryOptimized") { !isBatteryExempt(context) }
+
+    /** The list of the apps the battery optimization holds back, where the user lifts it for this one. */
+    Function("openBatteryOptimizationSettings") {
+      val list = Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
+      // Some builds have no such list: the page of the app, its battery setting a tap away.
+      val app = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:${context.packageName}"))
+      val open = listOf(list, app).firstOrNull { it.resolveActivity(context.packageManager) != null }
+      open?.let { runCatching { context.startActivity(it.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) } }
+      Unit
+    }
 
     AsyncFunction("deviceName") { deviceName(context) }
 
