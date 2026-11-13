@@ -405,6 +405,17 @@
       "cellularPhotos": "Fotos über mobile Daten",
       "cellularVideos": "Videos über mobile Daten",
       "onlyCharging": "Nur beim Laden"
+    },
+    "albums": {
+      "title": "Alben",
+      "open": "Alben auswählen",
+      "listTitle": "Alben dieses Telefons",
+      "nonePicked": "Alle Fotos werden gesichert, außer denen der ausgeschlossenen Alben. Tippen Sie auf ein Album, um es auszuwählen, und erneut, um es auszuschließen.",
+      "somePicked": "Nur die Fotos der ausgewählten Alben werden gesichert, außer denen der ausgeschlossenen Alben.",
+      "neutral": "Elemente: {{count}}",
+      "picked": "Ausgewählt, Elemente: {{count}}",
+      "leftOut": "Ausgeschlossen, Elemente: {{count}}",
+      "error": "Die Alben konnten nicht gelesen werden."
     }
   }
 }

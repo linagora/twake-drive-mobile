@@ -4,7 +4,8 @@ import i18n from '@/i18n'
 
 import BackupScreen from './backup'
 
-jest.mock('expo-router', () => ({ useRouter: () => ({ back: jest.fn() }) }))
+const mockPush = jest.fn()
+jest.mock('expo-router', () => ({ useRouter: () => ({ back: jest.fn(), push: mockPush }) }))
 jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 })
 }))
@@ -139,6 +140,13 @@ it('takes on the token the core may have refreshed', async () => {
   const screen = render(<BackupScreen />)
   await turnOn(screen)
   expect(mockAdopt).toHaveBeenCalledWith(mockClient)
+})
+
+it('opens the choice of the albums once the backup is on', () => {
+  mockSettings = { enabled: true, folder: { id: 'f1', path: '/Photos/B/iPhone' } }
+  const screen = render(<BackupScreen />)
+  fireEvent.press(screen.getByTestId('backup-albums'))
+  expect(mockPush).toHaveBeenCalledWith('/settings/backup-albums')
 })
 
 it('shows how far the backup is once it is on', () => {
