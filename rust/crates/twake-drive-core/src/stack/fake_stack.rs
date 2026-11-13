@@ -100,6 +100,19 @@ impl FakeStack {
         state.references.get(doc_id).cloned().unwrap_or_default()
     }
 
+    /// What `DELETE /files/:id` does: the document moves to the trash.
+    pub fn trash(&self, id: &str) {
+        let mut state = self.state.lock().unwrap();
+        let attributes = &mut state.docs.get_mut(id).unwrap()["attributes"];
+        let name = attributes["name"].as_str().unwrap().to_string();
+        attributes["path"] = json!(format!("/.cozy_trash/{name}"));
+    }
+
+    /// Deleted for good, out of the trash too.
+    pub fn destroy(&self, id: &str) {
+        self.state.lock().unwrap().docs.remove(id);
+    }
+
     pub fn id_at(&self, path: &str) -> String {
         let state = self.state.lock().unwrap();
         find_by_path(&state, path).expect(path).to_string()
@@ -195,6 +208,9 @@ impl FakeStack {
             }
             ("GET", ["files", id]) => {
                 let id = decode(id);
+                if !state.docs.contains_key(&id) {
+                    return (404, json!({}));
+                }
                 let children = state
                     .docs
                     .values()

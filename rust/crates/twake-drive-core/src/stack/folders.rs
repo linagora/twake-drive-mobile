@@ -49,6 +49,15 @@ pub(crate) fn create(
 ) -> Result<DeviceFolder, CoreError> {
     let photos = photos_folder(stack)?;
     let root = dir_by_path_or_create(stack, &id_of(&photos)?, &path_of(&photos), root_name)?;
+    create_in(stack, &root, device_id, device_name)
+}
+
+fn create_in(
+    stack: &Stack,
+    parent: &Value,
+    device_id: &str,
+    name: &str,
+) -> Result<DeviceFolder, CoreError> {
     let metadata = stack.json(
         "POST",
         "/files/upload/metadata",
@@ -57,9 +66,48 @@ pub(crate) fn create(
         &[201],
     )?;
     let metadata_id = id_of(&metadata["data"])?;
-    let folder = create_dir_numbered(stack, &id_of(&root)?, device_name, &metadata_id)?;
+    let folder = create_dir_numbered(stack, &id_of(parent)?, name, &metadata_id)?;
     add_reference(stack, BACKUP_REF, &id_of(&folder)?)?;
     Ok(to_folder(&folder))
+}
+
+/// The folder as it is now, None once deleted or in the trash.
+pub(crate) fn current(stack: &Stack, folder_id: &str) -> Result<Option<DeviceFolder>, CoreError> {
+    // One child is enough: the folder itself is what is read.
+    let path = format!("/files/{}?page%5Blimit%5D=1", encode(folder_id));
+    let response = stack.call("GET", &path, None)?;
+    match response.status {
+        200 => {
+            let folder = data_of(&response.body, &path)?;
+            Ok((!is_trashed(&folder)).then(|| to_folder(&folder)))
+        }
+        404 => Ok(None),
+        status => Err(unexpected("GET", &path, status)),
+    }
+}
+
+/// A folder made again at `path`, wherever the user had moved it, its
+/// parents too; numbered if the name was taken meanwhile.
+pub(crate) fn create_at(
+    stack: &Stack,
+    device_id: &str,
+    path: &str,
+) -> Result<DeviceFolder, CoreError> {
+    let Some((parents, name)) = path.rsplit_once('/').filter(|(_, name)| !name.is_empty()) else {
+        return Err(CoreError::Stack {
+            reason: "no path to make the device folder again".into(),
+        });
+    };
+    let mut parent = json!({"id": ROOT_DIR, "attributes": {"path": ""}});
+    for dir in parents.split('/').filter(|dir| !dir.is_empty()) {
+        parent = dir_by_path_or_create(stack, &id_of(&parent)?, &path_of(&parent), dir)?;
+    }
+    create_in(stack, &parent, device_id, name)
+}
+
+/// Directories have no `trashed` attribute: a trashed one lives under the trash path.
+fn is_trashed(doc: &Value) -> bool {
+    path_of(doc).starts_with("/.cozy_trash")
 }
 
 /// Adds `device_id` to the devices of a folder, keeping the rest of its
@@ -132,9 +180,11 @@ fn referenced_dirs(stack: &Stack, doc_id: &str) -> Result<Vec<Value>, CoreError>
     while let Some(current) = path {
         let page = stack.json("GET", &current, None, &[200])?;
         let included = page["included"].as_array().cloned().unwrap_or_default();
-        dirs.extend(included.into_iter().filter(|doc| {
-            doc["attributes"]["type"] == "directory" && !path_of(doc).starts_with("/.cozy_trash")
-        }));
+        dirs.extend(
+            included
+                .into_iter()
+                .filter(|doc| doc["attributes"]["type"] == "directory" && !is_trashed(doc)),
+        );
         // The stack's next link keeps the cursor only, not `include`.
         path = page["links"]["next"]
             .as_str()
