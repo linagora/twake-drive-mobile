@@ -61,6 +61,12 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Gradle compiles the Rust core (buildRustCore): keep its crates and rust/target.
+      - uses: Swatinem/rust-cache@2201cc584a476d1b508be977bbe4b7d1c7a52e9c # v2.9.3
+        with:
+          workspaces: rust
+          shared-key: rust-android
+
       # assembleRelease signs with the committed debug keystore (no secret) and
       # embeds the JS bundle -> standalone, installable APK. Restrict ABIs to
       # arm64 (real devices) + x86_64 (emulators) to halve build time and size.

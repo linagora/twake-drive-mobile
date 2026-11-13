@@ -82,6 +82,12 @@ jobs:
       - name: Install JS dependencies
         run: npm ci
 
+      # Gradle compiles the Rust core (buildRustCore): keep its crates and rust/target.
+      - uses: Swatinem/rust-cache@2201cc584a476d1b508be977bbe4b7d1c7a52e9c # v2.9.3
+        with:
+          workspaces: rust
+          shared-key: rust-android
+
       - name: Set up Ruby (fastlane)
         uses: ruby/setup-ruby@14594264cd68ce8a2345dd349bc3d138a4ef85c8 # v1.327.0
         with:

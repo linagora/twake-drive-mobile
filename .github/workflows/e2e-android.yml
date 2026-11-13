@@ -88,6 +88,12 @@ jobs:
           key: ${{ runner.os }}-gradle-e2e-${{ hashFiles('android/**/*.gradle*', 'android/gradle/wrapper/gradle-wrapper.properties') }}
           restore-keys: ${{ runner.os }}-gradle-e2e-
 
+      # Gradle compiles the Rust core (buildRustCore): keep its crates and rust/target.
+      - uses: Swatinem/rust-cache@2201cc584a476d1b508be977bbe4b7d1c7a52e9c # v2.9.3
+        with:
+          workspaces: rust
+          shared-key: rust-android
+
       # A release build with the bundle inside: no Metro to serve it, no
       # development menu over the screen, and the app starts in seconds.
       # EXPO_PUBLIC_E2E opens the instance address screen, and the property

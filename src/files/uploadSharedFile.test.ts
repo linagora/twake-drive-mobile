@@ -64,6 +64,15 @@ test('still uploads, without MD5 and with a crash report, when the MD5 cannot be
   expect(mockReportCaughtError).toHaveBeenCalledWith(failure)
 })
 
+test('sends no MD5 for a content:// item, which has no path to read', async () => {
+  mockMd5File.mockResolvedValue('nhB9nTcrtoJr2B01QqQZ1g==')
+  mockFetch.mockReturnValueOnce(mkResp(201, { data: { id: 'f1', attributes: {} } }))
+  await uploadSharedFile(client, { ...item, uri: 'content://media/external/images/1' }, 'dir42')
+  expect(mockMd5File).not.toHaveBeenCalled()
+  expect(mockFetch.mock.calls[0][2]).not.toHaveProperty('Content-MD5')
+  expect(mockReportCaughtError).not.toHaveBeenCalled()
+})
+
 test('sends no MD5 where the Rust core is not built in', async () => {
   mockFetch.mockReturnValueOnce(mkResp(201, { data: { id: 'f1', attributes: {} } }))
   await uploadSharedFile(client, item, 'dir42')

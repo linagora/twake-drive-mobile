@@ -82,10 +82,13 @@ export const uploadSharedFile = async (
   const contentType = item.mimeType || 'application/octet-stream'
   // The stack refuses a body whose MD5 differs (412) instead of storing a corrupt copy.
   // An extra check: when it cannot be computed, the file still goes, without it.
-  const md5 = await md5File(path).catch((error: unknown) => {
-    reportCaughtError(error instanceof Error ? error : new Error(String(error)))
-    return null
-  })
+  // A content:// item has no path the core can open.
+  const md5 = fileUri.startsWith('content://')
+    ? null
+    : await md5File(path).catch((error: unknown) => {
+        reportCaughtError(error instanceof Error ? error : new Error(String(error)))
+        return null
+      })
   const headers: Record<string, string> = {
     Authorization: `Bearer ${token}`,
     'Content-Type': contentType,
