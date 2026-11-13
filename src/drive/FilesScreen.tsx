@@ -29,6 +29,7 @@ import { useViewMode } from '@/ui/useViewMode'
 import { cozyTokens } from '@/ui/theme'
 import { useFolderSort } from '@/ui/useFolderSort'
 import { SyncBanner } from '@/ui/SyncBanner'
+import { BackupProgressBanner } from '@/backup/BackupProgressBanner'
 import { ConfirmDeleteDialog } from '@/ui/ConfirmDeleteDialog'
 import { RenameDialog } from '@/ui/RenameDialog'
 import { useMultiSelect } from '@/ui/useMultiSelect'
@@ -298,6 +299,7 @@ export const FilesScreen = ({ basePath }: FilesScreenProps): React.ReactElement 
         }
       />
       <FileListToolbar />
+      {isRoot && basePath === '/(drive)/files' ? <BackupProgressBanner /> : null}
       <View style={styles.content}>
         <SyncBanner />
         <FileListView

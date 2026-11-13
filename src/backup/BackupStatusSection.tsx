@@ -8,6 +8,7 @@ import { useClient } from 'cozy-client'
 import { dateLocaleForLanguage } from '@/i18n/dateLocale'
 import { backupCore } from '@/native/twakeDriveCore'
 import { InlineBanner } from '@/ui/InlineBanner'
+import { ProgressLine } from '@/ui/ProgressLine'
 import { QuotaPaywall } from '@/ui/QuotaPaywall'
 import { SettingsRow } from '@/ui/SettingsRow'
 import { SettingsSection } from '@/ui/SettingsSection'
@@ -15,7 +16,7 @@ import { cozyTokens } from '@/ui/theme'
 
 import { runBackupPass } from './backupPass'
 import { readBackupSettings, writeBackupSettings } from './backupSettings'
-import { useBackupStatus } from './useBackupStatus'
+import { savedShare, useBackupStatus } from './useBackupStatus'
 
 interface Props {
   /** Turns the backup off, the answer to a folder gone the user does not want back. */
@@ -121,6 +122,9 @@ export const BackupStatusSection = ({ onTurnOff }: Props): React.ReactElement | 
         title={t('backup.status.counts', { done: status.done, pending: status.pending })}
         description={lastPass}
       />
+      {status.pending > 0 ? (
+        <ProgressLine testID="backup-counts-bar" progress={savedShare(status)} style={styles.bar} />
+      ) : null}
       {status.unavailable > 0 ? (
         <SettingsRow
           testID="backup-unavailable"
@@ -154,5 +158,9 @@ export const BackupStatusSection = ({ onTurnOff }: Props): React.ReactElement | 
 }
 
 const styles = StyleSheet.create({
-  failed: { paddingBottom: cozyTokens.spacing.sm }
+  failed: { paddingBottom: cozyTokens.spacing.sm },
+  bar: {
+    marginHorizontal: cozyTokens.spacing.md,
+    marginBottom: cozyTokens.spacing.sm
+  }
 })

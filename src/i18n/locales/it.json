@@ -401,6 +401,18 @@
       "defaultContent": "Il tuo spazio di archiviazione è pieno.\n\nElimina dei file o svuota il cestino prima di caricare altri file.",
       "understood": "Ho capito"
     },
+    "banner": {
+      "remaining_one": "Backup delle foto: manca {{count}} elemento",
+      "remaining_many": "Backup delle foto: mancano {{count}} elementi",
+      "remaining_other": "Backup delle foto: mancano {{count}} elementi",
+      "waitingWifi": "In attesa del Wi-Fi",
+      "waitingPower": "In attesa che il telefono sia in carica",
+      "quota": "In pausa, il tuo Drive è pieno",
+      "folderGone": "In pausa, la cartella del backup non esiste più",
+      "noAccess": "In pausa, nessun accesso alle foto",
+      "paused": "In pausa, riprenderà più tardi",
+      "hint": "Apre la schermata Backup delle foto"
+    },
     "status": {
       "title": "Avanzamento",
       "counts": "{{done}} salvati, {{pending}} rimanenti",

@@ -9,7 +9,10 @@ import { BackupStatusSection } from './BackupStatusSection'
 const counts = { done: 1240, pending: 37, skipped: 0, failed: 0, unavailable: 0 }
 const mockRetry = jest.fn()
 let mockState: BackupState
-jest.mock('./useBackupStatus', () => ({ useBackupStatus: () => mockState }))
+jest.mock('./useBackupStatus', () => ({
+  ...jest.requireActual('./useBackupStatus'),
+  useBackupStatus: () => mockState
+}))
 const mockClient = {}
 jest.mock('cozy-client', () => ({ useClient: () => mockClient }))
 jest.mock('@/ui/QuotaPaywall', () => {
@@ -77,6 +80,10 @@ it('says how far the backup is', () => {
   const screen = render(<BackupStatusSection onTurnOff={mockTurnOff} />)
   screen.getByText(i18n.t('backup.status.counts', { done: 1240, pending: 37 }))
   screen.getByText(i18n.t('backup.status.neverRun'))
+  // 1240 saved out of 1277.
+  expect(screen.getByTestId('backup-counts-bar').props.accessibilityValue).toMatchObject({
+    now: 97
+  })
   expect(screen.queryByTestId('backup-quota')).toBeNull()
   expect(screen.queryByTestId('backup-no-access')).toBeNull()
   expect(screen.queryByTestId('backup-retry')).toBeNull()

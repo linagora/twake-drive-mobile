@@ -383,6 +383,16 @@
       "defaultContent": "Dung lượng đĩa của bạn đã đầy.\n\nVui lòng xóa các tập tin, làm trống thùng rác trước khi tải lên tập tin.",
       "understood": "Tôi hiểu"
     },
+    "banner": {
+      "remaining_other": "Sao lưu ảnh: còn {{count}} mục",
+      "waitingWifi": "Đang chờ Wi-Fi",
+      "waitingPower": "Đang chờ điện thoại được sạc",
+      "quota": "Tạm dừng, Drive của bạn đã đầy",
+      "folderGone": "Tạm dừng, thư mục sao lưu không còn nữa",
+      "noAccess": "Tạm dừng, không có quyền truy cập ảnh",
+      "paused": "Tạm dừng, sẽ tiếp tục sau",
+      "hint": "Mở màn hình sao lưu ảnh"
+    },
     "status": {
       "title": "Tiến độ",
       "counts": "Đã lưu {{done}}, còn lại {{pending}}",

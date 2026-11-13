@@ -401,6 +401,18 @@
       "defaultContent": "Votre espace de stockage est plein.\n\nVeuillez supprimer des fichiers, et vider votre corbeille avant d'importer de nouveaux fichiers.",
       "understood": "J'ai compris"
     },
+    "banner": {
+      "remaining_one": "Sauvegarde des photos : {{count}} élément restant",
+      "remaining_many": "Sauvegarde des photos : {{count}} éléments restants",
+      "remaining_other": "Sauvegarde des photos : {{count}} éléments restants",
+      "waitingWifi": "En attente du Wi-Fi",
+      "waitingPower": "En attente de la charge du téléphone",
+      "quota": "En pause, votre Drive est plein",
+      "folderGone": "En pause, le dossier de sauvegarde n'existe plus",
+      "noAccess": "En pause, pas d'accès aux photos",
+      "paused": "En pause, elle reprendra plus tard",
+      "hint": "Ouvre l'écran Sauvegarde des photos"
+    },
     "status": {
       "title": "Avancement",
       "counts": "{{done}} sauvegardés, {{pending}} restants",

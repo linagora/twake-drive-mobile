@@ -401,6 +401,18 @@
       "defaultContent": "Su espacio de almacenamiento está lleno.\n\nElimine archivos o vacíe la papelera antes de subir archivos.",
       "understood": "Entendido"
     },
+    "banner": {
+      "remaining_one": "Copia de fotos: queda {{count}} elemento",
+      "remaining_many": "Copia de fotos: quedan {{count}} elementos",
+      "remaining_other": "Copia de fotos: quedan {{count}} elementos",
+      "waitingWifi": "Esperando al Wi-Fi",
+      "waitingPower": "Esperando a que el teléfono se cargue",
+      "quota": "En pausa, tu Drive está lleno",
+      "folderGone": "En pausa, la carpeta de la copia ya no existe",
+      "noAccess": "En pausa, sin acceso a las fotos",
+      "paused": "En pausa, seguirá más tarde",
+      "hint": "Abre la pantalla de copia de seguridad de fotos"
+    },
     "status": {
       "title": "Progreso",
       "counts": "{{done}} guardados, {{pending}} pendientes",

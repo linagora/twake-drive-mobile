@@ -392,6 +392,17 @@
       "defaultContent": "Your disk storage is full.\n\nPlease remove files, empty your trash before uploading files.",
       "understood": "I understand"
     },
+    "banner": {
+      "remaining_one": "Photo backup: {{count}} item left",
+      "remaining_other": "Photo backup: {{count}} items left",
+      "waitingWifi": "Waiting for Wi-Fi",
+      "waitingPower": "Waiting for the phone to charge",
+      "quota": "Paused, your Drive is full",
+      "folderGone": "Paused, the backup folder is gone",
+      "noAccess": "Paused, no access to the photos",
+      "paused": "Paused, it will go on later",
+      "hint": "Opens the photo backup screen"
+    },
     "status": {
       "title": "Progress",
       "counts": "{{done}} saved, {{pending}} to go",

@@ -392,6 +392,17 @@
       "defaultContent": "Ihr Speicherplatz ist voll.\n\nBitte löschen Sie Dateien oder leeren Sie Ihren Papierkorb, bevor Sie Dateien hochladen.",
       "understood": "Verstanden"
     },
+    "banner": {
+      "remaining_one": "Fotosicherung: {{count}} Element übrig",
+      "remaining_other": "Fotosicherung: {{count}} Elemente übrig",
+      "waitingWifi": "Wartet auf WLAN",
+      "waitingPower": "Wartet, bis das Telefon lädt",
+      "quota": "Pausiert, Ihr Drive ist voll",
+      "folderGone": "Pausiert, der Sicherungsordner existiert nicht mehr",
+      "noAccess": "Pausiert, kein Zugriff auf die Fotos",
+      "paused": "Pausiert, sie geht später weiter",
+      "hint": "Öffnet den Bildschirm Fotosicherung"
+    },
     "status": {
       "title": "Fortschritt",
       "counts": "{{done}} gesichert, {{pending}} ausstehend",
