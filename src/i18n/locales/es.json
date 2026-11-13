@@ -394,6 +394,13 @@
     "error": "La copia no pudo empezar. Comprueba tu conexión e inténtalo de nuevo.",
     "rootFolder": "Copiado desde mi móvil",
     "invalidName": "El nombre de una carpeta no puede ser «.» ni «..», ni contener «/» o un salto de línea.",
+    "paywall": {
+      "premiumTitle": "Mejore su plan",
+      "premiumContent": "Su espacio de almacenamiento está lleno.\n\nElimine archivos, vacíe la papelera o mejore su plan antes de subir archivos.",
+      "defaultTitle": "Información",
+      "defaultContent": "Su espacio de almacenamiento está lleno.\n\nElimine archivos o vacíe la papelera antes de subir archivos.",
+      "understood": "Entendido"
+    },
     "status": {
       "title": "Progreso",
       "counts": "{{done}} guardados, {{pending}} pendientes",

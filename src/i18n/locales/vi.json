@@ -376,6 +376,13 @@
     "error": "Không thể bắt đầu sao lưu. Hãy kiểm tra kết nối và thử lại.",
     "rootFolder": "Mobile backup",
     "invalidName": "Tên thư mục không được là \".\" hoặc \"..\", và không được chứa \"/\" hay dấu xuống dòng.",
+    "paywall": {
+      "premiumTitle": "Nâng cấp gói của bạn",
+      "premiumContent": "Dung lượng đĩa của bạn đã đầy.\n\nVui lòng xóa các tập tin, làm trống thùng rác hoặc nâng cấp gói trước khi tải lên tập tin.",
+      "defaultTitle": "Thông tin",
+      "defaultContent": "Dung lượng đĩa của bạn đã đầy.\n\nVui lòng xóa các tập tin, làm trống thùng rác trước khi tải lên tập tin.",
+      "understood": "Tôi hiểu"
+    },
     "status": {
       "title": "Tiến độ",
       "counts": "Đã lưu {{done}}, còn lại {{pending}}",
