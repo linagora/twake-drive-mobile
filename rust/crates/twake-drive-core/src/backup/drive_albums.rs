@@ -32,13 +32,25 @@ impl BackupStore {
         Ok(())
     }
 
-    /// The Drive files of the saved media among `local_ids` the album does not reference yet.
+    /// The Drive files of the saved media among `local_ids` the album does not
+    /// reference yet; none for an album deleted in Drive.
     pub(crate) fn files_to_reference(
         &self,
         album_id: &str,
         local_ids: &[String],
     ) -> Result<Vec<String>, CoreError> {
         let db = self.db();
+        let dropped = db
+            .query_row(
+                "SELECT 1 FROM album_remote WHERE album_id = ?1 AND dropped = 1",
+                params![album_id],
+                |_| Ok(()),
+            )
+            .optional()
+            .map_err(storage)?;
+        if dropped.is_some() {
+            return Ok(Vec::new());
+        }
         let mut query = db
             .prepare(
                 "SELECT drive_file_id FROM media
@@ -59,11 +71,11 @@ impl BackupStore {
         Ok(files)
     }
 
-    pub(crate) fn forget_remote_album(&self, album_id: &str) -> Result<(), CoreError> {
+    pub(crate) fn drop_remote_album(&self, album_id: &str) -> Result<(), CoreError> {
         let mut db = self.db();
         let tx = db.transaction().map_err(storage)?;
         tx.execute(
-            "DELETE FROM album_remote WHERE album_id = ?1",
+            "UPDATE album_remote SET dropped = 1 WHERE album_id = ?1",
             params![album_id],
         )
         .map_err(storage)?;
