@@ -26,6 +26,7 @@ struct State {
     adopting_meanwhile: Option<String>,
     albums: BTreeMap<String, Value>,
     albums_db: bool,
+    gone_files: Vec<String>,
 }
 
 pub struct FakeStack {
@@ -112,8 +113,17 @@ impl FakeStack {
         id
     }
 
+    pub fn delete_album(&self, id: &str) {
+        self.state.lock().unwrap().albums.remove(id);
+    }
+
     pub fn albums(&self) -> BTreeMap<String, Value> {
         self.state.lock().unwrap().albums.clone()
+    }
+
+    /// A Drive file deleted for good, which the references refuse.
+    pub fn delete_file(&self, id: &str) {
+        self.state.lock().unwrap().gone_files.push(id.into());
     }
 
     /// What `DELETE /files/:id` does: the document moves to the trash.
@@ -173,6 +183,12 @@ impl FakeStack {
                     .collect();
                 (200, json!({ "rows": rows }))
             }
+            ("GET", ["data", "io.cozy.photos.albums", album]) => {
+                match state.albums.get(&decode(album)) {
+                    Some(doc) => (200, doc.clone()),
+                    None => (404, json!({})),
+                }
+            }
             ("POST", ["data", "io.cozy.photos.albums", ""]) => {
                 state.next_id += 1;
                 let id = format!("album{}", state.next_id);
@@ -181,6 +197,52 @@ impl FakeStack {
                 state.albums.insert(id.clone(), doc.clone());
                 state.albums_db = true;
                 (201, json!({"id": id, "data": doc}))
+            }
+            (
+                "POST",
+                [
+                    "data",
+                    "io.cozy.photos.albums",
+                    album,
+                    "relationships",
+                    "references",
+                ],
+            ) => {
+                // Like the stack: references to a deleted album are taken too,
+                // and one deleted file fails the whole request.
+                let album = decode(album);
+                let ids = body.unwrap()["data"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .map(|r| r["id"].as_str().unwrap().to_string())
+                    .collect::<Vec<_>>();
+                if ids.iter().any(|id| state.gone_files.contains(id)) {
+                    return (404, json!({}));
+                }
+                state.references.entry(album).or_default().extend(ids);
+                (204, json!({}))
+            }
+            (
+                "GET",
+                [
+                    "data",
+                    "io.cozy.photos.albums",
+                    album,
+                    "relationships",
+                    "references",
+                ],
+            ) => {
+                let ids = state
+                    .references
+                    .get(&decode(album))
+                    .cloned()
+                    .unwrap_or_default();
+                let data: Vec<Value> = ids
+                    .iter()
+                    .map(|id| json!({"type": "io.cozy.files", "id": id}))
+                    .collect();
+                (200, json!({ "data": data, "links": {} }))
             }
             ("GET", ["data", "io.cozy.apps", doc, "relationships", "references"]) => {
                 let ids = state

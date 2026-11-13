@@ -54,6 +54,13 @@ const MIGRATIONS: &[&str] = &[
 ",
     "CREATE TABLE album_choice (album_id TEXT PRIMARY KEY, included INTEGER NOT NULL);",
     "CREATE TABLE album_remote (album_id TEXT PRIMARY KEY, remote_id TEXT NOT NULL);",
+    "
+    CREATE TABLE album_file (
+        album_id TEXT NOT NULL,
+        file_id TEXT NOT NULL,
+        PRIMARY KEY (album_id, file_id)
+    );
+",
 ];
 
 /// How long an upload handed to the system holds its media. The platform
@@ -895,6 +902,8 @@ impl BackupStore {
         // The uploads handed to the system go to the old folder: their answers
         // are dropped, their copies cleaned with the other leftovers.
         tx.execute("DELETE FROM in_flight", []).map_err(storage)?;
+        // The files of the old folder leave the albums with it; the albums stay.
+        tx.execute("DELETE FROM album_file", []).map_err(storage)?;
         set_setting(&tx, FOLDER_ID, config.folder_id.clone())?;
         set_setting(&tx, DEVICE_ID, config.device_id.clone())?;
         set_setting(&tx, FOLDER_PATH, path)?;
