@@ -1,0 +1,12 @@
+Sauvegarde des photos (Paramètres > Sauvegarde des photos), à essayer sur un vrai iPhone :
+• Activation : choisir ou créer le dossier, puis accès complet ou limité à la galerie. En accès limité, un bandeau le dit et ouvre les Réglages.
+• App ouverte : les photos partent, les compteurs avancent.
+• App fermée : prendre des photos, revenir quelques heures plus tard (en charge et en Wi-Fi, c'est plus rapide).
+• En arrière-plan avec beaucoup de vidéos : les envois partent peu à la fois et aboutissent, sans doublons « (1) » dans le dossier.
+• Live Photos : la vidéo puis la photo arrivent dans Drive.
+• Retouche : une photo retouchée repart en nouvelle version ; un simple favori n'envoie rien.
+• Wi-Fi seul par défaut ; essayer « Photos en données mobiles » et « Vidéos en données mobiles ».
+• « Seulement en charge » : rien ne part sur batterie.
+• Albums : en choisir un, il apparaît dans Drive Photos.
+• Déplacer ou renommer le dossier de l'appareil dans Drive : la sauvegarde continue dedans. Le mettre à la corbeille : un bandeau propose de le recréer ou de désactiver.
+• Drive plein : la fenêtre « Augmentez votre offre » ou « Information » s'affiche.

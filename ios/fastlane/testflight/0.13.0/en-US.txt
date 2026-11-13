@@ -1,0 +1,12 @@
+Photo backup (Settings > Photo backup), to try on a real iPhone:
+• Turning it on: pick or create the folder, then give full or limited access to the library. With limited access, a banner says so and opens Settings.
+• App open: photos go, the counts move.
+• App closed: take photos, come back a few hours later (faster while charging on Wi-Fi).
+• In the background with many videos: a few uploads go at a time and land, with no "(1)" copies in the folder.
+• Live Photos: the video then the photo reach Drive.
+• Edits: an edited photo goes again as a new version; a favorite sends nothing.
+• Wi-Fi only by default; try "Photos over mobile data" and "Videos over mobile data".
+• "Only while charging": nothing goes on battery.
+• Albums: pick one, it shows in Drive Photos.
+• Move or rename the device folder in Drive: the backup goes on in it. Put it in the trash: a banner offers to make it again or turn the backup off.
+• Drive full: the "Upgrade your plan" or "Information" window shows.
