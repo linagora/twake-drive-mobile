@@ -6,6 +6,7 @@ import { formatDistanceToNow } from 'date-fns'
 import { useClient } from 'cozy-client'
 
 import { dateLocaleForLanguage } from '@/i18n/dateLocale'
+import { backupCore } from '@/native/twakeDriveCore'
 import { InlineBanner } from '@/ui/InlineBanner'
 import { QuotaPaywall } from '@/ui/QuotaPaywall'
 import { SettingsRow } from '@/ui/SettingsRow'
@@ -16,8 +17,13 @@ import { runBackupPass } from './backupPass'
 import { readBackupSettings, writeBackupSettings } from './backupSettings'
 import { useBackupStatus } from './useBackupStatus'
 
+interface Props {
+  /** Turns the backup off, the answer to a folder gone the user does not want back. */
+  onTurnOff: () => void
+}
+
 /** How far the backup is, and what holds it back. */
-export const BackupStatusSection = (): React.ReactElement | null => {
+export const BackupStatusSection = ({ onTurnOff }: Props): React.ReactElement | null => {
   const { t, i18n } = useTranslation()
   const client = useClient()
   const { status, access, retryFailed } = useBackupStatus()
@@ -25,6 +31,7 @@ export const BackupStatusSection = (): React.ReactElement | null => {
   const [paywallClosedFor, setPaywallClosedFor] = useState(
     () => readBackupSettings().paywallClosedFor
   )
+  const [recreateFailed, setRecreateFailed] = useState(false)
   if (!status) return null
   const passEnd = status.lastPassAt ?? 0
   const lastPass = status.lastPassAt
@@ -35,6 +42,16 @@ export const BackupStatusSection = (): React.ReactElement | null => {
         })
       })
     : t('backup.status.neverRun')
+  const recreateFolder = async (): Promise<void> => {
+    setRecreateFailed(false)
+    try {
+      await backupCore()?.recreateDeviceFolder(readBackupSettings().folder?.path ?? null)
+    } catch {
+      setRecreateFailed(true)
+      return
+    }
+    await runBackupPass(client).catch(() => null)
+  }
   const openSettings = {
     label: t('backup.status.openSettings'),
     onPress: () => void Linking.openSettings().catch(() => null),
@@ -47,13 +64,13 @@ export const BackupStatusSection = (): React.ReactElement | null => {
           tone="error"
           message={t('backup.status.noAccess')}
           // A restricted access (parental controls, a managed phone) is not the user's to change.
-          action={access === 'denied' ? openSettings : undefined}
+          actions={access === 'denied' ? [openSettings] : []}
           testID="backup-no-access"
         />
       ) : access === 'limited' ? (
         <InlineBanner
           message={t('backup.status.limitedAccess')}
-          action={openSettings}
+          actions={[openSettings]}
           testID="backup-limited-access"
         />
       ) : null}
@@ -66,6 +83,29 @@ export const BackupStatusSection = (): React.ReactElement | null => {
                 writeBackupSettings({ paywallClosedFor: passEnd })
                 setPaywallClosedFor(passEnd)
               }}
+            />
+          ) : null}
+        </>
+      ) : status.stoppedBy === 'FolderGone' ? (
+        <>
+          <InlineBanner
+            tone="error"
+            message={t('backup.status.folderGone')}
+            actions={[
+              {
+                label: t('backup.status.recreateFolder'),
+                onPress: () => void recreateFolder(),
+                testID: 'backup-recreate-folder'
+              },
+              { label: t('backup.status.turnOff'), onPress: onTurnOff, testID: 'backup-turn-off' }
+            ]}
+            testID="backup-folder-gone"
+          />
+          {recreateFailed ? (
+            <InlineBanner
+              tone="error"
+              message={t('backup.error')}
+              testID="backup-recreate-failed"
             />
           ) : null}
         </>

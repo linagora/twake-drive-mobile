@@ -28,8 +28,8 @@ export const runBackupPass = (client: CozyClient | null): Promise<BackupStatus |
   again = false
   running = (async () => {
     try {
-      const status = await core.runBackupPass(folder.id, await backupDeviceId(), folder.path)
-      // The core makes the folder again when the user deleted it, and reads its path anew.
+      const status = await core.runBackupPass(folder.id, await backupDeviceId())
+      // The core follows its folder when the user moves it, or moves to another of the device.
       const now = readBackupSettings()
       const moved = status.folder
       if (

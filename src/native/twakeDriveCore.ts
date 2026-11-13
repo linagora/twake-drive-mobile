@@ -30,12 +30,14 @@ export type StopCause =
   /** Held back by the user's conditions. */
   | 'WaitingForWifi'
   | 'WaitingForPower'
+  /** The folder of the device is gone: the backup waits for the user. */
+  | 'FolderGone'
 
 export interface BackupStatus extends BackupCounts {
   /** End of the last pass, in Unix seconds. */
   lastPassAt?: number
   stoppedBy?: StopCause
-  /** Where the backup goes, which a pass makes again when the user deleted it. */
+  /** Where the backup goes, moved or made again since the app read its settings. */
   folder?: { id: string; path: string }
 }
 
@@ -67,9 +69,10 @@ interface TwakeDriveCoreNative {
     deviceName: string,
     rootName: string
   ) => Promise<DeviceFolder>
-  runBackupPass: (folderId: string, deviceId: string, folderPath: string) => Promise<BackupStatus>
+  runBackupPass: (folderId: string, deviceId: string) => Promise<BackupStatus>
   stopBackupPass: () => void
   backupStatus: () => Promise<BackupStatus>
+  recreateDeviceFolder: (folderPath: string | null) => Promise<void>
   photoAccess: () => PhotoAccess
   retryFailed: () => Promise<void>
   listAlbums: () => Promise<PhoneAlbum[]>
@@ -134,6 +137,7 @@ export const BACKUP_API: Record<keyof BackupCore, true> = {
   runBackupPass: true,
   stopBackupPass: true,
   backupStatus: true,
+  recreateDeviceFolder: true,
   photoAccess: true,
   retryFailed: true,
   listAlbums: true,

@@ -105,7 +105,7 @@ export default function BackupScreen(): React.ReactElement {
         {notice ? <InlineBanner tone="error" message={notice} testID="backup-notice" /> : null}
         {settings.enabled && !choice ? (
           <>
-            <BackupStatusSection />
+            <BackupStatusSection onTurnOff={() => toggle(false)} />
             <BackupConditionsSection />
             <SettingsSection title={t('backup.albums.title')}>
               <SettingsRow

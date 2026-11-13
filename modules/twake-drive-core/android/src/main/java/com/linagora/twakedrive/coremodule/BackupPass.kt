@@ -29,8 +29,6 @@ class BackupPass(
   private val context: Context,
   private var config: BackupConfig,
   private val isCancelled: () -> Boolean,
-  /** Where the app last saw its folder: null in the passes of WorkManager. */
-  private val folderPath: String? = null,
   private val onProgress: (BackupStatus) -> Unit,
 ) {
   private val backup = openBackup(context)
@@ -45,8 +43,14 @@ class BackupPass(
     // Without access MediaStore answers no rows: every media would look gone and be forgotten.
     val access = photoAccess(context)
     if (access == "denied") throw CoreException.Io("no access to the photo library")
-    // A stored folder wins: a pass of WorkManager may have made it again (ensureDeviceFolder).
+    // A stored folder wins: a pass of WorkManager may have moved to another folder of the device.
     if (store.backupConfig() == null) store.setBackupConfig(config)
+    // First: a short call, which also refreshes a token a 401 left expired. Before
+    // the conditions, so a folder gone asks the user even while the backup waits.
+    config = client.ensureDeviceFolder(config) ?: run {
+      report()
+      return store.status()
+    }
     if (store.conditions().onlyCharging && !isCharging()) {
       store.waitFor("WaitingForPower")
       report()
@@ -55,8 +59,6 @@ class BackupPass(
     // A pass killed mid-upload leaves its copy behind; nothing is in flight in the foreground.
     exportFolder.deleteRecursively()
     exportFolder.mkdirs()
-    // First: a short call, which also refreshes a token a 401 left expired.
-    config = client.ensureDeviceFolder(config, folderPath)
     client.syncFolderIndex(config.folderId)
     scanLibrary(full = access == "authorized")
     store.beginPass()

@@ -42,15 +42,13 @@ public class TwakeDriveCoreModule: Module {
 
     Events("onBackupProgress")
 
-    AsyncFunction("runBackupPass") {
-      (folderId: String, deviceId: String, folderPath: String?) throws -> [String: Any] in
+    AsyncFunction("runBackupPass") { (folderId: String, deviceId: String) throws -> [String: Any] in
       passStop.withLock { $0 = false }
       // A pass that fails, offline for one, still leaves the next ones planned.
       defer { if !passStop.withLock({ $0 }) { BackupSchedule.schedule() } }
       return try runInBackgroundTime { expired in
         try BackupPass(
-          config: BackupConfig(folderId: folderId, deviceId: deviceId), folderPath: folderPath,
-          inBackground: false,
+          config: BackupConfig(folderId: folderId, deviceId: deviceId), inBackground: false,
           isCancelled: { expired() || passStop.withLock { $0 } },
           onProgress: { [weak self] in self?.sendEvent("onBackupProgress", $0.record) }
         ).run()
@@ -60,6 +58,11 @@ public class TwakeDriveCoreModule: Module {
     AsyncFunction("backupStatus") { () throws -> [String: Any] in
       try openBackup().store.status().record
     }.runOnQueue(stackQueue)
+
+    /// The user's answer to a folder gone: made again where it was.
+    AsyncFunction("recreateDeviceFolder") { (folderPath: String?) throws in
+      _ = try openBackup().client.recreateDeviceFolder(requestedPath: folderPath)
+    }.runOnQueue(passQueue)  // with the passes and the stop, never between their steps
 
     /// Without asking: the screen tells when the access was taken back.
     Function("photoAccess") { () -> String in

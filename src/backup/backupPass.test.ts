@@ -44,8 +44,7 @@ test('the settings stay when the pass went to their folder', async () => {
 
 test('a pass goes to the folder of the phone, then takes the token the core refreshed', async () => {
   await expect(runBackupPass(client)).resolves.toEqual(counts)
-  // The path lets the core make the folder again where it was, should it be gone.
-  expect(mockRun).toHaveBeenCalledWith('folder-1', 'dev-1', '/Photos/B/iPhone')
+  expect(mockRun).toHaveBeenCalledWith('folder-1', 'dev-1')
   expect(mockAdopt).toHaveBeenCalledWith(client)
 })
 
@@ -73,8 +72,8 @@ test('turned off and on again during a pass, the backup runs again at once', asy
   release()
   await stopped
   expect(mockRun.mock.calls).toEqual([
-    ['folder-1', 'dev-1', '/Photos/B/iPhone'],
-    ['folder-1', 'dev-1', '/Photos/B/iPhone']
+    ['folder-1', 'dev-1'],
+    ['folder-1', 'dev-1']
   ])
 })
 
@@ -86,8 +85,8 @@ test('a folder picked while a pass ran gets a pass of its own', async () => {
   release()
   await first
   expect(mockRun.mock.calls).toEqual([
-    ['folder-1', 'dev-1', '/Photos/B/iPhone'],
-    ['folder-2', 'dev-1', '/Photos/B/iPad']
+    ['folder-1', 'dev-1'],
+    ['folder-2', 'dev-1']
   ])
 })
 

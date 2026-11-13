@@ -13,8 +13,6 @@ final class BackupPass {
   private let store: BackupStore
   private let account: String
   private var config: BackupConfig
-  /// Where the app last saw its folder: nil in the passes of the system.
-  private let folderPath: String?
   private let inBackground: Bool
   private let isCancelled: () -> Bool
   private let onProgress: ((BackupStatus) -> Void)?
@@ -23,12 +21,11 @@ final class BackupPass {
   private var heldBack: [String] = []
 
   init(
-    config: BackupConfig, folderPath: String? = nil, inBackground: Bool,
-    isCancelled: @escaping () -> Bool, onProgress: ((BackupStatus) -> Void)? = nil
+    config: BackupConfig, inBackground: Bool, isCancelled: @escaping () -> Bool,
+    onProgress: ((BackupStatus) -> Void)? = nil
   ) throws {
     (client, store, account) = try openBackup()
     self.config = config
-    self.folderPath = folderPath
     self.inBackground = inBackground
     self.isCancelled = isCancelled
     self.onProgress = onProgress
@@ -45,8 +42,15 @@ final class BackupPass {
     guard [.authorized, .limited].contains(PHPhotoLibrary.authorizationStatus(for: .readWrite)) else {
       throw CoreError.Io(reason: "no access to the photo library")
     }
-    // A stored folder wins: a pass of the system may have made it again (ensureDeviceFolder).
+    // A stored folder wins: a pass of the system may have moved to another folder of the device.
     if !inBackground, try store.backupConfig() == nil { try store.setBackupConfig(config: config) }
+    // First: a short call, which also refreshes a token a 401 left expired. Before
+    // the conditions, so a folder gone asks the user even while the backup waits.
+    guard let folder = try client.ensureDeviceFolder(requested: config) else {
+      report()
+      return try store.status()
+    }
+    config = folder
     // The long background task waits for power itself (BackupSchedule); the
     // app and the short refresh check here, before any work.
     if conditions.onlyCharging && !isCharging() {
@@ -55,8 +59,6 @@ final class BackupPass {
       return try store.status()
     }
     try cleanExportFolder()
-    // First: a short call, which also refreshes a token a 401 left expired.
-    config = try client.ensureDeviceFolder(requested: config, requestedPath: folderPath)
     try client.syncFolderIndex(folderId: config.folderId)
     try scanLibrary()
     // Reached the stack: what stopped the last pass may be over.

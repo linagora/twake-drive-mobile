@@ -664,8 +664,9 @@ impl BackupStore {
     pub fn clear_backup_config(&self) -> Result<(), CoreError> {
         self.db()
             .execute(
-                "DELETE FROM setting WHERE key IN (?1, ?2, ?3)",
-                params![FOLDER_ID, DEVICE_ID, FOLDER_PATH],
+                // What stopped the last pass goes too: a backup turned on again starts afresh.
+                "DELETE FROM setting WHERE key IN (?1, ?2, ?3, ?4)",
+                params![FOLDER_ID, DEVICE_ID, FOLDER_PATH, STOPPED_BY],
             )
             .map_err(storage)?;
         Ok(())
