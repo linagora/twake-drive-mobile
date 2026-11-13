@@ -8,7 +8,11 @@ jest.mock('@/native/twakeDriveCore', () => ({
 }))
 jest.mock('./deviceId', () => ({ backupDeviceId: async () => 'dev-1' }))
 let mockSettings: { enabled: boolean; folder: { id: string; path: string } | null }
-jest.mock('./backupSettings', () => ({ readBackupSettings: () => mockSettings }))
+const mockWrite = jest.fn()
+jest.mock('./backupSettings', () => ({
+  readBackupSettings: () => mockSettings,
+  writeBackupSettings: (patch: unknown) => mockWrite(patch)
+}))
 const mockAdopt = jest.fn()
 jest.mock('@/auth/adoptStoredToken', () => ({
   adoptStoredToken: (client: unknown) => mockAdopt(client)
@@ -22,11 +26,26 @@ beforeEach(() => {
   mockSettings = { enabled: true, folder: { id: 'folder-1', path: '/Photos/B/iPhone' } }
   mockRun.mockReset().mockResolvedValue(counts)
   mockAdopt.mockReset().mockResolvedValue(false)
+  mockWrite.mockReset()
+})
+
+test('the folder a pass made again replaces the deleted one in the settings', async () => {
+  const folder = { id: 'folder-2', path: '/Photos/B/iPhone' }
+  mockRun.mockResolvedValue({ ...counts, folder })
+  await runBackupPass(client)
+  expect(mockWrite).toHaveBeenCalledWith({ folder })
+})
+
+test('the settings stay when the pass went to their folder', async () => {
+  mockRun.mockResolvedValue({ ...counts, folder: { id: 'folder-1', path: '/Photos/B/iPhone' } })
+  await runBackupPass(client)
+  expect(mockWrite).not.toHaveBeenCalled()
 })
 
 test('a pass goes to the folder of the phone, then takes the token the core refreshed', async () => {
   await expect(runBackupPass(client)).resolves.toEqual(counts)
-  expect(mockRun).toHaveBeenCalledWith('folder-1', 'dev-1')
+  // The path lets the core make the folder again where it was, should it be gone.
+  expect(mockRun).toHaveBeenCalledWith('folder-1', 'dev-1', '/Photos/B/iPhone')
   expect(mockAdopt).toHaveBeenCalledWith(client)
 })
 
@@ -54,8 +73,8 @@ test('turned off and on again during a pass, the backup runs again at once', asy
   release()
   await stopped
   expect(mockRun.mock.calls).toEqual([
-    ['folder-1', 'dev-1'],
-    ['folder-1', 'dev-1']
+    ['folder-1', 'dev-1', '/Photos/B/iPhone'],
+    ['folder-1', 'dev-1', '/Photos/B/iPhone']
   ])
 })
 
@@ -67,8 +86,8 @@ test('a folder picked while a pass ran gets a pass of its own', async () => {
   release()
   await first
   expect(mockRun.mock.calls).toEqual([
-    ['folder-1', 'dev-1'],
-    ['folder-2', 'dev-1']
+    ['folder-1', 'dev-1', '/Photos/B/iPhone'],
+    ['folder-2', 'dev-1', '/Photos/B/iPad']
   ])
 })
 

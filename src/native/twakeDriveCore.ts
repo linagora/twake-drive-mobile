@@ -35,6 +35,8 @@ export interface BackupStatus extends BackupCounts {
   /** End of the last pass, in Unix seconds. */
   lastPassAt?: number
   stoppedBy?: StopCause
+  /** Where the backup goes, which a pass makes again when the user deleted it. */
+  folder?: { id: string; path: string }
 }
 
 /** When the backup may go: Wi-Fi only unless mobile data is allowed. */
@@ -65,7 +67,7 @@ interface TwakeDriveCoreNative {
     deviceName: string,
     rootName: string
   ) => Promise<DeviceFolder>
-  runBackupPass: (folderId: string, deviceId: string) => Promise<BackupStatus>
+  runBackupPass: (folderId: string, deviceId: string, folderPath: string) => Promise<BackupStatus>
   stopBackupPass: () => void
   backupStatus: () => Promise<BackupStatus>
   photoAccess: () => PhotoAccess

@@ -6,7 +6,7 @@ import { useClient } from 'cozy-client'
 import { adoptStoredToken } from '@/auth/adoptStoredToken'
 import { backupCore, type BackupStatus } from '@/native/twakeDriveCore'
 
-import { readBackupSettings } from './backupSettings'
+import { readBackupSettings, writeBackupSettings } from './backupSettings'
 import { backupDeviceId } from './deviceId'
 
 let running: Promise<BackupStatus | null> | null = null
@@ -28,7 +28,19 @@ export const runBackupPass = (client: CozyClient | null): Promise<BackupStatus |
   again = false
   running = (async () => {
     try {
-      return await core.runBackupPass(folder.id, await backupDeviceId())
+      const status = await core.runBackupPass(folder.id, await backupDeviceId(), folder.path)
+      // The core makes the folder again when the user deleted it, and reads its path anew.
+      const now = readBackupSettings()
+      const moved = status.folder
+      if (
+        moved &&
+        now.enabled &&
+        now.folder?.id === folder.id &&
+        (moved.id !== folder.id || moved.path !== folder.path)
+      ) {
+        writeBackupSettings({ folder: moved })
+      }
+      return status
     } finally {
       // The core refreshes in the keychain: the refresh token in hand may be spent.
       await adoptStoredToken(client).catch(() => false)

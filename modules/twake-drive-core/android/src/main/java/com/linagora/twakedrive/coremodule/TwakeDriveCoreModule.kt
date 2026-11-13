@@ -54,14 +54,14 @@ class TwakeDriveCoreModule : Module() {
       onStack(promise) { openBackup(context).client.createDeviceFolder(deviceId, deviceName, rootName).record }
     }
 
-    AsyncFunction("runBackupPass") { folderId: String, deviceId: String, promise: Promise ->
+    AsyncFunction("runBackupPass") { folderId: String, deviceId: String, folderPath: String?, promise: Promise ->
       passStop.set(false)
       val app = context.applicationContext
       // A pass may last long: on its own thread, the folder choice stays usable.
       passQueue.execute {
         settle(promise) {
           try {
-            BackupPass(app, BackupConfig(folderId, deviceId), { passStop.get() }) {
+            BackupPass(app, BackupConfig(folderId, deviceId), { passStop.get() }, folderPath) {
               sendEvent("onBackupProgress", it.record)
             }.run().record
           } finally {
@@ -156,4 +156,5 @@ val BackupStatus.record: Map<String, Any?>
     put("unavailable", counts.unavailable.toInt())
     lastPassAt?.let { put("lastPassAt", it) }
     stoppedBy?.let { put("stoppedBy", it) }
+    if (folderId != null && folderPath != null) put("folder", mapOf("id" to folderId, "path" to folderPath))
   }

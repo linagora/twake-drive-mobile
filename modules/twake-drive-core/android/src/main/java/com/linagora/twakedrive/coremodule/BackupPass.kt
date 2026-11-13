@@ -26,8 +26,10 @@ import java.util.UUID
 /** One pass of the photo backup in the foreground: the core decides what to send and reads the answers. */
 class BackupPass(
   private val context: Context,
-  private val config: BackupConfig,
+  private var config: BackupConfig,
   private val isCancelled: () -> Boolean,
+  /** Where the app last saw its folder: null in the passes of WorkManager. */
+  private val folderPath: String? = null,
   private val onProgress: (BackupStatus) -> Unit,
 ) {
   private val backup = openBackup(context)
@@ -41,7 +43,8 @@ class BackupPass(
     // Without access MediaStore answers no rows: every media would look gone and be forgotten.
     val access = photoAccess(context)
     if (access == "denied") throw CoreException.Io("no access to the photo library")
-    store.setBackupConfig(config)
+    // A stored folder wins: a pass of WorkManager may have made it again (ensureDeviceFolder).
+    if (store.backupConfig() == null) store.setBackupConfig(config)
     if (store.conditions().onlyCharging && !isCharging()) {
       store.waitFor("WaitingForPower")
       report()
@@ -51,6 +54,7 @@ class BackupPass(
     exportFolder.deleteRecursively()
     exportFolder.mkdirs()
     // First: a short call, which also refreshes a token a 401 left expired.
+    config = client.ensureDeviceFolder(config, folderPath)
     client.syncFolderIndex(config.folderId)
     scanLibrary(full = access == "authorized")
     store.beginPass()
