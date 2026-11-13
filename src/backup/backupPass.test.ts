@@ -1,4 +1,6 @@
-import { runBackupPass } from './backupPass'
+import { renderHook, waitFor } from '@testing-library/react-native'
+
+import { runBackupPass, useBackupPass } from './backupPass'
 
 const counts = { done: 3, pending: 0, skipped: 0, failed: 0 }
 const mockRun = jest.fn()
@@ -18,11 +20,17 @@ jest.mock('@/auth/adoptStoredToken', () => ({
   adoptStoredToken: (client: unknown) => mockAdopt(client)
 }))
 jest.mock('cozy-client', () => ({ useClient: () => null }))
+let mockFlagOn = true
+jest.mock('./backupFlag', () => ({
+  isPhotoBackupEnabled: () => mockFlagOn,
+  useIsPhotoBackupEnabled: () => mockFlagOn
+}))
 
 const client = {} as never
 
 beforeEach(() => {
   mockAvailable = true
+  mockFlagOn = true
   mockSettings = { enabled: true, folder: { id: 'folder-1', path: '/Photos/B/iPhone' } }
   mockRun.mockReset().mockResolvedValue(counts)
   mockAdopt.mockReset().mockResolvedValue(false)
@@ -97,6 +105,21 @@ test('a folder picked while a pass ran gets a pass of its own', async () => {
     ['folder-1', 'dev-1', null],
     ['folder-2', 'dev-1', null]
   ])
+})
+
+test('no pass while the instance keeps the backup off', async () => {
+  mockFlagOn = false
+  await expect(runBackupPass(client, 'Photo backup')).resolves.toBeNull()
+  expect(mockRun).not.toHaveBeenCalled()
+})
+
+test('the flags landing after the launch start the pass the launch skipped', async () => {
+  mockFlagOn = false
+  const { rerender } = renderHook(() => useBackupPass())
+  expect(mockRun).not.toHaveBeenCalled()
+  mockFlagOn = true
+  rerender({})
+  await waitFor(() => expect(mockRun).toHaveBeenCalledTimes(1))
 })
 
 test('a failed pass lets the next one run', async () => {

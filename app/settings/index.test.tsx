@@ -83,6 +83,8 @@ jest.mock('@/account/commonSettings', () => ({
 
 let mockBackupCore: object | null = null
 jest.mock('@/native/twakeDriveCore', () => ({ backupCore: () => mockBackupCore }))
+let mockBackupFlag = true
+jest.mock('@/backup/backupFlag', () => ({ useIsPhotoBackupEnabled: () => mockBackupFlag }))
 
 // Production wraps every screen in PaperProvider (app/_layout.tsx); the
 // deletion dialog renders through a Paper <Portal>, which needs that host.
@@ -95,6 +97,7 @@ const renderScreen = () =>
 
 describe('SettingsIndex', () => {
   beforeEach(() => {
+    mockBackupFlag = true
     mockUser = { initials: 'MM', loading: false }
     mockTosUrl = 'https://twake.app/en/terms-of-use/'
     mockLogout.mockReset()
@@ -124,6 +127,12 @@ describe('SettingsIndex', () => {
     expect(renderScreen().queryByTestId('settings-backup')).toBeNull()
     mockBackupCore = {}
     renderScreen().getByTestId('settings-backup')
+  })
+
+  it('hides the photo backup while the instance keeps it off', () => {
+    mockBackupCore = {}
+    mockBackupFlag = false
+    expect(renderScreen().queryByTestId('settings-backup')).toBeNull()
   })
 
   it('names the crash reports switch after its row', () => {

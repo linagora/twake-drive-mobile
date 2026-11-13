@@ -6,6 +6,7 @@ import { useClient } from 'cozy-client'
 import { adoptStoredToken } from '@/auth/adoptStoredToken'
 import { backupCore, type BackupStatus } from '@/native/twakeDriveCore'
 
+import { isPhotoBackupEnabled, useIsPhotoBackupEnabled } from './backupFlag'
 import { readBackupSettings, writeBackupSettings } from './backupSettings'
 import { backupDeviceId } from './deviceId'
 
@@ -27,7 +28,7 @@ export const runBackupPass = (
 ): Promise<BackupStatus | null> => {
   const core = backupCore()
   const { enabled, folder } = readBackupSettings()
-  if (!core || !enabled || !folder) return Promise.resolve(null)
+  if (!core || !enabled || !folder || !isPhotoBackupEnabled()) return Promise.resolve(null)
   if (running) {
     again = true
     againTitle = againTitle ?? liveTitle
@@ -59,10 +60,15 @@ export const runBackupPass = (
   return running
 }
 
-/** A pass when the app starts and each time it comes back to the foreground. */
+/**
+ * A pass when the app starts and each time it comes back to the foreground,
+ * and when the flags, read after the launch, turn the backup on.
+ */
 export const useBackupPass = (): void => {
   const client = useClient()
+  const allowed = useIsPhotoBackupEnabled()
   useEffect(() => {
+    if (!allowed) return
     const pass = (): void => {
       // shortcut: a pass that fails before it starts, mostly offline, is
       // dropped and the next one tries again; the screen still shows the end
@@ -74,5 +80,5 @@ export const useBackupPass = (): void => {
       if (next === 'active') pass()
     })
     return () => sub.remove()
-  }, [client])
+  }, [client, allowed])
 }

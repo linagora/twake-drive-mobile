@@ -9,6 +9,10 @@ jest.mock('cozy-client', () => ({ useClient: () => mockClient }))
 jest.mock('@/network/OnlineMonitor', () => ({
   getOnlineMonitor: () => ({ getCurrent: () => mockOnline })
 }))
+const mockStopBackup = jest.fn()
+jest.mock('@/backup/backupFlag', () => ({
+  stopBackupTheInstanceTurnedOff: () => mockStopBackup()
+}))
 
 import { useFlagsRefresh } from './useFlagsRefresh'
 
@@ -19,6 +23,7 @@ describe('useFlagsRefresh', () => {
   beforeEach(() => {
     mockOnline = true
     mockRefresh.mockReset().mockResolvedValue(undefined)
+    mockStopBackup.mockReset()
     AppState.currentState = 'active'
     jest.spyOn(AppState, 'addEventListener').mockImplementation(((
       _evt: string,
@@ -34,23 +39,29 @@ describe('useFlagsRefresh', () => {
     jest.restoreAllMocks()
   })
 
-  it('asks the flags plugin to refresh when the app comes back to the foreground', () => {
+  it('asks the flags plugin to refresh at launch and back in the foreground', () => {
     renderHook(() => useFlagsRefresh())
-    expect(mockRefresh).not.toHaveBeenCalled()
+    expect(mockRefresh).toHaveBeenCalledTimes(1)
     changeTo('background')
     changeTo('active')
-    expect(mockRefresh).toHaveBeenCalledTimes(1)
+    expect(mockRefresh).toHaveBeenCalledTimes(2)
   })
 
-  it('logs a refresh that fails', async () => {
+  it('stops a backup the instance turned off once the stack answered', async () => {
+    renderHook(() => useFlagsRefresh())
+    await Promise.resolve()
+    expect(mockStopBackup).toHaveBeenCalledTimes(1)
+  })
+
+  it('logs a refresh that fails, and leaves the backup alone', async () => {
     const error = new Error('stack down')
     mockRefresh.mockRejectedValue(error)
     const warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined)
     renderHook(() => useFlagsRefresh())
-    changeTo('background')
-    changeTo('active')
+    await Promise.resolve()
     await Promise.resolve()
     expect(warn).toHaveBeenCalledWith('[useFlagsRefresh] could not refresh the flags', error)
+    expect(mockStopBackup).not.toHaveBeenCalled()
   })
 
   it('leaves the flags as they are offline', () => {

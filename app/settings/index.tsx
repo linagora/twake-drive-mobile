@@ -25,11 +25,13 @@ import { useThemePreference, ThemePref } from '@/preferences/themePreference'
 import { useAuth } from '@/auth/useAuth'
 import { isKeepOfflineEnabled } from '@/offline/keepOfflineFlag'
 import { backupCore } from '@/native/twakeDriveCore'
+import { useIsPhotoBackupEnabled } from '@/backup/backupFlag'
 
 const PRIVACY_POLICY_URL = 'https://twake.app/en/privacy-policy/'
 
 export default function SettingsIndex(): React.ReactElement {
   const keepOfflineEnabled = isKeepOfflineEnabled()
+  const photoBackupEnabled = useIsPhotoBackupEnabled()
   const { t } = useTranslation()
   const router = useRouter()
   const sideInset = useSideInset()
@@ -92,7 +94,7 @@ export default function SettingsIndex(): React.ReactElement {
               onPress={() => router.push('/settings/offline-storage')}
             />
           ) : null}
-          {backupCore() ? (
+          {backupCore() && photoBackupEnabled ? (
             <SettingsRow
               testID="settings-backup"
               title={t('backup.title')}
