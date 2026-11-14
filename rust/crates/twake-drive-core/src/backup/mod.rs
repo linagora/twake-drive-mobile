@@ -9,4 +9,4 @@ pub use store::{
     LibraryMedia, ParkedUpload, QueuedMedia,
 };
 
-pub(crate) use remote_index::RemoteFile;
+pub(crate) use remote_index::{RemoteFile, same_kind};
