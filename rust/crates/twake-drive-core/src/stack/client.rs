@@ -187,8 +187,12 @@ impl StackClient {
 
     /// Reads what the folder holds, for the dedup of the next uploads.
     pub fn sync_folder_index(&self, folder_id: String) -> Result<(), CoreError> {
-        self.store
-            .replace_remote_index(&index::list_files(&self.stack, &folder_id)?)
+        let device = self.this_device()?;
+        self.store.replace_remote_index(&index::list_files(
+            &self.stack,
+            &folder_id,
+            device.as_deref(),
+        )?)
     }
 
     /// The Drive file already holding `md5`, recorded as the media's upload.
@@ -299,7 +303,8 @@ impl StackClient {
             return Ok(None);
         };
         let path = format!("{folder}/{}", numbered(&media.name, name_attempt, true));
-        let Some((file, devices)) = index::file_at(&self.stack, &path)? else {
+        let device = self.this_device()?;
+        let Some(file) = index::file_at(&self.stack, &path, device.as_deref())? else {
             return Ok(None);
         };
         let library_id = library_id_of(&media.local_id);
@@ -321,14 +326,9 @@ impl StackClient {
             }
             return Ok(Some(UploadReply::Recorded { action }));
         }
-        // An Android id is unique on its phone only: another phone backing up
-        // to the same folder may hold the same id and name, and its file is
-        // not this media's to version. Photo and video too stay apart.
-        let device = self.store.backup_config()?.map(|config| config.device_id);
-        let sent_from_here = device.is_some_and(|device| devices.contains(&device));
-        if file.id_from_library.as_deref() == Some(library_id)
-            && sent_from_here
-            && same_kind(&file.name, &media.name)
+        // file_at left out an id another phone may share; photo and video
+        // stay apart too.
+        if file.id_from_library.as_deref() == Some(library_id) && same_kind(&file.name, &media.name)
         {
             self.store.add_remote_file(&file)?;
             self.store
@@ -336,6 +336,10 @@ impl StackClient {
             return Ok(Some(UploadReply::FileGone));
         }
         Ok(None)
+    }
+
+    fn this_device(&self) -> Result<Option<String>, CoreError> {
+        Ok(self.store.backup_config()?.map(|config| config.device_id))
     }
 
     /// The Drive file of an older version, known after a reinstall too
@@ -1164,6 +1168,48 @@ mod tests {
         assert!(request.url.starts_with(&expected), "{}", request.url);
     }
 
+    const ANDROID_ID: &str = "content://media/external/images/media/7";
+
+    fn android_edit_plan(sent_by: &str) -> (UploadPlan, String) {
+        let (fake, tokens) = (FakeStack::new(), FakeTokens::valid());
+        let (client, store) = client(&fake, &tokens);
+        let folder = saved_backup(&fake, &client, &store);
+        let file = fake.add_backup_file(
+            &format!("{}/IMG_0007.JPG", folder.path),
+            "original",
+            ANDROID_ID,
+            sent_by,
+        );
+        client.sync_folder_index(folder.id.clone()).unwrap();
+        let mut edited = media(ANDROID_ID, "edited");
+        edited.name = "IMG_0007.JPG".into();
+        let plan = client
+            .prepare_upload(folder.id, "dev-1".into(), edited, 0, NOW)
+            .unwrap();
+        (plan, file)
+    }
+
+    #[test]
+    fn an_android_media_versions_the_file_this_phone_sent() {
+        let (plan, file) = android_edit_plan("dev-1");
+        let UploadPlan::Send { request } = plan else {
+            panic!("{plan:?}")
+        };
+        assert_eq!(request.method, "PUT");
+        assert!(request.url.contains(&file), "{}", request.url);
+    }
+
+    #[test]
+    fn an_android_media_leaves_alone_the_file_of_another_phone_with_its_id() {
+        // content://…/7 names a media on one phone only: another phone backing
+        // up to the same folder may have sent its own media 7.
+        let (plan, _) = android_edit_plan("dev-2");
+        let UploadPlan::Send { request } = plan else {
+            panic!("{plan:?}")
+        };
+        assert_eq!(request.method, "POST");
+    }
+
     #[test]
     fn a_name_taken_by_the_media_itself_is_its_upload_whose_answer_was_lost() {
         let (fake, tokens) = (FakeStack::new(), FakeTokens::valid());
@@ -1225,21 +1271,23 @@ mod tests {
         let (fake, tokens) = (FakeStack::new(), FakeTokens::valid());
         let (client, store) = client(&fake, &tokens);
         let folder = saved_backup(&fake, &client, &store);
-        store.record_media("p2".into(), 1, 2).unwrap();
-        store.set_md5("p2".into(), 2, "edited".into()).unwrap();
+        store.record_media(ANDROID_ID.into(), 1, 2).unwrap();
+        store
+            .set_md5(ANDROID_ID.into(), 2, "edited".into())
+            .unwrap();
         // An Android id is only unique on its phone: another one, adopting the
         // same folder, may have sent its own media under the same id and name.
         fake.add_backup_file(
             &format!("{}/IMG_0001.HEIC", folder.path),
             "theirs",
-            "p2",
+            ANDROID_ID,
             "dev-2",
         );
         let reply = client
-            .read_upload_response(media("p2", "edited"), 0, 409, vec![], NOW)
+            .read_upload_response(media(ANDROID_ID, "edited"), 0, 409, vec![], NOW)
             .unwrap();
         assert_eq!(reply, UploadReply::NameTaken);
-        assert_eq!(store.drive_file_of("p2").unwrap(), None);
+        assert_eq!(store.drive_file_of(ANDROID_ID).unwrap(), None);
     }
 
     #[test]

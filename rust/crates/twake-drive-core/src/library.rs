@@ -20,6 +20,20 @@ pub(crate) fn library_id_of(local_id: &str) -> &str {
     local_id.strip_suffix(PAIRED_VIDEO).unwrap_or(local_id)
 }
 
+/// Whether a Drive file holding `id_from_library` may stand for this phone's
+/// media. An Android id (content://…/123) names a media on one phone only:
+/// another phone backing up to the same folder may hold the same, so only a
+/// file this phone sent counts. An iOS id names one media of one library,
+/// whichever app sent the file (the flagship app's included).
+pub(crate) fn may_stand_for_own_media(
+    id_from_library: &str,
+    sent_from: &[String],
+    this_device: Option<&str>,
+) -> bool {
+    !id_from_library.starts_with("content://")
+        || this_device.is_some_and(|device| sent_from.iter().any(|from| from == device))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
