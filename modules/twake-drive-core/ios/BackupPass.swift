@@ -64,26 +64,7 @@ final class BackupPass {
     // Reached the stack: what stopped the last pass may be over.
     try store.beginPass()
     report()
-    var cancelled = false
-    pass: while true {
-      if isCancelled() {
-        cancelled = true
-        break
-      }
-      // A small batch: the rest of it stays held until its lease ends if the
-      // pass stops early. A media handed to the system is held longer.
-      let batch = try store.nextBatch(now: now(), limit: 16, leaseSecs: 600)
-      if batch.isEmpty { break }
-      for queued in batch {
-        if isCancelled() {
-          cancelled = true
-          break pass
-        }
-        let action = try send(queued)
-        report()
-        if action == .stop { break pass }
-      }
-    }
+    let cancelled = try sendDue()
     if !heldBack.isEmpty {
       // Due again for the next pass, on Wi-Fi, instead of after their lease.
       try store.releaseMedia(localIds: heldBack)
@@ -99,6 +80,39 @@ final class BackupPass {
     if !cancelled { try store.endPass(now: now()) }
     report()
     return try store.status()
+  }
+
+  /// After an upload of the system ended: the media due next take its place,
+  /// unless what stopped the backup is still there (a full Drive, a refused
+  /// session, Wi-Fi awaited) until the next pass, or its folder is gone.
+  func handMore() throws {
+    guard try store.status().stoppedBy == nil else { return }
+    guard let folder = try client.ensureDeviceFolder(requested: config) else { return }
+    config = folder
+    if conditions.onlyCharging && !isCharging() { return }
+    _ = try sendDue()
+    if !heldBack.isEmpty { try store.releaseMedia(localIds: heldBack) }
+  }
+
+  /// The media due, a batch at a time; whether the pass was cancelled. Handed
+  /// to the system, no more than `BackgroundUploads.maxInFlight` go at once:
+  /// the uploads share one connection, and dozens of them each crawled until
+  /// the proxy cut them, then all went again. A batch is no bigger than what
+  /// may go, so nothing stays held for nothing when the pass stops.
+  private func sendDue() throws -> Bool {
+    while true {
+      if isCancelled() { return true }
+      let free = inBackground ? BackgroundUploads.shared.freeSlots() : 16
+      if free == 0 { return false }
+      let batch = try store.nextBatch(now: now(), limit: UInt32(free), leaseSecs: 600)
+      if batch.isEmpty { return false }
+      for queued in batch {
+        if isCancelled() { return true }
+        let action = try send(queued)
+        report()
+        if action == .stop { return false }
+      }
+    }
   }
 
   /// For the screen only: a state it cannot read does not stop the pass.
