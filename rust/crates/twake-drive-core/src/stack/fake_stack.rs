@@ -89,6 +89,21 @@ impl FakeStack {
         })
     }
 
+    /// A file a backup sent, as the stack keeps it with its devices.
+    pub fn add_backup_file(
+        &self,
+        path: &str,
+        md5: &str,
+        id_from_library: &str,
+        device_id: &str,
+    ) -> String {
+        let id = self.add_file(path, md5, Some(id_from_library));
+        let mut state = self.state.lock().unwrap();
+        state.docs.get_mut(&id).unwrap()["attributes"]["metadata"]["backupDeviceIds"] =
+            json!([device_id]);
+        id
+    }
+
     pub fn reference(&self, doc_id: &str, file_id: &str) {
         let mut state = self.state.lock().unwrap();
         state

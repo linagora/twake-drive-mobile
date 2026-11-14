@@ -127,6 +127,12 @@ enum Kind {
     Video,
 }
 
+/// Both photos or both videos, told by their names.
+pub(crate) fn same_kind(name: &str, other: &str) -> bool {
+    let kind = kind_of(name);
+    kind.is_some() && kind == kind_of(other)
+}
+
 fn kind_of(name: &str) -> Option<Kind> {
     let (_, ext) = name.rsplit_once('.')?;
     match ext.to_lowercase().as_str() {
