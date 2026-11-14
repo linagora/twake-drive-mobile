@@ -1,12 +1,12 @@
 use std::sync::Arc;
 
 use super::albums::{self, AlbumMedia};
-use super::folders::{self, DeviceFolder, MAX_NAME_ATTEMPTS};
+use super::folders::{self, DeviceFolder, MAX_NAME_ATTEMPTS, numbered};
 use super::http::{HttpRequest, Stack, StackTransport, TokenSource};
 use super::index;
 use super::upload::{self, MediaToSend};
 use crate::CoreError;
-use crate::backup::{BackupConfig, BackupStore, PassAction, RemoteFile, UploadOutcome};
+use crate::backup::{BackupConfig, BackupStore, PassAction, RemoteFile, UploadOutcome, same_kind};
 use crate::library::library_id_of;
 
 const FOLDER_GONE: &str = "FolderGone";
@@ -251,8 +251,14 @@ impl StackClient {
     ) -> Result<UploadReply, CoreError> {
         let existing = self.existing_file(&media)?;
         let outcome = match upload::outcome(status, &body)? {
-            None if existing.is_none() && name_attempt + 1 < MAX_NAME_ATTEMPTS => {
-                return Ok(UploadReply::NameTaken);
+            None if existing.is_none() => {
+                if let Some(reply) = self.name_taken_by_itself(&media, name_attempt, now)? {
+                    return Ok(reply);
+                }
+                if name_attempt + 1 < MAX_NAME_ATTEMPTS {
+                    return Ok(UploadReply::NameTaken);
+                }
+                UploadOutcome::Refused { status }
             }
             // A new version keeps its name, and a name may be taken only so often.
             None => UploadOutcome::Refused { status },
@@ -278,6 +284,60 @@ impl StackClient {
 }
 
 impl StackClient {
+    /// A 409 on a name this media may hold already: an upload that landed
+    /// while its answer was lost (a background session cut short), or an
+    /// older version the index of the pass did not know yet. The same
+    /// content is recorded as saved; another version of the same media goes
+    /// again as a new version of that file. None for another media's file.
+    fn name_taken_by_itself(
+        &self,
+        media: &MediaToSend,
+        name_attempt: u32,
+        now: i64,
+    ) -> Result<Option<UploadReply>, CoreError> {
+        let Some(folder) = self.store.folder_path()? else {
+            return Ok(None);
+        };
+        let path = format!("{folder}/{}", numbered(&media.name, name_attempt, true));
+        let Some((file, devices)) = index::file_at(&self.stack, &path)? else {
+            return Ok(None);
+        };
+        let library_id = library_id_of(&media.local_id);
+        if file.md5 == media.md5 {
+            self.store.add_remote_file(&file)?;
+            let own_file = self.store.drive_file_of(&media.local_id)?;
+            let outcome = UploadOutcome::AlreadyThere {
+                file_id: file.file_id.clone(),
+            };
+            let action = self.store.record_outcome(
+                media.local_id.clone(),
+                media.md5.clone(),
+                outcome,
+                now,
+            )?;
+            if file.id_from_library.as_deref() != Some(library_id) {
+                self.store
+                    .set_drive_file(&media.local_id, own_file.as_deref())?;
+            }
+            return Ok(Some(UploadReply::Recorded { action }));
+        }
+        // An Android id is unique on its phone only: another phone backing up
+        // to the same folder may hold the same id and name, and its file is
+        // not this media's to version. Photo and video too stay apart.
+        let device = self.store.backup_config()?.map(|config| config.device_id);
+        let sent_from_here = device.is_some_and(|device| devices.contains(&device));
+        if file.id_from_library.as_deref() == Some(library_id)
+            && sent_from_here
+            && same_kind(&file.name, &media.name)
+        {
+            self.store.add_remote_file(&file)?;
+            self.store
+                .set_drive_file(&media.local_id, Some(&file.file_id))?;
+            return Ok(Some(UploadReply::FileGone));
+        }
+        Ok(None)
+    }
+
     /// The Drive file of an older version, known after a reinstall too
     /// through the idFromLibrary of the file.
     fn existing_file(&self, media: &MediaToSend) -> Result<Option<String>, CoreError> {
@@ -1102,6 +1162,122 @@ mod tests {
         };
         let expected = format!("{BASE}/files/{photo}?Tags=library&");
         assert!(request.url.starts_with(&expected), "{}", request.url);
+    }
+
+    #[test]
+    fn a_name_taken_by_the_media_itself_is_its_upload_whose_answer_was_lost() {
+        let (fake, tokens) = (FakeStack::new(), FakeTokens::valid());
+        let (client, store) = client(&fake, &tokens);
+        let folder = saved_backup(&fake, &client, &store);
+        store.record_media("p2".into(), 1, 1).unwrap();
+        store.set_md5("p2".into(), 1, "m2".into()).unwrap();
+        let landed = fake.add_file(&format!("{}/IMG_0001.HEIC", folder.path), "m2", Some("p2"));
+        let reply = client
+            .read_upload_response(media("p2", "m2"), 0, 409, vec![], NOW)
+            .unwrap();
+        assert_eq!(
+            reply,
+            UploadReply::Recorded {
+                action: PassAction::Continue
+            }
+        );
+        assert_eq!(store.drive_file_of("p2").unwrap(), Some(landed));
+        assert_eq!(
+            store.counts().unwrap().done,
+            2,
+            "p1 and p2, no IMG_0001 (1)"
+        );
+    }
+
+    #[test]
+    fn a_name_taken_by_another_version_of_the_media_gets_the_new_version() {
+        let (fake, tokens) = (FakeStack::new(), FakeTokens::valid());
+        let (client, store) = client(&fake, &tokens);
+        let folder = saved_backup(&fake, &client, &store);
+        store.record_media("p2".into(), 1, 2).unwrap();
+        store.set_md5("p2".into(), 2, "edited".into()).unwrap();
+        let older = fake.add_backup_file(
+            &format!("{}/IMG_0001.HEIC", folder.path),
+            "original",
+            "p2",
+            "dev-1",
+        );
+        let reply = client
+            .read_upload_response(media("p2", "edited"), 0, 409, vec![], NOW)
+            .unwrap();
+        assert_eq!(
+            reply,
+            UploadReply::FileGone,
+            "sent again from its first name"
+        );
+        let plan = client
+            .prepare_upload(folder.id, "dev-1".into(), media("p2", "edited"), 0, NOW)
+            .unwrap();
+        let UploadPlan::Send { request } = plan else {
+            panic!("{plan:?}")
+        };
+        assert_eq!(request.method, "PUT");
+        assert!(request.url.contains(&older), "{}", request.url);
+    }
+
+    #[test]
+    fn a_name_taken_by_another_phone_with_the_same_library_id_is_left_alone() {
+        let (fake, tokens) = (FakeStack::new(), FakeTokens::valid());
+        let (client, store) = client(&fake, &tokens);
+        let folder = saved_backup(&fake, &client, &store);
+        store.record_media("p2".into(), 1, 2).unwrap();
+        store.set_md5("p2".into(), 2, "edited".into()).unwrap();
+        // An Android id is only unique on its phone: another one, adopting the
+        // same folder, may have sent its own media under the same id and name.
+        fake.add_backup_file(
+            &format!("{}/IMG_0001.HEIC", folder.path),
+            "theirs",
+            "p2",
+            "dev-2",
+        );
+        let reply = client
+            .read_upload_response(media("p2", "edited"), 0, 409, vec![], NOW)
+            .unwrap();
+        assert_eq!(reply, UploadReply::NameTaken);
+        assert_eq!(store.drive_file_of("p2").unwrap(), None);
+    }
+
+    #[test]
+    fn a_name_that_tells_no_kind_is_not_taken_for_a_version() {
+        let (fake, tokens) = (FakeStack::new(), FakeTokens::valid());
+        let (client, store) = client(&fake, &tokens);
+        let folder = saved_backup(&fake, &client, &store);
+        store.record_media("p2".into(), 1, 2).unwrap();
+        store.set_md5("p2".into(), 2, "edited".into()).unwrap();
+        let mut photo = media("p2", "edited");
+        photo.name = "IMG_0001".into();
+        fake.add_backup_file(&format!("{}/IMG_0001", folder.path), "video", "p2", "dev-1");
+        let reply = client
+            .read_upload_response(photo, 0, 409, vec![], NOW)
+            .unwrap();
+        assert_eq!(
+            reply,
+            UploadReply::NameTaken,
+            "no kind told, no new version"
+        );
+    }
+
+    #[test]
+    fn a_name_taken_by_another_media_goes_under_another_name() {
+        let (fake, tokens) = (FakeStack::new(), FakeTokens::valid());
+        let (client, store) = client(&fake, &tokens);
+        let folder = saved_backup(&fake, &client, &store);
+        store.record_media("p2".into(), 1, 1).unwrap();
+        store.set_md5("p2".into(), 1, "m2".into()).unwrap();
+        fake.add_file(
+            &format!("{}/IMG_0001.HEIC", folder.path),
+            "other",
+            Some("p9"),
+        );
+        let reply = client
+            .read_upload_response(media("p2", "m2"), 0, 409, vec![], NOW)
+            .unwrap();
+        assert_eq!(reply, UploadReply::NameTaken);
     }
 
     #[test]
