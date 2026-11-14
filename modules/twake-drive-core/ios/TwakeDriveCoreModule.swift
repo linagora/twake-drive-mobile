@@ -170,7 +170,15 @@ let passStop = OSAllocatedUnfairLock(initialState: false)
 
 /// Leaving the app mid-upload would waste that upload: iOS grants some time
 /// to finish the media in progress, then the pass stops.
-private func runInBackgroundTime<T>(_ body: (_ isCancelled: @escaping () -> Bool) throws -> T) throws -> T {
+func runInBackgroundTime<T>(_ body: (_ isCancelled: @escaping () -> Bool) throws -> T) throws -> T {
+  let (expired, end) = beginBackgroundTime()
+  defer { end() }
+  return try body(expired)
+}
+
+/// The time iOS grants from now on, for work that ends later: `end` gives it
+/// back, `expired` tells when it ran out. Not from the main thread.
+func beginBackgroundTime() -> (expired: () -> Bool, end: () -> Void) {
   let app = DispatchQueue.main.sync { UIApplication.shared }
   let lock = NSLock()
   nonisolated(unsafe) var task = UIBackgroundTaskIdentifier.invalid
@@ -184,8 +192,7 @@ private func runInBackgroundTime<T>(_ body: (_ isCancelled: @escaping () -> Bool
   }
   let started = app.beginBackgroundTask(withName: "photo-backup", expirationHandler: end)
   lock.withLock { task = started }
-  defer { end() }
-  return try body { lock.withLock { task == .invalid } }
+  return ({ lock.withLock { task == .invalid } }, end)
 }
 
 extension BackupCounts {
