@@ -40,6 +40,10 @@ fun constraints(conditions: BackupConditions): Constraints.Builder = Constraints
   .setRequiresCharging(conditions.onlyCharging)
   .setRequiresBatteryNotLow(true)
 
+/** Whether the app is on the screen, and whether its own pass is running. */
+internal val appOnScreen = AtomicBoolean(true)
+internal val appPassRunning = AtomicBoolean(false)
+
 /** An app that ignores the battery optimization escapes Doze and the standby buckets. */
 fun isBatteryExempt(context: Context): Boolean =
   context.getSystemService(PowerManager::class.java)?.isIgnoringBatteryOptimizations(context.packageName) == true
@@ -76,12 +80,30 @@ object BackupSchedule {
     )
   }
 
+  /**
+   * The app left the screen during its pass, which stops after the media in
+   * progress: a pass of WorkManager takes over, behind it on the queue, as soon
+   * as its conditions hold. A job of its own, it keeps the process out of the
+   * cache Android 14 freezes. Not expedited: before Android 12 that would be a
+   * foreground service, which an automatic backup does not run.
+   */
+  fun takeOver(context: Context) {
+    val conditions = runCatching { openBackup(context).store.conditions() }.getOrNull() ?: return
+    WorkManager.getInstance(context).enqueueUniqueWork(
+      TAKEOVER, ExistingWorkPolicy.KEEP,
+      OneTimeWorkRequest.Builder(BackupWorker::class.java).setConstraints(constraints(conditions).build()).build(),
+    )
+  }
+
   fun cancel(context: Context) {
     WorkManager.getInstance(context).run {
       cancelUniqueWork(MEDIA)
       cancelUniqueWork(HOURLY)
+      cancelUniqueWork(TAKEOVER)
     }
   }
+
+  private const val TAKEOVER = "backup-takeover"
 }
 
 class BackupWorker(context: Context, params: WorkerParameters) : Worker(context, params) {

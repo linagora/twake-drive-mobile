@@ -23,6 +23,20 @@ import com.linagora.twakedrive.core.md5File
 import java.io.File
 import java.util.UUID
 
+enum class BrokenUpload { HOLD_FOR_WIFI, RELEASE, NETWORK_DOWN }
+
+/**
+ * What an upload that broke on the network means. Sent on Wi-Fi only, with the
+ * Wi-Fi gone: it waits for Wi-Fi. Broken as the pass was stopped (the app left
+ * the screen, the system ended the worker): not a network down, the media is
+ * due again for the pass that takes over. Otherwise the network is down.
+ */
+fun brokenUpload(onWifiOnly: Boolean, wifiLost: Boolean, passStopped: Boolean): BrokenUpload = when {
+  onWifiOnly && wifiLost -> BrokenUpload.HOLD_FOR_WIFI
+  passStopped -> BrokenUpload.RELEASE
+  else -> BrokenUpload.NETWORK_DOWN
+}
+
 /** One pass of the photo backup in the foreground: the core decides what to send and reads the answers. */
 class BackupPass(
   private val context: Context,
@@ -154,8 +168,14 @@ class BackupPass(
         val response = try {
           exchange(request, file, network)
         } catch (e: CoreException.Network) {
-          if (network != null && unmeteredNetwork() == null) return holdBack(queued)
-          return store.recordOutcome(queued.localId, md5, UploadOutcome.Network, now())
+          return when (brokenUpload(onWifiOnly = network != null, wifiLost = unmeteredNetwork() == null, isCancelled())) {
+            BrokenUpload.HOLD_FOR_WIFI -> holdBack(queued)
+            BrokenUpload.RELEASE -> {
+              store.releaseMedia(listOf(queued.localId))
+              PassAction.STOP
+            }
+            BrokenUpload.NETWORK_DOWN -> store.recordOutcome(queued.localId, md5, UploadOutcome.Network, now())
+          }
         }
         when (val reply = client.readUploadResponse(toSend, nameAttempt, response.status, response.body, now())) {
           is UploadReply.NameTaken -> nameAttempt++
