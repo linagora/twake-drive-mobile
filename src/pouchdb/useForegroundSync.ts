@@ -20,11 +20,11 @@ import { triggerPouchReplication } from './triggerReplication'
  */
 export const useForegroundSync = (): void => {
   const client = useClient()
-  const prevState = useRef<AppStateStatus>(AppState.currentState)
+  const prevState = useRef(AppState.currentState)
   useEffect(() => {
     if (!client) return
     const sub = AppState.addEventListener('change', (next: AppStateStatus) => {
-      const wasInactive = prevState.current.match(/inactive|background/)
+      const wasInactive = prevState.current?.match(/inactive|background/)
       prevState.current = next
       if (wasInactive && next === 'active') {
         void NetInfo.refresh()
