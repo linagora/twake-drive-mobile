@@ -1,0 +1,17 @@
+diff --git a/node_modules/expo-web-browser/android/src/main/java/expo/modules/webbrowser/CustomTabsActivitiesHelper.kt b/node_modules/expo-web-browser/android/src/main/java/expo/modules/webbrowser/CustomTabsActivitiesHelper.kt
+index c1169b2..03c4342 100644
+--- a/node_modules/expo-web-browser/android/src/main/java/expo/modules/webbrowser/CustomTabsActivitiesHelper.kt
++++ b/node_modules/expo-web-browser/android/src/main/java/expo/modules/webbrowser/CustomTabsActivitiesHelper.kt
+@@ -75,8 +75,10 @@ internal class CustomTabsActivitiesHelper(
+         putExtra(BrowserProxyActivity.EXTRA_URL, url.toString())
+         putExtra(BrowserProxyActivity.EXTRA_CUSTOM_TABS_INTENT_DATA, tabsIntent.intent)
+ 
+-        // The proxy activity will be in a different task due to its taskAffinity
+-        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
++        // The proxy activity will be in a different task due to its taskAffinity.
++        // CLEAR_TASK: a task left by a killed process would otherwise come back as
++        // it was, dropping this intent and showing the previous page.
++        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+       }
+ 
+       currentActivity.startActivity(proxyIntent)

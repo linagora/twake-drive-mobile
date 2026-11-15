@@ -165,6 +165,13 @@
       "exclude": [
         "@sentry/react-native"
       ]
+    },
+    "autolinking": {
+      "android": {
+        "buildFromSource": [
+          "expo-web-browser"
+        ]
+      }
     }
   }
 }
