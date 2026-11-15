@@ -32,7 +32,7 @@ describe('useActiveColorScheme', () => {
   })
 
   it('falls back to light when the OS reports nothing', () => {
-    jest.spyOn(ReactNative, 'useColorScheme').mockReturnValue('unspecified')
+    jest.spyOn(ReactNative, 'useColorScheme').mockReturnValue(null)
     setThemePreference('system')
     const { result } = renderHook(() => useActiveColorScheme())
     expect(result.current).toBe('light')

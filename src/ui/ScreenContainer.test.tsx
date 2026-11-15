@@ -20,7 +20,7 @@ const paddingsOf = (props: Omit<React.ComponentProps<typeof ScreenContainer>, 'c
   const style = StyleSheet.flatten(
     (screen.toJSON() as unknown as { props: { style: StyleProp<ViewStyle> } }).props.style
   )
-  return { top: style.paddingTop, bottom: style.paddingBottom }
+  return { top: style?.paddingTop, bottom: style?.paddingBottom }
 }
 
 const renderThemed = (surface?: boolean): void => {

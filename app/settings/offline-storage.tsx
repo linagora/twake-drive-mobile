@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { InteractionManager, SectionList, View, StyleSheet } from 'react-native'
+import { SectionList, View, StyleSheet } from 'react-native'
 import { Button } from 'react-native-paper'
 import { Switch } from '@/ui/Switch'
 import { Redirect, useRouter } from 'expo-router'
@@ -174,10 +174,10 @@ export default function OfflineStorageScreen() {
   // and can enqueue downloads, so it waits for the screen to be on its feet.
   useEffect(() => {
     if (!client) return
-    const task = InteractionManager.runAfterInteractions(() => {
+    const task = requestIdleCallback(() => {
       void reconcileFolderPins(client)
     })
-    return () => task.cancel()
+    return () => cancelIdleCallback(task)
   }, [client])
 
   const totalBytes = useMemo(() => files.reduce((sum, f) => sum + diskBytes(f), 0), [files])

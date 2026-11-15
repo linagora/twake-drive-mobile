@@ -14,12 +14,12 @@ import { getOnlineMonitor } from '@/network/OnlineMonitor'
  */
 export const useFlagsRefresh = (): void => {
   const client = useClient()
-  const previousState = useRef<AppStateStatus>(AppState.currentState)
+  const previousState = useRef(AppState.currentState)
 
   useEffect(() => {
     if (!client) return
     const sub = AppState.addEventListener('change', (next: AppStateStatus) => {
-      const wasInactive = previousState.current.match(/inactive|background/)
+      const wasInactive = previousState.current?.match(/inactive|background/)
       previousState.current = next
       if (!wasInactive || next !== 'active' || !getOnlineMonitor().getCurrent()) return
       const flags = (client.plugins as { flags?: InstanceType<typeof flag.plugin> }).flags

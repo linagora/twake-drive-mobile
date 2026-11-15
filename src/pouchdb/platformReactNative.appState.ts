@@ -32,7 +32,7 @@ export const listenAppState = (eventEmitter: EventEmitter): void => {
 }
 
 const isGoingToSleep = (next: AppStateStatus): boolean =>
-  Boolean(appState.match(/active/) && next === 'background')
+  Boolean(appState?.match(/active/) && next === 'background')
 
 const isGoingToWakeUp = (next: AppStateStatus): boolean =>
-  Boolean(appState.match(/background/) && next === 'active')
+  Boolean(appState?.match(/background/) && next === 'active')
