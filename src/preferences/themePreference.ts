@@ -46,5 +46,5 @@ export function useThemePreference(): { pref: ThemePref; setPref: (p: ThemePref)
 export function useActiveColorScheme(): 'light' | 'dark' {
   const systemScheme = useColorScheme()
   const pref = useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
-  return (pref === 'system' ? systemScheme : pref) ?? 'light'
+  return (pref === 'system' ? systemScheme : pref) === 'dark' ? 'dark' : 'light'
 }
