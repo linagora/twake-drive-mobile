@@ -2,6 +2,7 @@ use std::sync::{Arc, Mutex, MutexGuard};
 
 use rusqlite::{Connection, ErrorCode, OptionalExtension, TransactionBehavior::Immediate, params};
 
+use super::room::LiveCopies;
 use super::rules::{Decision, PassAction, UNAVAILABLE_DELAY_SECS, UploadOutcome, decide};
 use crate::CoreError;
 use crate::library::{library_id_of, paired_video_key};
@@ -633,6 +634,29 @@ impl BackupStore {
         set_setting(&self.db(), STOPPED_BY, cause)
     }
 
+    /// Some media wait, "NoRoomOnPhone", while others go: shown unless a
+    /// cause that stops every media is there already.
+    pub fn some_wait_for(&self, cause: String) -> Result<(), CoreError> {
+        self.db()
+            .execute(
+                "INSERT INTO setting (key, value) VALUES (?1, ?2) ON CONFLICT (key) DO NOTHING",
+                params![STOPPED_BY, cause.into_bytes()],
+            )
+            .map_err(storage)?;
+        Ok(())
+    }
+
+    /// A media went: what `some_wait_for` showed is over, if still shown.
+    pub fn end_wait(&self, cause: String) -> Result<(), CoreError> {
+        self.db()
+            .execute(
+                "DELETE FROM setting WHERE key = ?1 AND value = ?2",
+                params![STOPPED_BY, cause.into_bytes()],
+            )
+            .map_err(storage)?;
+        Ok(())
+    }
+
     /// Media the pass took but held back: due again at once, for the next pass.
     pub fn release_media(&self, local_ids: Vec<String>) -> Result<(), CoreError> {
         let mut db = self.db();
@@ -805,6 +829,26 @@ impl BackupStore {
             .map_err(storage)?
             .collect::<Result<Vec<_>, _>>()
             .map_err(storage)
+    }
+
+    /// The bytes of the copies these uploads, parked for the platform, still
+    /// hold: their size as exported, whether the system started them or not.
+    pub fn parked_copies(&self, local_ids: Vec<String>) -> Result<LiveCopies, CoreError> {
+        let db = self.db();
+        let mut query = db
+            .prepare("SELECT size FROM in_flight WHERE local_id = ?1")
+            .map_err(storage)?;
+        let mut copies = LiveCopies::default();
+        for local_id in local_ids {
+            let size: Option<i64> = query
+                .query_row(params![local_id], |row| row.get(0))
+                .optional()
+                .map_err(storage)?;
+            let size = size.unwrap_or(0).max(0) as u64;
+            copies.bytes += size;
+            copies.largest = copies.largest.max(size);
+        }
+        Ok(copies)
     }
 
     /// The user asks to try the failed media again.
@@ -1661,6 +1705,39 @@ mod tests {
             Some("/tmp/a1".into())
         );
         assert_eq!(s.parked_files().unwrap(), ["/tmp/a2"]);
+    }
+
+    #[test]
+    fn the_bytes_of_the_live_uploads_are_their_exported_sizes() {
+        let s = store();
+        s.park_upload(to_send("a"), 0, "/tmp/a".into(), NOW)
+            .unwrap();
+        let mut b = to_send("b");
+        b.size = 3_000;
+        s.park_upload(b, 0, "/tmp/b".into(), NOW).unwrap();
+        // An upload lost with the app, or settled since, counts for nothing.
+        assert_eq!(
+            s.parked_copies(vec!["a".into(), "b".into(), "gone".into()])
+                .unwrap(),
+            LiveCopies {
+                bytes: 5_000_003_000,
+                largest: 5_000_000_000
+            }
+        );
+    }
+
+    #[test]
+    fn media_waiting_for_room_on_the_phone_hide_no_other_cause() {
+        let s = store();
+        let cause = || s.status().unwrap().stopped_by;
+        s.some_wait_for("NoRoomOnPhone".into()).unwrap();
+        assert_eq!(cause().as_deref(), Some("NoRoomOnPhone"));
+        s.end_wait("NoRoomOnPhone".into()).unwrap();
+        assert_eq!(cause(), None);
+        s.wait_for("QuotaExceeded".into()).unwrap();
+        s.some_wait_for("NoRoomOnPhone".into()).unwrap();
+        s.end_wait("NoRoomOnPhone".into()).unwrap();
+        assert_eq!(cause().as_deref(), Some("QuotaExceeded"));
     }
 
     #[test]

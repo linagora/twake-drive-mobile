@@ -1,5 +1,6 @@
 mod drive_albums;
 mod remote_index;
+mod room;
 mod rules;
 mod store;
 
