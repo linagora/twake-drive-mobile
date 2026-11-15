@@ -126,7 +126,8 @@ describe('BottomDrawer', () => {
     await waitFor(() => expect(onDismissed).toHaveBeenCalledTimes(1), { timeout: 3000 })
   })
 
-  it('unmounts once closed', async () => {
+  it('unmounts once closed', () => {
+    jest.useFakeTimers()
     const { rerender } = wrap(
       <BottomDrawer visible onClose={jest.fn()} title="x">
         <BottomDrawerItem label="Share" icon="share" onPress={jest.fn()} testID="item" />
@@ -141,6 +142,8 @@ describe('BottomDrawer', () => {
         </PaperProvider>
       </SafeAreaProvider>
     )
-    await waitFor(() => expect(screen.queryByTestId('item')).toBeNull(), { timeout: 3000 })
+    act(() => void jest.advanceTimersByTime(1000))
+    expect(screen.queryByTestId('item')).toBeNull()
+    jest.useRealTimers()
   })
 })
