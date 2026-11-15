@@ -44,7 +44,9 @@
     "xcode",
     // Expected by knip's expo plugin unless app.json disables updates; the app
     // ships no OTA updates and does not install it.
-    "expo-updates"
+    "expo-updates",
+    // The icon font react-native-paper draws with: it requires this package first.
+    "@react-native-vector-icons/material-design-icons"
   ],
   // Installed outside npm: on the runners, and by e2e/scripts/setup-ios-automation.sh.
   "ignoreBinaries": ["ffmpeg", "ffprobe", "maestro"],

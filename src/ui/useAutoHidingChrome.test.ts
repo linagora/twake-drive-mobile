@@ -16,14 +16,14 @@ describe('useAutoHidingChrome', () => {
   it('takes it away once nothing has happened', () => {
     const { result } = renderHook(() => useAutoHidingChrome())
 
-    act(() => jest.advanceTimersByTime(CHROME_VISIBLE_MS))
+    act(() => void jest.advanceTimersByTime(CHROME_VISIBLE_MS))
 
     expect(result.current.visible).toBe(false)
   })
 
   it('brings it back on demand', () => {
     const { result } = renderHook(() => useAutoHidingChrome())
-    act(() => jest.advanceTimersByTime(CHROME_VISIBLE_MS))
+    act(() => void jest.advanceTimersByTime(CHROME_VISIBLE_MS))
 
     act(() => result.current.reveal())
 
@@ -32,13 +32,13 @@ describe('useAutoHidingChrome', () => {
 
   it('gives it a full turn again rather than the rest of the previous one', () => {
     const { result } = renderHook(() => useAutoHidingChrome())
-    act(() => jest.advanceTimersByTime(CHROME_VISIBLE_MS - 200))
+    act(() => void jest.advanceTimersByTime(CHROME_VISIBLE_MS - 200))
 
     act(() => result.current.reveal())
-    act(() => jest.advanceTimersByTime(CHROME_VISIBLE_MS - 200))
+    act(() => void jest.advanceTimersByTime(CHROME_VISIBLE_MS - 200))
 
     expect(result.current.visible).toBe(true)
-    act(() => jest.advanceTimersByTime(200))
+    act(() => void jest.advanceTimersByTime(200))
     expect(result.current.visible).toBe(false)
   })
 
@@ -47,7 +47,7 @@ describe('useAutoHidingChrome', () => {
 
     unmount()
 
-    expect(() => act(() => jest.advanceTimersByTime(CHROME_VISIBLE_MS))).not.toThrow()
+    expect(() => act(() => void jest.advanceTimersByTime(CHROME_VISIBLE_MS))).not.toThrow()
   })
 
   // A text is only known once the file has loaded, by which time the bar may be gone.
@@ -56,10 +56,10 @@ describe('useAutoHidingChrome', () => {
       ({ autoHide }: { autoHide: boolean }) => useAutoHidingChrome(autoHide),
       { initialProps: { autoHide: true } }
     )
-    act(() => jest.advanceTimersByTime(CHROME_VISIBLE_MS))
+    act(() => void jest.advanceTimersByTime(CHROME_VISIBLE_MS))
 
     rerender({ autoHide: false })
-    act(() => jest.advanceTimersByTime(CHROME_VISIBLE_MS))
+    act(() => void jest.advanceTimersByTime(CHROME_VISIBLE_MS))
 
     expect(result.current.visible).toBe(true)
   })

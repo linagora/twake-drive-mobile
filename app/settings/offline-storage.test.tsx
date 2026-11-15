@@ -152,7 +152,9 @@ describe('OfflineStorageScreen', () => {
 
     expect(mockGetAll).not.toHaveBeenCalled()
 
-    act(() => jest.advanceTimersByTime(300))
+    act(() => {
+      jest.advanceTimersByTime(300)
+    })
 
     expect(mockGetAll).toHaveBeenCalledTimes(1)
     expect(mockGetAllFolders).toHaveBeenCalledTimes(1)

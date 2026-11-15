@@ -6,13 +6,13 @@ jest.mock('./openFile', () => ({
 
 import type CozyClient from 'cozy-client'
 import flag from 'cozy-flags'
-import type { Router } from 'expo-router'
+import type { ImperativeRouter } from 'expo-router'
 
 import { openDriveFile } from './openDriveFile'
 
 const mockFlag = flag as unknown as jest.Mock
 const client = {} as CozyClient
-const router = { push: jest.fn() } as unknown as Router
+const router = { push: jest.fn() } as unknown as ImperativeRouter
 const openEditor = jest.fn().mockResolvedValue(undefined)
 
 describe('openDriveFile', () => {

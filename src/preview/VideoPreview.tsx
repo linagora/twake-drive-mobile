@@ -96,7 +96,7 @@ const styles = StyleSheet.create({
   viewerContainer: { flex: 1 },
   video: { flex: 1, backgroundColor: '#000' },
   overlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(0,0,0,0.4)'
