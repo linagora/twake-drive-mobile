@@ -37,7 +37,7 @@
     "@craftzdog/react-native-buffer": "^6.1.2",
     "@expo-google-fonts/inter": "^0.4.2",
     "@linagora/twake-css": "1.0.0",
-    "@op-engineering/op-sqlite": "18.2.5",
+    "@op-engineering/op-sqlite": "19.0.5",
     "@react-native-community/netinfo": "12.0.1",
     "@react-native-vector-icons/material-design-icons": "^14.0.0",
     "@sentry/core": "10.78.0",
@@ -143,6 +143,9 @@
   },
   "private": true,
   "overrides": {
+    "pouchdb-adapter-react-native-sqlite": {
+      "@op-engineering/op-sqlite": "$@op-engineering/op-sqlite"
+    },
     "shell-quote": "^1.8.4",
     "undici": "^6.27.0",
     "ws@6": "^6.2.4",
