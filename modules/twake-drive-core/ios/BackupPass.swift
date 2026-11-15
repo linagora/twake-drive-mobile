@@ -14,6 +14,9 @@ final class BackupPass {
   private let account: String
   private var config: BackupConfig
   private let inBackground: Bool
+  /// For a pass of the app that iOS stops some 30 s after the app leaves the
+  /// screen: from then on its media go to the system, as in the background.
+  private let handsOverOnLeaving: Bool
   private let isCancelled: () -> Bool
   private let onProgress: ((BackupStatus) -> Void)?
   private let conditions: BackupConditions
@@ -21,12 +24,13 @@ final class BackupPass {
   private var heldBack: [String] = []
 
   init(
-    config: BackupConfig, inBackground: Bool, isCancelled: @escaping () -> Bool,
-    onProgress: ((BackupStatus) -> Void)? = nil
+    config: BackupConfig, inBackground: Bool, handsOverOnLeaving: Bool = false,
+    isCancelled: @escaping () -> Bool, onProgress: ((BackupStatus) -> Void)? = nil
   ) throws {
     (client, store, account) = try openBackup()
     self.config = config
     self.inBackground = inBackground
+    self.handsOverOnLeaving = handsOverOnLeaving
     self.isCancelled = isCancelled
     self.onProgress = onProgress
     conditions = try store.conditions()
@@ -102,17 +106,27 @@ final class BackupPass {
   private func sendDue() throws -> Bool {
     while true {
       if isCancelled() { return true }
-      let free = inBackground ? BackgroundUploads.shared.freeSlots() : 16
+      let free = handsToSystem ? BackgroundUploads.shared.freeSlots() : 16
       if free == 0 { return false }
       let batch = try store.nextBatch(now: now(), limit: UInt32(free), leaseSecs: 600)
       if batch.isEmpty { return false }
-      for queued in batch {
+      for (index, queued) in batch.enumerated() {
         if isCancelled() { return true }
+        // The app may leave the screen within a batch taken for the app.
+        if handsToSystem && BackgroundUploads.shared.freeSlots() == 0 {
+          try store.releaseMedia(localIds: batch[index...].map(\.localId))
+          return false
+        }
         let action = try send(queued)
         report()
         if action == .stop { return false }
       }
     }
+  }
+
+  /// Whether the next media goes to the system rather than wait for its answer here.
+  private var handsToSystem: Bool {
+    inBackground || (handsOverOnLeaving && appLeftScreen())
   }
 
   /// For the screen only: a state it cannot read does not stop the pass.
@@ -250,7 +264,7 @@ final class BackupPass {
         folderId: config.folderId, deviceId: config.deviceId, media: media, nameAttempt: nameAttempt,
         now: now())
       guard case .send(let request) = plan else { return .continue }
-      if inBackground {
+      if handsToSystem {
         try BackgroundUploads.shared.hand(
           request, media: media, nameAttempt: nameAttempt, file: export.file, account: account, store: store,
           allowsCellular: cellular)
@@ -260,6 +274,11 @@ final class BackupPass {
       let response: HttpResponse
       do {
         response = try exchange(request, file: export.file, allowsCellular: cellular)
+      } catch CoreError.Network where handsToSystem {
+        // Cut as iOS suspended the app, not a network down: no stop recorded,
+        // the media is due again and goes to the system.
+        try store.releaseMedia(localIds: [media.localId])
+        return .continue
       } catch CoreError.Network {
         return try store.recordOutcome(localId: media.localId, md5: md5, outcome: .network, now: now())
       }
@@ -396,6 +415,12 @@ private func albumsForDrive(_ choices: [AlbumChoice]) -> [AlbumMedia] {
         AlbumMedia(albumId: album.localIdentifier, name: album.localizedTitle ?? "", localIds: ids))
     }
   return albums
+}
+
+/// Whether the app left the screen; iOS suspends it some 30 s later. Not
+/// from the main thread.
+func appLeftScreen() -> Bool {
+  DispatchQueue.main.sync { UIApplication.shared.applicationState == .background }
 }
 
 func mediaOptions() -> PHFetchOptions {

@@ -47,9 +47,13 @@ public class TwakeDriveCoreModule: Module {
       passStop.withLock { $0 = false }
       // A pass that fails, offline for one, still leaves the next ones planned.
       defer { if !passStop.withLock({ $0 }) { BackupSchedule.schedule() } }
-      let pass = { (isCancelled: @escaping () -> Bool, report: @escaping (BackupStatus) -> Void) in
+      func pass(
+        handsOverOnLeaving: Bool, _ isCancelled: @escaping () -> Bool,
+        _ report: @escaping (BackupStatus) -> Void
+      ) throws -> BackupStatus {
         try BackupPass(
           config: BackupConfig(folderId: folderId, deviceId: deviceId), inBackground: false,
+          handsOverOnLeaving: handsOverOnLeaving,
           isCancelled: { isCancelled() || passStop.withLock { $0 } },
           onProgress: { [weak self] status in
             self?.sendEvent("onBackupProgress", status.record)
@@ -58,11 +62,13 @@ public class TwakeDriveCoreModule: Module {
         ).run()
       }
       #if compiler(>=6.2)
+        // The system keeps this one going in the app, in the background too.
         if #available(iOS 26.0, *), let liveTitle, let task = ContinuedPass.start(title: liveTitle) {
-          return try ContinuedPass.run(task, title: liveTitle, pass).record
+          return try ContinuedPass.run(task, title: liveTitle) { try pass(handsOverOnLeaving: false, $0, $1) }
+            .record
         }
       #endif
-      return try runInBackgroundTime { expired in try pass(expired) { _ in } }.record
+      return try runInBackgroundTime { expired in try pass(handsOverOnLeaving: true, expired) { _ in } }.record
     }.runOnQueue(passQueue)
 
     AsyncFunction("backupStatus") { () throws -> [String: Any] in
