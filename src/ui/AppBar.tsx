@@ -240,7 +240,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center'
   },
   title: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: cozyTokens.appBarSideSlot

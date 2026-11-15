@@ -1,4 +1,4 @@
-import { DefaultTheme, DarkTheme, type Theme } from '@react-navigation/native'
+import { DefaultTheme, DarkTheme, type Theme } from 'expo-router/react-navigation'
 import { cozyPalette, CozyPaletteScheme } from './cozyPalette'
 
 /**

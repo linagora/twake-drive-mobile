@@ -243,7 +243,7 @@ export const BottomDrawerItem = ({
 
 const styles = StyleSheet.create({
   root: { flex: 1, justifyContent: 'flex-end' },
-  backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.4)' },
+  backdrop: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(0,0,0,0.4)' },
   sheet: { borderTopLeftRadius: 16, borderTopRightRadius: 16, overflow: 'hidden' },
   grab: { paddingTop: 8 },
   handle: { alignSelf: 'center', width: 32, height: 4, borderRadius: 2, marginBottom: 8 },

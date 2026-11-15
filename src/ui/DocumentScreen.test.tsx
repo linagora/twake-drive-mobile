@@ -88,14 +88,18 @@ describe('DocumentScreen', () => {
     it('steps aside once nothing has happened', () => {
       show()
 
-      act(() => jest.advanceTimersByTime(CHROME_VISIBLE_MS))
+      act(() => {
+        jest.advanceTimersByTime(CHROME_VISIBLE_MS)
+      })
 
       expect(screen.getByTestId(DOCUMENT_CHROME_TEST_ID).props.pointerEvents).toBe('none')
     })
 
     it('comes back when the document is touched', () => {
       show()
-      act(() => jest.advanceTimersByTime(CHROME_VISIBLE_MS))
+      act(() => {
+        jest.advanceTimersByTime(CHROME_VISIBLE_MS)
+      })
 
       act(() => {
         fireEvent(screen.getByTestId(DOCUMENT_CONTENT_TEST_ID), 'startShouldSetResponderCapture')

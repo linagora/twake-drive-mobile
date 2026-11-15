@@ -1,5 +1,5 @@
 import React from 'react'
-import { StackActions } from '@react-navigation/native'
+import { StackActions } from 'expo-router/react-navigation'
 import { useNavigationContainerRef, useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 

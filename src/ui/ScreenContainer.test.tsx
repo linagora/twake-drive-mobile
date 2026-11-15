@@ -18,7 +18,7 @@ const paddingsOf = (props: Omit<React.ComponentProps<typeof ScreenContainer>, 'c
     </ScreenContainer>
   )
   const style = StyleSheet.flatten(
-    (screen.toJSON() as { props: { style: StyleProp<ViewStyle> } }).props.style
+    (screen.toJSON() as unknown as { props: { style: StyleProp<ViewStyle> } }).props.style
   )
   return { top: style.paddingTop, bottom: style.paddingBottom }
 }

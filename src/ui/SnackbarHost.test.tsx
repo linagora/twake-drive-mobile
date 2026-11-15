@@ -25,11 +25,17 @@ test('a repeated message gets its full duration again', () => {
     </PaperProvider>
   )
   fireEvent.press(getByText('notify'))
-  act(() => jest.advanceTimersByTime(2500))
+  act(() => {
+    jest.advanceTimersByTime(2500)
+  })
   fireEvent.press(getByText('notify'))
-  act(() => jest.advanceTimersByTime(2500))
+  act(() => {
+    jest.advanceTimersByTime(2500)
+  })
   expect(queryByText('File moved')).toBeTruthy()
-  act(() => jest.advanceTimersByTime(2000))
+  act(() => {
+    jest.advanceTimersByTime(2000)
+  })
   expect(queryByText('File moved')).toBeNull()
 })
 

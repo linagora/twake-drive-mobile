@@ -8,18 +8,18 @@ module.exports = {
     defaultPlatform: 'ios',
     platforms: ['android', 'ios', 'native']
   },
-  resolver: require.resolve('react-native/jest/resolver.js'),
+  resolver: require.resolve('@react-native/jest-preset/jest/resolver.js'),
   transform: {
     '^.+\\.(bmp|gif|jpg|jpeg|mp4|png|psd|svg|webp)$':
-      require.resolve('react-native/jest/assetFileTransformer.js'),
+      require.resolve('@react-native/jest-preset/jest/assetFileTransformer.js'),
     '\\.[jt]sx?$': ['babel-jest', { caller: { name: 'metro', bundler: 'metro', platform: 'ios' } }],
     '^.+\\.(bmp|gif|jpg|jpeg|png|psd|svg|webp|xml|m4v|mov|mp4|mpeg|mpg|webm|aac|aiff|caf|m4a|mp3|wav|html|pdf|yaml|yml|otf|ttf|zip|heic|avif|db)$':
       require.resolve('jest-expo/src/preset/assetFileTransformer.js')
   },
-  testEnvironment: require.resolve('react-native/jest/react-native-env.js'),
+  testEnvironment: require.resolve('@react-native/jest-preset/jest/react-native-env.js'),
   setupFiles: [
     '<rootDir>/jest/globalPolyfills.js',
-    require.resolve('react-native/jest/setup.js'),
+    require.resolve('@react-native/jest-preset/jest/setup.js'),
     require.resolve('jest-expo/src/preset/setup.js')
   ],
   setupFilesAfterEnv: ['./jest.setup.ts'],

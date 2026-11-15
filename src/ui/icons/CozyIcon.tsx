@@ -1,8 +1,9 @@
 import React from 'react'
+import type { ColorValue } from 'react-native'
 import Svg, { Path } from 'react-native-svg'
 import { ICONS } from './registry'
 
-type Props = { name: string; size?: number; color?: string }
+type Props = { name: string; size?: number; color?: ColorValue }
 
 export function CozyIcon({ name, size = 24, color = '#000000' }: Props) {
   const def = ICONS[name]

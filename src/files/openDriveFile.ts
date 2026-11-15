@@ -1,6 +1,6 @@
 import { Linking } from 'react-native'
 import type CozyClient from 'cozy-client'
-import type { Router } from 'expo-router'
+import type { ImperativeRouter } from 'expo-router'
 
 import { isShortcutFile } from './fileTypes'
 import { EditableDocument, webEditorKindOf } from '@/viewer/webEditor'
@@ -30,7 +30,7 @@ export interface OpenDriveFileOptions {
  */
 export const openDriveFile = async (
   client: CozyClient,
-  router: Router,
+  router: ImperativeRouter,
   file: DriveFile,
   { openEditor, driveId, closeSheet }: OpenDriveFileOptions
 ): Promise<void> => {
