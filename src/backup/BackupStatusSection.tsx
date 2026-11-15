@@ -114,6 +114,8 @@ export const BackupStatusSection = ({ onTurnOff }: Props): React.ReactElement | 
         <InlineBanner message={t('backup.status.waitingWifi')} testID="backup-waiting-wifi" />
       ) : status.stoppedBy === 'WaitingForPower' ? (
         <InlineBanner message={t('backup.status.waitingPower')} testID="backup-waiting-power" />
+      ) : status.stoppedBy === 'NoRoomOnPhone' ? (
+        <InlineBanner message={t('backup.status.noRoomOnPhone')} testID="backup-no-room" />
       ) : status.stoppedBy ? (
         <InlineBanner message={t('backup.status.stopped')} testID="backup-stopped" />
       ) : null}

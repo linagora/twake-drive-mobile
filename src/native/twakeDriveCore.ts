@@ -30,6 +30,8 @@ export type StopCause =
   /** Held back by the user's conditions. */
   | 'WaitingForWifi'
   | 'WaitingForPower'
+  /** A copy would leave the phone short of space: smaller media still go. */
+  | 'NoRoomOnPhone'
   /** The folder of the device is gone: the backup waits for the user. */
   | 'FolderGone'
 

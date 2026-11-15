@@ -131,6 +131,13 @@ it('tells the backup waits for Wi-Fi or power, as the user chose', () => {
   expect(screen.queryByTestId('backup-stopped')).toBeNull()
 })
 
+it('tells the largest media wait for space on the phone', () => {
+  mockState.status = { ...counts, stoppedBy: 'NoRoomOnPhone' }
+  const screen = render(<BackupStatusSection onTurnOff={mockTurnOff} />)
+  screen.getByText(i18n.t('backup.status.noRoomOnPhone'))
+  expect(screen.queryByTestId('backup-stopped')).toBeNull()
+})
+
 describe('access to the photos', () => {
   let openSettings: jest.SpyInstance
   beforeEach(() => {

@@ -10,11 +10,14 @@ import Photos
 final class BackgroundUploads: NSObject, URLSessionDataDelegate {
   static let shared = BackgroundUploads()
   static let identifier = "com.linagora.twakedrive.backup"
-  /// With the foreground pass, which sends one at a time, four at most.
-  static let maxInFlight = 3
+  /// What the uploads do, without a name or an id of the library: Console.app
+  /// on a Mac, filtered on this subsystem.
+  let log = Logger(subsystem: Bundle.main.bundleIdentifier ?? "com.linagora.twakedrive", category: "backup")
 
   /// What iOS gives to call once the answers of a relaunch are read.
   var eventsDone: (() -> Void)?
+  /// The state of the backup after each answer, for the screen.
+  var onStatus: ((BackupStatus) -> Void)?
   private var bodies: [Int: Data] = [:]
 
   /// One session for the whole run: a second one with the same identifier
@@ -48,22 +51,28 @@ final class BackgroundUploads: NSObject, URLSessionDataDelegate {
     let task = session.uploadTask(with: urlRequest, fromFile: file)
     task.taskDescription = "\(account)\n\(media.localId)"
     task.resume()
+    // Made in the background, iOS starts it when it sees fit.
+    let state = appLeftScreen() ? "background" : "foreground"
+    log.notice("upload \(task.taskIdentifier, privacy: .public) made in the \(state, privacy: .public), \(media.size / 1024, privacy: .public) kB")
   }
 
-  /// How many more uploads may be handed now. Counted on the session's tasks,
-  /// not on the core's parked uploads: those of a task lost with the app stay
-  /// parked until their hold ends. Not on the delegate queue, which answers.
-  func freeSlots() -> Int {
-    let running = OSAllocatedUnfairLock<Int?>(initialState: nil)
+  /// The uploads the system runs and the bytes of their copies, as exported:
+  /// iOS counts nothing to send on a task it has not started. The tasks are
+  /// the session's, not the core's parked uploads: those of a task lost with
+  /// the app stay parked until their hold ends. Not on the delegate queue,
+  /// which answers.
+  func room(_ store: BackupStore) -> (tasks: UInt32, copies: LiveCopies) {
+    let running = OSAllocatedUnfairLock<[String]?>(initialState: nil)
     let counted = DispatchSemaphore(value: 0)
     session.getAllTasks { tasks in
-      running.withLock { $0 = tasks.filter { $0.state == .running || $0.state == .suspended }.count }
+      let live = tasks.filter { $0.state == .running || $0.state == .suspended }
+      running.withLock { $0 = live.map { String($0.taskDescription?.split(separator: "\n").last ?? "") } }
       counted.signal()
     }
-    guard counted.wait(timeout: .now() + 5) == .success, let count = running.withLock({ $0 }) else {
-      return 0
-    }
-    return max(0, Self.maxInFlight - count)
+    guard counted.wait(timeout: .now() + 5) == .success, let localIds = running.withLock({ $0 }),
+      let copies = try? store.parkedCopies(localIds: localIds)
+    else { return (.max, LiveCopies(bytes: .max, largest: .max)) }
+    return (UInt32(localIds.count), copies)
   }
 
   /// The backup turned off: the uploads in flight end, their media stay due.
@@ -89,8 +98,11 @@ final class BackgroundUploads: NSObject, URLSessionDataDelegate {
       return
     }
     let status = (task.response as? HTTPURLResponse).map { UInt16($0.statusCode) }
+    let ended = error.map { "error \(($0 as NSError).code)" } ?? "status \(status.map(String.init) ?? "none")"
+    log.notice("upload \(task.taskIdentifier, privacy: .public) ended, \(ended, privacy: .public)")
     let goOn = try? settle(
       account: String(parts[0]), localId: String(parts[1]), status: error == nil ? status : nil, body: body)
+    if let onStatus, let state = try? openBackup().store.status() { onStatus(state) }
     // Not after a full Drive, a refused session or an upload of another account.
     if goOn == true { BackupSchedule.handMore() }
   }
