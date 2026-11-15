@@ -14,7 +14,7 @@ const Probe = ({ active, onBack }: { active: boolean; onBack: () => void }): Rea
   return <Text>probe</Text>
 }
 
-const backHandlers = new Set<() => boolean | null | undefined>()
+const backHandlers = new Set<Parameters<typeof BackHandler.addEventListener>[1]>()
 beforeEach(() => {
   backHandlers.clear()
   jest.spyOn(BackHandler, 'addEventListener').mockImplementation((_event, handler) => {
@@ -26,7 +26,9 @@ afterEach(() => jest.restoreAllMocks())
 
 const pressBack = (): void => {
   act(() => {
-    ;[...backHandlers].reverse().some(handler => handler())
+    ;[...backHandlers]
+      .reverse()
+      .some(handler => handler({ type: 'hardwareBackPress', timeStamp: 0 }))
   })
 }
 
