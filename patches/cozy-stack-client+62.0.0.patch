@@ -1,0 +1,13 @@
+diff --git a/node_modules/cozy-stack-client/dist/CozyStackClient.js b/node_modules/cozy-stack-client/dist/CozyStackClient.js
+index 78e7464..d53b9d0 100644
+--- a/node_modules/cozy-stack-client/dist/CozyStackClient.js
++++ b/node_modules/cozy-stack-client/dist/CozyStackClient.js
+@@ -269,7 +269,7 @@ var CozyStackClient = /*#__PURE__*/function () {
+                   }
+                 }
+ 
+-                if (!headers.Authorization) {
++                if (!headers.Authorization && this.getAuthorizationHeader()) {
+                   headers.Authorization = this.getAuthorizationHeader();
+                 } // the option credentials:include tells fetch to include the cookies in the
+                 // request even for cross-origin requests
