@@ -25,4 +25,13 @@ class BackupScheduleTest {
   fun `only while charging waits for power`() {
     assertTrue(constraints(BackupConditions(false, false, true)).build().requiresCharging())
   }
+
+  @Test
+  fun `an upload broken as the pass stopped is due again, not a network down`() {
+    // The app left the screen: no stop recorded, the worker taking over sends it.
+    assertEquals(BrokenUpload.RELEASE, brokenUpload(onWifiOnly = false, wifiLost = false, passStopped = true))
+    assertEquals(BrokenUpload.NETWORK_DOWN, brokenUpload(onWifiOnly = false, wifiLost = false, passStopped = false))
+    // Wi-Fi gone under a Wi-Fi only upload waits for Wi-Fi, stopped or not.
+    assertEquals(BrokenUpload.HOLD_FOR_WIFI, brokenUpload(onWifiOnly = true, wifiLost = true, passStopped = true))
+  }
 }

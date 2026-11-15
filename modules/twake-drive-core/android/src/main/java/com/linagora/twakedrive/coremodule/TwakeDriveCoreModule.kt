@@ -73,18 +73,36 @@ class TwakeDriveCoreModule : Module() {
     AsyncFunction("runBackupPass") { folderId: String, deviceId: String, _: String?, promise: Promise ->
       passStop.set(false)
       val app = context.applicationContext
+      // From now on: leaving the app hands the backup over even before the pass starts.
+      appPassRunning.set(true)
       // A pass may last long: on its own thread, the folder choice stays usable.
       passQueue.execute {
         settle(promise) {
           try {
-            BackupPass(app, BackupConfig(folderId, deviceId), { passStop.get() }) {
+            // Off the screen the process goes to the cache, where Android may freeze or end
+            // it: the pass stops after the media in progress and a worker takes over.
+            BackupPass(app, BackupConfig(folderId, deviceId), { passStop.get() || !appOnScreen.get() }) {
               sendEvent("onBackupProgress", it.record)
             }.run().record
           } finally {
+            appPassRunning.set(false)
             // A pass that fails, offline for one, still leaves the next ones planned.
             if (!passStop.get()) runCatching { BackupSchedule.schedule(app) }
           }
         }
+      }
+    }
+
+    OnActivityEntersForeground { appOnScreen.set(true) }
+
+    // Also when a system picker or dialog covers the app: the worker takes over
+    // then too, and the next pass of the app queues behind it.
+    OnActivityEntersBackground {
+      appOnScreen.set(false)
+      if (appPassRunning.get() && !passStop.get()) {
+        val app = context.applicationContext
+        // Off the main thread, which this runs on, and off the queue the pass holds.
+        Thread { runCatching { BackupSchedule.takeOver(app) } }.start()
       }
     }
 
