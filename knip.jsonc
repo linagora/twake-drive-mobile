@@ -31,11 +31,13 @@
     // Imported as the Node built-in name, provided by this package on device.
     "events",
     // Native or peer pieces other packages load: the vector icons react-native-paper
-    // falls back to, the fonts expo needs, the stack client cozy-client builds on.
+    // falls back to, the fonts expo needs, the stack client cozy-client builds on,
+    // the base64 module react-native-quick-crypto calls.
     "react-native-vector-icons",
     "@types/react-native-vector-icons",
     "expo-font",
     "cozy-stack-client",
+    "react-native-quick-base64",
     // Native module loaded by pouchdb-adapter-react-native-sqlite and cozy-pouch-link's
     // SQLiteQuery; declared here so autolinking installs it with the fts5 option.
     "@op-engineering/op-sqlite",
