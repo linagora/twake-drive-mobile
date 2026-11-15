@@ -34,12 +34,12 @@ export const BackupProgressBanner = (): React.ReactElement | null => {
       ? 'backup.banner.noAccess'
       : status.stoppedBy
         ? (CAUSES[status.stoppedBy] ?? 'backup.banner.paused')
-        : undefined
+        : 'backup.banner.keepOpen'
   return (
     <InlineBanner
       testID="backup-progress"
       message={t('backup.banner.remaining', { count: left })}
-      detail={cause ? t(cause) : undefined}
+      detail={t(cause)}
       progress={savedShare(status)}
       progressTestID="backup-progress-bar"
       onPress={() => router.push('/settings/backup')}

@@ -16,6 +16,7 @@ import { cozyTokens } from '@/ui/theme'
 
 import { runBackupPass } from './backupPass'
 import { readBackupSettings, writeBackupSettings } from './backupSettings'
+import { isBackupSending } from './keepAwake'
 import { savedShare, useBackupStatus } from './useBackupStatus'
 
 interface Props {
@@ -118,6 +119,8 @@ export const BackupStatusSection = ({ onTurnOff }: Props): React.ReactElement | 
         <InlineBanner message={t('backup.status.noRoomOnPhone')} testID="backup-no-room" />
       ) : status.stoppedBy ? (
         <InlineBanner message={t('backup.status.stopped')} testID="backup-stopped" />
+      ) : isBackupSending(status, access) ? (
+        <InlineBanner message={t('backup.status.keepOpen')} testID="backup-keep-open" />
       ) : null}
       <SettingsRow
         testID="backup-counts"

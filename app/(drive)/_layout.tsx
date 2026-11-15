@@ -11,6 +11,7 @@ import { useFlagsRefresh } from '@/client/useFlagsRefresh'
 import { useSharedDriveReplication } from '@/files/useSharedDriveReplication'
 import { useSyncInstanceLocale } from '@/i18n/useSyncInstanceLocale'
 import { useBackupPass } from '@/backup/backupPass'
+import { useKeepAwakeWhileBackingUp } from '@/backup/keepAwake'
 import { initOfflineSubsystem } from '@/offline/initOffline'
 import { formatBadgeCount, useNewSharesCount } from '@/sharing/newShares'
 import { useAuth } from '@/auth/useAuth'
@@ -41,6 +42,7 @@ function DriveTabs() {
   useSharedDriveReplication()
   useSyncInstanceLocale()
   useBackupPass()
+  useKeepAwakeWhileBackingUp()
   const newSharesCount = useNewSharesCount()
   useEffect(() => {
     if (!client) return

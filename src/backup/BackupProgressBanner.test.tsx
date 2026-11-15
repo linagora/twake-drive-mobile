@@ -34,6 +34,7 @@ beforeEach(() => {
 it('tells how many media are left, with how far the backup is', () => {
   const screen = render(<BackupProgressBanner />)
   screen.getByText(i18n.t('backup.banner.remaining', { count: 10 }))
+  screen.getByText(i18n.t('backup.banner.keepOpen'))
   expect(screen.getByTestId('backup-progress-bar').props.accessibilityValue).toMatchObject({
     now: 75
   })

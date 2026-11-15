@@ -21,8 +21,17 @@ export const readBackupSettings = (): BackupSettings => {
   }
 }
 
+const listeners = new Set<() => void>()
+
 export const writeBackupSettings = (patch: Partial<BackupSettings>): BackupSettings => {
   const next = { ...readBackupSettings(), ...patch }
   storage.set(KEY, JSON.stringify(next))
+  listeners.forEach(listener => listener())
   return next
+}
+
+/** Called after each write; returns the unsubscribe. */
+export const onBackupSettingsChange = (listener: () => void): (() => void) => {
+  listeners.add(listener)
+  return () => listeners.delete(listener)
 }

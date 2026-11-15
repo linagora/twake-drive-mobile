@@ -131,6 +131,16 @@ it('tells the backup waits for Wi-Fi or power, as the user chose', () => {
   expect(screen.queryByTestId('backup-stopped')).toBeNull()
 })
 
+it('asks to keep the app open while the backup sends', () => {
+  render(<BackupStatusSection onTurnOff={mockTurnOff} />).getByText(
+    i18n.t('backup.status.keepOpen')
+  )
+  mockState.status = { ...counts, pending: 0 }
+  expect(
+    render(<BackupStatusSection onTurnOff={mockTurnOff} />).queryByTestId('backup-keep-open')
+  ).toBeNull()
+})
+
 it('tells the largest media wait for space on the phone', () => {
   mockState.status = { ...counts, stoppedBy: 'NoRoomOnPhone' }
   const screen = render(<BackupStatusSection onTurnOff={mockTurnOff} />)
