@@ -39,8 +39,8 @@
     "@linagora/twake-css": "1.0.0",
     "@op-engineering/op-sqlite": "18.2.5",
     "@react-native-community/netinfo": "^11.5.2",
-    "@sentry/core": "10.37.0",
-    "@sentry/react-native": "~7.11.0",
+    "@sentry/core": "10.78.0",
+    "@sentry/react-native": "8.35.0",
     "cozy-client": "^62.0.0",
     "cozy-device-helper": "^3.8.0",
     "cozy-flags": "^4.9.2",
@@ -152,5 +152,12 @@
     "js-yaml@4": "^4.3.0",
     "postcss": "^8.5.12",
     "tar": "^7.5.19"
+  },
+  "expo": {
+    "install": {
+      "exclude": [
+        "@sentry/react-native"
+      ]
+    }
   }
 }
