@@ -74,7 +74,9 @@
       ],
       "./plugins/withTwakeDocumentsProvider",
       "./plugins/withTwakeShareIntent",
-      "@sentry/react-native"
+      "@sentry/react-native",
+      "expo-font",
+      "expo-image"
     ],
     "experiments": {
       "typedRoutes": true
