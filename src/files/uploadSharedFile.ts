@@ -58,9 +58,9 @@ const uploadPrefix = (driveId?: string): string =>
 
 interface UploadResponse {
   info: () => { status: number }
-  json: () => {
+  json: () => Promise<{
     data?: { id?: string; _id?: string; attributes?: { name?: string } & Record<string, unknown> }
-  }
+  }>
 }
 
 export const uploadSharedFile = async (
@@ -96,7 +96,7 @@ export const uploadSharedFile = async (
     if (status === 409) continue // name conflict → retry with a suffix
     if (status >= 400) throw new Error(`Upload failed (HTTP ${status})`)
 
-    const data = res.json().data ?? {}
+    const data = (await res.json()).data ?? {}
     const id = data.id ?? data._id
     if (!id) throw new Error('Upload returned no id')
     onProgress?.(1)
