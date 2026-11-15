@@ -3,7 +3,7 @@ import { uploadSharedFile } from './uploadSharedFile'
 const mkResp = (status: number, body: unknown) => {
   const p: any = Promise.resolve({
     info: () => ({ status }),
-    json: () => body
+    json: () => Promise.resolve(body)
   })
   p.uploadProgress = jest.fn(() => p) // chainable, returns same thenable
   return p
