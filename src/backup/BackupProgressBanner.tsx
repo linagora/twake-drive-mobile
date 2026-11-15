@@ -12,6 +12,7 @@ import { savedShare, useBackupStatus } from './useBackupStatus'
 const CAUSES: Partial<Record<StopCause, string>> = {
   WaitingForWifi: 'backup.banner.waitingWifi',
   WaitingForPower: 'backup.banner.waitingPower',
+  NoRoomOnPhone: 'backup.banner.noRoomOnPhone',
   QuotaExceeded: 'backup.banner.quota',
   FolderGone: 'backup.banner.folderGone'
 }

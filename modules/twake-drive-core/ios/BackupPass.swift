@@ -14,23 +14,27 @@ final class BackupPass {
   private let account: String
   private var config: BackupConfig
   private let inBackground: Bool
-  /// For a pass of the app that iOS stops some 30 s after the app leaves the
-  /// screen: from then on its media go to the system, as in the background.
-  private let handsOverOnLeaving: Bool
+  /// For the pass of the app, which iOS stops some 30 s after the app leaves
+  /// the screen: its media go to the system, which goes on without the app.
+  private let viaSystem: Bool
   private let isCancelled: () -> Bool
   private let onProgress: ((BackupStatus) -> Void)?
   private let conditions: BackupConditions
   /// Media of this pass held back for mobile data.
   private var heldBack: [String] = []
+  /// Media of this pass with no room now (`HandRoom`): due again once it ends.
+  private var later: [String] = []
+  /// Set when the uploads of the system leave no room until one ends.
+  private var roomFull = false
 
   init(
-    config: BackupConfig, inBackground: Bool, handsOverOnLeaving: Bool = false,
+    config: BackupConfig, inBackground: Bool, viaSystem: Bool = false,
     isCancelled: @escaping () -> Bool, onProgress: ((BackupStatus) -> Void)? = nil
   ) throws {
     (client, store, account) = try openBackup()
     self.config = config
     self.inBackground = inBackground
-    self.handsOverOnLeaving = handsOverOnLeaving
+    self.viaSystem = viaSystem
     self.isCancelled = isCancelled
     self.onProgress = onProgress
     conditions = try store.conditions()
@@ -88,9 +92,11 @@ final class BackupPass {
 
   /// After an upload of the system ended: the media due next take its place,
   /// unless what stopped the backup is still there (a full Drive, a refused
-  /// session, Wi-Fi awaited) until the next pass, or its folder is gone.
+  /// session, Wi-Fi awaited) until the next pass, or its folder is gone. A
+  /// phone short of space stops none: a smaller media may go.
   func handMore() throws {
-    guard try store.status().stoppedBy == nil else { return }
+    let stoppedBy = try store.status().stoppedBy
+    guard stoppedBy == nil || stoppedBy == noRoomOnPhone else { return }
     guard let folder = try client.ensureDeviceFolder(requested: config) else { return }
     config = folder
     if conditions.onlyCharging && !isCharging() { return }
@@ -99,34 +105,73 @@ final class BackupPass {
   }
 
   /// The media due, a batch at a time; whether the pass was cancelled. Handed
-  /// to the system, no more than `BackgroundUploads.maxInFlight` go at once:
+  /// to the system, they go while the core sees room for them (`handRoom`):
   /// the uploads share one connection, and dozens of them each crawled until
-  /// the proxy cut them, then all went again. A batch is no bigger than what
-  /// may go, so nothing stays held for nothing when the pass stops.
+  /// the proxy cut them. The media of a batch left when the room is full are
+  /// released, so nothing stays held for nothing.
   private func sendDue() throws -> Bool {
+    // Held by the pass until it ends, so that a batch does not take them again.
+    defer { try? store.releaseMedia(localIds: later) }
     while true {
       if isCancelled() { return true }
-      let free = handsToSystem ? BackgroundUploads.shared.freeSlots() : 16
-      if free == 0 { return false }
-      let batch = try store.nextBatch(now: now(), limit: UInt32(free), leaseSecs: 600)
+      if try noRoomLeft() { return false }
+      let batch = try store.nextBatch(now: now(), limit: 16, leaseSecs: 600)
       if batch.isEmpty { return false }
       for (index, queued) in batch.enumerated() {
         if isCancelled() { return true }
-        // The app may leave the screen within a batch taken for the app.
-        if handsToSystem && BackgroundUploads.shared.freeSlots() == 0 {
-          try store.releaseMedia(localIds: batch[index...].map(\.localId))
-          return false
-        }
         let action = try send(queued)
         report()
+        if roomFull {
+          try store.releaseMedia(localIds: batch[(index + 1)...].map(\.localId))
+          return false
+        }
         if action == .stop { return false }
       }
     }
   }
 
-  /// Whether the next media goes to the system rather than wait for its answer here.
+  /// Whether the media go to the system rather than wait for their answer
+  /// here. Made while the app is on the screen, iOS starts the uploads at
+  /// once; made in the background, it starts them when it sees fit.
   private var handsToSystem: Bool {
-    inBackground || (handsOverOnLeaving && appLeftScreen())
+    inBackground || viaSystem
+  }
+
+  /// Where a media of `size` bytes stands, and how many uploads the system
+  /// runs: they count only when this pass hands its media to them. `copied`:
+  /// the bytes of its copy, already off the free space.
+  private func room(for size: UInt64, copied: UInt64 = 0) -> (verdict: HandRoom, liveTasks: UInt32) {
+    let live = handsToSystem ? BackgroundUploads.shared.room(store) : (tasks: 0, copies: LiveCopies(bytes: 0, largest: 0))
+    let free =
+      ((try? exportFolder.resourceValues(forKeys: [.volumeAvailableCapacityForImportantUsageKey]))?
+      .volumeAvailableCapacityForImportantUsage.map { UInt64(max(0, $0)) } ?? 0) + copied
+    let verdict = handRoom(liveTasks: live.tasks, live: live.copies, size: size, freeDisk: free)
+    if size > 0 {
+      BackgroundUploads.shared.log.notice(
+        "media of \(size / 1024, privacy: .public) kB: \(String(describing: verdict), privacy: .public), \(live.tasks, privacy: .public) live, live_bytes \(live.copies.bytes / 1024, privacy: .public) kB, \(free / 1024 / 1024, privacy: .public) MB free"
+      )
+    }
+    return (verdict, live.tasks)
+  }
+
+  /// Whether no media at all may go now: the phone is short of space, or the
+  /// uploads of the system leave no room until one ends.
+  private func noRoomLeft() throws -> Bool {
+    switch room(for: 0).verdict {
+    case .noDisk:
+      try store.someWaitFor(cause: noRoomOnPhone)
+      return true
+    case .full: return true
+    case .go, .later: return false
+    }
+  }
+
+  /// A media with no room now stays due, for after this pass.
+  private func wait(_ room: HandRoom, _ localId: String) throws -> PassAction {
+    if room == .noDisk { try store.someWaitFor(cause: noRoomOnPhone) }
+    if room == .full { roomFull = true }
+    later.append(localId)
+    return .continue
   }
 
   /// For the screen only: a state it cannot read does not stop the pass.
@@ -242,12 +287,33 @@ final class BackupPass {
     {
       return .continue
     }
-    guard let export = try? Export(asset, pairedVideo: id != queued.localId) else {
+    guard let source = try? ExportSource(asset, pairedVideo: id != queued.localId) else {
+      try store.recordUnavailable(localId: queued.localId, modifiedAt: queued.modifiedAt, now: now())
+      return .continue
+    }
+    // Before the copy, which may weigh gigabytes.
+    let (verdict, liveTasks) = room(for: source.size ?? 0)
+    if verdict != .go { return try wait(verdict, queued.localId) }
+    // Handed to the system, the media on the phone go first; one to fetch
+    // from iCloud waits until nothing else runs.
+    var export = handsToSystem ? try? Export(source, fromICloud: false) : nil
+    if export == nil {
+      if handsToSystem && !mayFetchFromIcloud(liveTasks: liveTasks) {
+        later.append(queued.localId)
+        return .continue
+      }
+      export = try? Export(source, fromICloud: true)
+    }
+    guard let export else {
       try store.recordUnavailable(localId: queued.localId, modifiedAt: queued.modifiedAt, now: now())
       return .continue
     }
     var handedOver = false
     defer { if !handedOver { export.remove() } }
+    if source.size == nil {
+      let verdict = room(for: export.size, copied: export.size).verdict
+      if verdict != .go { return try wait(verdict, queued.localId) }
+    }
     // Hashed on each export: a render may differ from the last one, and a
     // stale md5 would cost a whole upload refused by the stack.
     let md5 = try md5File(path: export.file.path)
@@ -269,16 +335,13 @@ final class BackupPass {
           request, media: media, nameAttempt: nameAttempt, file: export.file, account: account, store: store,
           allowsCellular: cellular)
         handedOver = true
+        // A media went: the screen no longer says the phone holds them all back.
+        try store.endWait(cause: noRoomOnPhone)
         return .continue
       }
       let response: HttpResponse
       do {
         response = try exchange(request, file: export.file, allowsCellular: cellular)
-      } catch CoreError.Network where handsToSystem {
-        // Cut as iOS suspended the app, not a network down: no stop recorded,
-        // the media is due again and goes to the system.
-        try store.releaseMedia(localIds: [media.localId])
-        return .continue
       } catch CoreError.Network {
         return try store.recordOutcome(localId: media.localId, md5: md5, outcome: .network, now: now())
       }
@@ -293,13 +356,14 @@ final class BackupPass {
   }
 }
 
-/// The current version of a media, copied out of the library (from iCloud if
-/// need be) into a file of its own.
-private struct Export {
-  let file: URL
+/// The current version of a media in the library, before any copy.
+private struct ExportSource {
+  let resource: PHAssetResource
   let name: String
   let mime: String
-  let size: UInt64
+  let ext: String
+  /// Nil when the library does not tell it: known once copied.
+  let size: UInt64?
 
   init(_ asset: PHAsset, pairedVideo: Bool) throws {
     let resources = PHAssetResource.assetResources(for: asset)
@@ -320,17 +384,36 @@ private struct Export {
     // under some other name: both take the photo's name. The flagship always
     // names that video .MOV.
     let base = (original.originalFilename as NSString).deletingPathExtension
-    let ext =
+    ext =
       pairedVideo
       ? "MOV" : type?.preferredFilenameExtension ?? (original.originalFilename as NSString).pathExtension
     name = resource === original ? original.originalFilename : "\(base).\(ext)"
     mime = type?.preferredMIMEType ?? "application/octet-stream"
-    file = exportFolder.appendingPathComponent("\(UUID().uuidString).\(ext)")
+    self.resource = resource
+    // Not public API: an iOS without it leaves the size to the copy.
+    size =
+      resource.responds(to: NSSelectorFromString("fileSize"))
+      ? (resource.value(forKey: "fileSize") as? NSNumber)?.uint64Value : nil
+  }
+}
+
+/// A media copied out of the library (from iCloud if need be) into a file of its own.
+private struct Export {
+  let file: URL
+  let name: String
+  let mime: String
+  let size: UInt64
+
+  /// `fromICloud` false copies only what is on the phone, and throws otherwise.
+  init(_ source: ExportSource, fromICloud: Bool) throws {
+    name = source.name
+    mime = source.mime
+    file = exportFolder.appendingPathComponent("\(UUID().uuidString).\(source.ext)")
     let options = PHAssetResourceRequestOptions()
-    options.isNetworkAccessAllowed = true
+    options.isNetworkAccessAllowed = fromICloud
     do {
       try waitFor { [file] in
-        try await PHAssetResourceManager.default().writeData(for: resource, toFile: file, options: options)
+        try await PHAssetResourceManager.default().writeData(for: source.resource, toFile: file, options: options)
       }
       size = (try FileManager.default.attributesOfItem(atPath: file.path)[.size] as? NSNumber)?.uint64Value ?? 0
     } catch {
@@ -430,6 +513,9 @@ func mediaOptions() -> PHFetchOptions {
     PHAssetMediaType.image.rawValue, PHAssetMediaType.video.rawValue)
   return options
 }
+
+/// The cause shown while a copy would leave the phone short of space.
+private let noRoomOnPhone = "NoRoomOnPhone"
 
 /// Cleaned at the start of each pass. Passes run one at a time.
 let exportFolder = FileManager.default.temporaryDirectory

@@ -50,6 +50,8 @@ it('opens the backup settings', () => {
 it('says what holds the backup back', () => {
   mockState.status = { ...counts, stoppedBy: 'WaitingForWifi' }
   render(<BackupProgressBanner />).getByText(i18n.t('backup.banner.waitingWifi'))
+  mockState.status = { ...counts, stoppedBy: 'NoRoomOnPhone' }
+  render(<BackupProgressBanner />).getByText(i18n.t('backup.banner.noRoomOnPhone'))
   mockState.status = { ...counts, stoppedBy: 'Unauthorized' }
   render(<BackupProgressBanner />).getByText(i18n.t('backup.banner.paused'))
   mockState.access = 'denied'
