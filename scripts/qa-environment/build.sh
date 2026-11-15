@@ -12,12 +12,12 @@ ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$ROOT"
 export ANDROID_HOME="${ANDROID_HOME:-$HOME/Android/Sdk}"
 
-# The lockfile wants the npm of Node 20 (npm 11 rejects it)
+# Expo needs Node 22; its npm 10 keeps the lockfile format (npm 11 rejects it)
 NVM_SH="${NVM_DIR:-$HOME/.nvm}/nvm.sh"
 if [ -s "$NVM_SH" ]; then
   # shellcheck source=/dev/null
   . "$NVM_SH"
-  nvm use 20 >/dev/null
+  nvm use 22 >/dev/null
 fi
 [ -d node_modules ] || npm ci
 

@@ -26,7 +26,7 @@ set -euo pipefail
 cd '$IOS_WORKDIR'
 eval "\$(/opt/homebrew/bin/brew shellenv)"
 . "\$HOME/.nvm/nvm.sh"
-nvm use 20 >/dev/null
+nvm use 22 >/dev/null
 ${IOS_DEVELOPER_DIR:+export DEVELOPER_DIR='$IOS_DEVELOPER_DIR'}
 NPM="\$(shasum package-lock.json)"
 if [ ! -d node_modules ] || [ "\$(cat .qa-deps 2>/dev/null)" != "\$NPM" ]; then
