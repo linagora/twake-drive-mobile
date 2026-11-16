@@ -1,6 +1,9 @@
-import { renderHook, waitFor } from '@testing-library/react-native'
+import { AppState } from 'react-native'
+import { act, renderHook, waitFor } from '@testing-library/react-native'
 
-import { runBackupPass, useBackupPass } from './backupPass'
+import type { StopCause } from '@/native/twakeDriveCore'
+
+import { RETRY_MS, runBackupPass, useBackupPass } from './backupPass'
 
 const counts = { done: 3, pending: 0, skipped: 0, failed: 0 }
 const mockRun = jest.fn()
@@ -25,12 +28,17 @@ jest.mock('./backupFlag', () => ({
   isPhotoBackupEnabled: () => mockFlagOn,
   useIsPhotoBackupEnabled: () => mockFlagOn
 }))
+let mockStoppedBy: StopCause | undefined
+jest.mock('./useBackupStatus', () => ({
+  useBackupStatus: () => ({ status: { ...counts, pending: 9, stoppedBy: mockStoppedBy } })
+}))
 
 const client = {} as never
 
 beforeEach(() => {
   mockAvailable = true
   mockFlagOn = true
+  mockStoppedBy = undefined
   mockSettings = { enabled: true, folder: { id: 'folder-1', path: '/Photos/B/iPhone' } }
   mockRun.mockReset().mockResolvedValue(counts)
   mockAdopt.mockReset().mockResolvedValue(false)
@@ -120,6 +128,54 @@ test('the flags landing after the launch start the pass the launch skipped', asy
   mockFlagOn = true
   rerender({})
   await waitFor(() => expect(mockRun).toHaveBeenCalledTimes(1))
+})
+
+describe('a backup stopped by a cause that passes, the app on the screen', () => {
+  beforeEach(() => {
+    jest.useFakeTimers()
+    // A function in the React Native jest mock, a string on a phone.
+    Object.defineProperty(AppState, 'currentState', { value: 'active', configurable: true })
+  })
+  afterEach(() => jest.useRealTimers())
+
+  const passesAfter = async (ms: number): Promise<number> => {
+    await act(async () => void jest.advanceTimersByTime(ms))
+    return mockRun.mock.calls.length
+  }
+
+  test('tries again every minute after the network, the stack or the session failed', async () => {
+    for (const cause of ['Network', 'Server', 'Unauthorized'] as const) {
+      mockRun.mockClear()
+      mockStoppedBy = cause
+      const { unmount } = renderHook(() => useBackupPass())
+      expect(await passesAfter(0)).toBe(1)
+      expect(await passesAfter(RETRY_MS - 1)).toBe(1)
+      expect(await passesAfter(1)).toBe(2)
+      unmount()
+    }
+  })
+
+  test('waits for the user or the next launch after a full Drive or a held back media', async () => {
+    for (const cause of [
+      'QuotaExceeded',
+      'WaitingForWifi',
+      'NoRoomOnPhone',
+      'FolderGone'
+    ] as const) {
+      mockRun.mockClear()
+      mockStoppedBy = cause
+      const { unmount } = renderHook(() => useBackupPass())
+      expect(await passesAfter(RETRY_MS * 3)).toBe(1)
+      unmount()
+    }
+  })
+
+  test('does not try again with the app behind', async () => {
+    mockStoppedBy = 'Network'
+    renderHook(() => useBackupPass())
+    Object.defineProperty(AppState, 'currentState', { value: 'background', configurable: true })
+    expect(await passesAfter(RETRY_MS * 3)).toBe(1)
+  })
 })
 
 test('a failed pass lets the next one run', async () => {

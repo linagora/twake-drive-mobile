@@ -4,11 +4,16 @@ import type CozyClient from 'cozy-client'
 import { useClient } from 'cozy-client'
 
 import { adoptStoredToken } from '@/auth/adoptStoredToken'
-import { backupCore, type BackupStatus } from '@/native/twakeDriveCore'
+import { backupCore, type BackupStatus, type StopCause } from '@/native/twakeDriveCore'
 
 import { isPhotoBackupEnabled, useIsPhotoBackupEnabled } from './backupFlag'
 import { readBackupSettings, writeBackupSettings } from './backupSettings'
 import { backupDeviceId } from './deviceId'
+import { useBackupStatus } from './useBackupStatus'
+
+/** What stops the backup for a while only: the network, the stack, a session to refresh. */
+const PASSING: ReadonlySet<StopCause> = new Set(['Network', 'Server', 'Unauthorized'])
+export const RETRY_MS = 60 * 1000
 
 let running: Promise<BackupStatus | null> | null = null
 let again = false
@@ -62,11 +67,22 @@ export const runBackupPass = (
 
 /**
  * A pass when the app starts and each time it comes back to the foreground,
- * and when the flags, read after the launch, turn the backup on.
+ * and when the flags, read after the launch, turn the backup on. Stopped by
+ * a cause that passes, the backup tries again every minute while the app is
+ * on the screen: nothing else would start a pass there.
  */
 export const useBackupPass = (): void => {
   const client = useClient()
   const allowed = useIsPhotoBackupEnabled()
+  const { status } = useBackupStatus()
+  const stalled = !!status?.stoppedBy && PASSING.has(status.stoppedBy)
+  useEffect(() => {
+    if (!allowed || !stalled) return
+    const retry = setInterval(() => {
+      if (AppState.currentState === 'active') runBackupPass(client).catch(() => null)
+    }, RETRY_MS)
+    return () => clearInterval(retry)
+  }, [client, allowed, stalled])
   useEffect(() => {
     if (!allowed) return
     const pass = (): void => {
