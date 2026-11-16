@@ -413,6 +413,8 @@
       "folderGone": "En pausa, la carpeta de la copia ya no existe",
       "noAccess": "En pausa, sin acceso a las fotos",
       "paused": "En pausa, seguirá más tarde",
+      "waitingNetwork": "Esperando la red, seguirá sola",
+      "serverBusy": "Drive no responde, nuevo intento en un minuto",
       "hint": "Abre la pantalla de copia de seguridad de fotos"
     },
     "status": {

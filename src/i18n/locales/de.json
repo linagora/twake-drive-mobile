@@ -403,6 +403,8 @@
       "folderGone": "Pausiert, der Sicherungsordner existiert nicht mehr",
       "noAccess": "Pausiert, kein Zugriff auf die Fotos",
       "paused": "Pausiert, sie geht später weiter",
+      "waitingNetwork": "Wartet auf das Netzwerk, sie geht von selbst weiter",
+      "serverBusy": "Drive antwortet nicht, neuer Versuch in einer Minute",
       "hint": "Öffnet den Bildschirm Fotosicherung"
     },
     "status": {

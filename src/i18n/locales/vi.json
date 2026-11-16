@@ -393,6 +393,8 @@
       "folderGone": "Tạm dừng, thư mục sao lưu không còn nữa",
       "noAccess": "Tạm dừng, không có quyền truy cập ảnh",
       "paused": "Tạm dừng, sẽ tiếp tục sau",
+      "waitingNetwork": "Đang chờ mạng, sẽ tự tiếp tục",
+      "serverBusy": "Drive không phản hồi, thử lại sau một phút",
       "hint": "Mở màn hình sao lưu ảnh"
     },
     "status": {
