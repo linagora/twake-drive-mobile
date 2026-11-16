@@ -8,7 +8,8 @@ on:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  # Never on main: a cancelled run there would skip the only cache save.
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 permissions:
   contents: read
@@ -44,7 +45,13 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
-          cache: 'gradle'
+
+      # Saved from main only, after the build: a pull request saving its own
+      # copy fills the 10 GB of the repository within a few pushes, which
+      # evicts main's and leaves every build cold.
+      - name: Restore the Gradle cache
+        id: gradle-cache
+        uses: ./.github/actions/restore-gradle-cache
 
       - name: Set up Node.js
         uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
@@ -55,8 +62,9 @@ jobs:
       - name: Set up ccache
         uses: hendrikmuhs/ccache-action@d62db5f07c26379fc4b4e0916f098a92573c3b03 # v1.2.23
         with:
-          key: android-ccache
+          key: android-ccache-v2
           max-size: 2G
+          save: ${{ github.ref == 'refs/heads/main' }}
 
       - name: Install dependencies
         run: npm ci
@@ -66,6 +74,7 @@ jobs:
         with:
           workspaces: rust
           shared-key: rust-android
+          save-if: ${{ github.ref == 'refs/heads/main' }}
 
       # assembleRelease signs with the committed debug keystore (no secret) and
       # embeds the JS bundle -> standalone, installable APK. Restrict ABIs to
@@ -73,6 +82,15 @@ jobs:
       - name: Build release APK
         working-directory: android
         run: ./gradlew assembleRelease --no-daemon --build-cache -PreactNativeArchitectures=arm64-v8a,x86_64
+
+      - name: Save the Gradle cache
+        if: github.ref == 'refs/heads/main' && steps.gradle-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ steps.gradle-cache.outputs.key }}
 
       - name: ccache stats
         if: always()

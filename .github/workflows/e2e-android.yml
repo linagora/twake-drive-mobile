@@ -76,23 +76,22 @@ jobs:
       - name: Set up ccache
         uses: hendrikmuhs/ccache-action@d62db5f07c26379fc4b4e0916f098a92573c3b03 # v1.2.23
         with:
-          key: android-ccache
+          key: android-ccache-v2
           max-size: 2G
+          save: false
 
-      - name: Cache Gradle
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-e2e-${{ hashFiles('android/**/*.gradle*', 'android/gradle/wrapper/gradle-wrapper.properties') }}
-          restore-keys: ${{ runner.os }}-gradle-e2e-
+      # Saved from main only, by Build Android: a pull request saving its own
+      # copy fills the 10 GB of the repository within a few pushes, which
+      # evicts main's and leaves every build cold.
+      - name: Restore the Gradle cache
+        uses: ./.github/actions/restore-gradle-cache
 
       # Gradle compiles the Rust core (buildRustCore): keep its crates and rust/target.
       - uses: Swatinem/rust-cache@2201cc584a476d1b508be977bbe4b7d1c7a52e9c # v2.9.3
         with:
           workspaces: rust
           shared-key: rust-android
+          save-if: ${{ github.ref == 'refs/heads/main' }}
 
       # A release build with the bundle inside: no Metro to serve it, no
       # development menu over the screen, and the app starts in seconds.

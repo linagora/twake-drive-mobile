@@ -57,6 +57,7 @@ jobs:
         with:
           workspaces: rust
           shared-key: rust-ios
+          save-if: ${{ github.ref == 'refs/heads/main' }}
 
       # pod install fails without the XCFramework the TwakeDriveCore pod vendors.
       - name: Build the Rust core
