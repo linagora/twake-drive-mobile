@@ -7,15 +7,6 @@
     "icon": "./assets/icon.png",
     "scheme": ["twakedrive"],
     "userInterfaceStyle": "automatic",
-    "splash": {
-      "image": "./assets/splash.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff",
-      "dark": {
-        "image": "./assets/splash-dark.png",
-        "backgroundColor": "#15171A"
-      }
-    },
     "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": false,
@@ -77,7 +68,19 @@
       "@sentry/react-native",
       "expo-font",
       "expo-image",
-      "expo-splash-screen",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#ffffff",
+          "enableFullScreenImage_legacy": true,
+          "dark": {
+            "image": "./assets/splash-dark.png",
+            "backgroundColor": "#15171A"
+          }
+        }
+      ],
       "expo-status-bar"
     ],
     "experiments": {
