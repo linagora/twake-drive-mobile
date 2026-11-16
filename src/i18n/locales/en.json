@@ -403,6 +403,8 @@
       "folderGone": "Paused, the backup folder is gone",
       "noAccess": "Paused, no access to the photos",
       "paused": "Paused, it will go on later",
+      "waitingNetwork": "Waiting for the network, it goes on by itself",
+      "serverBusy": "Drive is not answering, trying again in a minute",
       "hint": "Opens the photo backup screen"
     },
     "status": {

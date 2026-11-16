@@ -413,6 +413,8 @@
       "folderGone": "En pause, le dossier de sauvegarde n'existe plus",
       "noAccess": "En pause, pas d'accès aux photos",
       "paused": "En pause, elle reprendra plus tard",
+      "waitingNetwork": "En attente du réseau, elle reprendra d'elle-même",
+      "serverBusy": "Drive ne répond pas, nouvel essai dans une minute",
       "hint": "Ouvre l'écran Sauvegarde des photos"
     },
     "status": {

@@ -53,6 +53,10 @@ it('says what holds the backup back', () => {
   render(<BackupProgressBanner />).getByText(i18n.t('backup.banner.waitingWifi'))
   mockState.status = { ...counts, stoppedBy: 'NoRoomOnPhone' }
   render(<BackupProgressBanner />).getByText(i18n.t('backup.banner.noRoomOnPhone'))
+  mockState.status = { ...counts, stoppedBy: 'Network' }
+  render(<BackupProgressBanner />).getByText(i18n.t('backup.banner.waitingNetwork'))
+  mockState.status = { ...counts, stoppedBy: 'Server' }
+  render(<BackupProgressBanner />).getByText(i18n.t('backup.banner.serverBusy'))
   mockState.status = { ...counts, stoppedBy: 'Unauthorized' }
   render(<BackupProgressBanner />).getByText(i18n.t('backup.banner.paused'))
   mockState.access = 'denied'

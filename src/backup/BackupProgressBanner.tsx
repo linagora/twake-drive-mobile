@@ -13,6 +13,8 @@ const CAUSES: Partial<Record<StopCause, string>> = {
   WaitingForWifi: 'backup.banner.waitingWifi',
   WaitingForPower: 'backup.banner.waitingPower',
   NoRoomOnPhone: 'backup.banner.noRoomOnPhone',
+  Network: 'backup.banner.waitingNetwork',
+  Server: 'backup.banner.serverBusy',
   QuotaExceeded: 'backup.banner.quota',
   FolderGone: 'backup.banner.folderGone'
 }

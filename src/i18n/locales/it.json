@@ -413,6 +413,8 @@
       "folderGone": "In pausa, la cartella del backup non esiste più",
       "noAccess": "In pausa, nessun accesso alle foto",
       "paused": "In pausa, riprenderà più tardi",
+      "waitingNetwork": "In attesa della rete, riprenderà da solo",
+      "serverBusy": "Drive non risponde, nuovo tentativo tra un minuto",
       "hint": "Apre la schermata Backup delle foto"
     },
     "status": {
