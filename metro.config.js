@@ -1,7 +1,8 @@
 const path = require('path')
-const { getDefaultConfig } = require('expo/metro-config')
+const { getSentryExpoConfig } = require('@sentry/react-native/metro')
 
-const config = getDefaultConfig(__dirname)
+// Expo's default config, plus the debug ID Sentry matches a bundle to its source map with.
+const config = getSentryExpoConfig(__dirname)
 
 // Allow bundling OnlyOffice templates as binary assets via require()
 config.resolver.assetExts = [...new Set([...config.resolver.assetExts, 'docx', 'xlsx', 'pptx'])]

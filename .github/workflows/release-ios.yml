@@ -118,6 +118,9 @@ jobs:
           MARKETING_VERSION: ${{ steps.version.outputs.marketing }}
           RELEASE_NOTES: ${{ github.event.inputs.release_notes }}
           UPLOAD_TO_TESTFLIGHT: ${{ github.event_name != 'workflow_dispatch' || inputs.upload_to_testflight }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          # A Sentry outage must not block a release: sentry-cli then exits 0.
+          SENTRY_ALLOW_FAILURE: true
         run: bundle exec fastlane ios distribute
 
       - name: Push App Store metadata (optional)

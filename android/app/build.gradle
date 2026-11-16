@@ -102,6 +102,14 @@ def buildVersionCode = appJson.expo.android?.versionCode ?:
         acc * 100 + part.toInteger()
     } * 100 + preReleaseRank)
 
+apply from: new File(["node", "--print", "require('path').dirname(require.resolve('@sentry/react-native/package.json'))"].execute().text.trim(), "sentry.gradle.kts")
+// Source maps go to Sentry only from a build that has a token (the release
+// workflows); any other release build would fail on the upload.
+project.ext.shouldSentryAutoUploadGeneral = { ->
+    return !(System.getenv("SENTRY_AUTH_TOKEN") ?: "").trim().isEmpty() &&
+        System.getenv("SENTRY_DISABLE_AUTO_UPLOAD") != "true"
+}
+
 android {
     ndkVersion rootProject.ext.ndkVersion
 
