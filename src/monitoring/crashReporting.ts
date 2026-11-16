@@ -4,7 +4,7 @@ import { captureConsoleIntegration } from '@sentry/core'
 
 import { areCrashReportsEnabled, onCrashReportsPreferenceChange } from './crashReportsPreference'
 
-const DSN = 'https://17a748055f94caf46e9f1444068ac615@errors.cozycloud.cc/88'
+const DSN = 'https://aa175b6847218182a7e6b2f4dc95aff4@sentry.linagora.com/9'
 
 /** An instance address names the user's server, and a token is a credential.
  *  Neither belongs in a crash report. */

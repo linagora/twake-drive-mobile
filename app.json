@@ -70,7 +70,14 @@
       ],
       "./plugins/withTwakeDocumentsProvider",
       "./plugins/withTwakeShareIntent",
-      "@sentry/react-native",
+      [
+        "@sentry/react-native",
+        {
+          "url": "https://sentry.linagora.com/",
+          "organization": "linagora",
+          "project": "twake-drive-mobile"
+        }
+      ],
       "expo-font",
       "expo-image",
       [
