@@ -129,6 +129,9 @@ jobs:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/gcp-sa.json
           VERSION_NAME: ${{ steps.version.outputs.marketing }}
           RELEASE_NOTES: ${{ github.event.inputs.release_notes }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          # A Sentry outage must not block a release: sentry-cli then exits 0.
+          SENTRY_ALLOW_FAILURE: true
         run: bundle exec fastlane android distribute
 
       - name: Build signed AAB & upload to Play
@@ -142,6 +145,9 @@ jobs:
           VERSION_NAME: ${{ steps.version.outputs.marketing }}
           PLAY_TRACK: ${{ inputs.track || 'alpha' }}
           LANE: ${{ (github.event_name == 'push' || inputs.publish_to_play_store == true) && 'release' || 'build_bundle' }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          # A Sentry outage must not block a release: sentry-cli then exits 0.
+          SENTRY_ALLOW_FAILURE: true
         run: bundle exec fastlane android "$LANE"
 
       - name: Push the Play store listing (optional)
