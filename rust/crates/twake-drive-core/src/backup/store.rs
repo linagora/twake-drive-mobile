@@ -481,6 +481,18 @@ impl BackupStore {
         if decide(&outcome, attempts.unwrap_or(0), now).1 == PassAction::Stop {
             set_setting(&tx, STOPPED_BY, stop_cause(&outcome))?;
         }
+        // Uploads run side by side: one that lands proves the network and the
+        // stack work again, whatever cut another one off.
+        if matches!(
+            outcome,
+            UploadOutcome::Uploaded { .. } | UploadOutcome::AlreadyThere { .. }
+        ) {
+            tx.execute(
+                "DELETE FROM setting WHERE key = ?1 AND CAST(value AS TEXT) IN ('Network', 'Server', 'Unauthorized')",
+                params![STOPPED_BY],
+            )
+            .map_err(storage)?;
+        }
         // Forgotten, edited or already settled by another transfer: stale.
         let Some(attempts) = attempts else {
             tx.commit().map_err(storage)?;
@@ -575,10 +587,19 @@ impl BackupStore {
         Ok(())
     }
 
-    /// A pass starts: what stopped the last one is no longer the state.
+    /// A pass starts: what stopped the last one is no longer the state. The
+    /// network, the stack or the session stay the cause while media wait,
+    /// put off maybe: an upload that lands lifts them (`record_outcome`).
+    /// Media the phone cannot read wait for no upload.
     pub fn begin_pass(&self) -> Result<(), CoreError> {
         self.db()
-            .execute("DELETE FROM setting WHERE key = ?1", params![STOPPED_BY])
+            .execute(
+                "DELETE FROM setting WHERE key = ?1 AND NOT (
+                     CAST(value AS TEXT) IN ('Network', 'Server', 'Unauthorized')
+                     AND EXISTS (SELECT 1 FROM media WHERE state = ?2
+                                 AND last_error IS NOT ?3))",
+                params![STOPPED_BY, PENDING, UNAVAILABLE],
+            )
             .map_err(storage)?;
         Ok(())
     }
@@ -1334,12 +1355,62 @@ mod tests {
         assert_eq!(status.last_pass_at, Some(NOW));
         assert_eq!(status.stopped_by.as_deref(), Some("Server"));
         assert_eq!(status.counts.pending, 1);
-        // The next pass goes through: nothing stops the backup any more.
+        // A pass before the media is due again finds nothing to send: the
+        // stack has not answered since, the cause stays, the app keeps trying.
         s.begin_pass().unwrap();
-        s.end_pass(NOW + 60).unwrap();
+        assert!(s.next_batch(NOW + 30, 10, 600).unwrap().is_empty());
+        s.end_pass(NOW + 30).unwrap();
         let status = s.status().unwrap();
-        assert_eq!(status.stopped_by, None);
-        assert_eq!(status.last_pass_at, Some(NOW + 60));
+        assert_eq!(status.stopped_by.as_deref(), Some("Server"));
+        assert_eq!(status.last_pass_at, Some(NOW + 30));
+        // Once it lands, nothing stops the backup any more.
+        s.record_outcome(
+            "a".into(),
+            MD5.into(),
+            UploadOutcome::Uploaded {
+                file_id: "f1".into(),
+            },
+            NOW + 120,
+        )
+        .unwrap();
+        assert_eq!(s.status().unwrap().stopped_by, None);
+    }
+
+    #[test]
+    fn a_pass_lifts_a_passing_stop_once_no_media_is_left() {
+        let s = store();
+        s.record_outcome("gone".into(), MD5.into(), UploadOutcome::Network, NOW)
+            .unwrap();
+        s.begin_pass().unwrap();
+        assert_eq!(s.status().unwrap().stopped_by, None);
+    }
+
+    #[test]
+    fn media_the_phone_cannot_read_keep_no_passing_stop() {
+        let s = store();
+        s.record_media("a".into(), 1, 1).unwrap();
+        s.record_unavailable("a".into(), 1, NOW).unwrap();
+        s.record_outcome(
+            "gone".into(),
+            MD5.into(),
+            UploadOutcome::Server { status: 503 },
+            NOW,
+        )
+        .unwrap();
+        // Nothing the stack could take is left: the app would try for ever.
+        s.begin_pass().unwrap();
+        assert_eq!(s.status().unwrap().stopped_by, None);
+    }
+
+    #[test]
+    fn a_pass_lifts_what_the_user_or_the_drive_held_back() {
+        let s = store();
+        s.record_media("a".into(), 1, 1).unwrap();
+        for cause in ["QuotaExceeded", "WaitingForWifi", "NoRoomOnPhone"] {
+            s.wait_for(cause.into()).unwrap();
+            s.begin_pass().unwrap();
+            assert_eq!(s.status().unwrap().stopped_by, None);
+        }
     }
 
     #[test]
@@ -1351,6 +1422,44 @@ mod tests {
             s.status().unwrap().stopped_by.as_deref(),
             Some("QuotaExceeded")
         );
+    }
+
+    #[test]
+    fn an_upload_that_lands_lifts_a_passing_stop() {
+        let s = store();
+        let cause = || s.status().unwrap().stopped_by;
+        let landed = UploadOutcome::Uploaded {
+            file_id: "f1".into(),
+        };
+        // Uploads run side by side: one cut off, the next one lands.
+        for stop in [
+            UploadOutcome::Network,
+            UploadOutcome::Server { status: 503 },
+            UploadOutcome::Unauthorized,
+        ] {
+            s.record_outcome("a".into(), MD5.into(), stop, NOW).unwrap();
+            assert!(cause().is_some());
+            s.record_outcome("b".into(), MD5.into(), landed.clone(), NOW)
+                .unwrap();
+            assert_eq!(cause(), None);
+        }
+        // A full Drive holds whatever landed before it.
+        s.record_outcome("a".into(), MD5.into(), UploadOutcome::QuotaExceeded, NOW)
+            .unwrap();
+        s.record_outcome("b".into(), MD5.into(), landed, NOW)
+            .unwrap();
+        assert_eq!(cause().as_deref(), Some("QuotaExceeded"));
+        s.wait_for("WaitingForWifi".into()).unwrap();
+        s.record_outcome(
+            "b".into(),
+            MD5.into(),
+            UploadOutcome::AlreadyThere {
+                file_id: "f2".into(),
+            },
+            NOW,
+        )
+        .unwrap();
+        assert_eq!(cause().as_deref(), Some("WaitingForWifi"));
     }
 
     #[test]
