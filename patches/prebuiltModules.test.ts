@@ -12,6 +12,9 @@ test('every Android patch of a prebuilt Expo module is built from source', () =>
     .filter(file => file.endsWith('.patch'))
     .filter(file => readFileSync(path.join(__dirname, file), 'utf8').includes('/android/'))
     .map(file => file.replace(/\+[^+]+\.patch$/, '').replace('+', '/'))
+  for (const name of patchedForAndroid) {
+    expect(existsSync(path.join(root, 'node_modules', name, 'package.json'))).toBe(true)
+  }
   const prebuilt = patchedForAndroid.filter(name =>
     existsSync(path.join(root, 'node_modules', name, 'local-maven-repo'))
   )
