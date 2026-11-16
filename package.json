@@ -40,8 +40,8 @@
     "@op-engineering/op-sqlite": "19.0.5",
     "@react-native-community/netinfo": "12.0.1",
     "@react-native-vector-icons/material-design-icons": "^14.0.0",
-    "@sentry/core": "10.78.0",
-    "@sentry/react-native": "8.35.0",
+    "@sentry/core": "10.75.2",
+    "@sentry/react-native": "~8.28.0",
     "cozy-client": "^62.0.0",
     "cozy-device-helper": "^3.8.0",
     "cozy-flags": "^4.9.2",
@@ -159,11 +159,6 @@
     "tar": "^7.5.19"
   },
   "expo": {
-    "install": {
-      "exclude": [
-        "@sentry/react-native"
-      ]
-    },
     "autolinking": {
       "android": {
         "buildFromSource": [
