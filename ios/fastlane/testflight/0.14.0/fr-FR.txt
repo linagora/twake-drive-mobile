@@ -1,0 +1,11 @@
+À essayer sur un vrai iPhone.
+Montée Expo SDK 58, toute l'app change de socle :
+• Connexion et déconnexion, y compris en tuant l'app pendant la connexion.
+• Partage vers l'app depuis Photos ou Fichiers.
+• Liens qui ouvrent l'app (lien public, lien vers un fichier).
+• Écran de démarrage, mode clair et mode sombre.
+Sauvegarde des photos (Paramètres > Sauvegarde des photos), seulement si le flag drive.mobile.photo-backup.enabled est activé sur votre instance :
+• Laisser l'app ouverte pendant la sauvegarde : le bandeau dit « Gardez Twake Drive ouvert », l'écran reste allumé, puis se met en veille à la fin, ou au bout de 5 minutes sans progrès.
+• Quitter l'app pendant une sauvegarde : les envois déjà confiés à iOS continuent.
+• Activation, accès limité, Wi-Fi seul par défaut, « Seulement en charge », albums, dossier de l'appareil déplacé ou mis à la corbeille, Drive plein.
+• Journal : iPhone branché à un Mac, Console.app, filtrer sur le sous-système com.linagora.twakedrive et la catégorie backup.

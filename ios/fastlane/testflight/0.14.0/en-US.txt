@@ -1,0 +1,11 @@
+To try on a real iPhone.
+Expo SDK 58 upgrade, the whole app moves to a new base:
+• Sign in and out, including killing the app during sign in.
+• Sharing into the app from Photos or Files.
+• Links that open the app (public link, link to a file).
+• Splash screen, light and dark mode.
+Photo backup (Settings > Photo backup), only where the flag drive.mobile.photo-backup.enabled is on for your instance:
+• Keep the app open during a backup: the banner says "Keep Twake Drive open", the screen stays on, then sleeps at the end, or after 5 minutes without progress.
+• Leave the app during a backup: the uploads already handed to iOS go on.
+• Turning it on, limited access, Wi-Fi only by default, "Only while charging", albums, the device folder moved or put in the trash, Drive full.
+• Log: iPhone plugged into a Mac, Console.app, filter on the subsystem com.linagora.twakedrive and the category backup.

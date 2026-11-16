@@ -1,0 +1,2 @@
+• Die App läuft jetzt mit Expo SDK 58: An- und Abmelden, Teilen in die App, Links, Startbildschirm und dunkler Modus.
+• Fotosicherung, wo die Instanz sie aktiviert: Lassen Sie die App beim Senden geöffnet, der Bildschirm bleibt bis zum Ende an.

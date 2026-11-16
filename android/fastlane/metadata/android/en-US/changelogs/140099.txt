@@ -1,0 +1,2 @@
+• The app now runs on Expo SDK 58: sign in and out, sharing into the app, links, the splash screen and dark mode.
+• Photo backup, where the instance turns it on: keep the app open while it sends, the screen stays on until it is done.

@@ -1,0 +1,2 @@
+• L'app passe à Expo SDK 58 : connexion et déconnexion, partage vers l'app, liens, écran de démarrage et mode sombre.
+• Sauvegarde des photos, là où l'instance l'active : gardez l'app ouverte pendant l'envoi, l'écran reste allumé jusqu'à la fin.

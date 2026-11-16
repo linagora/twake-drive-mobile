@@ -1,0 +1,2 @@
+• Ứng dụng nay chạy trên Expo SDK 58: đăng nhập và đăng xuất, chia sẻ vào ứng dụng, liên kết, màn hình khởi động và chế độ tối.
+• Sao lưu ảnh, nơi máy chủ bật tính năng này: hãy giữ ứng dụng mở khi gửi, màn hình luôn sáng cho đến khi xong.

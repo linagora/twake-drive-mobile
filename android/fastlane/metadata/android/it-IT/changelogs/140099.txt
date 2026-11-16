@@ -1,0 +1,2 @@
+• L'app ora usa Expo SDK 58: accesso e uscita, condivisione verso l'app, link, schermata iniziale e modalità scura.
+• Backup delle foto, dove l'istanza lo attiva: tieni aperta l'app durante l'invio, lo schermo resta acceso fino alla fine.

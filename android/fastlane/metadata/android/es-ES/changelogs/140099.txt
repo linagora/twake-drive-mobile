@@ -1,0 +1,2 @@
+• La app usa ahora Expo SDK 58: inicio y cierre de sesión, compartir con la app, enlaces, pantalla de inicio y modo oscuro.
+• Copia de las fotos, donde la instancia la activa: mantén la app abierta durante el envío, la pantalla queda encendida hasta el final.
