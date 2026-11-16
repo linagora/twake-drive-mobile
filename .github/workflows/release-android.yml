@@ -65,7 +65,12 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
-          cache: 'gradle'
+
+      # Saved from main only, by Build Android: a pull request saving its own
+      # copy fills the 10 GB of the repository within a few pushes, which
+      # evicts main's and leaves every build cold.
+      - name: Restore the Gradle cache
+        uses: ./.github/actions/restore-gradle-cache
 
       - name: Set up Node.js
         uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
@@ -76,8 +81,9 @@ jobs:
       - name: Set up ccache
         uses: hendrikmuhs/ccache-action@d62db5f07c26379fc4b4e0916f098a92573c3b03 # v1.2.23
         with:
-          key: android-ccache
+          key: android-ccache-v2
           max-size: 2G
+          save: ${{ github.ref == 'refs/heads/main' }}
 
       - name: Install JS dependencies
         run: npm ci
@@ -87,6 +93,7 @@ jobs:
         with:
           workspaces: rust
           shared-key: rust-android
+          save-if: ${{ github.ref == 'refs/heads/main' }}
 
       - name: Set up Ruby (fastlane)
         uses: ruby/setup-ruby@14594264cd68ce8a2345dd349bc3d138a4ef85c8 # v1.327.0

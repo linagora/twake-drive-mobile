@@ -1,0 +1,27 @@
+name: Restore the Gradle cache
+description: >-
+  Restores ~/.gradle from the entry Build Android saves on main. The key is
+  defined here only, so every Android workflow looks up the same entry.
+
+outputs:
+  cache-hit:
+    description: Whether the key matched exactly
+    value: ${{ steps.restore.outputs.cache-hit }}
+  key:
+    description: The key to save under
+    value: ${{ steps.restore.outputs.cache-primary-key }}
+
+runs:
+  using: composite
+  steps:
+    - id: restore
+      uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+        # settings.gradle resolves the React Native and Expo plugins from
+        # node_modules, hence package-lock.json. The v2 namespace leaves out
+        # the entries pull requests saved under the previous keys.
+        key: ${{ runner.os }}-gradle-v2-${{ hashFiles('package-lock.json', 'android/**/*.gradle*', 'android/**/gradle.properties', 'android/gradle/wrapper/gradle-wrapper.properties') }}
+        restore-keys: ${{ runner.os }}-gradle-v2-
