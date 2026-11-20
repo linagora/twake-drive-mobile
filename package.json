@@ -39,6 +39,8 @@
     "@linagora/twake-css": "1.0.0",
     "@op-engineering/op-sqlite": "19.0.5",
     "@react-native-community/netinfo": "12.0.1",
+    "@react-native-firebase/app": "^26.4.0",
+    "@react-native-firebase/messaging": "^26.4.0",
     "@react-native-vector-icons/material-design-icons": "^14.0.0",
     "@sentry/core": "10.75.2",
     "@sentry/react-native": "~8.28.0",

@@ -1,4 +1,5 @@
 internal import Expo
+import FirebaseCore
 import React
 import ReactAppDependencyProvider
 
@@ -13,6 +14,13 @@ class AppDelegate: ExpoAppDelegate, ExpoReactNativeFactoryProvider {
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
   ) -> Bool {
+    // Push notifications (FCM). The plist has to come from the Firebase project
+    // the stack pushes through, see android/app/build.gradle. Without it,
+    // configure() would abort the launch: the app runs without push instead.
+    if Bundle.main.path(forResource: "GoogleService-Info", ofType: "plist") != nil {
+      FirebaseApp.configure()
+    }
+
     let delegate = ReactNativeDelegate()
     let factory = ExpoReactNativeFactory(delegate: delegate)
     delegate.dependencyProvider = RCTAppDependencyProvider()
