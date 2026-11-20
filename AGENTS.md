@@ -17,6 +17,8 @@ back here — do not duplicate content into them.
 2. **This repo's own architecture decisions** are below. When a repo-specific decision
    here conflicts with a generic convention, **this file wins for this repo**.
 
+- Decisions: `docs/decisions.md`, mandatory. Search it before asking a question or proposing a change; record every decision there, in the commit that applies it (skill `twake-decisions`).
+
 For setup, commands, and project structure, see **[README.md](README.md)** — do not
 duplicate it here.
 
