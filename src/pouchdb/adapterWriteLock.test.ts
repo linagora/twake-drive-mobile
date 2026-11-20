@@ -70,6 +70,8 @@ describe('adapter write transactions next to a second connection', () => {
     adapter = new Database(file, { timeout: 100 })
     adapter.pragma('journal_mode = WAL')
     adapter.exec("CREATE TABLE docs (id PRIMARY KEY, json); INSERT INTO docs VALUES ('a', '{}')")
+    // The adapter's setup() creates it; a write transaction opens on it.
+    adapter.exec("CREATE TABLE 'metadata-store' (dbid); INSERT INTO 'metadata-store' VALUES ('x')")
     engine = new Database(file, { timeout: 0 })
   })
 

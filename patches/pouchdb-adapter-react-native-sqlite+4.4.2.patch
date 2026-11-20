@@ -11,50 +11,74 @@ index 6eee52f..823ee49 100644
      db.executeSync('PRAGMA synchronous = NORMAL');
      // op-sqlite's build defaults to a 2 MiB page cache
 diff --git a/node_modules/pouchdb-adapter-react-native-sqlite/lib/commonjs/transactionQueue.js b/node_modules/pouchdb-adapter-react-native-sqlite/lib/commonjs/transactionQueue.js
-index 28d4964..35195c3 100644
+index 28d4964..8cef4a2 100644
 --- a/node_modules/pouchdb-adapter-react-native-sqlite/lib/commonjs/transactionQueue.js
 +++ b/node_modules/pouchdb-adapter-react-native-sqlite/lib/commonjs/transactionQueue.js
-@@ -34,7 +34,7 @@ class TransactionQueue {
+@@ -4,7 +4,9 @@ Object.defineProperty(exports, "__esModule", {
+   value: true
+ });
+ exports.TransactionQueue = void 0;
++var _constants = require("./constants.js");
+ var _debug = require("./debug.js");
++const TAKE_WRITE_LOCK = 'UPDATE ' + _constants.META_STORE + ' SET dbid = dbid';
+ class TransactionQueue {
+   queue = [];
+   inProgress = false;
+@@ -26,7 +28,7 @@ class TransactionQueue {
+         try {
+           if (tx.readonly) {
+             _debug.logger.debug('---> transaction start!');
+-            await this.db.transaction(tx.start);
++            await this.db.transaction(tx.fn);
+             // await tx.start({
+             //   commit: async () => {return { rowsAffected: 0 }},
+             //   execute: this.db.execute.bind(this.db),
+@@ -34,11 +36,19 @@ class TransactionQueue {
              // })
            } else {
              _debug.logger.debug('---> write transaction start!');
 -            await this.db.transaction(tx.start);
-+            await this.runWrite(tx);
++            await this.db.transaction(async sqlTx => {
++              // A write as the first statement makes SQLite take the write
++              // lock now, under busy_timeout, instead of upgrading a read
++              // snapshot that another connection may have made stale.
++              await sqlTx.execute(TAKE_WRITE_LOCK);
++              await tx.fn(sqlTx);
++            });
            }
++          tx.resolve();
++        } catch (err) {
++          tx.reject(err);
          } finally {
            _debug.logger.debug('<--- transaction finished! queue.length:', this.queue.length);
-@@ -47,11 +47,31 @@ class TransactionQueue {
-       this.inProgress = false;
-     }
-   }
-+  async runWrite(tx) {
-+    try {
-+      await this.db.execute('BEGIN IMMEDIATE');
-+    } catch (err) {
-+      tx.fail(err);
-+      return;
-+    }
-+    try {
-+      await tx.start({
-+        execute: (query, params) => this.db.execute(query, params)
-+      });
-+      await this.db.execute('COMMIT');
-+    } catch (err) {
-+      try {
-+        await this.db.execute('ROLLBACK');
-+      } catch (rollbackError) {}
-+      tx.fail(err);
-+    }
-+  }
-   async push(fn) {
+-          tx.finish();
+           this.inProgress = false;
+           if (this.queue.length) this.run();
+         }
+@@ -51,8 +61,9 @@ class TransactionQueue {
      return new Promise((resolve, reject) => {
        this.queue.push({
          readonly: false,
-         start: tx => fn(tx).then(resolve, reject),
-+        fail: reject,
-         finish: () => {}
+-        start: tx => fn(tx).then(resolve, reject),
+-        finish: () => {}
++        fn,
++        resolve,
++        reject
        });
        this.run();
+     });
+@@ -61,8 +72,9 @@ class TransactionQueue {
+     return new Promise((resolve, reject) => {
+       const pending = {
+         readonly: true,
+-        start: tx => fn(tx).then(resolve, reject),
+-        finish: () => {}
++        fn,
++        resolve,
++        reject
+       };
+       const firstWrite = this.queue.findIndex(tx => !tx.readonly);
+       const insertAt = firstWrite === -1 ? this.queue.length : firstWrite;
 diff --git a/node_modules/pouchdb-adapter-react-native-sqlite/lib/module/openDatabase.js b/node_modules/pouchdb-adapter-react-native-sqlite/lib/module/openDatabase.js
 index ee43d92..fc73128 100644
 --- a/node_modules/pouchdb-adapter-react-native-sqlite/lib/module/openDatabase.js
@@ -68,50 +92,73 @@ index ee43d92..fc73128 100644
      db.executeSync('PRAGMA synchronous = NORMAL');
      // op-sqlite's build defaults to a 2 MiB page cache
 diff --git a/node_modules/pouchdb-adapter-react-native-sqlite/lib/module/transactionQueue.js b/node_modules/pouchdb-adapter-react-native-sqlite/lib/module/transactionQueue.js
-index 4482ada..de46647 100644
+index 4482ada..851de32 100644
 --- a/node_modules/pouchdb-adapter-react-native-sqlite/lib/module/transactionQueue.js
 +++ b/node_modules/pouchdb-adapter-react-native-sqlite/lib/module/transactionQueue.js
-@@ -30,7 +30,7 @@ export class TransactionQueue {
+@@ -1,6 +1,8 @@
+ "use strict";
+ 
++import { META_STORE } from "./constants.js";
+ import { logger } from "./debug.js";
++const TAKE_WRITE_LOCK = 'UPDATE ' + META_STORE + ' SET dbid = dbid';
+ export class TransactionQueue {
+   queue = [];
+   inProgress = false;
+@@ -22,7 +24,7 @@ export class TransactionQueue {
+         try {
+           if (tx.readonly) {
+             logger.debug('---> transaction start!');
+-            await this.db.transaction(tx.start);
++            await this.db.transaction(tx.fn);
+             // await tx.start({
+             //   commit: async () => {return { rowsAffected: 0 }},
+             //   execute: this.db.execute.bind(this.db),
+@@ -30,11 +32,19 @@ export class TransactionQueue {
              // })
            } else {
              logger.debug('---> write transaction start!');
 -            await this.db.transaction(tx.start);
-+            await this.runWrite(tx);
++            await this.db.transaction(async sqlTx => {
++              // A write as the first statement makes SQLite take the write
++              // lock now, under busy_timeout, instead of upgrading a read
++              // snapshot that another connection may have made stale.
++              await sqlTx.execute(TAKE_WRITE_LOCK);
++              await tx.fn(sqlTx);
++            });
            }
++          tx.resolve();
++        } catch (err) {
++          tx.reject(err);
          } finally {
            logger.debug('<--- transaction finished! queue.length:', this.queue.length);
-@@ -43,11 +43,31 @@ export class TransactionQueue {
-       this.inProgress = false;
-     }
-   }
-+  async runWrite(tx) {
-+    try {
-+      await this.db.execute('BEGIN IMMEDIATE');
-+    } catch (err) {
-+      tx.fail(err);
-+      return;
-+    }
-+    try {
-+      await tx.start({
-+        execute: (query, params) => this.db.execute(query, params)
-+      });
-+      await this.db.execute('COMMIT');
-+    } catch (err) {
-+      try {
-+        await this.db.execute('ROLLBACK');
-+      } catch (rollbackError) {}
-+      tx.fail(err);
-+    }
-+  }
-   async push(fn) {
+-          tx.finish();
+           this.inProgress = false;
+           if (this.queue.length) this.run();
+         }
+@@ -47,8 +57,9 @@ export class TransactionQueue {
      return new Promise((resolve, reject) => {
        this.queue.push({
          readonly: false,
-         start: tx => fn(tx).then(resolve, reject),
-+        fail: reject,
-         finish: () => {}
+-        start: tx => fn(tx).then(resolve, reject),
+-        finish: () => {}
++        fn,
++        resolve,
++        reject
        });
        this.run();
+     });
+@@ -57,8 +68,9 @@ export class TransactionQueue {
+     return new Promise((resolve, reject) => {
+       const pending = {
+         readonly: true,
+-        start: tx => fn(tx).then(resolve, reject),
+-        finish: () => {}
++        fn,
++        resolve,
++        reject
+       };
+       const firstWrite = this.queue.findIndex(tx => !tx.readonly);
+       const insertAt = firstWrite === -1 ? this.queue.length : firstWrite;
 diff --git a/node_modules/pouchdb-adapter-react-native-sqlite/src/openDatabase.ts b/node_modules/pouchdb-adapter-react-native-sqlite/src/openDatabase.ts
 index 548d2f5..ecbbed4 100644
 --- a/node_modules/pouchdb-adapter-react-native-sqlite/src/openDatabase.ts
@@ -125,57 +172,82 @@ index 548d2f5..ecbbed4 100644
      db.executeSync('PRAGMA synchronous = NORMAL')
      // op-sqlite's build defaults to a 2 MiB page cache
 diff --git a/node_modules/pouchdb-adapter-react-native-sqlite/src/transactionQueue.ts b/node_modules/pouchdb-adapter-react-native-sqlite/src/transactionQueue.ts
-index 17fc972..4c6e344 100644
+index 17fc972..111fd26 100644
 --- a/node_modules/pouchdb-adapter-react-native-sqlite/src/transactionQueue.ts
 +++ b/node_modules/pouchdb-adapter-react-native-sqlite/src/transactionQueue.ts
-@@ -4,6 +4,7 @@ import { logger } from './debug'
+@@ -1,10 +1,14 @@
+ import type { DB, Transaction } from '@op-engineering/op-sqlite'
++import { META_STORE } from './constants'
+ import { logger } from './debug'
+ 
++const TAKE_WRITE_LOCK = 'UPDATE ' + META_STORE + ' SET dbid = dbid'
++
  export interface PendingTransaction {
    readonly: boolean
-   start: (tx: Transaction) => Promise<void>
-+  fail?: (err: unknown) => void
-   finish: () => void
+-  start: (tx: Transaction) => Promise<void>
+-  finish: () => void
++  fn: (tx: Transaction) => Promise<void>
++  resolve: () => void
++  reject: (err: unknown) => void
  }
  
-@@ -42,7 +43,7 @@ export class TransactionQueue {
+ export class TransactionQueue {
+@@ -34,7 +38,7 @@ export class TransactionQueue {
+         try {
+           if (tx.readonly) {
+             logger.debug('---> transaction start!')
+-            await this.db.transaction(tx.start)
++            await this.db.transaction(tx.fn)
+             // await tx.start({
+             //   commit: async () => {return { rowsAffected: 0 }},
+             //   execute: this.db.execute.bind(this.db),
+@@ -42,14 +46,22 @@ export class TransactionQueue {
              // })
            } else {
              logger.debug('---> write transaction start!')
 -            await this.db.transaction(tx.start)
-+            await this.runWrite(tx)
++            await this.db.transaction(async (sqlTx) => {
++              // A write as the first statement makes SQLite take the write
++              // lock now, under busy_timeout, instead of upgrading a read
++              // snapshot that another connection may have made stale.
++              await sqlTx.execute(TAKE_WRITE_LOCK)
++              await tx.fn(sqlTx)
++            })
            }
++          tx.resolve()
++        } catch (err) {
++          tx.reject(err)
          } finally {
            logger.debug(
-@@ -59,11 +60,33 @@ export class TransactionQueue {
-     }
-   }
+             '<--- transaction finished! queue.length:',
+             this.queue.length
+           )
+-          tx.finish()
+           this.inProgress = false
+           if (this.queue.length) this.run()
+         }
+@@ -61,11 +73,7 @@ export class TransactionQueue {
  
-+  async runWrite(tx: PendingTransaction) {
-+    try {
-+      await this.db.execute('BEGIN IMMEDIATE')
-+    } catch (err) {
-+      tx.fail?.(err)
-+      return
-+    }
-+    try {
-+      await tx.start({
-+        execute: (query: string, params?: any[]) =>
-+          this.db.execute(query, params),
-+      } as Transaction)
-+      await this.db.execute('COMMIT')
-+    } catch (err) {
-+      try {
-+        await this.db.execute('ROLLBACK')
-+      } catch (rollbackError) {}
-+      tx.fail?.(err)
-+    }
-+  }
-+
    async push(fn: (tx: Transaction) => Promise<void>) {
      return new Promise<void>((resolve, reject) => {
-       this.queue.push({
-         readonly: false,
-         start: (tx) => fn(tx).then(resolve, reject),
-+        fail: reject,
-         finish: () => {},
-       })
+-      this.queue.push({
+-        readonly: false,
+-        start: (tx) => fn(tx).then(resolve, reject),
+-        finish: () => {},
+-      })
++      this.queue.push({ readonly: false, fn, resolve, reject })
        this.run()
+     })
+   }
+@@ -74,8 +82,9 @@ export class TransactionQueue {
+     return new Promise<void>((resolve, reject) => {
+       const pending: PendingTransaction = {
+         readonly: true,
+-        start: (tx) => fn(tx).then(resolve, reject),
+-        finish: () => {},
++        fn,
++        resolve,
++        reject,
+       }
+       const firstWrite = this.queue.findIndex((tx) => !tx.readonly)
+       const insertAt = firstWrite === -1 ? this.queue.length : firstWrite
