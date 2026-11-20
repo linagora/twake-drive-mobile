@@ -38,10 +38,10 @@ jobs:
     # doesn't trip a spurious timeout; the cap only guards genuine hangs.
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
 
       - name: Set up JDK 17
-        uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5
+        uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v5
         with:
           java-version: '17'
           distribution: 'temurin'
@@ -54,13 +54,13 @@ jobs:
         uses: ./.github/actions/restore-gradle-cache
 
       - name: Set up Node.js
-        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v6
         with:
           node-version: '22'
           cache: 'npm'
 
       - name: Set up ccache
-        uses: hendrikmuhs/ccache-action@d62db5f07c26379fc4b4e0916f098a92573c3b03 # v1.2.23
+        uses: hendrikmuhs/ccache-action@dbeefd73e8e2ffc1bbc412570072735eb4db3607 # v1.2.25
         with:
           key: android-ccache-v2
           max-size: 2G
@@ -70,7 +70,7 @@ jobs:
         run: npm ci
 
       # Gradle compiles the Rust core (buildRustCore): keep its crates and rust/target.
-      - uses: Swatinem/rust-cache@2201cc584a476d1b508be977bbe4b7d1c7a52e9c # v2.9.3
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
           workspaces: rust
           shared-key: rust-android
@@ -85,7 +85,7 @@ jobs:
 
       - name: Save the Gradle cache
         if: github.ref == 'refs/heads/main' && steps.gradle-cache.outputs.cache-hit != 'true'
-        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             ~/.gradle/caches
@@ -105,7 +105,7 @@ jobs:
           echo "Found: $APK"
 
       - name: Upload APK artifact
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: twake-drive-android-apk-${{ github.run_number }}
           path: ${{ steps.apk.outputs.path }}
