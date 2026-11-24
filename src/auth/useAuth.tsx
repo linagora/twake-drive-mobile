@@ -26,6 +26,7 @@ import { closeSsoSession, ssoLogoutUrl } from './ssoLogout'
 import { startOidcFlow } from './oidcFlow'
 import { registerSession } from './registerSession'
 import { registerDirectSession } from './registerDirectSession'
+import { Session } from './types'
 import { getLoginUri, getTwakeWorkplaceLoginUri } from './autodiscovery'
 
 interface AuthState {
@@ -46,6 +47,8 @@ interface AuthContextValue extends AuthState {
   loginWithTwakeWorkplace: (mode: 'signin' | 'signup') => Promise<void>
   /** Development only: sign in against a stack instance, no cloudery. */
   loginWithInstance: (instanceUri: string) => Promise<void>
+  /** Development only: take on a session an e2e run minted on the stack. */
+  loginWithSession: (session: Session) => Promise<void>
   /** Certifies this client as flagship, so the stack grants session codes. */
   certifyFlagship: () => Promise<CozyClient>
   /**
@@ -156,17 +159,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     [completeOidc]
   )
 
-  const loginWithInstance = useCallback(async (instanceUri: string): Promise<void> => {
-    setAuthenticating(true)
-    try {
-      const session = await registerDirectSession(instanceUri)
-      await saveSession(session)
-      const client = await createClient(session)
-      setState({ status: 'authenticated', client })
-    } finally {
-      setAuthenticating(false)
-    }
+  const loginWithSession = useCallback(async (session: Session): Promise<void> => {
+    await saveSession(session)
+    const client = await createClient(session)
+    setState({ status: 'authenticated', client })
   }, [])
+
+  const loginWithInstance = useCallback(
+    async (instanceUri: string): Promise<void> => {
+      setAuthenticating(true)
+      try {
+        await loginWithSession(await registerDirectSession(instanceUri))
+      } finally {
+        setAuthenticating(false)
+      }
+    },
+    [loginWithSession]
+  )
 
   const logout = useCallback(
     async (options?: { expired?: boolean; wipe?: boolean }): Promise<void> => {
@@ -242,6 +251,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       login,
       loginWithTwakeWorkplace,
       loginWithInstance,
+      loginWithSession,
       certifyFlagship,
       logout,
       devResetAndResync
@@ -254,6 +264,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       login,
       loginWithTwakeWorkplace,
       loginWithInstance,
+      loginWithSession,
       certifyFlagship,
       logout,
       devResetAndResync

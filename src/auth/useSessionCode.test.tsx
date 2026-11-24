@@ -50,6 +50,7 @@ const makeAuthContext = () => ({
   login: jest.fn(),
   loginWithTwakeWorkplace: jest.fn(),
   loginWithInstance: jest.fn(),
+  loginWithSession: jest.fn(),
   logout: jest.fn(),
   certifyFlagship: fakeCertifyFlagship,
   devResetAndResync: jest.fn()

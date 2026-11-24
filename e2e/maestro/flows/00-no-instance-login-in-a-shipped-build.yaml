@@ -24,3 +24,7 @@ tags:
     id: 'welcome-login'
 - assertNotVisible:
     id: 'dev-instance-uri-input'
+# Nor the link an e2e run signs the app back in with.
+- openLink: 'twakedrive:///dev-session/x'
+- assertVisible:
+    id: 'welcome-login'
