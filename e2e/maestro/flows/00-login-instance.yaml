@@ -7,34 +7,5 @@ tags:
 # OAuth dance, and the stack's login page is answered in the system browser.
 # The workflow installs a build made for this: the screen is compiled in and
 # the stack is reachable over plain HTTP.
-- launchApp:
-    clearState: true
-# A development build: clearing the state also forgot the Metro server, and the
-# dev client greets a fresh install with its menu, which covers the app.
-- runFlow:
-    when:
-      visible: 'DEVELOPMENT SERVERS'
-    commands:
-      - tapOn: "${METRO_URL || 'http://localhost:8081'}"
-      - extendedWaitUntil:
-          visible: '.*developer menu.*'
-          timeout: 120000
-      - tapOn: 'Continue'
-      - extendedWaitUntil:
-          visible: 'Connected to:'
-          timeout: 10000
-      - tapOn:
-          point: '91%,47%'
-      - waitForAnimationToEnd
-# An emulator under load can raise "isn't responding" over the screen.
-- repeat:
-    times: 12
-    commands:
-      - runFlow:
-          when:
-            visible: 'Wait'
-          commands:
-            - tapOn: 'Wait'
-      - waitForAnimationToEnd:
-          timeout: 5000
+- runFlow: ../subflows/launchCleared.yaml
 - runFlow: ../subflows/signInInstance.yaml
