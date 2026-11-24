@@ -4,7 +4,11 @@ tags:
 # Same reason as 20-logout-closes-sso.yaml: the flows after this one need a
 # fresh session, and a replica past its first sync.
 onFlowComplete:
-  - runFlow: ../00-login-instance.yaml
+  - runFlow: ../../subflows/launchCleared.yaml
+  - runFlow:
+      file: ../../subflows/restoreSession.yaml
+      env:
+        SESSION: ${E2E_SESSION_1}
   - runScript:
       file: ../../scripts/seed.js
       env:
@@ -45,7 +49,10 @@ onFlowComplete:
     visible:
       id: 'welcome-login'
     timeout: 60000
-- runFlow: ../../subflows/signInInstance.yaml
+- runFlow:
+    file: ../../subflows/restoreSession.yaml
+    env:
+      SESSION: ${E2E_SESSION_2}
 - extendedWaitUntil:
     visible:
       id: 'folder-row:${output.folder.name}'

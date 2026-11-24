@@ -34,13 +34,46 @@ token() {
     tr -d '\r\n'
 }
 
+# A signed-in session for subflows/restoreSession.yaml, as base64url JSON: a
+# client registered the way the app registers one, and tokens the stack mints
+# for it, so signing back in skips the browser. A logout unregisters the
+# client, which is why each restore gets its own.
+session() {
+  local client id access refresh
+  client="$(curl -fsS http://localhost/auth/register -H "Host: $INSTANCE_DOMAIN" \
+    -H 'Content-Type: application/json' -H 'Accept: application/json' \
+    -d '{"redirect_uris":["twakedrive://"],"client_name":"Twake Drive Mobile","software_id":"twake-drive-mobile","client_kind":"mobile","client_uri":"https://twake.app"}')" || return 1
+  id="$(node -p 'JSON.parse(process.argv[1]).client_id' "$client")"
+  access="$(docker exec "$STACK_CONTAINER" cozy-stack instances token-oauth "$INSTANCE_DOMAIN" "$id" '*' | tr -d '\r\n')"
+  refresh="$(docker exec "$STACK_CONTAINER" cozy-stack instances refresh-token-oauth "$INSTANCE_DOMAIN" "$id" '*' | tr -d '\r\n')"
+  node -e '
+    const [client, accessToken, refreshToken, uri] = process.argv.slice(1)
+    const c = JSON.parse(client)
+    const session = {
+      uri,
+      oauthOptions: {
+        clientID: c.client_id, clientSecret: c.client_secret, clientName: c.client_name,
+        softwareID: c.software_id, redirectURI: c.redirect_uris[0], clientKind: c.client_kind,
+        clientURI: c.client_uri, scopes: ["*"], registrationAccessToken: c.registration_access_token
+      },
+      token: { accessToken, refreshToken, tokenType: "bearer", scope: "*" }
+    }
+    process.stdout.write(Buffer.from(JSON.stringify(session)).toString("base64url"))
+  ' "$client" "$access" "$refresh" "http://$INSTANCE_DOMAIN"
+}
+
 tags_of() {
   sed -n '/^---/q; /^tags:/,/^[^ ]/p' "$1" | sed -n 's/^ *- *//p'
 }
 
 run() {
-  local name="$1"
+  local name="$1" sessions=() i restores
   shift
+  # E2E_SESSION_1…n, one per restoreSession the flow runs.
+  restores="$(grep -c 'restoreSession.yaml' "${@: -1}" 2>/dev/null)"
+  for ((i = 1; i <= ${restores:-0}; i++)); do
+    sessions+=(--env "E2E_SESSION_$i=$(session)")
+  done
   # A frozen flow prints nothing until the job timeout, so each one has a
   # deadline. `timeout` signals its whole process group: maestro's JVM goes too.
   # shellcheck disable=SC2086
@@ -50,6 +83,7 @@ run() {
     --env STACK_URL="http://localhost" \
     --env STACK_HOST="$INSTANCE_DOMAIN" \
     --env STACK_TOKEN="$(token)" \
+    ${sessions[@]+"${sessions[@]}"} \
     --format junit --output "$REPORTS/$name.xml" \
     "$@"
 }

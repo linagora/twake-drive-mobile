@@ -3,7 +3,11 @@ tags:
   - inapp
 # The flows after this one need the session back, whether it passed or not.
 onFlowComplete:
-  - runFlow: ../00-login-instance.yaml
+  - runFlow: ../../subflows/launchCleared.yaml
+  - runFlow:
+      file: ../../subflows/restoreSession.yaml
+      env:
+        SESSION: ${E2E_SESSION_1}
   - runFlow: ../../subflows/cleanup.yaml
 ---
 # A drawing opens in its web editor, in a browser tab, and the app is killed

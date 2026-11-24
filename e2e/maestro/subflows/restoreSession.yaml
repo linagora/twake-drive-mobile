@@ -1,0 +1,11 @@
+appId: com.linagora.twakedrive
+---
+# Signs the app back in without the browser: SESSION is one of the sessions
+# e2e/scripts/run-flows.sh minted on the stack for this flow (E2E_SESSION_n),
+# handed over through the development-only dev-session link. Each restore needs
+# its own, since signing out unregisters the client.
+- openLink: 'twakedrive:///dev-session/${SESSION}'
+- extendedWaitUntil:
+    visible:
+      id: 'drive-fab'
+    timeout: 120000
