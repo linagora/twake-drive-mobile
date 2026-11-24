@@ -21,14 +21,14 @@ appId: com.linagora.twakedrive
       - tapOn:
           point: '91%,47%'
       - waitForAnimationToEnd
-# An emulator under load can raise "isn't responding" over the screen.
+# An emulator under load can raise "isn't responding" over the screen. Looking
+# for it costs about 7 s when it is absent, so it is looked for once, and again
+# only after one was dismissed.
 - repeat:
+    while:
+      visible: 'Wait'
     times: 12
     commands:
-      - runFlow:
-          when:
-            visible: 'Wait'
-          commands:
-            - tapOn: 'Wait'
+      - tapOn: 'Wait'
       - waitForAnimationToEnd:
           timeout: 5000
