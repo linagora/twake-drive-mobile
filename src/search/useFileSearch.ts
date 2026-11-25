@@ -10,7 +10,7 @@ import { getSearchDatabases, isReplicating, SearchDatabase } from './searchDatab
 
 export type SearchStatus = 'idle' | 'loading' | 'indexing' | 'success' | 'error'
 
-export type SearchResult = FileQueryResult & { driveId?: string; location?: string }
+export type SearchResult = FileQueryResult & { location?: string }
 
 export interface FileSearchState {
   status: SearchStatus
