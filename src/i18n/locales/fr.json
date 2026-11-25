@@ -68,6 +68,11 @@
     "emptyShared": "Aucun fichier partagé avec vous",
     "emptySharedDrives": "Aucun drive partagé",
     "emptyRecent": "Aucun fichier récent",
+    "recentsUnavailableOffline": "Les récents ne sont pas disponibles hors ligne",
+    "noAccess": {
+      "file": "Vous n'avez plus accès à ce fichier",
+      "folder": "Vous n'avez plus accès à ce dossier"
+    },
     "emptyTrash": "Corbeille vide",
     "folderZipPreparing": "Préparation du zip…",
     "folderZipStarted": "Téléchargement lancé",

@@ -68,6 +68,11 @@
     "emptyShared": "Вам не предоставлен доступ к файлам",
     "emptySharedDrives": "Пока нет общих Drive",
     "emptyRecent": "Нет недавних файлов",
+    "recentsUnavailableOffline": "Недавние недоступны в автономном режиме",
+    "noAccess": {
+      "file": "У вас больше нет доступа к этому файлу",
+      "folder": "У вас больше нет доступа к этой папке"
+    },
     "emptyTrash": "Корзина пуста",
     "folderZipPreparing": "Подготовка архива…",
     "folderZipStarted": "Загрузка началась",

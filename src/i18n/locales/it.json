@@ -68,6 +68,11 @@
     "emptyShared": "Nessun file condiviso con te",
     "emptySharedDrives": "Ancora nessun drive condiviso",
     "emptyRecent": "Nessun file recente",
+    "recentsUnavailableOffline": "I recenti non sono disponibili offline",
+    "noAccess": {
+      "file": "Non hai più accesso a questo file",
+      "folder": "Non hai più accesso a questa cartella"
+    },
     "emptyTrash": "Il cestino è vuoto",
     "folderZipPreparing": "Preparazione dello zip…",
     "folderZipStarted": "Download avviato",
