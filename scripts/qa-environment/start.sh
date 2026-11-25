@@ -11,11 +11,16 @@
 # passphrase cozycozy, in French. Its stack and the stand-in sign-up portal listen on
 # 127.0.0.1:80 and 127.0.0.1:8090 only: one Android QA or e2e stack per machine.
 #
+# The DEVICE_* and INSTANCE_LOCALE variables of device-profile.sh set the device profile the run
+# tests with (font size, theme, languages, screen), applied once the app is signed in.
+#
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 # shellcheck source=scripts/qa-environment/stack.sh
 . "$ROOT/scripts/qa-environment/stack.sh"
+# shellcheck source=scripts/qa-environment/device-profile.sh
+. "$ROOT/scripts/qa-environment/device-profile.sh"
 QA_PROJECT="${QA_PROJECT:-twake-drive-mobile-qa}"
 DOMAIN=alice.10-0-2-2.nip.io
 APK="$ROOT/android/app/build/outputs/apk/release/app-release.apk"
@@ -26,7 +31,7 @@ command -v adb >/dev/null || { echo "adb is not on the PATH (Android SDK platfor
 [ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = 1 ] ||
   { echo "$ANDROID_SERIAL is not a booted device" >&2; exit 1; }
 
-stop_stack_on_failure "$QA_PROJECT"
+stop_stack_on_failure "$QA_PROJECT" reset_device_profile
 start_stack "$QA_PROJECT" 80 8090 "$DOMAIN" http://10.0.2.2:8090
 
 adb install -r "$APK"
@@ -40,4 +45,5 @@ adb shell am broadcast -a android.intent.action.MEDIA_SCANNER_SCAN_FILE \
 "$ROOT/e2e/scripts/maestro.sh" --platform android --udid "$ANDROID_SERIAL" test \
   --env INSTANCE_URL="http://$DOMAIN" --env INSTANCE_PASSPHRASE=cozycozy \
   "$ROOT/e2e/maestro/flows/00-login-instance.yaml"
+apply_device_profile "$(docker compose -p "$QA_PROJECT" ps -q stack)" "$DOMAIN"
 echo "==> QA environment '$QA_PROJECT' started, the app on $ANDROID_SERIAL is signed into http://$DOMAIN"

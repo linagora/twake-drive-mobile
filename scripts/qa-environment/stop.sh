@@ -1,12 +1,16 @@
 #!/usr/bin/env bash
 #
 # Stops the QA environment started by start.sh, deletes its instance, and leaves the emulator
-# as a run found it: the app's data cleared, airplane mode off, Maestro's driver stopped. The
-# emulator is only reset when the QA stack was running: otherwise another run may be using it.
+# as a run found it: the app's data cleared, airplane mode off, Maestro's driver stopped, the
+# device profile of device-profile.sh reset. The emulator is only reset when the QA stack was
+# running: otherwise another run may be using it.
 #
 #   ANDROID_SERIAL=emulator-5554 scripts/qa-environment/stop.sh
 #
 set -uo pipefail
+
+# shellcheck source=scripts/qa-environment/device-profile.sh
+. "$(cd "$(dirname "$0")" && pwd)/device-profile.sh"
 
 QA_PROJECT="${QA_PROJECT:-twake-drive-mobile-qa}"
 
@@ -18,5 +22,6 @@ if [ -n "$RUNNING" ] && [ -n "${ANDROID_SERIAL:-}" ] && adb get-state >/dev/null
   adb shell am force-stop dev.mobile.maestro.test
   adb shell am force-stop dev.mobile.maestro
   adb forward --remove-all
+  reset_device_profile
 fi
 echo "==> QA environment '$QA_PROJECT' stopped"
