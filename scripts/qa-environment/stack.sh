@@ -35,7 +35,10 @@ EOF
 stop_stack_on_failure() {
   local project="$1" cleanup="${2:-true}"
   # shellcheck disable=SC2064 # the project and the command are known now
-  trap "[ \$? = 0 ] || { $cleanup; docker compose -p '$project' down --volumes --remove-orphans >/dev/null 2>&1; }" EXIT
+  trap "[ \$? = 0 ] || { $cleanup || true; docker compose -p '$project' down --volumes --remove-orphans >/dev/null 2>&1; }" EXIT
+  # bash runs no EXIT trap when a signal kills it: exit on the signal instead
+  trap 'exit 130' INT
+  trap 'exit 143' TERM
 }
 
 # close_tunnel <control socket> <ssh host>: the ssh tunnel of ios/start.sh, even when its control
