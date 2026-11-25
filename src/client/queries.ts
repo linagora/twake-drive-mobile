@@ -109,6 +109,12 @@ export const recentQuery = (): QueryDefinition =>
     .limitBy(200)
 export const recentQueryAs = 'recent-view-query'
 
+export const PERSONAL_RECENTS_DOCTYPE = 'io.cozy.files.recents'
+
+/** The files and folders the user worked on, in the stack's order (last activity first). */
+export const personalRecentsQuery = (): QueryDefinition => Q(PERSONAL_RECENTS_DOCTYPE)
+export const personalRecentsQueryAs = 'io.cozy.files.recents'
+
 // Files and folders marked favourite (`cozyMetadata.favorite === true`).
 //
 // Follows twake-drive-web's `buildFavoritesQuery`: the favourite flag lives in

@@ -68,6 +68,11 @@
     "emptyShared": "No files shared with you",
     "emptySharedDrives": "No shared drives yet",
     "emptyRecent": "No recent files",
+    "recentsUnavailableOffline": "Recents are not available offline",
+    "noAccess": {
+      "file": "You no longer have access to this file",
+      "folder": "You no longer have access to this folder"
+    },
     "emptyTrash": "Trash is empty",
     "folderZipPreparing": "Preparing the zip…",
     "folderZipStarted": "Download started",

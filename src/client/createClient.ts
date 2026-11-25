@@ -3,6 +3,7 @@ import flag from 'cozy-flags'
 
 import { keepStoredTokenFresh } from '@/auth/keepStoredTokenFresh'
 import { APP_SCOPES } from '@/auth/scopes'
+import { PERSONAL_RECENTS_DOCTYPE } from '@/client/queries'
 import { Session } from '@/auth/types'
 import { configureNetInfo } from '@/network/netInfoConfig'
 import { getLinks } from '@/pouchdb/getLinks'
@@ -56,7 +57,13 @@ export const createClient = async (session: Session): Promise<CozyClient> => {
       slug: 'twake-drive-mobile',
       version: '0.1.0'
     },
-    links: getLinks()
+    links: getLinks(),
+    schema: {
+      recents: {
+        doctype: PERSONAL_RECENTS_DOCTYPE,
+        relationships: { file: { type: 'has-one', doctype: 'io.cozy.files' } }
+      }
+    }
   } as ConstructorParameters<typeof CozyClient>[0] & { scope: string[] })
 
   if (__DEV__) {

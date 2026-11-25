@@ -68,6 +68,11 @@
     "emptyShared": "Keine für Sie freigegebenen Dateien",
     "emptySharedDrives": "Noch keine geteilten Drives",
     "emptyRecent": "Keine kürzlich verwendeten Dateien",
+    "recentsUnavailableOffline": "Die zuletzt verwendeten Dateien sind offline nicht verfügbar",
+    "noAccess": {
+      "file": "Sie haben keinen Zugriff mehr auf diese Datei",
+      "folder": "Sie haben keinen Zugriff mehr auf diesen Ordner"
+    },
     "emptyTrash": "Papierkorb ist leer",
     "folderZipPreparing": "ZIP wird vorbereitet…",
     "folderZipStarted": "Download gestartet",
