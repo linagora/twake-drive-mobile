@@ -30,6 +30,8 @@ export interface FileQueryResult {
   class?: string
   updated_at?: string
   path?: string
+  /** Set on a document of a shared drive, whose routes it addresses. */
+  driveId?: string
   /** Set by the app that owns the document; the Docs bridge is addressed by
    *  `externalId`. `sharing` is on the shortcut of a received share: `new`
    *  until the stack sees it opened, `seen` afterwards. */

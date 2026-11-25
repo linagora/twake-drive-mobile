@@ -13,6 +13,7 @@ import { LoadingState } from '@/ui/LoadingState'
 import { FileRow } from '@/ui/FileRow'
 import { FolderRow } from '@/ui/FolderRow'
 import { getErrorMessageKey } from '@/utils/errorMessages'
+import { makeFolderRoute } from '@/files/folderRoute'
 import { useOpenFile } from '@/files/useOpenFile'
 import { useDebouncedValue } from '@/search/useDebouncedValue'
 import { SearchResult, useFileSearch } from '@/search/useFileSearch'
@@ -43,13 +44,7 @@ export default function SearchScreen() {
         <FolderRow
           folder={item}
           location={location}
-          onPress={folder =>
-            router.push(
-              item.driveId
-                ? `/(drive)/shared/${item.driveId}/${folder._id}`
-                : `/(drive)/files/${folder._id}`
-            )
-          }
+          onPress={() => router.push(makeFolderRoute(item))}
         />
       )
     }
