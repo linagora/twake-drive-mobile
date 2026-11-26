@@ -3,7 +3,12 @@ const mockOpenFileNatively = jest.fn()
 jest.mock('./openFile', () => ({
   openFileNatively: (...a: unknown[]) => mockOpenFileNatively(...a)
 }))
+const mockFetchShortcutUrl = jest.fn()
+jest.mock('./shortcuts', () => ({
+  fetchShortcutUrl: (...a: unknown[]) => mockFetchShortcutUrl(...a)
+}))
 
+import { Linking } from 'react-native'
 import type CozyClient from 'cozy-client'
 import flag from 'cozy-flags'
 import type { ImperativeRouter } from 'expo-router'
@@ -120,5 +125,19 @@ describe('openDriveFile', () => {
     )
 
     expect(router.push).toHaveBeenCalledWith('/preview/f4')
+  })
+
+  it('looks a shortcut of a shared drive up in that drive', async () => {
+    mockFetchShortcutUrl.mockResolvedValue('https://example.com/')
+    jest.spyOn(Linking, 'openURL').mockResolvedValue(undefined)
+
+    await openDriveFile(
+      client,
+      router,
+      { _id: 's1', name: 'site.url', class: 'shortcut' },
+      { openEditor, driveId: 'drive-1' }
+    )
+
+    expect(mockFetchShortcutUrl).toHaveBeenCalledWith(client, { fileId: 's1', driveId: 'drive-1' })
   })
 })

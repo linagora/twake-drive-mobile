@@ -19,9 +19,21 @@ interface ShortcutMetadata {
   sharing?: { status?: string }
 }
 
-const fetchShortcutDoc = async (client: CozyClient, fileId: string): Promise<ShortcutDoc> => {
-  const result = (await client.query(Q('io.cozy.files.shortcuts').getById(fileId), {
-    as: `io.cozy.files.shortcuts/${fileId}`,
+interface ShortcutRef {
+  fileId: string
+  /** Set on a shortcut of a shared drive, served by the drive routes. */
+  driveId?: string
+}
+
+const fetchShortcutDoc = async (
+  client: CozyClient,
+  { fileId, driveId }: ShortcutRef
+): Promise<ShortcutDoc> => {
+  const definition = Q('io.cozy.files.shortcuts').getById(fileId)
+  const result = (await client.query(driveId ? definition.sharingById(driveId) : definition, {
+    as: driveId
+      ? `io.cozy.files.shortcuts/${driveId}/${fileId}`
+      : `io.cozy.files.shortcuts/${fileId}`,
     singleDocData: true
   } as unknown as Parameters<CozyClient['query']>[1])) as { data?: ShortcutDoc }
   const data = result.data ?? {}
@@ -45,9 +57,9 @@ const fetchShortcutDoc = async (client: CozyClient, fileId: string): Promise<Sho
  */
 export const fetchShortcutUrl = async (
   client: CozyClient,
-  fileId: string
+  shortcut: ShortcutRef
 ): Promise<string | null> => {
-  const data = await fetchShortcutDoc(client, fileId)
+  const data = await fetchShortcutDoc(client, shortcut)
   return data.url ?? data.attributes?.url ?? null
 }
 
@@ -65,7 +77,7 @@ export const fetchShortcutTarget = async (
   client: CozyClient,
   fileId: string
 ): Promise<{ _id: string; _type?: string } | null> => {
-  const data = await fetchShortcutDoc(client, fileId)
+  const data = await fetchShortcutDoc(client, { fileId })
   const target = data.metadata?.target
   if (!target?._id) return null
   return { _id: target._id, _type: target._type ?? target.doctype }

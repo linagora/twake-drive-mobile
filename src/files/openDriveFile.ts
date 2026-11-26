@@ -59,7 +59,7 @@ export const openDriveFile = async (
     return
   }
   if (isShortcutFile(file)) {
-    const url = await fetchShortcutUrl(client, file._id)
+    const url = await fetchShortcutUrl(client, { fileId: file._id, driveId })
     if (!url) throw new Error('Shortcut has no target URL')
     closeSheet?.()
     await Linking.openURL(url)
