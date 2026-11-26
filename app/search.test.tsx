@@ -178,7 +178,7 @@ describe('SearchScreen', () => {
     render(<SearchScreen />)
     fireEvent.changeText(screen.getByPlaceholderText('drive.search.placeholder'), 'do')
     fireEvent.press(screen.getByText('Dossier'))
-    expect(mockPush).toHaveBeenCalledWith('/(drive)/shared/drive-a/folder-1')
+    expect(mockPush).toHaveBeenCalledWith('/(drive)/shared/drive/drive-a/folder-1')
   })
 
   it("ouvre un fichier d'un drive partagé avec son drive", () => {
