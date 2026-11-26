@@ -18,7 +18,7 @@ beforeEach(() => {
 describe('fetchShortcutUrl', () => {
   it('queries io.cozy.files.shortcuts with the right shape', async () => {
     const { client, query } = buildClient({ data: { url: 'https://example.com/' } })
-    const url = await fetchShortcutUrl(client, 'abc')
+    const url = await fetchShortcutUrl(client, { fileId: 'abc' })
     expect(url).toBe('https://example.com/')
     expect(query).toHaveBeenCalledTimes(1)
     const [definition, options] = query.mock.calls[0]
@@ -30,14 +30,22 @@ describe('fetchShortcutUrl', () => {
     })
   })
 
+  it('asks the drive routes for a shortcut of a shared drive', async () => {
+    const { client, query } = buildClient({ data: { url: 'https://example.com/' } })
+    await fetchShortcutUrl(client, { fileId: 'abc', driveId: 'drive-1' })
+    const [definition, options] = query.mock.calls[0]
+    expect(definition.sharingId).toBe('drive-1')
+    expect(options.as).toBe('io.cozy.files.shortcuts/drive-1/abc')
+  })
+
   it('falls back to attributes.url for raw JSON-API responses', async () => {
     const { client } = buildClient({ data: { attributes: { url: 'https://fallback.test/' } } })
-    expect(await fetchShortcutUrl(client, 'id')).toBe('https://fallback.test/')
+    expect(await fetchShortcutUrl(client, { fileId: 'id' })).toBe('https://fallback.test/')
   })
 
   it('returns null when no URL is present', async () => {
     const { client } = buildClient({ data: {} })
-    expect(await fetchShortcutUrl(client, 'id')).toBeNull()
+    expect(await fetchShortcutUrl(client, { fileId: 'id' })).toBeNull()
   })
 
   // The stack flips `metadata.sharing.status` to `seen` while serving the
@@ -46,13 +54,13 @@ describe('fetchShortcutUrl', () => {
     const { client } = buildClient({
       data: { url: 'https://owner.test/preview', metadata: { sharing: { status: 'seen' } } }
     })
-    expect(await fetchShortcutUrl(client, 'share-1')).toBe('https://owner.test/preview')
+    expect(await fetchShortcutUrl(client, { fileId: 'share-1' })).toBe('https://owner.test/preview')
     expect(mockRefresh).toHaveBeenCalledWith(client, 'share-1')
   })
 
   it('leaves a plain shortcut alone', async () => {
     const { client } = buildClient({ data: { url: 'https://example.com/' } })
-    await fetchShortcutUrl(client, 'abc')
+    await fetchShortcutUrl(client, { fileId: 'abc' })
     expect(mockRefresh).not.toHaveBeenCalled()
   })
 })
