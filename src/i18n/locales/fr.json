@@ -35,7 +35,9 @@
     "logoutMessage": "Les fichiers gardés hors ligne et les documents que vous avez ouverts restent sur cet appareil. Effacez-les s'il ne vous appartient pas.",
     "logoutAndErase": "Se déconnecter et effacer",
     "privacyPolicy": "Politique de confidentialité",
-    "termsOfService": "Conditions générales d'utilisation"
+    "termsOfService": "Conditions générales d'utilisation",
+    "notifications": "Notifications",
+    "notificationsDescription": "Être prévenu quand quelqu'un partage un fichier ou un dossier avec vous."
   },
   "auth": {
     "welcomeTitle": "Bienvenue sur Twake Drive",

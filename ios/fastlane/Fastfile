@@ -109,6 +109,15 @@ platform :ios do
       xcodeproj: "TwakeDrive.xcodeproj"
     )
 
+    # Push needs the APNs entitlement, which the match profile only carries once
+    # Push Notifications is on for the App ID: it comes with the Firebase config.
+    if File.exist?(File.expand_path("../TwakeDrive/GoogleService-Info.plist", __dir__))
+      update_plist(
+        plist_path: File.expand_path("../TwakeDrive/TwakeDrive.entitlements", __dir__),
+        block: proc { |plist| plist["aps-environment"] = "production" }
+      )
+    end
+
     # Expo/RN app: build the WORKSPACE (Pods), not the bare project. Force manual
     # signing with the match-managed App Store profile.
     gym(

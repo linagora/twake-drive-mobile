@@ -35,7 +35,9 @@
     "logoutMessage": "I file mantenuti offline e i documenti che hai aperto restano su questo dispositivo. Cancellali se non ti appartiene.",
     "logoutAndErase": "Disconnetti ed elimina",
     "privacyPolicy": "Informativa sulla privacy",
-    "termsOfService": "Condizioni generali di utilizzo"
+    "termsOfService": "Condizioni generali di utilizzo",
+    "notifications": "Notifiche",
+    "notificationsDescription": "Ricevi un avviso quando qualcuno condivide un file o una cartella con te."
   },
   "auth": {
     "welcomeTitle": "Benvenuto in Twake Drive",
